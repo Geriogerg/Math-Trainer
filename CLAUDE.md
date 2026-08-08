@@ -30,12 +30,40 @@ Explique un idiome à sa première apparition, pas ensuite.
 Développement sous Windows. Le build iOS n'est pas réalisable localement (nécessitera
 macOS ou un CI cloud). Ne propose pas de solution exigeant Xcode en local.
 
-<!-- À COMPLÉTER : gestion d'état retenue, et pourquoi -->
+**Gestion d'état : `ChangeNotifier` natif (`flutter/foundation.dart`), sans package
+tiers.** `SessionController` (`lib/core/state/`) détient `SessionState` (immuable) et
+notifie l'UI via `ListenableBuilder`. Pas de `provider`/`riverpod`/`bloc` : un seul
+contrôleur actif sur 3 écrans séquentiels ne le justifie pas. À réévaluer quand le
+multijoueur introduira des flux réseau concurrents (état du duel, présence de
+l'adversaire).
 
 ## Structure du projet
 
-<!-- À COMPLÉTER : arborescence réelle après le MVP, avec le rôle de chaque dossier.
-     Demander à Claude Code de la générer, puis la relire. -->
+```
+lib/
+  main.dart                # point d'entrée, runApp()
+  app.dart                 # MaterialApp, thème, écran racine
+  core/
+    domain/                # Dart pur — zéro import Flutter (règle 1)
+      models/               # Exercise (sealed class), OperationType, AnswerResult,
+                             # SessionConfig, SessionResult
+      generation/           # ExerciseGenerator, ArithmeticExerciseGenerator,
+                             # OperandRange, ExerciseSource, LocalExerciseSource
+      scoring/              # Scorer, ScoringRules
+    state/                  # SessionController (ChangeNotifier), SessionState —
+                             # seul point du cœur métier qui importe Flutter
+                             # (flutter/foundation.dart, jamais material.dart)
+  presentation/
+    screens/                # HomeScreen (composition + écran de démarrage),
+                             # SessionScreen (question/saisie/feedback),
+                             # ResultScreen (statistiques + recommencer)
+test/
+  domain/                  # miroir de lib/core/domain — `dart test test/domain`
+  state/                   # tests de SessionController — `flutter test`
+                            # (ChangeNotifier importe dart:ui transitivement,
+                            # incompatible avec le runner `dart test` pur)
+  widget_test.dart         # smoke test + parcours démarrage → session
+```
 
 ## Contraintes d'architecture
 
@@ -126,8 +154,8 @@ natives pour le ladder). Ne pas introduire de dépendance qui fermerait cette op
 
 Le MVP est terminé. Les étapes suivantes, dans l'ordre :
 
-1. Consolidation des tests du cœur métier (déterminisme, scoring, validation)
-2. Persistance locale : repository abstrait, SQLite, historique granulaire
+1. ~~Consolidation des tests du cœur métier (déterminisme, scoring, validation)~~ — fait
+2. **Persistance locale** : repository abstrait, SQLite, historique granulaire ← étape courante
 3. Élargissement des types d'exercices
 4. Difficulté paramétrable
 5. Polish UI et feedback
@@ -167,14 +195,16 @@ maintenant. Pas d'interface pour un seul cas d'usage.
 
 ## Validation avant commit
 
-1. `dart test` puis `flutter test` au vert
+1. `dart test test/domain` puis `flutter test` au vert
 2. `flutter analyze` sans avertissement
 3. Vérification sur Android réel ou émulateur — pas uniquement sur web
 
 ## Commandes
 
 ```bash
-dart test                  # tests du cœur métier (rapide)
+dart test test/domain      # tests du cœur métier (rapide) — scope obligatoire, sinon
+                            # dart test scanne aussi les tests widgets et échoue
+                            # (ils importent Flutter, incompatible avec ce runner)
 flutter test               # tests incluant les widgets
 flutter analyze            # analyse statique
 flutter run -d edge        # itération rapide
@@ -186,4 +216,10 @@ flutter run                # device Android
 N'ajouter une dépendance que si elle est réellement nécessaire, et le justifier.
 Privilégier la bibliothèque standard Dart quand elle suffit.
 
-<!-- À COMPLÉTER : liste des dépendances actuelles avec la raison de chacune -->
+| Dépendance | Justification |
+|---|---|
+| `flutter` (SDK) | obligatoire |
+| `cupertino_icons ^1.0.8` | ajoutée par défaut par `flutter create` — **non utilisée** dans le code actuel |
+| `flutter_test` (SDK, dev) | tests widgets (`flutter test`) |
+| `flutter_lints ^6.0.0` (dev) | lints exigés par « Conventions de code » |
+| `test ^1.25.0` (dev) | permet `dart test` sur le cœur métier pur ; `flutter_test` seul ne s'exécute pas hors tooling Flutter |
