@@ -46,9 +46,10 @@ Non négociables sans discussion explicite.
 9. **Toute réponse attendue est un `int`.** `Exercise.correctAnswer` est typé `int`, jamais
    `num` ni `double` ; la division utilise `~/`. Aucun type d'exercice n'introduit de réponse
    composite, fractionnaire ou approchée. → la règle est vérifiée par le compilateur et non
-   promise dans un document ; maintient `TextInputType.number`, la colonne `INTEGER`, et évite
-   une refonte UI + `Scorer` + codec + schéma. Comparer des `double` exposerait à une réponse
-   correcte comptée fausse par erreur de représentation binaire.
+   promise dans un document ; maintient `TextInputType.number` et évite une refonte UI +
+   `Scorer` + codec + schéma. Comparer des `double` exposerait à une réponse correcte comptée
+   fausse par erreur de représentation binaire. La colonne SQLite `submitted_value` reste
+   `REAL` (un entier s'y stocke sans perte) — décision assumée, pas une migration oubliée.
 10. **La génération construit le résultat, elle ne le teste pas.** Tirer la racine `r` et
     présenter `r²` ; jamais de rejet-échantillonnage. → une boucle de rejet consomme un
     nombre variable de tirages, la séquence dépendrait des bornes et casserait la règle 2.

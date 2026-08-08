@@ -39,7 +39,7 @@ void main() {
       );
     });
 
-    test('isCorrectAnswer accepte int ou double équivalents', () {
+    test('isCorrectAnswer compare des entiers', () {
       const exercise = ArithmeticExercise(
         operandA: 12,
         operandB: 3,
@@ -47,7 +47,6 @@ void main() {
       );
 
       expect(exercise.isCorrectAnswer(4), isTrue);
-      expect(exercise.isCorrectAnswer(4.0), isTrue);
       expect(exercise.isCorrectAnswer(5), isFalse);
     });
 
@@ -116,14 +115,7 @@ void main() {
       expect(exercise.isCorrectAnswer(0), isTrue);
     });
 
-    test('isCorrectAnswer n\'applique aucune tolérance numérique', () {
-      const exercise = ArithmeticExercise(
-        operandA: 4,
-        operandB: 3,
-        operationType: OperationType.addition,
-      );
-
-      expect(exercise.isCorrectAnswer(7.5), isFalse);
-    });
+    // Pas de test pour « aucune tolérance numérique » : isCorrectAnswer(int) ne peut
+    // plus recevoir de valeur fractionnaire, la garantie est portée par le compilateur.
   });
 }

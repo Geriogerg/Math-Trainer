@@ -9,7 +9,7 @@ class AnswerResult {
   });
 
   final Exercise exercise;
-  final num submittedValue;
+  final int submittedValue;
   final bool isCorrect;
   final int elapsedMs;
 

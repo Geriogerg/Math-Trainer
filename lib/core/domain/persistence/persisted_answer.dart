@@ -30,7 +30,7 @@ class PersistedAnswer {
   final String exerciseType;
   final String operationType;
   final Map<String, Object?> operands;
-  final num submittedValue;
+  final int submittedValue;
   final bool isCorrect;
   final int elapsedMs;
   final DateTime createdAt;

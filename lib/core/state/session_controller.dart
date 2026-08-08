@@ -57,7 +57,7 @@ class SessionController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void submitAnswer(num submittedValue) {
+  void submitAnswer(int submittedValue) {
     final exercise = _state.currentExercise;
     if (_state.status != SessionStatus.inProgress || exercise == null) return;
 

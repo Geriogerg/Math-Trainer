@@ -7,9 +7,9 @@ sealed class Exercise {
   const Exercise();
 
   String get prompt;
-  num get correctAnswer;
+  int get correctAnswer;
 
-  bool isCorrectAnswer(num submittedValue) => submittedValue == correctAnswer;
+  bool isCorrectAnswer(int submittedValue) => submittedValue == correctAnswer;
 }
 
 final class ArithmeticExercise extends Exercise {
@@ -24,11 +24,11 @@ final class ArithmeticExercise extends Exercise {
   final OperationType operationType;
 
   @override
-  num get correctAnswer => switch (operationType) {
+  int get correctAnswer => switch (operationType) {
     OperationType.addition => operandA + operandB,
     OperationType.subtraction => operandA - operandB,
     OperationType.multiplication => operandA * operandB,
-    OperationType.division => operandA / operandB,
+    OperationType.division => operandA ~/ operandB,
   };
 
   @override

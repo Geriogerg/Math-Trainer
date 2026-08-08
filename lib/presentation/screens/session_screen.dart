@@ -21,7 +21,7 @@ class _SessionScreenState extends State<SessionScreen> {
   }
 
   void _submit() {
-    final value = num.tryParse(_answerController.text);
+    final value = int.tryParse(_answerController.text);
     if (value == null) return;
     widget.controller.submitAnswer(value);
     _answerController.clear();
