@@ -1,4 +1,4 @@
-import '../models/operation_type.dart';
+import '../models/exercise_type.dart';
 
 /// Voir [PersistedAnswer] pour la raison d'être de ce sentinel.
 const _unset = Object();
@@ -8,7 +8,7 @@ class PersistedSession {
     required this.id,
     required this.playerId,
     required this.seed,
-    required this.operationTypes,
+    required this.enabledTypes,
     required this.exerciseCount,
     required this.totalScore,
     required this.createdAt,
@@ -25,7 +25,7 @@ class PersistedSession {
   final String id;
   final String playerId;
   final int seed;
-  final List<OperationType> operationTypes;
+  final Set<ExerciseType> enabledTypes;
   final int exerciseCount;
   final int totalScore;
   final DateTime createdAt;
@@ -36,7 +36,7 @@ class PersistedSession {
       id: id,
       playerId: playerId,
       seed: seed,
-      operationTypes: operationTypes,
+      enabledTypes: enabledTypes,
       exerciseCount: exerciseCount,
       totalScore: totalScore,
       createdAt: createdAt,
@@ -44,12 +44,12 @@ class PersistedSession {
     );
   }
 
-  bool _operationTypesEqual(List<OperationType> other) {
-    if (other.length != operationTypes.length) return false;
-    for (var i = 0; i < operationTypes.length; i++) {
-      if (other[i] != operationTypes[i]) return false;
-    }
-    return true;
+  /// Un `Set` n'a pas d'ordre stable à comparer positionnellement — deux
+  /// ensembles construits par insertion différente doivent rester égaux
+  /// (même piège que `CompositeExerciseGenerator`, ici sur la persistance).
+  bool _enabledTypesEqual(Set<ExerciseType> other) {
+    if (other.length != enabledTypes.length) return false;
+    return enabledTypes.every(other.contains);
   }
 
   @override
@@ -58,7 +58,7 @@ class PersistedSession {
       other.id == id &&
       other.playerId == playerId &&
       other.seed == seed &&
-      other._operationTypesEqual(operationTypes) &&
+      other._enabledTypesEqual(enabledTypes) &&
       other.exerciseCount == exerciseCount &&
       other.totalScore == totalScore &&
       other.createdAt == createdAt &&
@@ -69,7 +69,9 @@ class PersistedSession {
     id,
     playerId,
     seed,
-    Object.hashAll(operationTypes),
+    // Object.hashAllUnordered : le hash ne doit pas dépendre de l'ordre
+    // d'itération du Set, pour rester cohérent avec _enabledTypesEqual.
+    Object.hashAllUnordered(enabledTypes),
     exerciseCount,
     totalScore,
     createdAt,

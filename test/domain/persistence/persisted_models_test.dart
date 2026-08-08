@@ -1,4 +1,4 @@
-import 'package:math_trainer/core/domain/models/operation_type.dart';
+import 'package:math_trainer/core/domain/models/exercise_type.dart';
 import 'package:math_trainer/core/domain/persistence/persisted_answer.dart';
 import 'package:math_trainer/core/domain/persistence/persisted_session.dart';
 import 'package:test/test.dart';
@@ -75,7 +75,7 @@ void main() {
         id: 'session-1',
         playerId: 'player-1',
         seed: 42,
-        operationTypes: const [OperationType.addition, OperationType.division],
+        enabledTypes: const {ExerciseType.addition, ExerciseType.division},
         exerciseCount: 10,
         totalScore: 150,
         createdAt: DateTime.utc(2026, 8, 8),
@@ -86,6 +86,30 @@ void main() {
     test('deux instances avec les mêmes valeurs sont égales', () {
       expect(buildSession(), equals(buildSession()));
       expect(buildSession().hashCode, equals(buildSession().hashCode));
+    });
+
+    test('enabledTypes construits dans un ordre d\'insertion différent restent égaux', () {
+      final a = PersistedSession(
+        id: 'session-1',
+        playerId: 'player-1',
+        seed: 42,
+        enabledTypes: {ExerciseType.power, ExerciseType.division, ExerciseType.addition},
+        exerciseCount: 10,
+        totalScore: 150,
+        createdAt: DateTime.utc(2026, 8, 8),
+      );
+      final b = PersistedSession(
+        id: 'session-1',
+        playerId: 'player-1',
+        seed: 42,
+        enabledTypes: {ExerciseType.addition, ExerciseType.division, ExerciseType.power},
+        exerciseCount: 10,
+        totalScore: 150,
+        createdAt: DateTime.utc(2026, 8, 8),
+      );
+
+      expect(a, equals(b));
+      expect(a.hashCode, equals(b.hashCode));
     });
 
     test('copyWith peut poser puis remettre syncedAt à null', () {
@@ -102,7 +126,7 @@ void main() {
           id: 'session-1',
           playerId: 'player-1',
           seed: 42,
-          operationTypes: const [OperationType.addition],
+          enabledTypes: const {ExerciseType.addition},
           exerciseCount: 10,
           totalScore: 150,
           createdAt: DateTime(2026, 8, 8),

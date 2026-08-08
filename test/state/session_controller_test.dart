@@ -1,5 +1,6 @@
 import 'package:math_trainer/core/domain/generation/exercise_source.dart';
 import 'package:math_trainer/core/domain/models/exercise.dart';
+import 'package:math_trainer/core/domain/models/exercise_type.dart';
 import 'package:math_trainer/core/domain/models/operation_type.dart';
 import 'package:math_trainer/core/domain/models/session_config.dart';
 import 'package:math_trainer/core/domain/persistence/in_memory_session_repository.dart';
@@ -28,7 +29,7 @@ void main() {
     return SessionController(
       config: SessionConfig(
         seed: 1,
-        operationTypes: [OperationType.addition],
+        enabledTypes: {ExerciseType.addition},
         exerciseCount: exercises.length,
       ),
       exerciseSource: _FixedExerciseSource(exercises),

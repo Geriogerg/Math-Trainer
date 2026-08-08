@@ -78,22 +78,20 @@ Ne pas introduire de dépendance qui fermerait cette option.
 
 ## Périmètre
 
-Étapes 1 (tests du cœur métier) et 2 (persistance locale) : faites.
+Étapes 1 (tests du cœur métier), 2 (persistance locale) et 3 (élargissement des types
+d'exercices) : faites. Étape 3 livrée en 3 commits : contrat de réponse resserré en `int`,
+domaine complet (`ExerciseType`, `PowerExercise`/`SquareRootExercise`/`PercentageExercise`,
+`CompositeExerciseGenerator`), puis `Set<ExerciseType> enabledTypes` dans `SessionConfig`
+et sélection des types sur `HomeScreen`. Une session mono-type est une session dont
+l'ensemble actif a un seul élément — pas un mode séparé.
 
-**Étape 3 — élargissement des types d'exercices ← courante.** Trois types, tous à réponse
-entière (règle 9) : puissances et carrés ; racines carrées de carrés parfaits ; pourcentages
-entiers (5, 10, 20, 25, 50 sur bases compatibles). Inclut le passage de `correctAnswer` en
-`int`, l'enum `ExerciseType`, `Set<ExerciseType> enabledTypes` dans `SessionConfig`, un
-`CompositeExerciseGenerator` alimenté par **un seul flux seedé**, l'extension
-d'`exercise_codec.dart`, et la sélection des types sur `HomeScreen`.
-Une session mono-type est une session dont l'ensemble actif a un seul élément — pas deux modes.
+**Étape 4 — difficulté paramétrable ← courante.** Plages d'opérandes et niveaux de
+difficulté ; les bornes des générateurs (aujourd'hui des constantes internes,
+`OperandRange` par type déjà en place comme couture) deviennent réglables. Scoring
+actuellement uniforme entre types — la pondération par difficulté relève aussi de cette
+étape.
 
-Hors de l'étape 3 : plages d'opérandes et niveaux de difficulté (étape 4) ; les bornes restent
-des constantes internes aux générateurs, `OperandRange` par type est la couture prévue, la
-laisser apparente. Scoring uniforme entre types, la pondération par difficulté relève aussi
-de l'étape 4.
-
-Ensuite : 4. difficulté paramétrable — 5. polish UI et feedback.
+Ensuite : 5. polish UI et feedback.
 **N'implémente rien au-delà de l'étape courante sans demande explicite.**
 
 ## Hors périmètre (définitif)

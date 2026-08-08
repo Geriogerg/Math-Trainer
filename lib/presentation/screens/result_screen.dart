@@ -3,9 +3,14 @@ import 'package:flutter/material.dart';
 import '../../core/state/session_controller.dart';
 
 class ResultScreen extends StatelessWidget {
-  const ResultScreen({super.key, required this.controller});
+  const ResultScreen({super.key, required this.controller, required this.onRestart});
 
   final SessionController controller;
+
+  /// Ramène à l'écran de sélection des types (pas
+  /// `SessionController.restart()`, qui rejouerait silencieusement avec les
+  /// mêmes types) — décision prise pour l'étape 3, commit C.
+  final VoidCallback onRestart;
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +30,7 @@ class ResultScreen extends StatelessWidget {
           const SizedBox(height: 8),
           Text('Temps moyen : ${result.averageElapsedMs.round()} ms'),
           const SizedBox(height: 32),
-          FilledButton(onPressed: controller.restart, child: const Text('Recommencer')),
+          FilledButton(onPressed: onRestart, child: const Text('Recommencer')),
         ],
       ),
     );

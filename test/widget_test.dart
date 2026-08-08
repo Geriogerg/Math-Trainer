@@ -29,4 +29,57 @@ void main() {
     expect(find.text('Valider'), findsOneWidget);
     expect(find.text('Math Trainer'), findsNothing);
   });
+
+  testWidgets('aucun type sélectionné désactive Commencer', (WidgetTester tester) async {
+    await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
+
+    // Décoche les 4 types arithmétiques pré-sélectionnés par défaut.
+    for (final label in ['Addition', 'Soustraction', 'Multiplication', 'Division']) {
+      await tester.tap(find.text(label));
+      await tester.pump();
+    }
+    await tester.tap(find.text('Commencer'));
+    await tester.pump();
+
+    // Toujours sur l'écran de sélection : le bouton désactivé n'a rien déclenché.
+    expect(find.text('Math Trainer'), findsOneWidget);
+    expect(find.byType(TextField), findsNothing);
+  });
+
+  testWidgets('un seul type sélectionné démarre une session mono-type', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
+
+    for (final label in ['Soustraction', 'Multiplication', 'Division']) {
+      await tester.tap(find.text(label));
+      await tester.pump();
+    }
+    await tester.tap(find.text('Commencer'));
+    await tester.pump();
+
+    expect(find.byType(TextField), findsOneWidget);
+  });
+
+  testWidgets('recommencer après une session ramène à l\'écran de sélection', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
+
+    await tester.tap(find.text('Commencer'));
+    await tester.pump();
+
+    for (var i = 0; i < 15 && find.text('Session terminée').evaluate().isEmpty; i++) {
+      await tester.enterText(find.byType(TextField), '1');
+      await tester.tap(find.text('Valider'));
+      await tester.pump();
+    }
+    expect(find.text('Session terminée'), findsOneWidget);
+
+    await tester.tap(find.text('Recommencer'));
+    await tester.pump();
+
+    expect(find.text('Math Trainer'), findsOneWidget);
+    expect(find.byType(FilterChip), findsWidgets);
+  });
 }

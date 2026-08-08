@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:sqflite/sqflite.dart';
 
-import '../../core/domain/models/operation_type.dart';
+import '../../core/domain/models/exercise_type.dart';
 import '../../core/domain/persistence/persisted_answer.dart';
 import '../../core/domain/persistence/persisted_session.dart';
 import '../../core/domain/persistence/session_repository.dart';
@@ -46,7 +46,7 @@ class SqfliteSessionRepository implements SessionRepository {
       'id': session.id,
       'player_id': session.playerId,
       'seed': session.seed,
-      'operation_types': jsonEncode(session.operationTypes.map((type) => type.name).toList()),
+      'operation_types': jsonEncode(session.enabledTypes.map((type) => type.name).toList()),
       'exercise_count': session.exerciseCount,
       'total_score': session.totalScore,
       'created_at': session.createdAt.toIso8601String(),
@@ -55,13 +55,13 @@ class SqfliteSessionRepository implements SessionRepository {
   }
 
   PersistedSession _sessionFromRow(Map<String, Object?> row) {
-    final operationTypeNames = (jsonDecode(row['operation_types'] as String) as List).cast<String>();
+    final typeNames = (jsonDecode(row['operation_types'] as String) as List).cast<String>();
     final syncedAt = row['synced_at'] as String?;
     return PersistedSession(
       id: row['id'] as String,
       playerId: row['player_id'] as String,
       seed: row['seed'] as int,
-      operationTypes: operationTypeNames.map(OperationType.values.byName).toList(),
+      enabledTypes: typeNames.map(ExerciseType.values.byName).toSet(),
       exerciseCount: row['exercise_count'] as int,
       totalScore: row['total_score'] as int,
       createdAt: DateTime.parse(row['created_at'] as String),

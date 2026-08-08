@@ -1,4 +1,4 @@
-import 'package:math_trainer/core/domain/models/operation_type.dart';
+import 'package:math_trainer/core/domain/models/exercise_type.dart';
 import 'package:math_trainer/core/domain/persistence/persisted_answer.dart';
 import 'package:math_trainer/core/domain/persistence/persisted_session.dart';
 import 'package:math_trainer/infrastructure/persistence/database.dart';
@@ -30,7 +30,7 @@ void main() {
       id: id,
       playerId: 'player-1',
       seed: 42,
-      operationTypes: const [OperationType.addition, OperationType.division],
+      enabledTypes: const {ExerciseType.addition, ExerciseType.division},
       exerciseCount: 10,
       totalScore: 150,
       createdAt: createdAt,

@@ -2,9 +2,9 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart' show getDatabasesPath;
 
-import 'core/domain/generation/arithmetic_generator.dart';
+import 'core/domain/generation/composite_exercise_generator.dart';
 import 'core/domain/generation/local_exercise_source.dart';
-import 'core/domain/models/operation_type.dart';
+import 'core/domain/models/exercise_type.dart';
 import 'core/domain/models/session_config.dart';
 import 'core/domain/persistence/in_memory_session_repository.dart';
 import 'core/domain/persistence/local_player_id_provider.dart';
@@ -46,17 +46,21 @@ Future<AppEnvironment> buildAppEnvironment() async {
 }
 
 /// Assemble un `SessionController` prêt à jouer : source d'exercices locale
+/// (mélange de [enabledTypes], choisis par l'utilisateur sur `HomeScreen`)
 /// + seed du moment + dépendances de [environment].
-SessionController buildSessionController(AppEnvironment environment) {
+SessionController buildSessionController(
+  AppEnvironment environment,
+  Set<ExerciseType> enabledTypes,
+) {
   final seed = DateTime.now().millisecondsSinceEpoch;
   return SessionController(
     config: SessionConfig(
       seed: seed,
-      operationTypes: OperationType.values,
+      enabledTypes: enabledTypes,
       exerciseCount: _exercisesPerSession,
     ),
     exerciseSource: LocalExerciseSource(
-      generator: ArithmeticExerciseGenerator(operationTypes: OperationType.values),
+      generator: CompositeExerciseGenerator(enabledTypes: enabledTypes),
       seed: seed,
     ),
     repository: environment.repository,

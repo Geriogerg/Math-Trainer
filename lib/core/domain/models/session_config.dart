@@ -1,13 +1,13 @@
-import 'operation_type.dart';
+import 'exercise_type.dart';
 
 class SessionConfig {
   const SessionConfig({
     required this.seed,
-    required this.operationTypes,
+    required this.enabledTypes,
     required this.exerciseCount,
   });
 
   final int seed;
-  final List<OperationType> operationTypes;
+  final Set<ExerciseType> enabledTypes;
   final int exerciseCount;
 }

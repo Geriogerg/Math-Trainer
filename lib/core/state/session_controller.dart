@@ -121,7 +121,7 @@ class SessionController extends ChangeNotifier {
       id: sessionId,
       playerId: playerId,
       seed: config.seed,
-      operationTypes: config.operationTypes,
+      enabledTypes: config.enabledTypes,
       exerciseCount: config.exerciseCount,
       totalScore: _state.score,
       createdAt: createdAt,
