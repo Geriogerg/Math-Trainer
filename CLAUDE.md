@@ -1,248 +1,170 @@
 # Math Trainer
 
-Application mobile Flutter de calcul mental compétitif (adolescents et adultes).
-Expérience ludique, rapide, orientée compétition.
+Jeu Flutter de calcul mental compétitif (ados et adultes). Rapide, ludique, orienté compétition.
+État : MVP + persistance locale, validé Android et web.
 
-**État : MVP fonctionnel, validé sur Android et web.**
+Détails non nécessaires à chaque session : `docs/architecture.md` (structure, gestion d'état,
+modèle d'exercice, dépendances) et `docs/decisions.md` (arbitrages passés et leurs raisons).
+Va les lire quand le sujet se présente — ils ne sont pas importés ici volontairement.
 
 ## Interlocuteur
 
-Développeur expérimenté : Python, Java, C/C++, algorithmique, ML/DL.
-Solide en architecture logicielle et en conception de systèmes.
+Développeur expérimenté (Python, Java, C/C++, algorithmique, ML/DL), solide en architecture.
+Débutant en Dart, Flutter, mobile, conventions iOS/Android, publication sur les stores.
 
-Peu familier avec : Dart, Flutter, le développement mobile, les conventions iOS/Android,
-la publication sur les stores.
-
-**Conséquence sur tes réponses :** ne pas expliquer les concepts généraux (patterns,
-tests, complexité, immutabilité, injection de dépendances). Expliquer en revanche les
-idiomes Dart/Flutter non évidents : `late`, `factory`, `sealed class`, cycle de vie des
+N'explique pas les concepts généraux (patterns, tests, immutabilité, injection de dépendances).
+Explique les idiomes Dart/Flutter non évidents à leur **première apparition seulement** :
+`late`, `factory`, `sealed class`, enhanced enums, exhaustivité du `switch`, cycle de vie des
 widgets, `BuildContext`, `const`/`final`, `Key`, `async`/`Future`/`Stream`.
 
-Explique un idiome à sa première apparition, pas ensuite.
+## Plateforme
 
-## Stack
-
-- Flutter / Dart — cibles Android et iOS (web utilisé uniquement pour itérer)
-- Git
-- Tests automatisés sur toute la logique métier
-- **Pas de backend actuellement**
-
-Développement sous Windows. Le build iOS n'est pas réalisable localement (nécessitera
-macOS ou un CI cloud). Ne propose pas de solution exigeant Xcode en local.
-
-**Gestion d'état : `ChangeNotifier` natif (`flutter/foundation.dart`), sans package
-tiers.** `SessionController` (`lib/core/state/`) détient `SessionState` (immuable) et
-notifie l'UI via `ListenableBuilder`. Pas de `provider`/`riverpod`/`bloc` : un seul
-contrôleur actif sur 3 écrans séquentiels ne le justifie pas. À réévaluer quand le
-multijoueur introduira des flux réseau concurrents (état du duel, présence de
-l'adversaire). Depuis la persistance (étape 2), `SessionController` déclenche aussi
-l'écriture en base à la fin d'une session (asynchrone, non bloquante pour l'UI).
-
-**Composition root : `lib/composition_root.dart`.** Seul fichier qui choisit les
-implémentations concrètes (générateur d'exercices, repository sqflite ou en mémoire
-sur web). Les écrans (`presentation/`) ne construisent plus aucun objet de domaine
-directement — ils ne font qu'observer le `SessionController` qui en résulte. Résout
-l'écart identifié entre la règle 7 et `home_screen.dart` (mélange UI/domaine/état).
-
-## Structure du projet
-
-```
-lib/
-  main.dart                # point d'entrée, runApp() (async : résout l'environnement avant)
-  app.dart                 # MaterialApp, thème, écran racine
-  composition_root.dart    # seul fichier qui choisit les implémentations concrètes
-  core/
-    domain/                # Dart pur — zéro import Flutter (règle 1)
-      models/               # Exercise (sealed class), OperationType, AnswerResult,
-                             # SessionConfig, SessionResult
-      generation/           # ExerciseGenerator, ArithmeticExerciseGenerator,
-                             # OperandRange, ExerciseSource, LocalExerciseSource
-      scoring/              # Scorer, ScoringRules
-      persistence/          # SessionRepository, LocalPlayerIdProvider (interfaces),
-                             # PersistedSession/PersistedAnswer, InMemorySessionRepository
-                             # (référence + repli web), uuid.dart, exercise_codec.dart
-    state/                  # SessionController (ChangeNotifier), SessionState —
-                             # seul point du cœur métier qui importe Flutter
-                             # (flutter/foundation.dart, jamais material.dart)
-  infrastructure/
-    persistence/            # SqfliteSessionRepository, database.dart (schéma +
-                             # migrations), SharedPreferencesPlayerIdProvider —
-                             # seul endroit qui importe sqflite/shared_preferences
-  presentation/
-    screens/                # HomeScreen (bascule de phase), SessionScreen
-                             # (question/saisie/feedback), ResultScreen (stats + recommencer)
-test/
-  domain/                  # miroir de lib/core/domain — `dart test test/domain`
-  state/                   # tests de SessionController — `flutter test`
-                            # (ChangeNotifier importe dart:ui transitivement,
-                            # incompatible avec le runner `dart test` pur)
-  infrastructure/          # tests des implémentations concrètes (sqflite via
-                            # sqflite_common_ffi, shared_preferences mocké)
-  widget_test.dart         # smoke test + parcours démarrage → session
-```
+Développement sous Windows. Cibles Android et iOS ; le web ne sert qu'à itérer.
+**Le build iOS est impossible localement** (macOS ou CI cloud requis) — ne propose jamais
+de solution exigeant Xcode en local.
 
 ## Contraintes d'architecture
 
 Non négociables sans discussion explicite.
 
-### 1. Le cœur métier est du Dart pur
-
-Génération d'exercices, scoring, modèles de domaine : **aucun import de
-`package:flutter`**. Testables via `dart test` sans binding Flutter.
-
-Raison : rapidité des tests, et surtout réutilisabilité côté serveur. Quand le
-multijoueur arrivera, le serveur devra revalider les réponses en régénérant les
-questions — il exécutera ce même code.
-
-### 2. Le générateur d'exercices est déterministe
-
-Toute génération part d'une **seed explicite**. Aucun `Random()` non seedé dans le code
-métier. Un test doit vérifier que même seed → même séquence.
-
-Raison : le mode duel exige que deux joueurs reçoivent la même séquence, et que le
-serveur puisse la reconstituer pour validation.
-
-### 3. Persistance derrière une abstraction
-
-Le code métier ne connaît **jamais** l'implémentation du stockage. Il parle à des
-interfaces de repository. Aucun import de `shared_preferences`, `sqflite` ou `drift`
-en dehors de la couche d'infrastructure.
-
-Raison : permettre le passage à une implémentation synchronisée avec un backend sans
-toucher au domaine.
-
-### 4. Toutes les méthodes de repository sont asynchrones
-
-Signatures en `Future<T>` même quand l'implémentation locale est synchrone.
-
-Raison : le jour où le réseau entre en jeu, toute la chaîne d'appel serait à réécrire
-autrement.
-
-### 5. Identifiants globalement uniques
-
-UUID pour le joueur, les sessions et les réponses. **Jamais d'`AUTOINCREMENT`** sur
-une entité destinée à être synchronisée.
-
-Raison : deux appareils générant `id = 1` créent un conflit insoluble à la première
-synchronisation.
-
-### 6. Timestamps en UTC
-
-Toutes les dates stockées en UTC, converties en local uniquement à l'affichage.
-Distinguer explicitement `createdAt` et `syncedAt`.
-
-Raison : les séries quotidiennes et les classements deviennent incohérents pour un
-joueur qui change de fuseau.
-
-### 7. Séparation stricte des couches
-
-Ne jamais mélanger dans un même fichier : UI, logique métier, génération, scoring,
-modèles, gestion d'état, services. Pas de logique métier dans un widget.
-
-### 8. Modèles immuables
-
-`final` et `copyWith`. Pas de mutation en place sur les objets de domaine.
+1. **Cœur métier en Dart pur.** Aucun import `package:flutter` dans `core/domain/`.
+   → tests rapides, et surtout code réexécutable côté serveur pour revalider les duels.
+2. **Génération déterministe.** Seed explicite, aucun `Random()` non seedé. Même couple
+   (seed, config) → même séquence, toujours.
+   → le mode duel exige que deux joueurs et le serveur reconstituent la même séquence.
+3. **Persistance derrière une abstraction.** Aucun import `sqflite`/`shared_preferences`/`drift`
+   hors de `infrastructure/`. → passage à un backend sans toucher au domaine.
+4. **Repositories toujours asynchrones.** `Future<T>` même si l'implémentation est synchrone.
+   → sinon toute la chaîne d'appel serait à réécrire à l'arrivée du réseau.
+5. **Identifiants UUID.** Jamais d'`AUTOINCREMENT` sur une entité synchronisable.
+   → deux appareils générant `id = 1` créent un conflit insoluble.
+6. **Timestamps UTC**, convertis en local à l'affichage seulement. Distinguer `createdAt`
+   et `syncedAt`. → séries et classements incohérents sinon en cas de changement de fuseau.
+7. **Séparation stricte des couches.** Jamais UI + métier + état dans un même fichier.
+   Aucune logique métier dans un widget.
+8. **Modèles immuables.** `final` et `copyWith`, pas de mutation en place.
+9. **Toute réponse attendue est un `int`.** `Exercise.correctAnswer` est typé `int`, jamais
+   `num` ni `double` ; la division utilise `~/`. Aucun type d'exercice n'introduit de réponse
+   composite, fractionnaire ou approchée. → la règle est vérifiée par le compilateur et non
+   promise dans un document ; maintient `TextInputType.number`, la colonne `INTEGER`, et évite
+   une refonte UI + `Scorer` + codec + schéma. Comparer des `double` exposerait à une réponse
+   correcte comptée fausse par erreur de représentation binaire.
+10. **La génération construit le résultat, elle ne le teste pas.** Tirer la racine `r` et
+    présenter `r²` ; jamais de rejet-échantillonnage. → une boucle de rejet consomme un
+    nombre variable de tirages, la séquence dépendrait des bornes et casserait la règle 2.
+11. **Pas de clause `default`** sur un `switch` d'`Exercise`, d'`ExerciseType` ou
+    d'`OperationType`. → l'erreur d'exhaustivité du compilateur est ce qui signale les points
+    de traitement oubliés à l'ajout d'un type ; un `default` masque le trou.
+12. **`OperationType` reste interne à `ArithmeticExercise`.** L'axe de sélection des types
+    d'exercice est `ExerciseType`. → y ajouter `power` ou `squareRoot` rendrait non exhaustifs
+    les `switch` de symbole et de calcul binaire, forçant des cas dépourvus de sens.
 
 ## Stratégie de données
 
-**Aujourd'hui — tout est local.**
+Tout est local aujourd'hui : `shared_preferences` pour les scalaires, SQLite pour l'historique.
 
-- `shared_preferences` : préférences et scalaires simples (paramètres, dernier profil).
-- SQLite : historique des sessions et **des réponses individuelles**.
+**Granularité obligatoire :** stocker chaque réponse individuelle (type, opérandes, réponse
+donnée, temps, correct/incorrect), jamais seulement des agrégats — le futur moteur adaptatif
+doit pouvoir isoler une lenteur sur les tables de 7/8/9 ou sur les carrés élevés, et un
+agrégat ne se décompose pas rétroactivement.
 
-**Granularité obligatoire :** stocker chaque réponse (type d'exercice, opérandes,
-réponse donnée, temps de réponse, correct/incorrect), pas seulement des agrégats.
-Le futur moteur adaptatif doit pouvoir détecter une lenteur sur les tables de 7/8/9 ou
-sur les fractions. Un agrégat ne se décompose pas rétroactivement.
+Plus tard, offline-first : local = source de vérité en solo et cache du reste ; serveur =
+autorité **exclusive** sur tout le compétitif (Elo, classement, résultats de duels). Le client
+ne calcule jamais un Elo et ne s'auto-attribue jamais un résultat.
 
-**Plus tard — modèle offline-first.**
+Backend non tranché, Supabase privilégié (Postgres, agrégations natives pour le ladder).
+Ne pas introduire de dépendance qui fermerait cette option.
 
-- Local : source de vérité pour l'entraînement solo, cache du reste. L'app reste
-  jouable hors ligne.
-- Serveur : autorité **exclusive** sur tout ce qui est compétitif (Elo, classement,
-  résultats de duels). Le client ne calcule jamais un Elo et ne s'auto-attribue jamais
-  un résultat de duel.
+## Périmètre
 
-Backend non tranché. Supabase est le candidat privilégié (Postgres, donc agrégations
-natives pour le ladder). Ne pas introduire de dépendance qui fermerait cette option.
+Étapes 1 (tests du cœur métier) et 2 (persistance locale) : faites.
 
-## Périmètre actuel
+**Étape 3 — élargissement des types d'exercices ← courante.** Trois types, tous à réponse
+entière (règle 9) : puissances et carrés ; racines carrées de carrés parfaits ; pourcentages
+entiers (5, 10, 20, 25, 50 sur bases compatibles). Inclut le passage de `correctAnswer` en
+`int`, l'enum `ExerciseType`, `Set<ExerciseType> enabledTypes` dans `SessionConfig`, un
+`CompositeExerciseGenerator` alimenté par **un seul flux seedé**, l'extension
+d'`exercise_codec.dart`, et la sélection des types sur `HomeScreen`.
+Une session mono-type est une session dont l'ensemble actif a un seul élément — pas deux modes.
 
-Le MVP est terminé. Les étapes suivantes, dans l'ordre :
+Hors de l'étape 3 : plages d'opérandes et niveaux de difficulté (étape 4) ; les bornes restent
+des constantes internes aux générateurs, `OperandRange` par type est la couture prévue, la
+laisser apparente. Scoring uniforme entre types, la pondération par difficulté relève aussi
+de l'étape 4.
 
-1. ~~Consolidation des tests du cœur métier (déterminisme, scoring, validation)~~ — fait
-2. ~~Persistance locale : repository abstrait, SQLite, historique granulaire~~ — fait
-3. **Élargissement des types d'exercices** ← étape courante
-4. Difficulté paramétrable
-5. Polish UI et feedback
+Ensuite : 4. difficulté paramétrable — 5. polish UI et feedback.
+**N'implémente rien au-delà de l'étape courante sans demande explicite.**
 
-**N'implémente rien au-delà de l'étape en cours sans demande explicite.**
+## Hors périmètre (définitif)
 
-## Fonctionnalités futures (anticiper, ne pas implémenter)
+Écartés par décision produit, ne pas reproposer : **fractions** et **divisions euclidiennes
+(quotient + reste)** — réponses non entières ou composites, contraires à la règle 9.
 
-Comptes, backend, multijoueur, duels, classement, Elo, ligues, saisons, tournois,
-défis quotidiens, XP, niveaux, séries, badges, moteur adaptatif, abonnement, analytics.
+## Futur (anticiper, ne pas implémenter)
 
-Anticiper = ne pas fermer la porte. Cela ne signifie **pas** construire l'abstraction
-maintenant. Pas d'interface pour un seul cas d'usage.
+Comptes, backend, multijoueur, duels, classement, Elo, ligues, saisons, tournois, défis
+quotidiens, XP, niveaux, séries, badges, moteur adaptatif, abonnement, analytics.
+Anticiper = ne pas fermer la porte. Pas d'abstraction pour un seul cas d'usage.
 
 ## Règles de collaboration
 
-- **Proposer avant d'implémenter.** Décrire l'approche et attendre validation pour
-  toute tâche non triviale. Utiliser le mode Plan.
-- **Aucune décision architecturale majeure sans expliquer ses conséquences**, y compris
-  sur les fonctionnalités futures.
-- **Ne pas réécrire de code qui fonctionne.** Modifications minimales et ciblées.
+- **Proposer avant d'implémenter.** Mode Plan pour toute tâche non triviale, attendre validation.
+- **Expliquer les conséquences** de toute décision architecturale, y compris sur le futur.
+- **Ne pas réécrire du code qui fonctionne.** Modifications minimales et ciblées.
 - **Lister les fichiers modifiés** avec une justification brève.
-- **En cas d'ambiguïté**, proposer une solution raisonnable et expliciter le choix.
-- **Simplicité avant sur-ingénierie.**
-- **Une étape à la fois**, livrable et testable, suivie d'un commit.
+- En cas d'ambiguïté, proposer une solution raisonnable et expliciter le choix.
+- Simplicité avant sur-ingénierie. Une étape à la fois, livrable et testable, puis un commit.
 
-## Conventions de code
+## Conventions
 
-- `flutter_lints` respecté ; `dart analyze` sans avertissement.
-- Fichiers en `snake_case`, types en `UpperCamelCase`, membres en `lowerCamelCase`.
-- Toute logique métier ajoutée est accompagnée de ses tests unitaires.
-- Commenter uniquement ce qui n'est pas évident — pas de paraphrase du code.
+- Toute logique métier ajoutée vient avec ses tests unitaires.
+- **Chaque variante d'`Exercise` implémente `==` et `hashCode`.** Le compilateur ne l'exige
+  pas ; un test paramétré sur `ExerciseType.values` sert de garde-fou. Sans lui, une variante
+  oublieuse casse les tests de déterminisme avec un message opaque.
+- Commenter uniquement le non-évident, jamais paraphraser le code.
 - Pas de valeur codée en dur dans l'UI : `Theme.of(context)`.
 - `SafeArea` sur tous les écrans (notch, Dynamic Island).
-- Champs de saisie numérique : `TextInputType.number`, et vérifier que le clavier natif
-  ne masque pas le champ ni le chrono.
+- Saisie numérique : `TextInputType.number`, et vérifier que le clavier natif ne masque
+  ni le champ ni le chrono.
+- **Les tests de déterminisme sont indexés sur le couple (seed, config)**, jamais sur la seed
+  seule : ajouter une valeur à `ExerciseType` change légitimement la séquence, une référence
+  figée transformerait chaque évolution de l'enum en fausse régression.
+
+(Nommage, formatage et lints : imposés par `flutter_lints`, vérifiés par `dart analyze`.)
 
 ## Validation avant commit
 
 1. `dart test test/domain` puis `flutter test` au vert
 2. `flutter analyze` sans avertissement
-3. Vérification sur Android réel ou émulateur — pas uniquement sur web
+3. **Vérification sur Android réel ou émulateur** — jamais uniquement sur web
 
 ## Commandes
 
 ```bash
-dart test test/domain      # tests du cœur métier (rapide) — scope obligatoire, sinon
-                            # dart test scanne aussi les tests widgets et échoue
-                            # (ils importent Flutter, incompatible avec ce runner)
+dart test test/domain      # cœur métier — le scope est obligatoire (cf. pièges)
 flutter test               # tests incluant les widgets
 flutter analyze            # analyse statique
 flutter run -d edge        # itération rapide
 flutter run                # device Android
 ```
 
-## Dépendances
+## Pièges (non déductibles du code)
 
-N'ajouter une dépendance que si elle est réellement nécessaire, et le justifier.
-Privilégier la bibliothèque standard Dart quand elle suffit.
-
-| Dépendance | Justification |
-|---|---|
-| `flutter` (SDK) | obligatoire |
-| `cupertino_icons ^1.0.8` | ajoutée par défaut par `flutter create` — **non utilisée** dans le code actuel |
-| `flutter_test` (SDK, dev) | tests widgets (`flutter test`) |
-| `flutter_lints ^6.0.0` (dev) | lints exigés par « Conventions de code » |
-| `test ^1.25.0` (dev) | permet `dart test` sur le cœur métier pur ; `flutter_test` seul ne s'exécute pas hors tooling Flutter |
-| `sqflite` | implémentation SQLite locale (règle 3) — écrit à la main, pas de génération de code, cf. arbitrage vs `drift` en étape 2 |
-| `path` | jointure de chemin cross-platform pour localiser le fichier `.db` (utilisé avec `sqflite`) |
-| `shared_preferences` | stockage du scalaire `player_id` (règle 5), déjà anticipé par « Stratégie de données » |
-| `sqflite_common_ffi` (dev) | exécute les tests de `SqfliteSessionRepository` sur la Dart VM (SQLite natif via FFI), sans émulateur/device |
-
-Pas de dépendance `uuid` : un générateur UUID v4 pure Dart (`core/domain/persistence/uuid.dart`,
-~15 lignes, `Random.secure()`) suffit — cf. arbitrage sqflite/drift de l'étape 2.
+- **Ne jamais tirer au hasard directement dans un `Set`.** L'ordre d'itération d'un `Set` Dart
+  suit l'insertion : `{power, addition}` et `{addition, power}` produiraient des séquences
+  différentes pour la même seed, cassant la règle 2 sans aucune erreur visible. Convertir en
+  liste triée par `index` d'enum avant tout tirage.
+- Les noms des valeurs d'`ExerciseType` servent de discriminant en base via `exercise_codec`.
+  Conserver les noms existants (`addition`, `subtraction`…) évite toute migration de
+  l'historique déjà stocké.
+- `dart test` **sans le scope `test/domain`** échoue : il scanne aussi les tests widgets,
+  qui importent Flutter et sont incompatibles avec ce runner.
+- `kotlin.incremental=false` dans `android/gradle.properties` contourne un bug Windows
+  (plantage du compilateur Kotlin quand projet et caches Gradle sont sur des lettres de
+  lecteur différentes). Purement environnemental — à revérifier sur machine propre ou en CI
+  avant le premier `flutter build appbundle`.
+- **Rien n'est persisté sur web** : `InMemorySessionRepository` sert de repli, un rechargement
+  efface tout. Décision assumée tant que le web reste une cible d'itération. À traiter
+  impérativement avant tout déploiement web public.
+- `sqrt()` en virgule flottante est à proscrire : arithmétique entière uniquement pour les
+  carrés parfaits, sous peine d'erreurs d'arrondi sur les grandes valeurs.
