@@ -18,5 +18,35 @@ void main() {
       expect(described.operationType, 'addition');
       expect(described.operands, {'operandA': 4, 'operandB': 3});
     });
+
+    test('décrit un PowerExercise avec base et exposant', () {
+      const exercise = PowerExercise(base: 3, exponent: 2);
+
+      final described = describeExerciseForStorage(exercise);
+
+      expect(described.exerciseType, 'power');
+      expect(described.operationType, 'power');
+      expect(described.operands, {'base': 3, 'exponent': 2});
+    });
+
+    test('décrit un SquareRootExercise avec le radicande', () {
+      const exercise = SquareRootExercise(radicand: 16);
+
+      final described = describeExerciseForStorage(exercise);
+
+      expect(described.exerciseType, 'squareRoot');
+      expect(described.operationType, 'squareRoot');
+      expect(described.operands, {'radicand': 16});
+    });
+
+    test('décrit un PercentageExercise avec percent et base', () {
+      const exercise = PercentageExercise(percent: 25, base: 80);
+
+      final described = describeExerciseForStorage(exercise);
+
+      expect(described.exerciseType, 'percentage');
+      expect(described.operationType, 'percentage');
+      expect(described.operands, {'percent': 25, 'base': 80});
+    });
   });
 }
