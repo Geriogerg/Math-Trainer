@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:math_trainer/core/domain/generation/arithmetic_generator.dart';
+import 'package:math_trainer/core/domain/generation/operand_range.dart';
 import 'package:math_trainer/core/domain/models/operation_type.dart';
 import 'package:test/test.dart';
 
@@ -60,6 +61,54 @@ void main() {
           anyOf(OperationType.addition, OperationType.multiplication),
         );
       }
+    });
+
+    test('des seeds différentes produisent des séquences différentes', () {
+      // Propriété constatée empiriquement sur cet échantillon, pas une
+      // garantie mathématique : deux seeds distinctes pourraient en théorie
+      // produire la même séquence par coïncidence.
+      List<String> sequenceFor(int seed) {
+        final generator = ArithmeticExerciseGenerator(operationTypes: OperationType.values);
+        final random = Random(seed);
+        return List.generate(20, (_) => generator.next(random).prompt);
+      }
+
+      final sequences = [1, 2, 3, 4].map(sequenceFor).toList();
+
+      for (var i = 0; i < sequences.length; i++) {
+        for (var j = i + 1; j < sequences.length; j++) {
+          expect(sequences[i], isNot(equals(sequences[j])));
+        }
+      }
+    });
+
+    test('les opérandes générés respectent les bornes configurées', () {
+      const range = OperandRange(min: 5, max: 8);
+      final generator = ArithmeticExerciseGenerator(
+        operationTypes: const [
+          OperationType.addition,
+          OperationType.subtraction,
+          OperationType.multiplication,
+        ],
+        operandRange: range,
+      );
+      final random = Random(4);
+
+      for (var i = 0; i < 50; i++) {
+        final exercise = generator.next(random);
+        expect(exercise.operandA, inInclusiveRange(range.min, range.max));
+        expect(exercise.operandB, inInclusiveRange(range.min, range.max));
+      }
+    });
+
+    test('refuse une plage autorisant un diviseur nul quand la division est activée', () {
+      expect(
+        () => ArithmeticExerciseGenerator(
+          operationTypes: const [OperationType.division],
+          operandRange: const OperandRange(min: 0, max: 5),
+        ),
+        throwsArgumentError,
+      );
     });
   });
 }

@@ -36,7 +36,8 @@ class Scorer {
 
   int _speedBonus(int elapsedMs) {
     if (elapsedMs >= rules.speedBonusWindowMs) return 0;
-    final fraction = 1 - (elapsedMs / rules.speedBonusWindowMs);
+    final safeElapsedMs = elapsedMs < 0 ? 0 : elapsedMs;
+    final fraction = 1 - (safeElapsedMs / rules.speedBonusWindowMs);
     return (rules.maxSpeedBonus * fraction).round();
   }
 

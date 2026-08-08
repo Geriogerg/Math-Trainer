@@ -77,5 +77,53 @@ void main() {
       expect(a, equals(b));
       expect(a.hashCode, equals(b.hashCode));
     });
+
+    test('rejette une réponse fausse pour chaque opération', () {
+      expect(
+        const ArithmeticExercise(
+          operandA: 4,
+          operandB: 3,
+          operationType: OperationType.addition,
+        ).isCorrectAnswer(6),
+        isFalse,
+      );
+      expect(
+        const ArithmeticExercise(
+          operandA: 4,
+          operandB: 3,
+          operationType: OperationType.subtraction,
+        ).isCorrectAnswer(2),
+        isFalse,
+      );
+      expect(
+        const ArithmeticExercise(
+          operandA: 4,
+          operandB: 3,
+          operationType: OperationType.multiplication,
+        ).isCorrectAnswer(11),
+        isFalse,
+      );
+    });
+
+    test('soustraction à opérandes égaux a une réponse correcte de zéro', () {
+      const exercise = ArithmeticExercise(
+        operandA: 5,
+        operandB: 5,
+        operationType: OperationType.subtraction,
+      );
+
+      expect(exercise.correctAnswer, 0);
+      expect(exercise.isCorrectAnswer(0), isTrue);
+    });
+
+    test('isCorrectAnswer n\'applique aucune tolérance numérique', () {
+      const exercise = ArithmeticExercise(
+        operandA: 4,
+        operandB: 3,
+        operationType: OperationType.addition,
+      );
+
+      expect(exercise.isCorrectAnswer(7.5), isFalse);
+    });
   });
 }

@@ -64,5 +64,16 @@ void main() {
       expect(pointsAtStreak5, rules.basePoints + 4 * rules.streakBonusPerStep);
       expect(pointsAtStreak50, rules.basePoints + rules.maxStreakBonus);
     });
+
+    test('un temps écoulé négatif (horloge qui recule) ne dépasse pas le bonus de vitesse max', () {
+      final rules = scorer.rules;
+
+      final points = scorer.pointsFor(
+        answer(isCorrect: true, elapsedMs: -1000),
+        currentStreak: 1,
+      );
+
+      expect(points, rules.basePoints + rules.maxSpeedBonus);
+    });
   });
 }
