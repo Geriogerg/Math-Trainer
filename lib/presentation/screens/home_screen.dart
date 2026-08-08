@@ -1,40 +1,22 @@
 import 'package:flutter/material.dart';
 
-import '../../core/domain/generation/arithmetic_generator.dart';
-import '../../core/domain/generation/local_exercise_source.dart';
-import '../../core/domain/models/operation_type.dart';
-import '../../core/domain/models/session_config.dart';
+import '../../composition_root.dart';
 import '../../core/state/session_controller.dart';
 import '../../core/state/session_state.dart';
 import 'result_screen.dart';
 import 'session_screen.dart';
 
-const _exercisesPerSession = 10;
-
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, required this.environment});
+
+  final AppEnvironment environment;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late final SessionController _controller = _createController();
-
-  SessionController _createController() {
-    final seed = DateTime.now().millisecondsSinceEpoch;
-    return SessionController(
-      config: SessionConfig(
-        seed: seed,
-        operationTypes: OperationType.values,
-        exerciseCount: _exercisesPerSession,
-      ),
-      exerciseSource: LocalExerciseSource(
-        generator: ArithmeticExerciseGenerator(operationTypes: OperationType.values),
-        seed: seed,
-      ),
-    );
-  }
+  late final SessionController _controller = buildSessionController(widget.environment);
 
   @override
   void dispose() {

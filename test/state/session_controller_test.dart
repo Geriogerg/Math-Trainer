@@ -2,6 +2,7 @@ import 'package:math_trainer/core/domain/generation/exercise_source.dart';
 import 'package:math_trainer/core/domain/models/exercise.dart';
 import 'package:math_trainer/core/domain/models/operation_type.dart';
 import 'package:math_trainer/core/domain/models/session_config.dart';
+import 'package:math_trainer/core/domain/persistence/in_memory_session_repository.dart';
 import 'package:math_trainer/core/state/session_controller.dart';
 import 'package:math_trainer/core/state/session_state.dart';
 import 'package:test/test.dart';
@@ -23,7 +24,7 @@ void main() {
     ArithmeticExercise(operandA: 9, operandB: 1, operationType: OperationType.addition),
   ];
 
-  SessionController buildController() {
+  SessionController buildController({InMemorySessionRepository? repository}) {
     return SessionController(
       config: SessionConfig(
         seed: 1,
@@ -31,6 +32,8 @@ void main() {
         exerciseCount: exercises.length,
       ),
       exerciseSource: _FixedExerciseSource(exercises),
+      repository: repository ?? InMemorySessionRepository(),
+      playerId: 'test-player',
       clock: () => DateTime(2024),
     );
   }
@@ -77,6 +80,29 @@ void main() {
       expect(result.correctCount, 2);
       expect(result.outcomes.length, 3);
       expect(result.totalScore, controller.state.score);
+    });
+
+    test('persiste la session dans le repository une fois terminée', () async {
+      final repository = InMemorySessionRepository();
+      final controller = buildController(repository: repository);
+      controller.start();
+
+      controller.submitAnswer(4);
+      controller.submitAnswer(0);
+      controller.submitAnswer(10);
+
+      // Laisse la persistance asynchrone (non attendue par submitAnswer) se
+      // dérouler avant de vérifier le repository.
+      await Future<void>.delayed(Duration.zero);
+
+      final sessions = await repository.recentSessions();
+      expect(sessions, hasLength(1));
+      expect(sessions.single.playerId, 'test-player');
+      expect(sessions.single.totalScore, controller.state.score);
+
+      final answers = await repository.answersForSession(sessions.single.id);
+      expect(answers, hasLength(3));
+      expect(answers.map((a) => a.isCorrect), [true, false, true]);
     });
 
     test('restart() réinitialise complètement la session', () {

@@ -35,14 +35,22 @@ tiers.** `SessionController` (`lib/core/state/`) détient `SessionState` (immuab
 notifie l'UI via `ListenableBuilder`. Pas de `provider`/`riverpod`/`bloc` : un seul
 contrôleur actif sur 3 écrans séquentiels ne le justifie pas. À réévaluer quand le
 multijoueur introduira des flux réseau concurrents (état du duel, présence de
-l'adversaire).
+l'adversaire). Depuis la persistance (étape 2), `SessionController` déclenche aussi
+l'écriture en base à la fin d'une session (asynchrone, non bloquante pour l'UI).
+
+**Composition root : `lib/composition_root.dart`.** Seul fichier qui choisit les
+implémentations concrètes (générateur d'exercices, repository sqflite ou en mémoire
+sur web). Les écrans (`presentation/`) ne construisent plus aucun objet de domaine
+directement — ils ne font qu'observer le `SessionController` qui en résulte. Résout
+l'écart identifié entre la règle 7 et `home_screen.dart` (mélange UI/domaine/état).
 
 ## Structure du projet
 
 ```
 lib/
-  main.dart                # point d'entrée, runApp()
+  main.dart                # point d'entrée, runApp() (async : résout l'environnement avant)
   app.dart                 # MaterialApp, thème, écran racine
+  composition_root.dart    # seul fichier qui choisit les implémentations concrètes
   core/
     domain/                # Dart pur — zéro import Flutter (règle 1)
       models/               # Exercise (sealed class), OperationType, AnswerResult,
@@ -50,18 +58,26 @@ lib/
       generation/           # ExerciseGenerator, ArithmeticExerciseGenerator,
                              # OperandRange, ExerciseSource, LocalExerciseSource
       scoring/              # Scorer, ScoringRules
+      persistence/          # SessionRepository, LocalPlayerIdProvider (interfaces),
+                             # PersistedSession/PersistedAnswer, InMemorySessionRepository
+                             # (référence + repli web), uuid.dart, exercise_codec.dart
     state/                  # SessionController (ChangeNotifier), SessionState —
                              # seul point du cœur métier qui importe Flutter
                              # (flutter/foundation.dart, jamais material.dart)
+  infrastructure/
+    persistence/            # SqfliteSessionRepository, database.dart (schéma +
+                             # migrations), SharedPreferencesPlayerIdProvider —
+                             # seul endroit qui importe sqflite/shared_preferences
   presentation/
-    screens/                # HomeScreen (composition + écran de démarrage),
-                             # SessionScreen (question/saisie/feedback),
-                             # ResultScreen (statistiques + recommencer)
+    screens/                # HomeScreen (bascule de phase), SessionScreen
+                             # (question/saisie/feedback), ResultScreen (stats + recommencer)
 test/
   domain/                  # miroir de lib/core/domain — `dart test test/domain`
   state/                   # tests de SessionController — `flutter test`
                             # (ChangeNotifier importe dart:ui transitivement,
                             # incompatible avec le runner `dart test` pur)
+  infrastructure/          # tests des implémentations concrètes (sqflite via
+                            # sqflite_common_ffi, shared_preferences mocké)
   widget_test.dart         # smoke test + parcours démarrage → session
 ```
 
@@ -155,8 +171,8 @@ natives pour le ladder). Ne pas introduire de dépendance qui fermerait cette op
 Le MVP est terminé. Les étapes suivantes, dans l'ordre :
 
 1. ~~Consolidation des tests du cœur métier (déterminisme, scoring, validation)~~ — fait
-2. **Persistance locale** : repository abstrait, SQLite, historique granulaire ← étape courante
-3. Élargissement des types d'exercices
+2. ~~Persistance locale : repository abstrait, SQLite, historique granulaire~~ — fait
+3. **Élargissement des types d'exercices** ← étape courante
 4. Difficulté paramétrable
 5. Polish UI et feedback
 
@@ -223,3 +239,10 @@ Privilégier la bibliothèque standard Dart quand elle suffit.
 | `flutter_test` (SDK, dev) | tests widgets (`flutter test`) |
 | `flutter_lints ^6.0.0` (dev) | lints exigés par « Conventions de code » |
 | `test ^1.25.0` (dev) | permet `dart test` sur le cœur métier pur ; `flutter_test` seul ne s'exécute pas hors tooling Flutter |
+| `sqflite` | implémentation SQLite locale (règle 3) — écrit à la main, pas de génération de code, cf. arbitrage vs `drift` en étape 2 |
+| `path` | jointure de chemin cross-platform pour localiser le fichier `.db` (utilisé avec `sqflite`) |
+| `shared_preferences` | stockage du scalaire `player_id` (règle 5), déjà anticipé par « Stratégie de données » |
+| `sqflite_common_ffi` (dev) | exécute les tests de `SqfliteSessionRepository` sur la Dart VM (SQLite natif via FFI), sans émulateur/device |
+
+Pas de dépendance `uuid` : un générateur UUID v4 pure Dart (`core/domain/persistence/uuid.dart`,
+~15 lignes, `Random.secure()`) suffit — cf. arbitrage sqflite/drift de l'étape 2.
