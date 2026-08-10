@@ -1,9 +1,13 @@
 import 'package:math_trainer/core/domain/generation/exercise_source.dart';
+import 'package:math_trainer/core/domain/leveling/level_cache_entry.dart';
 import 'package:math_trainer/core/domain/models/exercise.dart';
 import 'package:math_trainer/core/domain/models/exercise_type.dart';
 import 'package:math_trainer/core/domain/models/operation_type.dart';
 import 'package:math_trainer/core/domain/models/session_config.dart';
 import 'package:math_trainer/core/domain/persistence/in_memory_session_repository.dart';
+import 'package:math_trainer/core/domain/persistence/persisted_answer.dart';
+import 'package:math_trainer/core/domain/persistence/persisted_session.dart';
+import 'package:math_trainer/core/domain/persistence/session_repository.dart';
 import 'package:math_trainer/core/state/session_controller.dart';
 import 'package:math_trainer/core/state/session_state.dart';
 import 'package:test/test.dart';
@@ -16,6 +20,33 @@ class _FixedExerciseSource implements ExerciseSource {
 
   @override
   Exercise next() => _exercises[_index++];
+}
+
+/// `currentLevels` échoue (simule une lecture de cache ratée), mais
+/// `recordSession` délègue à un `InMemorySessionRepository` interne
+/// fonctionnel — pour vérifier que la session et ses réponses sont bien
+/// enregistrées malgré l'échec de lecture du cache.
+class _LevelReadFailureRepository implements SessionRepository {
+  final inner = InMemorySessionRepository();
+
+  @override
+  Future<Map<ExerciseType, LevelCacheEntry>> currentLevels(String playerId) =>
+      throw Exception('échec simulé de lecture du cache');
+
+  @override
+  Future<void> recordSession({
+    required PersistedSession session,
+    required List<PersistedAnswer> answers,
+    required Map<ExerciseType, LevelCacheEntry> levelUpdates,
+  }) => inner.recordSession(session: session, answers: answers, levelUpdates: levelUpdates);
+
+  @override
+  Future<List<PersistedSession>> recentSessions({int limit = 20}) =>
+      inner.recentSessions(limit: limit);
+
+  @override
+  Future<List<PersistedAnswer>> answersForSession(String sessionId) =>
+      inner.answersForSession(sessionId);
 }
 
 void main() {
@@ -165,6 +196,44 @@ void main() {
       // scénario que le test `LevelUpdater` du commit B.
       expect(levels[ExerciseType.addition]?.level, 53);
       expect(levels[ExerciseType.addition]?.sessionsPlayed, 1);
+    });
+
+    test('une lecture ratée du cache de niveaux n\'empêche pas la session d\'être '
+        'enregistrée', () async {
+      final repository = _LevelReadFailureRepository();
+      final eightExercises = List.generate(
+        8,
+        (i) => ArithmeticExercise(operandA: i, operandB: 0, operationType: OperationType.addition),
+      );
+      final controller = SessionController(
+        config: SessionConfig(
+          seed: 1,
+          enabledTypes: {ExerciseType.addition},
+          exerciseCount: 8,
+          levels: {ExerciseType.addition: 50},
+        ),
+        exerciseSource: _FixedExerciseSource(eightExercises),
+        repository: repository,
+        playerId: 'test-player',
+        clock: () => DateTime(2024),
+      );
+
+      controller.start();
+      for (var i = 0; i < 8; i++) {
+        controller.submitAnswer(i);
+      }
+      await Future<void>.delayed(Duration.zero);
+
+      // La session et ses réponses (non reconstructibles) sont là malgré
+      // l'échec de lecture du cache.
+      final sessions = await repository.inner.recentSessions();
+      expect(sessions, hasLength(1));
+      final answers = await repository.inner.answersForSession(sessions.single.id);
+      expect(answers, hasLength(8));
+
+      // Le cache de niveaux (recalculable), lui, n'a pas pu être mis à jour
+      // cette fois — pas d'entrée, mais pas de session perdue non plus.
+      expect(await repository.inner.currentLevels('test-player'), isEmpty);
     });
 
     test('restart() réinitialise complètement la session', () {

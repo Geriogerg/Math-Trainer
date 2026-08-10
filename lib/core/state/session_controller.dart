@@ -139,8 +139,17 @@ class SessionController extends ChangeNotifier {
       createdAt: createdAt,
     );
 
+    var levelUpdates = const <ExerciseType, LevelCacheEntry>{};
     try {
-      final levelUpdates = await _computeLevelUpdates(createdAt);
+      levelUpdates = await _computeLevelUpdates(createdAt);
+    } catch (_) {
+      // Le cache de niveaux est recalculable depuis l'historique (voir
+      // doc/decisions.md) : une lecture ratée ne doit pas empêcher
+      // l'enregistrement de la session, qui lui n'est reconstructible nulle
+      // part ailleurs — priorité à ce qui n'est pas reconstructible.
+    }
+
+    try {
       await repository.recordSession(
         session: session,
         answers: answers,
