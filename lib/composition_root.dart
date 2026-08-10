@@ -47,20 +47,27 @@ Future<AppEnvironment> buildAppEnvironment() async {
 
 /// Assemble un `SessionController` prêt à jouer : source d'exercices locale
 /// (mélange de [enabledTypes], choisis par l'utilisateur sur `HomeScreen`)
-/// + seed du moment + dépendances de [environment].
-SessionController buildSessionController(
+/// + seed du moment + dépendances de [environment]. Asynchrone : lit le
+/// cache de niveaux du joueur (règle 4, repositories toujours asynchrones)
+/// pour figer les niveaux de cette session — niveau 1 pour toute opération
+/// jamais jouée (aucune compétence estimée = on part du bas).
+Future<SessionController> buildSessionController(
   AppEnvironment environment,
   Set<ExerciseType> enabledTypes,
-) {
+) async {
+  final priorLevels = await environment.repository.currentLevels(environment.playerId);
+  final levels = {for (final type in enabledTypes) type: priorLevels[type]?.level ?? 1};
+
   final seed = DateTime.now().millisecondsSinceEpoch;
   return SessionController(
     config: SessionConfig(
       seed: seed,
       enabledTypes: enabledTypes,
       exerciseCount: _exercisesPerSession,
+      levels: levels,
     ),
     exerciseSource: LocalExerciseSource(
-      generator: CompositeExerciseGenerator(enabledTypes: enabledTypes),
+      generator: CompositeExerciseGenerator(enabledTypes: enabledTypes, levels: levels),
       seed: seed,
     ),
     repository: environment.repository,

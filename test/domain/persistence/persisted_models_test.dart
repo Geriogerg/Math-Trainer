@@ -78,6 +78,7 @@ void main() {
         enabledTypes: const {ExerciseType.addition, ExerciseType.division},
         exerciseCount: 10,
         totalScore: 150,
+        levels: const {ExerciseType.addition: 42, ExerciseType.division: 17},
         createdAt: DateTime.utc(2026, 8, 8),
         syncedAt: syncedAt,
       );
@@ -96,6 +97,7 @@ void main() {
         enabledTypes: {ExerciseType.power, ExerciseType.division, ExerciseType.addition},
         exerciseCount: 10,
         totalScore: 150,
+        levels: const {},
         createdAt: DateTime.utc(2026, 8, 8),
       );
       final b = PersistedSession(
@@ -105,11 +107,45 @@ void main() {
         enabledTypes: {ExerciseType.addition, ExerciseType.division, ExerciseType.power},
         exerciseCount: 10,
         totalScore: 150,
+        levels: const {},
         createdAt: DateTime.utc(2026, 8, 8),
       );
 
       expect(a, equals(b));
       expect(a.hashCode, equals(b.hashCode));
+    });
+
+    test('levels construits dans un ordre d\'insertion différent restent égaux', () {
+      final a = buildSession();
+      final b = PersistedSession(
+        id: 'session-1',
+        playerId: 'player-1',
+        seed: 42,
+        enabledTypes: const {ExerciseType.addition, ExerciseType.division},
+        exerciseCount: 10,
+        totalScore: 150,
+        levels: const {ExerciseType.division: 17, ExerciseType.addition: 42},
+        createdAt: DateTime.utc(2026, 8, 8),
+      );
+
+      expect(a, equals(b));
+      expect(a.hashCode, equals(b.hashCode));
+    });
+
+    test('un niveau différent rend deux sessions inégales', () {
+      final a = buildSession();
+      final b = PersistedSession(
+        id: 'session-1',
+        playerId: 'player-1',
+        seed: 42,
+        enabledTypes: const {ExerciseType.addition, ExerciseType.division},
+        exerciseCount: 10,
+        totalScore: 150,
+        levels: const {ExerciseType.addition: 99, ExerciseType.division: 17},
+        createdAt: DateTime.utc(2026, 8, 8),
+      );
+
+      expect(a, isNot(equals(b)));
     });
 
     test('copyWith peut poser puis remettre syncedAt à null', () {
@@ -129,6 +165,7 @@ void main() {
           enabledTypes: const {ExerciseType.addition},
           exerciseCount: 10,
           totalScore: 150,
+          levels: const {},
           createdAt: DateTime(2026, 8, 8),
         ),
         throwsArgumentError,

@@ -1,0 +1,82 @@
+import 'package:math_trainer/infrastructure/persistence/database.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:test/test.dart';
+
+void main() {
+  setUpAll(() {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  });
+
+  test('une base v1 existante migre vers v2 sans perdre ses données', () async {
+    const path = 'migration_test.db';
+    await databaseFactory.deleteDatabase(path);
+
+    // Réplique le schéma v1 tel qu'il existait avant ce commit, pour
+    // reproduire une vraie base de joueur existant.
+    final v1db = await databaseFactory.openDatabase(
+      path,
+      options: OpenDatabaseOptions(
+        version: 1,
+        onCreate: (db, version) async {
+          await db.execute('''
+            CREATE TABLE sessions (
+              id TEXT PRIMARY KEY,
+              player_id TEXT NOT NULL,
+              seed INTEGER NOT NULL,
+              operation_types TEXT NOT NULL,
+              exercise_count INTEGER NOT NULL,
+              total_score INTEGER NOT NULL,
+              created_at TEXT NOT NULL,
+              synced_at TEXT
+            )
+          ''');
+          await db.execute('''
+            CREATE TABLE answers (
+              id TEXT PRIMARY KEY,
+              session_id TEXT NOT NULL REFERENCES sessions(id),
+              exercise_type TEXT NOT NULL,
+              operation_type TEXT NOT NULL,
+              operands_json TEXT NOT NULL,
+              submitted_value REAL NOT NULL,
+              is_correct INTEGER NOT NULL,
+              elapsed_ms INTEGER NOT NULL,
+              created_at TEXT NOT NULL,
+              synced_at TEXT
+            )
+          ''');
+        },
+      ),
+    );
+    await v1db.insert('sessions', {
+      'id': 'legacy-session',
+      'player_id': 'legacy-player',
+      'seed': 1,
+      'operation_types': '["addition"]',
+      'exercise_count': 10,
+      'total_score': 100,
+      'created_at': DateTime.utc(2026, 1, 1).toIso8601String(),
+      'synced_at': null,
+    });
+    await v1db.close();
+
+    final v2db = await openMathTrainerDatabase(path);
+
+    final sessionRows = await v2db.query('sessions', where: 'id = ?', whereArgs: ['legacy-session']);
+    expect(sessionRows.single['levels_json'], '{}');
+
+    // player_levels existe et est utilisable après migration.
+    await v2db.insert('player_levels', {
+      'player_id': 'legacy-player',
+      'exercise_type': 'addition',
+      'level': 5,
+      'sessions_played': 1,
+      'updated_at': DateTime.utc(2026, 1, 2).toIso8601String(),
+    });
+    final levelRows = await v2db.query('player_levels');
+    expect(levelRows, hasLength(1));
+
+    await v2db.close();
+    await databaseFactory.deleteDatabase(path);
+  });
+}

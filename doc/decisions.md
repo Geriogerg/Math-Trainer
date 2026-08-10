@@ -187,6 +187,42 @@ qu'elles sont calculées à partir d'un niveau, un cas invalide devient réel.
 
 Promu en règle 13 plutôt que corrigé une troisième fois au cas par cas.
 
+## Cache `player_levels` et orchestration `LevelUpdater` (étape 4, commit D)
+
+Trois lectures possibles pour retrouver le niveau de départ de la session suivante ont été
+envisagées : rejouer l'historique complet à chaque démarrage, différer tout câblage à un commit
+séparé, ou une petite table de cache mise à jour en fin de session. Retenue : la table de cache
+(`player_levels`), pour coller au vocabulaire « cache » déjà utilisé plus bas dans ce document et
+éviter de rejouer l'historique à chaque lancement.
+
+**Écart assumé à la règle 5** (UUID, jamais d'identifiant naturel sur une entité synchronisable) :
+`player_levels` utilise une clé composite `(player_id, exercise_type)`. Justifié par la raison
+d'être de la règle elle-même — protéger l'identité d'une entité synchronisable — alors que cette
+table est un cache **recalculable**, sans identité propre à préserver ; la source de vérité reste
+les réponses individuelles dans `answers`.
+
+**Orchestration** (`SessionController._computeLevelUpdates`, appelée en fin de session) : les
+réponses sont groupées par `ExerciseType`, les groupes sous `n_min` ignorés (bruit, cache non
+touché), `LevelUpdater.update()` appelé avec le niveau qui a *réellement servi* à générer la
+session (`config.levels`, jamais relu depuis le cache à cet instant — le cache aurait pu changer
+entre-temps dans un futur multi-appareils), le résultat écrit dans `player_levels` **dans la même
+transaction** que `recordSession` : un niveau mis à jour sans que la session existe (ou l'inverse)
+ne doit pas arriver.
+
+**Seuil de « longue absence »** : `boostRetour` avait une valeur (×2) mais aucun seuil numérique
+déclenchant `returning` — même trou que `t_rapide`/`t_lent`. Tranché à **30 jours** sans réponse
+sur l'opération précise, nouveau paramètre `LevelingRules.absenceDaysThreshold` (non calibré,
+ajustable sans ripple). Le décompte des sessions et de l'absence n'appartient pas à
+`LevelingRules`/`LevelUpdater` (ce module le dit déjà explicitement) : nouvelle fonction pure
+`confidenceFor()` dans `leveling/`, qui prend l'état de cache actuel (ou `null` si l'opération n'a
+jamais été jouée) et l'horloge, et rend le `ConfidenceMultiplier` à appliquer.
+
+**`buildSessionController` sans 3ᵉ paramètre explicite** : anticipé comme « au troisième
+paramètre, préférer un objet de configuration » avant que le mécanisme de lecture du cache soit
+choisi. Avec le cache lu en interne par `buildSessionController` (asynchrone, règle 4), il n'y a
+plus de 3ᵉ paramètre à faire transmettre par l'appelant — `enabledTypes` reste le seul réglage
+fourni par `HomeScreen`, les niveaux sont dérivés de la persistance, jamais passés en argument.
+
 ## Les niveaux sont un cache recalculable, pas une source de vérité
 
 Ce qui est stocké peut être reconstruit intégralement à partir de l'historique des réponses.

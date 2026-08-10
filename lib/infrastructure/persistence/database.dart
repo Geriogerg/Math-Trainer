@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 /// Version courante du schéma. Toute évolution incrémente cette valeur et
 /// ajoute une branche dans [_onUpgrade] — jamais destructive, jamais
 /// rétroactive.
-const schemaVersion = 1;
+const schemaVersion = 2;
 
 /// Ouvre (et crée/migre si besoin) la base SQLite du stockage local.
 /// [path] est fourni par l'appelant : un chemin réel en production
@@ -22,6 +22,7 @@ Future<Database> openMathTrainerDatabase(String path) {
           operation_types TEXT NOT NULL,
           exercise_count INTEGER NOT NULL,
           total_score INTEGER NOT NULL,
+          levels_json TEXT NOT NULL DEFAULT '{}',
           created_at TEXT NOT NULL,
           synced_at TEXT
         )
@@ -41,12 +42,33 @@ Future<Database> openMathTrainerDatabase(String path) {
         )
       ''');
       await db.execute('CREATE INDEX idx_answers_session_id ON answers(session_id)');
+      await db.execute('''
+        CREATE TABLE player_levels (
+          player_id TEXT NOT NULL,
+          exercise_type TEXT NOT NULL,
+          level INTEGER NOT NULL,
+          sessions_played INTEGER NOT NULL,
+          updated_at TEXT NOT NULL,
+          PRIMARY KEY (player_id, exercise_type)
+        )
+      ''');
     },
     onUpgrade: _onUpgrade,
   );
 }
 
 Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-  // Aucune migration à ce jour (schemaVersion == 1 depuis la création).
-  // Futures étapes : `if (oldVersion < 2) { await db.execute('ALTER TABLE ...'); }`.
+  if (oldVersion < 2) {
+    await db.execute("ALTER TABLE sessions ADD COLUMN levels_json TEXT NOT NULL DEFAULT '{}'");
+    await db.execute('''
+      CREATE TABLE player_levels (
+        player_id TEXT NOT NULL,
+        exercise_type TEXT NOT NULL,
+        level INTEGER NOT NULL,
+        sessions_played INTEGER NOT NULL,
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY (player_id, exercise_type)
+      )
+    ''');
+  }
 }

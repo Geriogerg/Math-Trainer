@@ -1,3 +1,5 @@
+import '../leveling/level_cache_entry.dart';
+import '../models/exercise_type.dart';
 import 'persisted_answer.dart';
 import 'persisted_session.dart';
 import 'session_repository.dart';
@@ -8,14 +10,17 @@ import 'session_repository.dart';
 class InMemorySessionRepository implements SessionRepository {
   final List<PersistedSession> _sessions = [];
   final List<PersistedAnswer> _answers = [];
+  final Map<String, Map<ExerciseType, LevelCacheEntry>> _levelsByPlayer = {};
 
   @override
   Future<void> recordSession({
     required PersistedSession session,
     required List<PersistedAnswer> answers,
+    required Map<ExerciseType, LevelCacheEntry> levelUpdates,
   }) async {
     _sessions.add(session);
     _answers.addAll(answers);
+    _levelsByPlayer.putIfAbsent(session.playerId, () => {}).addAll(levelUpdates);
   }
 
   @override
@@ -27,5 +32,10 @@ class InMemorySessionRepository implements SessionRepository {
   @override
   Future<List<PersistedAnswer>> answersForSession(String sessionId) async {
     return _answers.where((answer) => answer.sessionId == sessionId).toList();
+  }
+
+  @override
+  Future<Map<ExerciseType, LevelCacheEntry>> currentLevels(String playerId) async {
+    return Map.of(_levelsByPlayer[playerId] ?? {});
   }
 }

@@ -3,7 +3,12 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../domain/generation/exercise_source.dart';
+import '../domain/leveling/answer_outcome.dart';
+import '../domain/leveling/confidence.dart';
+import '../domain/leveling/level_cache_entry.dart';
+import '../domain/leveling/level_updater.dart';
 import '../domain/models/answer_result.dart';
+import '../domain/models/exercise_type.dart';
 import '../domain/models/session_config.dart';
 import '../domain/models/session_result.dart';
 import '../domain/persistence/exercise_codec.dart';
@@ -33,10 +38,12 @@ class SessionController extends ChangeNotifier {
     this.scorer = const Scorer(),
     this.clock = DateTime.now,
     this.idGenerator = generateUuidV4,
-  });
+    LevelUpdater? levelUpdater,
+  }) : levelUpdater = levelUpdater ?? LevelUpdater();
 
   final SessionConfig config;
   final ExerciseSource exerciseSource;
+  final LevelUpdater levelUpdater;
   final SessionRepository repository;
   final String playerId;
   final Scorer scorer;
@@ -124,14 +131,60 @@ class SessionController extends ChangeNotifier {
       enabledTypes: config.enabledTypes,
       exerciseCount: config.exerciseCount,
       totalScore: _state.score,
+      levels: config.levels,
       createdAt: createdAt,
     );
 
     try {
-      await repository.recordSession(session: session, answers: answers);
+      final levelUpdates = await _computeLevelUpdates(createdAt);
+      await repository.recordSession(
+        session: session,
+        answers: answers,
+        levelUpdates: levelUpdates,
+      );
     } catch (_) {
       // La persistance ne doit jamais casser la partie en cours : échec
       // silencieux pour le MVP (pas de file d'attente/retry — hors périmètre).
     }
+  }
+
+  /// Une entrée par type activé ayant reçu au moins `n_min` réponses cette
+  /// session (les autres sont un échantillon de bruit, voir
+  /// `doc/decisions.md` — leur cache n'est pas touché). Le niveau de départ
+  /// utilisé est celui qui a réellement servi à générer la session
+  /// (`config.levels`), jamais relu depuis le cache à cet instant.
+  Future<Map<ExerciseType, LevelCacheEntry>> _computeLevelUpdates(DateTime now) async {
+    final outcomesByType = <ExerciseType, List<AnswerOutcome>>{};
+    for (final outcome in _state.outcomes) {
+      outcomesByType
+          .putIfAbsent(outcome.exercise.type, () => [])
+          .add(AnswerOutcome(isCorrect: outcome.isCorrect, elapsedMs: outcome.elapsedMs));
+    }
+
+    final priorLevels = await repository.currentLevels(playerId);
+    final updates = <ExerciseType, LevelCacheEntry>{};
+
+    for (final entry in outcomesByType.entries) {
+      final type = entry.key;
+      final answers = entry.value;
+      if (answers.length < levelUpdater.rules.nMin) continue;
+
+      final prior = priorLevels[type];
+      final currentLevel = config.levels[type] ?? 1;
+      final confidence = confidenceFor(entry: prior, now: now, rules: levelUpdater.rules);
+      final newLevel = levelUpdater.update(
+        currentLevel: currentLevel,
+        answers: answers,
+        confidence: confidence,
+      );
+
+      updates[type] = LevelCacheEntry(
+        level: newLevel,
+        sessionsPlayed: (prior?.sessionsPlayed ?? 0) + 1,
+        updatedAt: now,
+      );
+    }
+
+    return updates;
   }
 }

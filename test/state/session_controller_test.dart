@@ -31,6 +31,7 @@ void main() {
         seed: 1,
         enabledTypes: {ExerciseType.addition},
         exerciseCount: exercises.length,
+        levels: {ExerciseType.addition: 50},
       ),
       exerciseSource: _FixedExerciseSource(exercises),
       repository: repository ?? InMemorySessionRepository(),
@@ -100,10 +101,48 @@ void main() {
       expect(sessions, hasLength(1));
       expect(sessions.single.playerId, 'test-player');
       expect(sessions.single.totalScore, controller.state.score);
+      expect(sessions.single.levels, {ExerciseType.addition: 50});
 
       final answers = await repository.answersForSession(sessions.single.id);
       expect(answers, hasLength(3));
       expect(answers.map((a) => a.isCorrect), [true, false, true]);
+
+      // 3 réponses < n_min (8) : le cache de niveau n'est pas touché.
+      expect(await repository.currentLevels('test-player'), isEmpty);
+    });
+
+    test('une session avec au moins n_min réponses justes et rapides met à jour le cache de '
+        'niveau (calibration, première fois sur cette opération)', () async {
+      final repository = InMemorySessionRepository();
+      final eightExercises = List.generate(
+        8,
+        (i) => ArithmeticExercise(operandA: i, operandB: 0, operationType: OperationType.addition),
+      );
+      final controller = SessionController(
+        config: SessionConfig(
+          seed: 1,
+          enabledTypes: {ExerciseType.addition},
+          exerciseCount: 8,
+          levels: {ExerciseType.addition: 50},
+        ),
+        exerciseSource: _FixedExerciseSource(eightExercises),
+        repository: repository,
+        playerId: 'test-player',
+        clock: () => DateTime(2024),
+      );
+
+      controller.start();
+      for (var i = 0; i < 8; i++) {
+        controller.submitAnswer(i); // i + 0 = i : toujours correct
+      }
+      await Future<void>.delayed(Duration.zero);
+
+      final levels = await repository.currentLevels('test-player');
+      // Depuis niveau 50, 8 réponses justes et instantanées, confiance
+      // « calibration » (première session sur cette opération) : 53 — même
+      // scénario que le test `LevelUpdater` du commit B.
+      expect(levels[ExerciseType.addition]?.level, 53);
+      expect(levels[ExerciseType.addition]?.sessionsPlayed, 1);
     });
 
     test('restart() réinitialise complètement la session', () {

@@ -11,5 +11,10 @@ void main() {
     test('accepte les valeurs par défaut', () {
       expect(LevelingRules().tRapideMs, lessThan(LevelingRules().tLentMs));
     });
+
+    test('refuse un absenceDaysThreshold <= 0', () {
+      expect(() => LevelingRules(absenceDaysThreshold: 0), throwsArgumentError);
+      expect(() => LevelingRules(absenceDaysThreshold: -1), throwsArgumentError);
+    });
   });
 }

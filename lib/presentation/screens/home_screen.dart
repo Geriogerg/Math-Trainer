@@ -26,6 +26,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   SessionController? _controller;
   Set<ExerciseType> _selectedTypes = {..._defaultSelectedTypes};
+  bool _isStarting = false;
 
   @override
   void dispose() {
@@ -33,10 +34,15 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  void _startSession() {
-    final controller = buildSessionController(widget.environment, _selectedTypes);
+  Future<void> _startSession() async {
+    setState(() => _isStarting = true);
+    final controller = await buildSessionController(widget.environment, _selectedTypes);
+    if (!mounted) return;
     controller.start();
-    setState(() => _controller = controller);
+    setState(() {
+      _controller = controller;
+      _isStarting = false;
+    });
   }
 
   void _backToSelection() {
@@ -54,7 +60,8 @@ class _HomeScreenState extends State<HomeScreen> {
             ? _TypeSelectionView(
                 selectedTypes: _selectedTypes,
                 onChanged: (types) => setState(() => _selectedTypes = types),
-                onStart: _selectedTypes.isEmpty ? null : _startSession,
+                onStart: _selectedTypes.isEmpty || _isStarting ? null : _startSession,
+                isStarting: _isStarting,
               )
             : ListenableBuilder(
                 listenable: controller,
@@ -82,11 +89,13 @@ class _TypeSelectionView extends StatelessWidget {
     required this.selectedTypes,
     required this.onChanged,
     required this.onStart,
+    required this.isStarting,
   });
 
   final Set<ExerciseType> selectedTypes;
   final ValueChanged<Set<ExerciseType>> onChanged;
   final VoidCallback? onStart;
+  final bool isStarting;
 
   void _toggle(ExerciseType type, bool selected) {
     final updated = Set<ExerciseType>.of(selectedTypes);
@@ -122,7 +131,16 @@ class _TypeSelectionView extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 24),
-            FilledButton(onPressed: onStart, child: const Text('Commencer')),
+            FilledButton(
+              onPressed: onStart,
+              child: isStarting
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Commencer'),
+            ),
           ],
         ),
       ),

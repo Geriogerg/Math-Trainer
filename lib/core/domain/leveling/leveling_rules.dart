@@ -14,12 +14,20 @@ class LevelingRules {
     this.boostRetour = 2.0,
     this.tRapideMs = 2000,
     this.tLentMs = 8000,
+    this.absenceDaysThreshold = 30,
   }) {
     if (tRapideMs >= tLentMs) {
       throw ArgumentError.value(
         tLentMs,
         'tLentMs',
         'doit être strictement supérieur à tRapideMs ($tRapideMs).',
+      );
+    }
+    if (absenceDaysThreshold <= 0) {
+      throw ArgumentError.value(
+        absenceDaysThreshold,
+        'absenceDaysThreshold',
+        'doit être strictement positif.',
       );
     }
   }
@@ -56,6 +64,10 @@ class LevelingRules {
 
   /// Au-dessus de ce temps de réponse (ms), vitesse = 0.
   final int tLentMs;
+
+  /// Nombre de jours sans réponse sur une opération au-delà duquel
+  /// `confidenceFor` bascule sur `returning`.
+  final int absenceDaysThreshold;
 }
 
 /// `calibration` = `kCalib` (3 premières sessions d'une opération),

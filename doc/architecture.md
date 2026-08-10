@@ -20,6 +20,8 @@ lib/
       scoring/             # Scorer, ScoringRules
       leveling/            # LevelUpdater, LevelingRules, ConfidenceMultiplier,
                            # AnswerOutcome — domaine pur, rejouable sur un historique
+                           # LevelCacheEntry, confidenceFor — état de cache par opération
+                           # et décision calibration/returning/normal à partir de ce cache
       difficulty/          # interpolateLevel, LinearOperandRangeDifficulty (4 opérations
                            # arithmétiques), PowerDifficulty, SquareRootDifficulty,
                            # PercentageDifficulty — sept fonctions niveau → bornes
@@ -87,13 +89,27 @@ domaine pur. Sans conséquence aujourd'hui, à traiter à la première internati
 
 ## Composition et paramètres
 
-`buildSessionController(environment, enabledTypes)` — un troisième paramètre (niveaux du joueur)
-arrive à l'étape 4. Deux paramètres nommés restent lisibles ; au troisième, préférer un petit
-objet de configuration plutôt que d'empiler les paramètres.
+`buildSessionController(environment, enabledTypes)` est asynchrone depuis l'étape 4 (commit D) :
+il lit le cache de niveaux du joueur (`SessionRepository.currentLevels`) avant de construire le
+générateur et la config. Toujours deux paramètres — les niveaux sont dérivés de la persistance en
+interne, jamais transmis par l'appelant, donc pas de 3ᵉ paramètre à empiler ni à regrouper dans un
+objet de configuration pour l'instant.
+
+`HomeScreen._startSession` attend ce `Future` (garde `_isStarting` anti-double-tap, spinner sur
+le bouton pendant l'attente — une seule requête indexée, donc bref).
 
 `HomeScreen` porte la sélection des types (`_TypeSelectionView`). L'étape 4 n'y ajoute **pas** de
 contrôle de difficulté — celle-ci est dérivée du niveau, pas choisie. En revanche un écran de
 progression viendra s'ajouter ; si le fichier grossit, le scinder par vue.
+
+## Cache de niveaux (`player_levels`)
+
+Table séparée de `sessions`, clé composite `(player_id, exercise_type)` plutôt qu'UUID — écart
+assumé à la règle 5, voir `doc/decisions.md`. Mise à jour par `SessionController` en fin de
+session (dans la même transaction que `recordSession`), lue par `buildSessionController` au
+démarrage de la suivante. `sessions.levels_json` stocke séparément les niveaux qui ont *servi* à
+générer chaque session — les deux peuvent diverger si le cache a évolué depuis (recalibration,
+autre appareil).
 
 ## Dépendances
 
