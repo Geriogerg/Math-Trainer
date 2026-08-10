@@ -31,7 +31,7 @@ void main() {
         seed: 1,
         enabledTypes: {ExerciseType.addition},
         exerciseCount: exercises.length,
-        levels: {ExerciseType.addition: 50},
+        levels: {ExerciseType.addition: 1},
       ),
       exerciseSource: _FixedExerciseSource(exercises),
       repository: repository ?? InMemorySessionRepository(),
@@ -84,6 +84,28 @@ void main() {
       expect(result.totalScore, controller.state.score);
     });
 
+    test('le score est pondéré par le niveau figé de l\'opération', () {
+      final controller = SessionController(
+        config: SessionConfig(
+          seed: 1,
+          enabledTypes: {ExerciseType.addition},
+          exerciseCount: exercises.length,
+          levels: {ExerciseType.addition: 100},
+        ),
+        exerciseSource: _FixedExerciseSource(exercises),
+        repository: InMemorySessionRepository(),
+        playerId: 'test-player',
+        clock: () => DateTime(2024),
+      );
+      controller.start();
+
+      controller.submitAnswer(4); // correct, exercises[0] : 2+2
+
+      // base 10 + bonus vitesse max 10 = 20 bruts ; niveau 100, bonusMax par
+      // défaut 1.0 → multiplicateur 2 → 40.
+      expect(controller.state.score, 40);
+    });
+
     test('persiste la session dans le repository une fois terminée', () async {
       final repository = InMemorySessionRepository();
       final controller = buildController(repository: repository);
@@ -101,7 +123,7 @@ void main() {
       expect(sessions, hasLength(1));
       expect(sessions.single.playerId, 'test-player');
       expect(sessions.single.totalScore, controller.state.score);
-      expect(sessions.single.levels, {ExerciseType.addition: 50});
+      expect(sessions.single.levels, {ExerciseType.addition: 1});
 
       final answers = await repository.answersForSession(sessions.single.id);
       expect(answers, hasLength(3));

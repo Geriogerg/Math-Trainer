@@ -26,6 +26,7 @@ void main() {
       final points = scorer.pointsFor(
         answer(isCorrect: false, elapsedMs: 0),
         currentStreak: 5,
+        level: 1,
       );
 
       expect(points, 0);
@@ -35,6 +36,7 @@ void main() {
       final points = scorer.pointsFor(
         answer(isCorrect: true, elapsedMs: 0),
         currentStreak: 1,
+        level: 1,
       );
 
       expect(points, 10 + 10 + 0);
@@ -44,6 +46,7 @@ void main() {
       final points = scorer.pointsFor(
         answer(isCorrect: true, elapsedMs: 5000),
         currentStreak: 1,
+        level: 1,
       );
 
       expect(points, 10 + 0 + 0);
@@ -55,10 +58,12 @@ void main() {
       final pointsAtStreak5 = scorer.pointsFor(
         answer(isCorrect: true, elapsedMs: 5000),
         currentStreak: 5,
+        level: 1,
       );
       final pointsAtStreak50 = scorer.pointsFor(
         answer(isCorrect: true, elapsedMs: 5000),
         currentStreak: 50,
+        level: 1,
       );
 
       expect(pointsAtStreak5, rules.basePoints + 4 * rules.streakBonusPerStep);
@@ -71,9 +76,75 @@ void main() {
       final points = scorer.pointsFor(
         answer(isCorrect: true, elapsedMs: -1000),
         currentStreak: 1,
+        level: 1,
       );
 
       expect(points, rules.basePoints + rules.maxSpeedBonus);
+    });
+
+    test('niveau 1 ne change pas les points (aucun bonus de difficulté)', () {
+      final rules = scorer.rules;
+
+      final points = scorer.pointsFor(
+        answer(isCorrect: true, elapsedMs: 5000),
+        currentStreak: 1,
+        level: 1,
+      );
+
+      expect(points, rules.basePoints);
+    });
+
+    test('niveau 100 double les points avec difficultyBonusMax par défaut (1.0)', () {
+      final rules = scorer.rules;
+
+      final points = scorer.pointsFor(
+        answer(isCorrect: true, elapsedMs: 5000),
+        currentStreak: 1,
+        level: 100,
+      );
+
+      expect(points, rules.basePoints * 2);
+    });
+
+    test('un niveau intermédiaire applique un bonus de difficulté proportionnel', () {
+      const rules = ScoringRules(difficultyBonusMax: 1.0);
+      const scorerWithRules = Scorer(rules: rules);
+
+      // Niveau 50 : multiplicateur = 1 + 49/99 * 1.0 ≈ 1.4949...
+      final points = scorerWithRules.pointsFor(
+        answer(isCorrect: true, elapsedMs: 5000),
+        currentStreak: 1,
+        level: 50,
+      );
+
+      expect(points, (rules.basePoints * (1 + 49 / 99)).round());
+    });
+
+    test('refuse un niveau hors [1, 100], y compris pour une réponse fausse', () {
+      expect(
+        () => scorer.pointsFor(
+          answer(isCorrect: true, elapsedMs: 0),
+          currentStreak: 1,
+          level: 0,
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => scorer.pointsFor(
+          answer(isCorrect: true, elapsedMs: 0),
+          currentStreak: 1,
+          level: 101,
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => scorer.pointsFor(
+          answer(isCorrect: false, elapsedMs: 0),
+          currentStreak: 1,
+          level: 0,
+        ),
+        throwsArgumentError,
+      );
     });
   });
 }

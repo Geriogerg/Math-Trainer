@@ -244,6 +244,27 @@ type. Les deux contredisent la sémantique du niveau — si le joueur choisit sa
 niveau ne mesure plus sa compétence et le classement général perd son sens. Il n'y a donc aucun
 contrôle de difficulté dans l'UI.
 
+## Formule de pondération du score par la difficulté (étape 4, commit E)
+
+Proposée avant implémentation, comme demandé (« choix produit, ne pas implémenter d'office »),
+validée ensuite. Multiplicative plutôt qu'additive : compose proprement avec le barème existant
+(base + bonus vitesse + bonus streak) sans dupliquer sa logique, et un même écart de niveau a un
+effet relatif comparable quel que soit le score de base d'une réponse.
+
+```
+multiplier = 1 + (level - 1) / 99 * difficultyBonusMax
+points_finaux = (points_bruts * multiplier).round()
+```
+
+`difficultyBonusMax = 1,0` — niveau 100 rapporte le double des points du niveau 1. **Non
+calibré**, comme les autres constantes du système de niveaux ; vit dans `ScoringRules`, à côté
+des autres réglages de barème plutôt que dans une classe séparée, puisque c'est un paramètre de
+scoring qui *consomme* un niveau, pas un paramètre du calcul de niveau lui-même.
+
+`level` est le niveau **figé** de l'opération pour la session (`SessionConfig.levels`), jamais
+relu depuis le cache — la difficulté qui a réellement produit la question, cohérent avec le
+même principe déjà appliqué à `LevelUpdater` et à la génération d'exercices.
+
 ## Le score reste un retour de session, le niveau reste l'unité de classement
 
 Pondérer les points par difficulté est légitime : sans cela, progresser ne change rien au

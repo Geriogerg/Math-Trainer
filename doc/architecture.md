@@ -35,8 +35,10 @@ lib/
                            # SharedPreferencesPlayerIdProvider — seul endroit qui importe
                            # sqflite / shared_preferences
   presentation/
+    exercise_type_labels.dart  # exerciseTypeLabel(ExerciseType) — partagé HomeScreen/ProgressScreen
     screens/               # HomeScreen (phase + choix des types), SessionScreen
-                           # (question/saisie/feedback), ResultScreen (stats + rejouer)
+                           # (question/saisie/feedback), ResultScreen (stats + rejouer),
+                           # ProgressScreen (niveau actuel par opération, depuis le cache)
 test/
   domain/                  # miroir de core/domain — `dart test test/domain`
   state/                   # SessionController — `flutter test` (ChangeNotifier tire dart:ui)
@@ -99,17 +101,30 @@ objet de configuration pour l'instant.
 le bouton pendant l'attente — une seule requête indexée, donc bref).
 
 `HomeScreen` porte la sélection des types (`_TypeSelectionView`). L'étape 4 n'y ajoute **pas** de
-contrôle de difficulté — celle-ci est dérivée du niveau, pas choisie. En revanche un écran de
-progression viendra s'ajouter ; si le fichier grossit, le scinder par vue.
+contrôle de difficulté — celle-ci est dérivée du niveau, pas choisie. Un bouton « Voir ma
+progression » ouvre `ProgressScreen` (`Navigator.push` — première utilisation du `Navigator`
+dans l'app, jusque-là `HomeScreen` gérait tout par état interne).
 
 ## Cache de niveaux (`player_levels`)
 
 Table séparée de `sessions`, clé composite `(player_id, exercise_type)` plutôt qu'UUID — écart
 assumé à la règle 5, voir `doc/decisions.md`. Mise à jour par `SessionController` en fin de
 session (dans la même transaction que `recordSession`), lue par `buildSessionController` au
-démarrage de la suivante. `sessions.levels_json` stocke séparément les niveaux qui ont *servi* à
-générer chaque session — les deux peuvent diverger si le cache a évolué depuis (recalibration,
+démarrage de la suivante — et par `ProgressScreen` pour l'affichage, sans transformation, sans
+niveau 1 par défaut pour une opération jamais jouée (« Non joué », pour ne pas laisser croire
+qu'un niveau a été mesuré). `sessions.levels_json` stocke séparément les niveaux qui ont *servi*
+à générer chaque session — les deux peuvent diverger si le cache a évolué depuis (recalibration,
 autre appareil).
+
+## Score pondéré par la difficulté
+
+`Scorer.pointsFor` prend un `level` (niveau figé de l'opération pour la session, jamais le
+niveau courant du cache) et multiplie les points bruts (base + bonus vitesse + bonus streak,
+inchangés) par `1 + (level - 1) / 99 * difficultyBonusMax`. `difficultyBonusMax` (défaut 1,0,
+non calibré) vit dans `ScoringRules`, aux côtés des autres constantes de barème. Le score reste
+un retour de session sans valeur de classement — c'est le niveau qui classe (voir
+`doc/decisions.md`). Aucun nouveau champ de stockage : le score pondéré est déjà ce qui atterrit
+dans `AnswerResult`/`totalScore`.
 
 ## Dépendances
 

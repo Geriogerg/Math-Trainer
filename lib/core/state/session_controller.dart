@@ -78,7 +78,11 @@ class SessionController extends ChangeNotifier {
       isCorrect: isCorrect,
       elapsedMs: elapsedMs,
     );
-    final points = scorer.pointsFor(outcome, currentStreak: nextStreak);
+    final points = scorer.pointsFor(
+      outcome,
+      currentStreak: nextStreak,
+      level: config.levels[exercise.type] ?? 1,
+    );
     final outcomes = [..._state.outcomes, outcome];
     final isSessionComplete = outcomes.length >= config.exerciseCount;
 

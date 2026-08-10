@@ -7,6 +7,7 @@ class ScoringRules {
     this.speedBonusWindowMs = 5000,
     this.streakBonusPerStep = 2,
     this.maxStreakBonus = 20,
+    this.difficultyBonusMax = 1.0,
   });
 
   final int basePoints;
@@ -14,6 +15,11 @@ class ScoringRules {
   final int speedBonusWindowMs;
   final int streakBonusPerStep;
   final int maxStreakBonus;
+
+  /// Au niveau 100, les points bruts sont multipliés par `1 +
+  /// difficultyBonusMax` ; au niveau 1, par 1 (aucun bonus). Non calibré,
+  /// voir `doc/decisions.md`.
+  final double difficultyBonusMax;
 }
 
 /// Fonctions pures de calcul de points. Le streak (nombre de bonnes
@@ -26,12 +32,16 @@ class Scorer {
   final ScoringRules rules;
 
   /// [currentStreak] compte la réponse en cours : 1 pour la première bonne
-  /// réponse d'une série, 2 pour la deuxième consécutive, etc.
-  int pointsFor(AnswerResult answer, {required int currentStreak}) {
+  /// réponse d'une série, 2 pour la deuxième consécutive, etc. [level] est
+  /// le niveau figé de l'opération pour cette session (`SessionConfig.
+  /// levels`), jamais le niveau courant du cache — la difficulté qui a
+  /// réellement produit cette question.
+  int pointsFor(AnswerResult answer, {required int currentStreak, required int level}) {
+    final multiplier = _difficultyMultiplier(level);
     if (!answer.isCorrect) return 0;
-    return rules.basePoints +
-        _speedBonus(answer.elapsedMs) +
-        _streakBonus(currentStreak);
+    final rawPoints =
+        rules.basePoints + _speedBonus(answer.elapsedMs) + _streakBonus(currentStreak);
+    return (rawPoints * multiplier).round();
   }
 
   int _speedBonus(int elapsedMs) {
@@ -45,5 +55,12 @@ class Scorer {
     final bonus = (currentStreak - 1) * rules.streakBonusPerStep;
     if (bonus <= 0) return 0;
     return bonus > rules.maxStreakBonus ? rules.maxStreakBonus : bonus;
+  }
+
+  double _difficultyMultiplier(int level) {
+    if (level < 1 || level > 100) {
+      throw ArgumentError.value(level, 'level', 'doit être compris entre 1 et 100.');
+    }
+    return 1 + (level - 1) / 99 * rules.difficultyBonusMax;
   }
 }

@@ -4,6 +4,8 @@ import '../../composition_root.dart';
 import '../../core/domain/models/exercise_type.dart';
 import '../../core/state/session_controller.dart';
 import '../../core/state/session_state.dart';
+import '../exercise_type_labels.dart';
+import 'progress_screen.dart';
 import 'result_screen.dart';
 import 'session_screen.dart';
 
@@ -50,6 +52,12 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _controller = null);
   }
 
+  void _openProgress() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => ProgressScreen(environment: widget.environment)));
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = _controller;
@@ -62,6 +70,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 onChanged: (types) => setState(() => _selectedTypes = types),
                 onStart: _selectedTypes.isEmpty || _isStarting ? null : _startSession,
                 isStarting: _isStarting,
+                onOpenProgress: _openProgress,
               )
             : ListenableBuilder(
                 listenable: controller,
@@ -90,12 +99,14 @@ class _TypeSelectionView extends StatelessWidget {
     required this.onChanged,
     required this.onStart,
     required this.isStarting,
+    required this.onOpenProgress,
   });
 
   final Set<ExerciseType> selectedTypes;
   final ValueChanged<Set<ExerciseType>> onChanged;
   final VoidCallback? onStart;
   final bool isStarting;
+  final VoidCallback onOpenProgress;
 
   void _toggle(ExerciseType type, bool selected) {
     final updated = Set<ExerciseType>.of(selectedTypes);
@@ -124,7 +135,7 @@ class _TypeSelectionView extends StatelessWidget {
               children: [
                 for (final type in ExerciseType.values)
                   FilterChip(
-                    label: Text(_labelFor(type)),
+                    label: Text(exerciseTypeLabel(type)),
                     selected: selectedTypes.contains(type),
                     onSelected: (selected) => _toggle(type, selected),
                   ),
@@ -141,19 +152,11 @@ class _TypeSelectionView extends StatelessWidget {
                     )
                   : const Text('Commencer'),
             ),
+            const SizedBox(height: 8),
+            TextButton(onPressed: onOpenProgress, child: const Text('Voir ma progression')),
           ],
         ),
       ),
     );
   }
 }
-
-String _labelFor(ExerciseType type) => switch (type) {
-  ExerciseType.addition => 'Addition',
-  ExerciseType.subtraction => 'Soustraction',
-  ExerciseType.multiplication => 'Multiplication',
-  ExerciseType.division => 'Division',
-  ExerciseType.power => 'Puissances',
-  ExerciseType.squareRoot => 'Racines carrées',
-  ExerciseType.percentage => 'Pourcentages',
-};

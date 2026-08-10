@@ -82,4 +82,21 @@ void main() {
     expect(find.text('Math Trainer'), findsOneWidget);
     expect(find.byType(FilterChip), findsWidgets);
   });
+
+  testWidgets('« Voir ma progression » ouvre l\'écran de progression puis y revient', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
+
+    await tester.tap(find.text('Voir ma progression'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Progression'), findsOneWidget);
+    expect(find.text('Addition'), findsOneWidget);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Math Trainer'), findsOneWidget);
+  });
 }
