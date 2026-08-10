@@ -18,6 +18,8 @@ lib/
       generation/          # ExerciseGenerator, CompositeExerciseGenerator, générateurs
                            # par type, OperandRange, ExerciseSource, LocalExerciseSource
       scoring/             # Scorer, ScoringRules
+      leveling/            # LevelUpdater, LevelingRules, ConfidenceMultiplier,
+                           # AnswerOutcome — domaine pur, rejouable sur un historique
       persistence/         # SessionRepository, LocalPlayerIdProvider (interfaces),
                            # PersistedSession/PersistedAnswer, InMemorySessionRepository,
                            # uuid.dart, exercise_codec.dart

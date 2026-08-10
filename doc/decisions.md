@@ -67,6 +67,12 @@ confiance, on borne à `Δ_max`, on applique.
 | `n_min` | 8 | en deçà, la session ne compte pas (échantillon de bruit) |
 | `K_calib` | ×4 sur 3 sessions | calibrage initial |
 | `boost_retour` | ×2 sur 2 sessions | après longue absence |
+| `t_rapide` | 2000 ms | vitesse = 1 en deçà |
+| `t_lent` | 8000 ms | vitesse = 0 au-delà ; ordre de grandeur choisi par cohérence avec `speedBonusWindowMs = 5000` de `ScoringRules`, sans lien fonctionnel avec lui |
+
+**Portée de `t_rapide`/`t_lent` : deux constantes globales**, indépendantes de l'axe « temps
+imparti » du commit C (qui varie par opération et par niveau, mais pour la *génération* des
+exercices — un sujet distinct du calcul de `vitesse` dans la formule de mise à jour).
 
 Cibles de réglage : convergence en 10–20 sessions, oscillation à l'équilibre sous ±2 niveaux,
 biais moyen légèrement positif (conséquence attendue de `K_haut > K_bas`, sans effet sur
@@ -89,6 +95,22 @@ peut pas revalider et le mode duel tombe.
 700 paliers (7 opérations × 100) ne se calibrent pas à la main : une fonction continue
 `niveau → bornes` par opération, cinq points d'ancrage vérifiés manuellement (1, 25, 50, 75, 100),
 et deux tests — monotonie et absence de saut brutal entre niveaux consécutifs.
+
+## `AnswerOutcome`, pas `AnswerResult` ni `PersistedAnswer` (étape 4)
+
+`LevelUpdater` a besoin de `isCorrect` et `elapsedMs`, rien d'autre. Réutiliser `AnswerResult`
+aurait couplé le calcul du niveau au gameplay live (l'`Exercise` complet, la valeur soumise) ;
+réutiliser `PersistedAnswer` l'aurait couplé à la persistance (id, timestamps, hors sujet pour
+la formule). `AnswerOutcome` est un type dédié, minimal ; les deux autres s'y convertissent
+trivialement. Coût nul aujourd'hui, découplage réel entre trois couches qui n'ont pas besoin de
+se connaître.
+
+## `LevelingRules` non-const dès l'écriture (étape 4)
+
+Contrairement à `OperandRange` (const à l'origine, corrigé au commit A de cette étape),
+`LevelingRules` est non-const et lève directement dans son constructeur
+(`tRapideMs >= tLentMs`). La règle 13 est déjà actée au moment d'écrire ce fichier : autant
+l'appliquer dès le départ que créer un cinquième cas à corriger plus tard.
 
 ## `assert` ne défend pas un invariant — utiliser `throw` (règle 13)
 
