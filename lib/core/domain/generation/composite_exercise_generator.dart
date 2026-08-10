@@ -11,6 +11,7 @@ import 'exercise_generator.dart';
 import 'percentage_generator.dart';
 import 'power_generator.dart';
 import 'square_root_generator.dart';
+import 'type_selection_strategy.dart';
 
 /// Niveau utilisé pour tout type activé absent de `levels` — repli
 /// temporaire tant que le commit D ne câble pas les vrais niveaux depuis
@@ -25,23 +26,45 @@ const _defaultLevel = 50;
 /// avec les mêmes éléments dans un ordre différent casseraient sinon la
 /// règle 2 (même config → même séquence) sans erreur visible.
 class CompositeExerciseGenerator implements ExerciseGenerator {
-  CompositeExerciseGenerator({required Set<ExerciseType> enabledTypes, Map<ExerciseType, int>? levels})
-    : _sortedTypes = enabledTypes.toList()..sort((a, b) => a.index.compareTo(b.index)),
-      _generators = {
-        for (final type in enabledTypes)
-          type: _buildGenerator(type, levels?[type] ?? _defaultLevel),
-      } {
+  CompositeExerciseGenerator({
+    required Set<ExerciseType> enabledTypes,
+    Map<ExerciseType, int>? levels,
+    TypeSelectionStrategy? strategy,
+  }) : _sortedTypes = enabledTypes.toList()..sort((a, b) => a.index.compareTo(b.index)),
+       _generators = {
+         for (final type in enabledTypes)
+           type: _buildGenerator(type, levels?[type] ?? _defaultLevel),
+       } {
     if (enabledTypes.isEmpty) {
       throw ArgumentError.value(enabledTypes, 'enabledTypes', 'ne doit pas être vide.');
     }
+    _sequence = strategy?.sequenceFor(_sortedTypes);
   }
 
   final List<ExerciseType> _sortedTypes;
   final Map<ExerciseType, ExerciseGenerator> _generators;
 
+  /// `null` : mode flux infini, tirage uniforme par appel (comportement
+  /// historique, inchangé). Non `null` : séquence bornée construite une
+  /// fois par la stratégie injectée — voir `doc/decisions.md`.
+  List<ExerciseType>? _sequence;
+  int _position = 0;
+
   @override
   Exercise next(Random random) {
-    final type = _sortedTypes[random.nextInt(_sortedTypes.length)];
+    final ExerciseType type;
+    final sequence = _sequence;
+    if (sequence != null) {
+      if (_position >= sequence.length) {
+        throw StateError(
+          'Séquence épuisée ($_position/${sequence.length}) — la stratégie a été construite '
+          'pour un nombre de questions fixe.',
+        );
+      }
+      type = sequence[_position++];
+    } else {
+      type = _sortedTypes[random.nextInt(_sortedTypes.length)];
+    }
     return _generators[type]!.next(random);
   }
 

@@ -1,9 +1,19 @@
 import 'dart:math';
 
 import 'package:math_trainer/core/domain/generation/composite_exercise_generator.dart';
+import 'package:math_trainer/core/domain/generation/debt_aware_type_selection_strategy.dart';
+import 'package:math_trainer/core/domain/generation/type_selection_strategy.dart';
 import 'package:math_trainer/core/domain/models/exercise.dart';
 import 'package:math_trainer/core/domain/models/exercise_type.dart';
 import 'package:test/test.dart';
+
+class _FixedSequenceStrategy implements TypeSelectionStrategy {
+  _FixedSequenceStrategy(this._sequence);
+  final List<ExerciseType> _sequence;
+
+  @override
+  List<ExerciseType> sequenceFor(List<ExerciseType> sortedEnabledTypes) => _sequence;
+}
 
 void main() {
   group('CompositeExerciseGenerator', () {
@@ -105,6 +115,70 @@ void main() {
       final randomB = Random(13);
       final sequenceA = List.generate(20, (_) => withoutLevel.next(randomA));
       final sequenceB = List.generate(20, (_) => withLevel50.next(randomB));
+
+      expect(sequenceA, equals(sequenceB));
+    });
+
+    test('avec une stratégie, la séquence de types suit exactement ce qu\'elle renvoie', () {
+      final strategy = _FixedSequenceStrategy([
+        ExerciseType.subtraction,
+        ExerciseType.addition,
+        ExerciseType.subtraction,
+      ]);
+      final generator = CompositeExerciseGenerator(
+        enabledTypes: {ExerciseType.addition, ExerciseType.subtraction},
+        strategy: strategy,
+      );
+      final random = Random(1);
+
+      final types = List.generate(3, (_) => generator.next(random).type);
+
+      expect(types, [ExerciseType.subtraction, ExerciseType.addition, ExerciseType.subtraction]);
+    });
+
+    test('avec une stratégie, un appel au-delà de la séquence lève', () {
+      final strategy = _FixedSequenceStrategy([ExerciseType.addition]);
+      final generator = CompositeExerciseGenerator(
+        enabledTypes: {ExerciseType.addition},
+        strategy: strategy,
+      );
+      final random = Random(1);
+
+      generator.next(random);
+
+      expect(() => generator.next(random), throwsStateError);
+    });
+
+    test('avec DebtAwareTypeSelectionStrategy, même seed et même dette produisent la même '
+        'séquence complète (valeurs incluses)', () {
+      Map<ExerciseType, int> sessionsPlayedByType() => {
+        ExerciseType.addition: 3,
+        ExerciseType.subtraction: 0,
+      };
+
+      final generatorA = CompositeExerciseGenerator(
+        enabledTypes: {ExerciseType.addition, ExerciseType.subtraction},
+        levels: {ExerciseType.addition: 40, ExerciseType.subtraction: 60},
+        strategy: DebtAwareTypeSelectionStrategy(
+          exerciseCount: 16,
+          nMin: 8,
+          sessionsPlayedByType: sessionsPlayedByType(),
+        ),
+      );
+      final generatorB = CompositeExerciseGenerator(
+        enabledTypes: {ExerciseType.addition, ExerciseType.subtraction},
+        levels: {ExerciseType.addition: 40, ExerciseType.subtraction: 60},
+        strategy: DebtAwareTypeSelectionStrategy(
+          exerciseCount: 16,
+          nMin: 8,
+          sessionsPlayedByType: sessionsPlayedByType(),
+        ),
+      );
+
+      final randomA = Random(21);
+      final randomB = Random(21);
+      final sequenceA = List.generate(16, (_) => generatorA.next(randomA));
+      final sequenceB = List.generate(16, (_) => generatorB.next(randomB));
 
       expect(sequenceA, equals(sequenceB));
     });

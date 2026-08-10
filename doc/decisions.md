@@ -223,6 +223,84 @@ choisi. Avec le cache lu en interne par `buildSessionController` (asynchrone, r�
 plus de 3ᵉ paramètre à faire transmettre par l'appelant — `enabledTypes` reste le seul réglage
 fourni par `HomeScreen`, les niveaux sont dérivés de la persistance, jamais passés en argument.
 
+## Échantillonnage garanti — sélection par défaut, plafond, rotation (étape 4.1, commit A)
+
+**Constat chiffré** qui a motivé ce commit : avec `n_min = 8`, `exerciseCount = 10` fixe et 4
+types pré-sélectionnés par défaut, l'espérance était de 2,5 réponses par type — la probabilité
+qu'un type atteigne `n_min` dans une session était de 0,042 %, soit environ 2400 sessions
+avant qu'une seule opération ait une chance de bouger. Le système de niveaux ne s'engageait
+jamais sur le chemin par défaut.
+
+**Deux directions adoptées ensemble**, après analyse chiffrée des deux (espérance par type,
+sessions avant qu'une opération bouge, durée de session) :
+
+1. **Sélection par défaut réduite à 2 types** (addition, soustraction — opérations inverses
+   l'une de l'autre, charge cognitive minimale pour un premier joueur). Les 5 autres types
+   restent affichés sur `HomeScreen`, juste décochés. Change uniquement une constante
+   (`_defaultSelectedTypes` dans `home_screen.dart`).
+2. **`exerciseCount = min(n_min × types actifs, cap)`**, `cap = 24`. Couverture *garantie* (plus
+   probabiliste) tant que le budget suffit pour tous les types actifs.
+
+**Le plafond de 24 est une cible de durée déguisée, pas un compte de questions signifiant.**
+À ~4 s/question (repère grossier, aucune mesure réelle — voir la note sur les constantes non
+calibrées), 24 questions visent environ 90 secondes. Cette estimation ne tient pas compte du
+fait qu'une question de niveau 80 prend probablement plus longtemps à répondre qu'une de niveau
+5 : le plafond devrait, à terme, dépendre du niveau moyen de la session autant que du nombre de
+types. Laissé tel quel pour l'instant — **à recalibrer avec le script de l'étape 4.1 point E**,
+en même temps que les ~20 autres constantes non calibrées du système.
+
+**Rotation par dette au-delà du plafond, sans nouveau compteur.** Quand le budget ne couvre pas
+tous les types actifs (k ≥ 4 avec les valeurs actuelles), `DebtAwareTypeSelectionStrategy`
+donne des blocs complets de `n_min` aux types les moins joués (`sessionsPlayed` de
+`player_levels`), dans l'ordre, jusqu'à épuisement du budget. Aucun état dédié : `sessionsPlayed`
+existe déjà, alimenté par `_computeLevelUpdates` (commit D), et reste recalculable côté serveur
+à partir des réponses individuelles — cohérent avec « les niveaux sont un cache, pas une source
+de vérité ». Le reste du budget (quand `n_min × k` ne divise pas exactement `cap` — n'arrive pas
+avec les valeurs actuelles, mais la logique le gère) va un par un aux types suivants dans l'ordre
+de priorité qui n'ont pas eu de bloc complet ; si tous en ont un, il sert de bonus aux types déjà
+pleins plutôt que de rester bloqué.
+
+## L'historique entre dans la config de génération — conséquence sur la règle 2
+
+Signalé par vous avant l'implémentation, pas découvert après coup. Un tirage par quotas doit
+connaître à l'avance le budget total et le poids de chaque type : impossible question par
+question sans mémoire, contrairement au tirage uniforme d'origine. `DebtAwareTypeSelectionStrategy`
+a donc besoin d'un instantané de `sessionsPlayedByType`, lu une fois à la construction de la
+session (même lecture que celle déjà faite pour `levels`, aucun nouvel appel au repository).
+
+La règle 2 (même `(seed, config)` → même séquence) **tient toujours**, au même titre que pour
+`levels` depuis le commit D : `config` inclut maintenant implicitement cet instantané. Rien de
+nouveau n'est persisté pour le rejouer — seule la séquence qui en résulte compte, et elle est
+déjà entièrement capturée réponse par réponse dans `answers`.
+
+**Pourquoi une stratégie injectée plutôt qu'une règle câblée** : le duel (non implémenté)
+exigera l'inverse — des quotas indépendants de l'historique, pour que deux joueurs sans le même
+historique local reçoivent la même séquence à `(seed, config)` égal. `TypeSelectionStrategy` est
+donc une interface avec, aujourd'hui, une seule implémentation concrète
+(`DebtAwareTypeSelectionStrategy`) mais un point d'extension déjà en place pour la seconde
+(`FixedQuotaTypeSelectionStrategy`, à écrire quand le duel arrivera — pas avant, pas
+d'abstraction pour un cas d'usage qui n'existe pas encore, mais il y en a ici déjà deux
+identifiés).
+
+**Non traité maintenant** : `SessionConfig`/`PersistedSession` ne portent pas quelle stratégie a
+produit la séquence. Suffisant tant qu'une seule stratégie existe côté solo ; à revoir quand le
+duel introduira la seconde, pour que le serveur sache laquelle rejouer.
+
+**Compatibilité avec `CompositeExerciseGenerator` existant** : `strategy` est un paramètre
+optionnel. `null` (défaut) préserve exactement le comportement historique — flux infini, tirage
+uniforme par appel, zéro ripple sur les tests des commits A à E. Fournie, elle borne le
+générateur à sa longueur : un appel au-delà lève `StateError`, une capacité désormais réelle.
+
+## Dettes documentées, non retouchées dans ce commit
+
+Deux points signalés lors de la relecture critique de l'étape 4, explicitement laissés de côté :
+
+- **Plage continue de pourcentages** (commit C) : question de courbe, pas de mécanisme —
+  à régler avec la recalibration (point E), pas isolément.
+- **Repli niveau 50 dans `CompositeExerciseGenerator`** (commit C) : mort en production depuis
+  le commit D (`buildSessionController` alimente toujours `levels` intégralement), mais
+  inoffensif — ses tests restent des garde-fous valides, rien à en faire pour l'instant.
+
 ## Les niveaux sont un cache recalculable, pas une source de vérité
 
 Ce qui est stocké peut être reconstruit intégralement à partir de l'historique des réponses.

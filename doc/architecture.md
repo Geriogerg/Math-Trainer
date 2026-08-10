@@ -17,6 +17,8 @@ lib/
                            # AnswerResult, SessionConfig, SessionResult
       generation/          # ExerciseGenerator, CompositeExerciseGenerator, générateurs
                            # par type, OperandRange, ExerciseSource, LocalExerciseSource
+                           # sessionLengthFor, TypeSelectionStrategy (interface),
+                           # DebtAwareTypeSelectionStrategy (solo, rotation par dette)
       scoring/             # Scorer, ScoringRules
       leveling/            # LevelUpdater, LevelingRules, ConfidenceMultiplier,
                            # AnswerOutcome — domaine pur, rejouable sur un historique
@@ -104,6 +106,28 @@ le bouton pendant l'attente — une seule requête indexée, donc bref).
 contrôle de difficulté — celle-ci est dérivée du niveau, pas choisie. Un bouton « Voir ma
 progression » ouvre `ProgressScreen` (`Navigator.push` — première utilisation du `Navigator`
 dans l'app, jusque-là `HomeScreen` gérait tout par état interne).
+
+**Sélection par défaut : 2 types** (addition, soustraction — étape 4.1, commit A), pas 4. Les 5
+autres restent affichés, juste décochés.
+
+## Longueur de session et sélection des types (étape 4.1, commit A)
+
+`exerciseCount` n'est plus une constante fixe : `sessionLengthFor(activeTypeCount, nMin, cap)`
+vise `n_min × types actifs`, plafonné à `cap = 24` dans `composition_root.dart`. Avec les 2 types
+par défaut, une session compte désormais **16 questions**, pas 10.
+
+Au-delà du plafond, `CompositeExerciseGenerator` accepte une `TypeSelectionStrategy?` optionnelle
+qui remplace le tirage uniforme par une séquence précalculée. Sans elle (`strategy: null`), le
+comportement historique — flux infini, tirage uniforme par appel — reste strictement inchangé ;
+c'est le seul mode utilisé par tous les tests antérieurs à l'étape 4.1. Avec elle, le générateur
+construit sa séquence une fois à la construction et la consomme dans l'ordre ; un appel au-delà
+lève `StateError`.
+
+`DebtAwareTypeSelectionStrategy` (solo) priorise les types les moins joués (`sessionsPlayed` de
+`player_levels`, déjà lu par `buildSessionController` pour les niveaux — aucun nouvel appel au
+repository). L'historique entre ainsi dans la config de génération ; voir `doc/decisions.md` pour
+ce que ça implique pour la règle 2 et pour le duel futur (`FixedQuotaTypeSelectionStrategy`, non
+implémentée — le point d'extension existe, pas la stratégie).
 
 ## Cache de niveaux (`player_levels`)
 

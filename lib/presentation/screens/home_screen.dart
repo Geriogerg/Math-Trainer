@@ -9,12 +9,13 @@ import 'progress_screen.dart';
 import 'result_screen.dart';
 import 'session_screen.dart';
 
-const _defaultSelectedTypes = {
-  ExerciseType.addition,
-  ExerciseType.subtraction,
-  ExerciseType.multiplication,
-  ExerciseType.division,
-};
+/// 2 types par défaut, pas 4 : avec `n_min = 8` et le plafond de session,
+/// c'est ce qui garantit une couverture du cache de niveau dès la première
+/// session pour un joueur qui ne touche pas à la sélection (étape 4.1,
+/// commit A — voir `doc/decisions.md`). Addition/soustraction : opérations
+/// inverses l'une de l'autre, charge cognitive minimale pour un premier
+/// joueur ; les 5 autres types restent tous disponibles, juste décochés.
+const _defaultSelectedTypes = {ExerciseType.addition, ExerciseType.subtraction};
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, required this.environment});

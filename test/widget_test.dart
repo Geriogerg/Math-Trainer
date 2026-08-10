@@ -33,8 +33,8 @@ void main() {
   testWidgets('aucun type sélectionné désactive Commencer', (WidgetTester tester) async {
     await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
 
-    // Décoche les 4 types arithmétiques pré-sélectionnés par défaut.
-    for (final label in ['Addition', 'Soustraction', 'Multiplication', 'Division']) {
+    // Décoche les 2 types pré-sélectionnés par défaut (étape 4.1, commit A).
+    for (final label in ['Addition', 'Soustraction']) {
       await tester.tap(find.text(label));
       await tester.pump();
     }
@@ -51,10 +51,8 @@ void main() {
   ) async {
     await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
 
-    for (final label in ['Soustraction', 'Multiplication', 'Division']) {
-      await tester.tap(find.text(label));
-      await tester.pump();
-    }
+    await tester.tap(find.text('Soustraction'));
+    await tester.pump();
     await tester.tap(find.text('Commencer'));
     await tester.pump();
 
@@ -69,7 +67,9 @@ void main() {
     await tester.tap(find.text('Commencer'));
     await tester.pump();
 
-    for (var i = 0; i < 15 && find.text('Session terminée').evaluate().isEmpty; i++) {
+    // 2 types par défaut, n_min=8 : sessionLengthFor(2, 8, 24) = 16
+    // questions (étape 4.1, commit A) — pas 10.
+    for (var i = 0; i < 20 && find.text('Session terminée').evaluate().isEmpty; i++) {
       await tester.enterText(find.byType(TextField), '1');
       await tester.tap(find.text('Valider'));
       await tester.pump();
