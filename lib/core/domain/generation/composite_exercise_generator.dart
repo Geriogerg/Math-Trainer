@@ -17,9 +17,12 @@ import 'square_root_generator.dart';
 /// règle 2 (même config → même séquence) sans erreur visible.
 class CompositeExerciseGenerator implements ExerciseGenerator {
   CompositeExerciseGenerator({required Set<ExerciseType> enabledTypes})
-    : assert(enabledTypes.isNotEmpty),
-      _sortedTypes = enabledTypes.toList()..sort((a, b) => a.index.compareTo(b.index)),
-      _generators = {for (final type in enabledTypes) type: _buildGenerator(type)};
+    : _sortedTypes = enabledTypes.toList()..sort((a, b) => a.index.compareTo(b.index)),
+      _generators = {for (final type in enabledTypes) type: _buildGenerator(type)} {
+    if (enabledTypes.isEmpty) {
+      throw ArgumentError.value(enabledTypes, 'enabledTypes', 'ne doit pas être vide.');
+    }
+  }
 
   final List<ExerciseType> _sortedTypes;
   final Map<ExerciseType, ExerciseGenerator> _generators;

@@ -65,5 +65,9 @@ void main() {
         expect(generator.next(random).type, ExerciseType.percentage);
       }
     });
+
+    test('refuse un ensemble de types vide', () {
+      expect(() => CompositeExerciseGenerator(enabledTypes: {}), throwsArgumentError);
+    });
   });
 }

@@ -6,13 +6,12 @@ import 'exercise_generator.dart';
 import 'operand_range.dart';
 
 class ArithmeticExerciseGenerator implements ExerciseGenerator {
-  ArithmeticExerciseGenerator({
-    required this.operationTypes,
-    this.operandRange = const OperandRange(min: 1, max: 10),
-  }) : assert(operationTypes.isNotEmpty) {
-    if (operationTypes.contains(OperationType.division) && operandRange.min < 1) {
+  ArithmeticExerciseGenerator({required this.operationTypes, OperandRange? operandRange})
+    : operandRange = operandRange ?? OperandRange(min: 1, max: 10),
+      assert(operationTypes.isNotEmpty) {
+    if (operationTypes.contains(OperationType.division) && this.operandRange.min < 1) {
       throw ArgumentError.value(
-        operandRange,
+        this.operandRange,
         'operandRange',
         'La division nécessite un diviseur non nul (operandRange.min >= 1).',
       );

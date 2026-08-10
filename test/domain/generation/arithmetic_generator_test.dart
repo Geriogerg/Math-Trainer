@@ -83,7 +83,7 @@ void main() {
     });
 
     test('les opérandes générés respectent les bornes configurées', () {
-      const range = OperandRange(min: 5, max: 8);
+      final range = OperandRange(min: 5, max: 8);
       final generator = ArithmeticExerciseGenerator(
         operationTypes: const [
           OperationType.addition,
@@ -105,7 +105,7 @@ void main() {
       expect(
         () => ArithmeticExerciseGenerator(
           operationTypes: const [OperationType.division],
-          operandRange: const OperandRange(min: 0, max: 5),
+          operandRange: OperandRange(min: 0, max: 5),
         ),
         throwsArgumentError,
       );
