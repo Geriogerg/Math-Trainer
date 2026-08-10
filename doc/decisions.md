@@ -296,8 +296,10 @@ générateur à sa longueur : un appel au-delà lève `StateError`, une capacit�
 
 Deux points signalés lors de la relecture critique de l'étape 4, explicitement laissés de côté :
 
-- **Plage continue de pourcentages** (commit C) : question de courbe, pas de mécanisme —
-  à régler avec la recalibration (point E), pas isolément.
+- **Plage continue de pourcentages** (commit C) : question de courbe, pas de mécanisme.
+  Toujours ouverte après le commit E — le script de recalibration ne couvre que les paramètres
+  de `LevelUpdater`, pas les bornes de génération (voir plus bas). Demande un playtest, pas un
+  rejeu d'historique.
 - **Repli niveau 50 dans `CompositeExerciseGenerator`** (commit C) : mort en production depuis
   le commit D (`buildSessionController` alimente toujours `levels` intégralement), mais
   inoffensif — ses tests restent des garde-fous valides, rien à en faire pour l'instant.
@@ -328,6 +330,51 @@ optionnel, défaut construit automatiquement) et se contente d'appeler `computeU
 `_persistCompletedSession`. Les tests `SessionController` existants continuent de passer sans
 modification (comportement par défaut inchangé) ; `LevelCacheOrchestrator` gagne ses propres
 tests directs, sans avoir à faire tourner une session complète pour exercer chaque cas.
+
+## Script de recalibration `tool/recalibrate.dart` (étape 4.1, commit E)
+
+`LevelUpdater.update()` était conçu depuis le commit B pour être rejouable sur un historique,
+mais rien ne s'en servait. Ce script hors app (pas un écran, lancé en `dart run`) rejoue
+l'historique SQLite pour mesurer, un paramètre de `LevelingRules` à la fois, l'effet sur la
+convergence, l'oscillation et le biais de la trajectoire de niveau.
+
+**Périmètre : 10 des « ~20 » constantes non calibrées, pas toutes.** Seules celles qui
+alimentent directement `LevelUpdater.update()` sont concernées — tout `LevelingRules` sauf
+`n_min` (fixé, justifié statistiquement au commit A). Explicitement **hors périmètre** :
+- Les bornes de `difficulty/` et `difficultyBonusMax` : rejouer d'anciennes réponses ne dit rien
+  de comment un joueur aurait répondu sous d'autres bornes de génération — ça demande un
+  playtest, pas un rejeu. La plage continue de pourcentages (dette du commit C) reste donc
+  entière ; ce script ne la referme pas, contrairement à ce qu'on pouvait anticiper.
+- `n_min` lui-même, par instruction explicite.
+
+**Méthode : sensibilité un paramètre à la fois**, pas de recherche combinatoire sur les 10
+ensemble — illisible et hors de portée avec le volume de données actuel. Pour chaque candidat,
+toute la base est rejouée : sessions triées chronologiquement par `(player_id, exercise_type)`,
+`LevelUpdater.update()` une fois par session (sessions sous `n_min` ignorées, comme en
+production), niveau de départ 1. `sessionsPlayed`/l'absence pour `confidenceFor` sont
+recalculés depuis le rejeu lui-même, jamais depuis `player_levels` (qui ne reflète que l'état
+courant).
+
+**Métriques** : convergence = première session à partir de laquelle l'amplitude (max−min) du
+reste de la trajectoire descend sous ±2 ; oscillation = cette amplitude une fois convergé ;
+biais = variation moyenne par session sur la portion convergée. Comparées aux cibles déjà dans
+ce document (convergence 10–20 sessions, oscillation ≤ 2, biais légèrement positif).
+
+**Pourquoi le script ne réutilise pas `SqfliteSessionRepository`** : ce dernier importe
+`package:sqflite/sqflite.dart`, le plugin Flutter — qui tire `dart:ui`, indisponible à un script
+lancé en `dart run` pur (seul `flutter test` fournit ce nécessaire). Le script lit donc la base
+en SQL brut via `sqflite_common_ffi` directement, en dupliquant la poignée de colonnes dont il a
+besoin plutôt que de repasser par les objets `PersistedSession`/`PersistedAnswer` complets. Piège
+réel rencontré en écrivant le script : `answers.exercise_type` vaut `'arithmetic'` pour les 4
+opérations arithmétiques (voir `exercise_codec.dart`), l'opération précise étant alors dans
+`operation_type` — pas dans `exercise_type` comme pour les 3 autres types.
+
+**Vérifié** contre des données synthétiques (15 sessions parfaites, un seul type — les valeurs
+de convergence/oscillation/biais varient bien selon le paramètre balayé, confirmant que le rejeu
+fonctionne) et contre la vraie base de l'émulateur (2 trajectoires trouvées, convergence
+triviale faute d'assez de sessions — sain, pas un bug : avec seulement 2 sessions par
+trajectoire, il n'y a rien de long terme à observer). **Le volume de données réel est
+aujourd'hui trop faible pour une calibration utile** ; l'outil est prêt, pas encore nourri.
 
 ## Les niveaux sont un cache recalculable, pas une source de vérité
 

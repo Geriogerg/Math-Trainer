@@ -47,6 +47,12 @@ test/
   state/                   # SessionController — `flutter test` (ChangeNotifier tire dart:ui)
   infrastructure/          # sqflite via sqflite_common_ffi, shared_preferences mocké
   widget_test.dart         # smoke test + parcours démarrage → session
+tool/
+  recalibrate.dart         # script CLI, rejoue l'historique SQLite pour évaluer les
+                           # paramètres de LevelingRules — `dart run tool/recalibrate.dart
+                           # --db <chemin>` ; lit en SQL brut (sqflite_common_ffi), ne passe
+                           # pas par SqfliteSessionRepository (importerait Flutter/dart:ui,
+                           # indisponible en `dart run` pur) — voir doc/decisions.md
 ```
 
 ## Gestion d'état
