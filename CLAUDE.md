@@ -1,7 +1,7 @@
 # Math Trainer
 
 Jeu Flutter de calcul mental compétitif (ados et adultes). Rapide, ludique, orienté compétition.
-État : MVP + persistance locale, validé Android et web.
+État : 8 commits, 7 types d'exercices, persistance locale. 69 tests domaine / 85 au total.
 
 Détails non nécessaires à chaque session : `docs/architecture.md` (structure, gestion d'état,
 modèle d'exercice, dépendances) et `docs/decisions.md` (arbitrages passés et leurs raisons).
@@ -30,104 +30,119 @@ Non négociables sans discussion explicite.
 1. **Cœur métier en Dart pur.** Aucun import `package:flutter` dans `core/domain/`.
    → tests rapides, et surtout code réexécutable côté serveur pour revalider les duels.
 2. **Génération déterministe.** Seed explicite, aucun `Random()` non seedé. Même couple
-   (seed, config) → même séquence, toujours.
+   (seed, config) → même séquence, toujours. La config inclut les niveaux du joueur.
    → le mode duel exige que deux joueurs et le serveur reconstituent la même séquence.
 3. **Persistance derrière une abstraction.** Aucun import `sqflite`/`shared_preferences`/`drift`
    hors de `infrastructure/`. → passage à un backend sans toucher au domaine.
 4. **Repositories toujours asynchrones.** `Future<T>` même si l'implémentation est synchrone.
-   → sinon toute la chaîne d'appel serait à réécrire à l'arrivée du réseau.
 5. **Identifiants UUID.** Jamais d'`AUTOINCREMENT` sur une entité synchronisable.
-   → deux appareils générant `id = 1` créent un conflit insoluble.
 6. **Timestamps UTC**, convertis en local à l'affichage seulement. Distinguer `createdAt`
-   et `syncedAt`. → séries et classements incohérents sinon en cas de changement de fuseau.
+   et `syncedAt`.
 7. **Séparation stricte des couches.** Jamais UI + métier + état dans un même fichier.
-   Aucune logique métier dans un widget.
 8. **Modèles immuables.** `final` et `copyWith`, pas de mutation en place.
-9. **Toute réponse attendue est un `int`.** `Exercise.correctAnswer` est typé `int`, jamais
-   `num` ni `double` ; la division utilise `~/`. Aucun type d'exercice n'introduit de réponse
-   composite, fractionnaire ou approchée. → la règle est vérifiée par le compilateur et non
-   promise dans un document ; maintient `TextInputType.number` et évite une refonte UI +
-   `Scorer` + codec + schéma. Comparer des `double` exposerait à une réponse correcte comptée
-   fausse par erreur de représentation binaire. La colonne SQLite `submitted_value` reste
-   `REAL` (un entier s'y stocke sans perte) — décision assumée, pas une migration oubliée.
+9. **Toute réponse attendue est un `int`.** `Exercise.correctAnswer` typé `int`, jamais `num` ;
+   division en `~/`. → règle vérifiée par le compilateur, pas promise dans un document.
 10. **La génération construit le résultat, elle ne le teste pas.** Tirer la racine `r` et
-    présenter `r²` ; jamais de rejet-échantillonnage. → une boucle de rejet consomme un
-    nombre variable de tirages, la séquence dépendrait des bornes et casserait la règle 2.
+    présenter `r²` ; jamais de rejet-échantillonnage. → une boucle de rejet consomme un nombre
+    variable de tirages, la séquence dépendrait des bornes et casserait la règle 2.
 11. **Pas de clause `default`** sur un `switch` d'`Exercise`, d'`ExerciseType` ou
-    d'`OperationType`. → l'erreur d'exhaustivité du compilateur est ce qui signale les points
-    de traitement oubliés à l'ajout d'un type ; un `default` masque le trou.
-12. **`OperationType` reste interne à `ArithmeticExercise`.** L'axe de sélection des types
-    d'exercice est `ExerciseType`. → y ajouter `power` ou `squareRoot` rendrait non exhaustifs
-    les `switch` de symbole et de calcul binaire, forçant des cas dépourvus de sens.
+    d'`OperationType`. → l'erreur d'exhaustivité du compilateur signale les traitements oubliés.
+12. **`OperationType` reste interne à `ArithmeticExercise`.** L'axe de sélection des types est
+    `ExerciseType`. → l'étendre rendrait non exhaustifs les `switch` de symbole et de calcul
+    binaire, forçant des cas dépourvus de sens.
+13. **Un invariant se défend par `throw`, jamais par `assert`.** Les `assert` sont retirés des
+    builds release : l'invariant n'existe alors plus là où il compte. Tout `assert` gardant une
+    précondition publique est un bug. → trois occurrences déjà corrigées (division par zéro,
+    timestamps non-UTC, `OperandRange`/`CompositeExerciseGenerator`). Chaque garde s'accompagne
+    d'un test qui exerce le cas invalide.
 
 ## Stratégie de données
 
 Tout est local aujourd'hui : `shared_preferences` pour les scalaires, SQLite pour l'historique.
 
 **Granularité obligatoire :** stocker chaque réponse individuelle (type, opérandes, réponse
-donnée, temps, correct/incorrect), jamais seulement des agrégats — le futur moteur adaptatif
-doit pouvoir isoler une lenteur sur les tables de 7/8/9 ou sur les carrés élevés, et un
-agrégat ne se décompose pas rétroactivement.
+donnée, temps, correct/incorrect, niveau au moment du jeu), jamais des agrégats — le moteur
+adaptatif doit pouvoir isoler une lenteur sur une opération à un palier donné, et un agrégat ne
+se décompose pas rétroactivement.
+
+**Les niveaux sont un cache, pas une source de vérité.** Ils se recalculent intégralement à
+partir de l'historique des réponses. → le serveur recalculera lui-même plutôt que de croire un
+client qui annoncerait 700 au classement. La fonction de mise à jour appartient donc au domaine
+pur, au même titre que le `Scorer`, et doit pouvoir être rejouée sur une liste de réponses.
 
 Plus tard, offline-first : local = source de vérité en solo et cache du reste ; serveur =
-autorité **exclusive** sur tout le compétitif (Elo, classement, résultats de duels). Le client
-ne calcule jamais un Elo et ne s'auto-attribue jamais un résultat.
+autorité **exclusive** sur tout le compétitif (Elo, classement, résultats de duels).
 
 Backend non tranché, Supabase privilégié (Postgres, agrégations natives pour le ladder).
 Ne pas introduire de dépendance qui fermerait cette option.
 
 ## Périmètre
 
-Étapes 1 (tests du cœur métier), 2 (persistance locale) et 3 (élargissement des types
-d'exercices) : faites. Étape 3 livrée en 3 commits : contrat de réponse resserré en `int`,
-domaine complet (`ExerciseType`, `PowerExercise`/`SquareRootExercise`/`PercentageExercise`,
-`CompositeExerciseGenerator`), puis `Set<ExerciseType> enabledTypes` dans `SessionConfig`
-et sélection des types sur `HomeScreen`. Une session mono-type est une session dont
-l'ensemble actif a un seul élément — pas un mode séparé.
+Faites : 1. tests du cœur métier — 2. persistance locale — 3. sept types d'exercices.
 
-**Étape 4 — difficulté paramétrable ← courante.** Plages d'opérandes et niveaux de
-difficulté ; les bornes des générateurs (aujourd'hui des constantes internes,
-`OperandRange` par type déjà en place comme couture) deviennent réglables. Scoring
-actuellement uniforme entre types — la pondération par difficulté relève aussi de cette
-étape.
+**Étape 4 — système de niveaux ← courante.**
 
-Ensuite : 5. polish UI et feedback.
+La difficulté n'est **pas** un réglage utilisateur. Il n'y a ni sélecteur facile/moyen/difficile,
+ni contrôle de difficulté sur `HomeScreen`. Un niveau par opération est estimé à partir des
+performances passées, et les bornes d'opérandes en sont dérivées. Voir `docs/decisions.md` pour
+la sémantique, la formule et les paramètres déjà arrêtés.
+
+Contenu : la fonction de mise à jour du niveau (domaine pur, rejouable sur un historique) ;
+sept fonctions `niveau → bornes`, une par opération ; le passage des générateurs de constantes
+internes à des paramètres de construction ; la transmission de la config par
+`CompositeExerciseGenerator` ; la première vraie migration de schéma (`schemaVersion` → 2) pour
+stocker les niveaux figés d'une session ; la pondération du score par difficulté ; un écran de
+progression.
+
+**Le niveau est figé au début de la session** et stocké avec elle — jamais recalculé en cours de
+route, sinon le serveur ne peut pas revalider et le mode duel devient impossible.
+
+Corriger au passage les deux `assert` restants (règle 13) : `CompositeExerciseGenerator`
+(`enabledTypes` vide) et `OperandRange` (`min > max`). L'étape 4 est précisément ce qui rend ces
+cas atteignables, puisque les bornes cessent d'être des constantes écrites à la main.
+
+Ensuite : 5. polish UI et direction visuelle — 6. comptes et classement général — 7. matchs en
+ligne et Elo.
+
 **N'implémente rien au-delà de l'étape courante sans demande explicite.**
 
 ## Hors périmètre (définitif)
 
-Écartés par décision produit, ne pas reproposer : **fractions** et **divisions euclidiennes
-(quotient + reste)** — réponses non entières ou composites, contraires à la règle 9.
+**Fractions** et **divisions euclidiennes** : réponses non entières ou composites, contraires à
+la règle 9. Ne pas reproposer.
 
 ## Futur (anticiper, ne pas implémenter)
 
-Comptes, backend, multijoueur, duels, classement, Elo, ligues, saisons, tournois, défis
-quotidiens, XP, niveaux, séries, badges, moteur adaptatif, abonnement, analytics.
+Multijoueur, duels, ligues, saisons, tournois, défis quotidiens, XP, badges, moteur adaptatif,
+abonnement, publicité, analytics.
 Anticiper = ne pas fermer la porte. Pas d'abstraction pour un seul cas d'usage.
 
 ## Règles de collaboration
 
 - **Proposer avant d'implémenter.** Mode Plan pour toute tâche non triviale, attendre validation.
+- **Vérifier les ripples avant d'implémenter** — suivre chaque renommage ou ajout de champ
+  jusqu'à la persistance. Le renommage `operationTypes` → `enabledTypes` aurait silencieusement
+  cassé l'historique si `PersistedSession` n'avait pas été suivi jusqu'au bout.
 - **Expliquer les conséquences** de toute décision architecturale, y compris sur le futur.
 - **Ne pas réécrire du code qui fonctionne.** Modifications minimales et ciblées.
 - **Lister les fichiers modifiés** avec une justification brève.
 - En cas d'ambiguïté, proposer une solution raisonnable et expliciter le choix.
 - Simplicité avant sur-ingénierie. Une étape à la fois, livrable et testable, puis un commit.
+- **Signaler les écarts** constatés entre le code réel et `docs/architecture.md`.
 
 ## Conventions
 
 - Toute logique métier ajoutée vient avec ses tests unitaires.
-- **Chaque variante d'`Exercise` implémente `==` et `hashCode`.** Le compilateur ne l'exige
-  pas ; un test paramétré sur `ExerciseType.values` sert de garde-fou. Sans lui, une variante
-  oublieuse casse les tests de déterminisme avec un message opaque.
+- **Chaque variante d'`Exercise` implémente `==` et `hashCode`.** Le compilateur ne l'exige pas ;
+  un test paramétré sur `ExerciseType.values` sert de garde-fou.
 - Commenter uniquement le non-évident, jamais paraphraser le code.
 - Pas de valeur codée en dur dans l'UI : `Theme.of(context)`.
 - `SafeArea` sur tous les écrans (notch, Dynamic Island).
 - Saisie numérique : `TextInputType.number`, et vérifier que le clavier natif ne masque
   ni le champ ni le chrono.
 - **Les tests de déterminisme sont indexés sur le couple (seed, config)**, jamais sur la seed
-  seule : ajouter une valeur à `ExerciseType` change légitimement la séquence, une référence
-  figée transformerait chaque évolution de l'enum en fausse régression.
+  seule : ajouter une valeur à `ExerciseType` ou changer un niveau modifie légitimement la
+  séquence.
 
 (Nommage, formatage et lints : imposés par `flutter_lints`, vérifiés par `dart analyze`.)
 
@@ -144,26 +159,26 @@ dart test test/domain      # cœur métier — le scope est obligatoire (cf. pi�
 flutter test               # tests incluant les widgets
 flutter analyze            # analyse statique
 flutter run -d edge        # itération rapide
-flutter run                # device Android
+flutter build apk --debug && adb install -r <apk> && adb shell am start <activité>
+                           # vérification Android fiable (cf. pièges)
 ```
 
 ## Pièges (non déductibles du code)
 
-- **Ne jamais tirer au hasard directement dans un `Set`.** L'ordre d'itération d'un `Set` Dart
-  suit l'insertion : `{power, addition}` et `{addition, power}` produiraient des séquences
-  différentes pour la même seed, cassant la règle 2 sans aucune erreur visible. Convertir en
-  liste triée par `index` d'enum avant tout tirage.
+- **Ne jamais tirer au hasard directement dans un `Set`.** L'ordre d'itération suit l'insertion :
+  `{power, addition}` et `{addition, power}` donneraient des séquences différentes pour la même
+  seed, cassant la règle 2 sans erreur visible. Convertir en liste triée par `index` d'enum.
+- **`flutter run` attaché se déconnecte** de façon répétée sur cet environnement. Préférer
+  `flutter build apk --debug` puis `adb install -r` et `adb shell am start`, nettement plus fiable.
+- `CompositeExerciseGenerator` consomme un tirage inutile (`nextInt(1)`) par exercice
+  arithmétique. Sans conséquence fonctionnelle, mais **le supprimer changerait toutes les
+  séquences pour une seed donnée** — donc jamais en même temps qu'autre chose.
 - Les noms des valeurs d'`ExerciseType` servent de discriminant en base via `exercise_codec`.
-  Conserver les noms existants (`addition`, `subtraction`…) évite toute migration de
-  l'historique déjà stocké.
-- `dart test` **sans le scope `test/domain`** échoue : il scanne aussi les tests widgets,
-  qui importent Flutter et sont incompatibles avec ce runner.
+  Les renommer casse l'historique déjà stocké.
+- `dart test` **sans le scope `test/domain`** échoue : il scanne aussi les tests widgets.
 - `kotlin.incremental=false` dans `android/gradle.properties` contourne un bug Windows
-  (plantage du compilateur Kotlin quand projet et caches Gradle sont sur des lettres de
-  lecteur différentes). Purement environnemental — à revérifier sur machine propre ou en CI
-  avant le premier `flutter build appbundle`.
+  (compilateur Kotlin qui plante quand projet et caches Gradle sont sur des lettres de lecteur
+  différentes). À revérifier sur machine propre ou en CI avant le premier `flutter build appbundle`.
 - **Rien n'est persisté sur web** : `InMemorySessionRepository` sert de repli, un rechargement
-  efface tout. Décision assumée tant que le web reste une cible d'itération. À traiter
-  impérativement avant tout déploiement web public.
-- `sqrt()` en virgule flottante est à proscrire : arithmétique entière uniquement pour les
-  carrés parfaits, sous peine d'erreurs d'arrondi sur les grandes valeurs.
+  efface tout. À traiter avant tout déploiement web public.
+- `sqrt()` en virgule flottante est à proscrire : arithmétique entière uniquement.

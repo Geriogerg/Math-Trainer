@@ -13,7 +13,7 @@ lib/
   composition_root.dart    # seul fichier qui choisit les implémentations concrètes
   core/
     domain/                # Dart pur — zéro import Flutter (règle 1)
-      models/              # Exercise (sealed) et variantes, ExerciseType, OperationType,
+      models/              # Exercise (sealed) et 4 variantes, ExerciseType, OperationType,
                            # AnswerResult, SessionConfig, SessionResult
       generation/          # ExerciseGenerator, CompositeExerciseGenerator, générateurs
                            # par type, OperandRange, ExerciseSource, LocalExerciseSource
@@ -79,6 +79,16 @@ Le discriminant stocké est le nom de la valeur d'`ExerciseType`.
 
 Dette connue : `prompt` contient de la copie d'interface en français (« 25% de 80 ») dans le
 domaine pur. Sans conséquence aujourd'hui, à traiter à la première internationalisation.
+
+## Composition et paramètres
+
+`buildSessionController(environment, enabledTypes)` — un troisième paramètre (niveaux du joueur)
+arrive à l'étape 4. Deux paramètres nommés restent lisibles ; au troisième, préférer un petit
+objet de configuration plutôt que d'empiler les paramètres.
+
+`HomeScreen` porte la sélection des types (`_TypeSelectionView`). L'étape 4 n'y ajoute **pas** de
+contrôle de difficulté — celle-ci est dérivée du niveau, pas choisie. En revanche un écran de
+progression viendra s'ajouter ; si le fichier grossit, le scinder par vue.
 
 ## Dépendances
 
