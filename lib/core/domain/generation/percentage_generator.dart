@@ -2,23 +2,25 @@ import 'dart:math';
 
 import '../models/exercise.dart';
 import 'exercise_generator.dart';
+import 'operand_range.dart';
 
 /// Choisit `percent` puis construit `base` comme un multiple du pas requis
 /// pour que `percent * base` soit exactement divisible par 100 (règle 10) :
 /// jamais de tirage suivi d'une vérification de divisibilité.
-/// Bornes internes, non réglables (étape 4 : difficulté paramétrable).
 class PercentageExerciseGenerator implements ExerciseGenerator {
-  const PercentageExerciseGenerator();
+  PercentageExerciseGenerator({OperandRange? percentRange, OperandRange? multiplierRange})
+    : percentRange = percentRange ?? OperandRange(min: 5, max: 50),
+      multiplierRange = multiplierRange ?? OperandRange(min: 1, max: 10);
 
-  static const _percents = [5, 10, 20, 25, 50];
-  static const _multiplierMin = 1;
-  static const _multiplierMax = 10;
+  final OperandRange percentRange;
+  final OperandRange multiplierRange;
 
   @override
   PercentageExercise next(Random random) {
-    final percent = _percents[random.nextInt(_percents.length)];
+    final percent = percentRange.min + random.nextInt(percentRange.max - percentRange.min + 1);
     final step = 100 ~/ _gcd(percent, 100);
-    final multiplier = _multiplierMin + random.nextInt(_multiplierMax - _multiplierMin + 1);
+    final multiplier =
+        multiplierRange.min + random.nextInt(multiplierRange.max - multiplierRange.min + 1);
     return PercentageExercise(percent: percent, base: step * multiplier);
   }
 

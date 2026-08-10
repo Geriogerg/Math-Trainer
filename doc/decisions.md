@@ -96,6 +96,64 @@ peut pas revalider et le mode duel tombe.
 `niveau → bornes` par opération, cinq points d'ancrage vérifiés manuellement (1, 25, 50, 75, 100),
 et deux tests — monotonie et absence de saut brutal entre niveaux consécutifs.
 
+## Interpolation linéaire, pas une table à 5 points (étape 4, commit C)
+
+La « fonction continue » est une interpolation linéaire entre une valeur à niveau 1 et une
+valeur à niveau 100 (2 paramètres par axe) — pas une table piecewise-linear à 5 segments. Les
+points d'ancrage (1, 25, 50, 75, 100) de la section précédente restent des points de **test**
+(monotonie, absence de saut), pas la définition de la fonction : avec seulement 2 points de
+contrôle, monotonie et continuité sont garanties par construction, donc les tests documentent la
+propriété plutôt que de la re-prouver.
+
+Conséquence pratique : les 4 opérations arithmétiques, qui produisent toutes le même type de
+sortie (`OperandRange`), partagent une seule classe paramétrée (`LinearOperandRangeDifficulty`)
+plutôt que 4 corps de fonction dupliqués. « Sept fonctions niveau → bornes » se lit donc comme
+sept points d'entrée (`additionDifficulty`, ..., `percentageDifficulty`), pas sept implémentations
+séparées.
+
+`lib/core/domain/difficulty/` centralise ces sept tables, parallèle à `leveling/` et `scoring/`.
+
+## Un seul axe par opération, et lequel (étape 4, commit C)
+
+| Opération | Axe qui varie | Fixe |
+|---|---|---|
+| Addition, soustraction | `max` de l'opérande (`min` reste à 1) | — |
+| Multiplication, division | `max` du facteur (`min` reste à 1) | — |
+| Puissance | `max` de l'exposant (`min` reste à 2) | base ∈ [2, 10] |
+| Racine carrée | `max` de la racine tirée (`min` reste à 2) | — |
+| Pourcentage | `min` et `max` de `percent` s'écartent tous deux | multiplicateur de base ∈ [1, 10] |
+
+Valeurs de départ, **non calibrées** comme le reste des paramètres du système de niveaux :
+
+| Axe | Niveau 1 | Niveau 100 |
+|---|---|---|
+| Addition / soustraction (max) | 5 | 999 |
+| Multiplication / division (max) | 5 | 50 |
+| Puissance (exposant max) | 2 | 5 |
+| Racine (max) | 4 | 40 |
+| Pourcentage (min, max) | 10, 50 | 1, 99 |
+
+**Écart assumé sur les pourcentages.** La liste discrète {5, 10, 20, 25, 50} de l'étape 3
+devient une plage continue de `percent`, pour rester cohérente avec le mécanisme d'interpolation
+linéaire retenu pour les six autres axes — une liste ne s'interpole pas naturellement entre deux
+points de contrôle. L'exactitude de la génération reste garantie par construction
+(`percent × base` multiple de 100) quel que soit le pourcentage tiré : la « rondeur » de
+5/10/20/25/50 n'a jamais été une nécessité de calcul, seulement un confort de lecture à faible
+niveau, préservé côté bas de plage (10 à 50 au niveau 1) mais pas au-delà.
+
+## `levels` optionnel dans `CompositeExerciseGenerator`, repli niveau 50 (étape 4, commit C)
+
+Le commit C rend les générateurs paramétrables par niveau, mais le câblage des niveaux réels
+depuis l'historique est explicitement le travail du commit D (`SessionConfig` n'a pas encore de
+champ niveaux, `buildSessionController` garde sa signature actuelle). Rendre `levels` obligatoire
+aurait cassé la compilation de `composition_root.dart` avant que ce câblage existe.
+
+`levels: Map<ExerciseType, int>?` est donc optionnel ; tout type activé absent de la carte
+utilise un repli niveau 50. `composition_root.dart` continue de fonctionner sans modification, à
+l'identique de son comportement actuel (les anciennes constantes internes des générateurs
+correspondaient globalement à un niveau médian). Le commit D remplacera ce repli par les vrais
+niveaux lus depuis la persistance.
+
 ## `AnswerOutcome`, pas `AnswerResult` ni `PersistedAnswer` (étape 4)
 
 `LevelUpdater` a besoin de `isCorrect` et `elapsedMs`, rien d'autre. Réutiliser `AnswerResult`

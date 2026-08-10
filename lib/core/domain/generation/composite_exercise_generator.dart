@@ -1,5 +1,9 @@
 import 'dart:math';
 
+import '../difficulty/arithmetic_difficulty.dart';
+import '../difficulty/percentage_difficulty.dart';
+import '../difficulty/power_difficulty.dart';
+import '../difficulty/square_root_difficulty.dart';
 import '../models/exercise.dart';
 import '../models/exercise_type.dart';
 import 'arithmetic_generator.dart';
@@ -7,6 +11,11 @@ import 'exercise_generator.dart';
 import 'percentage_generator.dart';
 import 'power_generator.dart';
 import 'square_root_generator.dart';
+
+/// Niveau utilisé pour tout type activé absent de `levels` — repli
+/// temporaire tant que le commit D ne câble pas les vrais niveaux depuis
+/// l'historique (voir `doc/decisions.md`, étape 4 commit C).
+const _defaultLevel = 50;
 
 /// Un seul flux seedé pour toutes les familles activées : le tirage « quel
 /// type ? » et les tirages « quelles valeurs ? » qui suivent partagent le
@@ -16,9 +25,12 @@ import 'square_root_generator.dart';
 /// avec les mêmes éléments dans un ordre différent casseraient sinon la
 /// règle 2 (même config → même séquence) sans erreur visible.
 class CompositeExerciseGenerator implements ExerciseGenerator {
-  CompositeExerciseGenerator({required Set<ExerciseType> enabledTypes})
+  CompositeExerciseGenerator({required Set<ExerciseType> enabledTypes, Map<ExerciseType, int>? levels})
     : _sortedTypes = enabledTypes.toList()..sort((a, b) => a.index.compareTo(b.index)),
-      _generators = {for (final type in enabledTypes) type: _buildGenerator(type)} {
+      _generators = {
+        for (final type in enabledTypes)
+          type: _buildGenerator(type, levels?[type] ?? _defaultLevel),
+      } {
     if (enabledTypes.isEmpty) {
       throw ArgumentError.value(enabledTypes, 'enabledTypes', 'ne doit pas être vide.');
     }
@@ -33,13 +45,31 @@ class CompositeExerciseGenerator implements ExerciseGenerator {
     return _generators[type]!.next(random);
   }
 
-  static ExerciseGenerator _buildGenerator(ExerciseType type) => switch (type) {
-    ExerciseType.addition ||
-    ExerciseType.subtraction ||
-    ExerciseType.multiplication ||
-    ExerciseType.division => ArithmeticExerciseGenerator(operationTypes: [type.operationType!]),
-    ExerciseType.power => const PowerExerciseGenerator(),
-    ExerciseType.squareRoot => const SquareRootExerciseGenerator(),
-    ExerciseType.percentage => const PercentageExerciseGenerator(),
+  static ExerciseGenerator _buildGenerator(ExerciseType type, int level) => switch (type) {
+    ExerciseType.addition => ArithmeticExerciseGenerator(
+      operationTypes: [type.operationType!],
+      operandRange: additionDifficulty.operandRangeFor(level),
+    ),
+    ExerciseType.subtraction => ArithmeticExerciseGenerator(
+      operationTypes: [type.operationType!],
+      operandRange: subtractionDifficulty.operandRangeFor(level),
+    ),
+    ExerciseType.multiplication => ArithmeticExerciseGenerator(
+      operationTypes: [type.operationType!],
+      operandRange: multiplicationDifficulty.operandRangeFor(level),
+    ),
+    ExerciseType.division => ArithmeticExerciseGenerator(
+      operationTypes: [type.operationType!],
+      operandRange: divisionDifficulty.operandRangeFor(level),
+    ),
+    ExerciseType.power => PowerExerciseGenerator(
+      exponentRange: powerDifficulty.exponentRangeFor(level),
+    ),
+    ExerciseType.squareRoot => SquareRootExerciseGenerator(
+      rootRange: squareRootDifficulty.rootRangeFor(level),
+    ),
+    ExerciseType.percentage => PercentageExerciseGenerator(
+      percentRange: percentageDifficulty.percentRangeFor(level),
+    ),
   };
 }

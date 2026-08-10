@@ -20,6 +20,9 @@ lib/
       scoring/             # Scorer, ScoringRules
       leveling/            # LevelUpdater, LevelingRules, ConfidenceMultiplier,
                            # AnswerOutcome — domaine pur, rejouable sur un historique
+      difficulty/          # interpolateLevel, LinearOperandRangeDifficulty (4 opérations
+                           # arithmétiques), PowerDifficulty, SquareRootDifficulty,
+                           # PercentageDifficulty — sept fonctions niveau → bornes
       persistence/         # SessionRepository, LocalPlayerIdProvider (interfaces),
                            # PersistedSession/PersistedAnswer, InMemorySessionRepository,
                            # uuid.dart, exercise_codec.dart
