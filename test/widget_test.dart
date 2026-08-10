@@ -3,7 +3,33 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:math_trainer/app.dart';
 import 'package:math_trainer/composition_root.dart';
+import 'package:math_trainer/core/domain/leveling/level_cache_entry.dart';
+import 'package:math_trainer/core/domain/models/exercise_type.dart';
 import 'package:math_trainer/core/domain/persistence/in_memory_session_repository.dart';
+import 'package:math_trainer/core/domain/persistence/persisted_answer.dart';
+import 'package:math_trainer/core/domain/persistence/persisted_session.dart';
+import 'package:math_trainer/core/domain/persistence/session_repository.dart';
+
+class _ThrowingSessionRepository implements SessionRepository {
+  @override
+  Future<void> recordSession({
+    required PersistedSession session,
+    required List<PersistedAnswer> answers,
+    required Map<ExerciseType, LevelCacheEntry> levelUpdates,
+  }) => throw Exception('échec simulé');
+
+  @override
+  Future<List<PersistedSession>> recentSessions({int limit = 20}) =>
+      throw Exception('échec simulé');
+
+  @override
+  Future<List<PersistedAnswer>> answersForSession(String sessionId) =>
+      throw Exception('échec simulé');
+
+  @override
+  Future<Map<ExerciseType, LevelCacheEntry>> currentLevels(String playerId) =>
+      throw Exception('échec simulé');
+}
 
 void main() {
   final testEnvironment = AppEnvironment(
@@ -98,5 +124,31 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Math Trainer'), findsOneWidget);
+  });
+
+  testWidgets('un repository qui échoue au démarrage affiche un message et laisse réessayer', (
+    WidgetTester tester,
+  ) async {
+    final failingEnvironment = AppEnvironment(
+      repository: _ThrowingSessionRepository(),
+      playerId: 'test-player',
+    );
+    await tester.pumpWidget(MathTrainerApp(environment: failingEnvironment));
+
+    await tester.tap(find.text('Commencer'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Impossible de démarrer la session. Réessayez.'), findsOneWidget);
+    // Le bouton est redevenu actif : c'est l'action de reprise.
+    expect(
+      tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
+      isNotNull,
+    );
+
+    await tester.tap(find.text('Commencer'));
+    await tester.pumpAndSettle();
+
+    // Toujours bloqué (même repository), toujours le même message, pas de crash.
+    expect(find.text('Impossible de démarrer la session. Réessayez.'), findsOneWidget);
   });
 }

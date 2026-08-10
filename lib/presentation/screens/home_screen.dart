@@ -30,6 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
   SessionController? _controller;
   Set<ExerciseType> _selectedTypes = {..._defaultSelectedTypes};
   bool _isStarting = false;
+  String? _startError;
 
   @override
   void dispose() {
@@ -38,14 +39,27 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _startSession() async {
-    setState(() => _isStarting = true);
-    final controller = await buildSessionController(widget.environment, _selectedTypes);
-    if (!mounted) return;
-    controller.start();
     setState(() {
-      _controller = controller;
-      _isStarting = false;
+      _isStarting = true;
+      _startError = null;
     });
+    try {
+      final controller = await buildSessionController(widget.environment, _selectedTypes);
+      if (!mounted) return;
+      controller.start();
+      setState(() {
+        _controller = controller;
+        _isStarting = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      // Le bouton "Commencer" redevient actif : c'est l'action de reprise,
+      // pas besoin d'un bouton dédié.
+      setState(() {
+        _isStarting = false;
+        _startError = 'Impossible de démarrer la session. Réessayez.';
+      });
+    }
   }
 
   void _backToSelection() {
@@ -71,6 +85,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 onChanged: (types) => setState(() => _selectedTypes = types),
                 onStart: _selectedTypes.isEmpty || _isStarting ? null : _startSession,
                 isStarting: _isStarting,
+                startError: _startError,
                 onOpenProgress: _openProgress,
               )
             : ListenableBuilder(
@@ -100,6 +115,7 @@ class _TypeSelectionView extends StatelessWidget {
     required this.onChanged,
     required this.onStart,
     required this.isStarting,
+    required this.startError,
     required this.onOpenProgress,
   });
 
@@ -107,6 +123,7 @@ class _TypeSelectionView extends StatelessWidget {
   final ValueChanged<Set<ExerciseType>> onChanged;
   final VoidCallback? onStart;
   final bool isStarting;
+  final String? startError;
   final VoidCallback onOpenProgress;
 
   void _toggle(ExerciseType type, bool selected) {
@@ -153,6 +170,10 @@ class _TypeSelectionView extends StatelessWidget {
                     )
                   : const Text('Commencer'),
             ),
+            if (startError != null) ...[
+              const SizedBox(height: 8),
+              Text(startError!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            ],
             const SizedBox(height: 8),
             TextButton(onPressed: onOpenProgress, child: const Text('Voir ma progression')),
           ],

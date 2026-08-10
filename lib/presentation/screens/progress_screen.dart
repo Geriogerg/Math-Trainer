@@ -19,11 +19,15 @@ class ProgressScreen extends StatefulWidget {
 }
 
 class _ProgressScreenState extends State<ProgressScreen> {
-  late final Future<Map<ExerciseType, LevelCacheEntry>> _levels;
+  late Future<Map<ExerciseType, LevelCacheEntry>> _levels;
 
   @override
   void initState() {
     super.initState();
+    _loadLevels();
+  }
+
+  void _loadLevels() {
     _levels = widget.environment.repository.currentLevels(widget.environment.playerId);
   }
 
@@ -35,6 +39,21 @@ class _ProgressScreenState extends State<ProgressScreen> {
         child: FutureBuilder<Map<ExerciseType, LevelCacheEntry>>(
           future: _levels,
           builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text('Impossible de charger la progression.'),
+                    const SizedBox(height: 16),
+                    FilledButton(
+                      onPressed: () => setState(_loadLevels),
+                      child: const Text('Réessayer'),
+                    ),
+                  ],
+                ),
+              );
+            }
             if (!snapshot.hasData) {
               return const Center(child: CircularProgressIndicator());
             }
