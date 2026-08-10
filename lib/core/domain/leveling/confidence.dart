@@ -1,5 +1,5 @@
+import '../persistence/level_cache_entry.dart';
 import 'leveling_rules.dart';
-import 'level_cache_entry.dart';
 
 /// Décide quel [ConfidenceMultiplier] appliquer, à partir de l'état de
 /// cache actuel d'une opération. `LevelUpdater`/`LevelingRules` ne portent

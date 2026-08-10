@@ -22,14 +22,15 @@ lib/
       scoring/             # Scorer, ScoringRules
       leveling/            # LevelUpdater, LevelingRules, ConfidenceMultiplier,
                            # AnswerOutcome — domaine pur, rejouable sur un historique
-                           # LevelCacheEntry, confidenceFor — état de cache par opération
-                           # et décision calibration/returning/normal à partir de ce cache
+                           # confidenceFor — décision calibration/returning/normal
+                           # LevelCacheOrchestrator — calcule les mises à jour du cache
+                           # en fin de session (étape 4.1, commit D), Dart pur
       difficulty/          # interpolateLevel, LinearOperandRangeDifficulty (4 opérations
                            # arithmétiques), PowerDifficulty, SquareRootDifficulty,
                            # PercentageDifficulty — sept fonctions niveau → bornes
       persistence/         # SessionRepository, LocalPlayerIdProvider (interfaces),
-                           # PersistedSession/PersistedAnswer, InMemorySessionRepository,
-                           # uuid.dart, exercise_codec.dart
+                           # PersistedSession/PersistedAnswer, LevelCacheEntry,
+                           # InMemorySessionRepository, uuid.dart, exercise_codec.dart
     state/                 # SessionController (ChangeNotifier), SessionState — seul point
                            # du cœur métier qui importe Flutter (foundation.dart seulement)
   infrastructure/
@@ -132,13 +133,21 @@ implémentée — le point d'extension existe, pas la stratégie).
 ## Cache de niveaux (`player_levels`)
 
 Table séparée de `sessions`, clé composite `(player_id, exercise_type)` plutôt qu'UUID — écart
-assumé à la règle 5, voir `doc/decisions.md`. Mise à jour par `SessionController` en fin de
-session (dans la même transaction que `recordSession`), lue par `buildSessionController` au
-démarrage de la suivante — et par `ProgressScreen` pour l'affichage, sans transformation, sans
-niveau 1 par défaut pour une opération jamais jouée (« Non joué », pour ne pas laisser croire
-qu'un niveau a été mesuré). `sessions.levels_json` stocke séparément les niveaux qui ont *servi*
-à générer chaque session — les deux peuvent diverger si le cache a évolué depuis (recalibration,
-autre appareil).
+assumé à la règle 5, voir `doc/decisions.md`. `LevelCacheEntry` (le type domaine qui représente
+une ligne de ce cache) vit dans `persistence/`, aux côtés de `PersistedSession`/`PersistedAnswer`
+— même rôle, nom différent volontairement (voir `doc/decisions.md`).
+
+Le calcul des mises à jour est fait par `LevelCacheOrchestrator` (`core/domain/leveling/`, Dart
+pur — étape 4.1 commit D, sorti de `SessionController` pour rester réexécutable côté serveur,
+règle 1) : groupe les réponses par type, filtre sous `n_min`, appelle `confidenceFor` puis
+`LevelUpdater`. `SessionController` l'injecte (comme `scorer`) et se contente d'appeler
+`computeUpdates(...)` dans `_persistCompletedSession`, en fin de session — dans la même
+transaction que `recordSession`. Lu par `buildSessionController` au démarrage de la session
+suivante — et par `ProgressScreen` pour l'affichage, sans transformation, sans niveau 1 par
+défaut pour une opération jamais jouée (« Non joué », pour ne pas laisser croire qu'un niveau a
+été mesuré). `sessions.levels_json` stocke séparément les niveaux qui ont *servi* à générer
+chaque session — les deux peuvent diverger si le cache a évolué depuis (recalibration, autre
+appareil).
 
 ## Score pondéré par la difficulté
 

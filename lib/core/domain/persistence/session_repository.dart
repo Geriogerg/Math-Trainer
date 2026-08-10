@@ -1,4 +1,4 @@
-import '../leveling/level_cache_entry.dart';
+import 'level_cache_entry.dart';
 import '../models/exercise_type.dart';
 import 'persisted_answer.dart';
 import 'persisted_session.dart';

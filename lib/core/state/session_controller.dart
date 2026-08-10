@@ -3,15 +3,13 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../domain/generation/exercise_source.dart';
-import '../domain/leveling/answer_outcome.dart';
-import '../domain/leveling/confidence.dart';
-import '../domain/leveling/level_cache_entry.dart';
-import '../domain/leveling/level_updater.dart';
+import '../domain/leveling/level_cache_orchestrator.dart';
 import '../domain/models/answer_result.dart';
 import '../domain/models/exercise_type.dart';
 import '../domain/models/session_config.dart';
 import '../domain/models/session_result.dart';
 import '../domain/persistence/exercise_codec.dart';
+import '../domain/persistence/level_cache_entry.dart';
 import '../domain/persistence/persisted_answer.dart';
 import '../domain/persistence/persisted_session.dart';
 import '../domain/persistence/session_repository.dart';
@@ -38,12 +36,12 @@ class SessionController extends ChangeNotifier {
     this.scorer = const Scorer(),
     this.clock = DateTime.now,
     this.idGenerator = generateUuidV4,
-    LevelUpdater? levelUpdater,
-  }) : levelUpdater = levelUpdater ?? LevelUpdater();
+    LevelCacheOrchestrator? levelCacheOrchestrator,
+  }) : levelCacheOrchestrator = levelCacheOrchestrator ?? LevelCacheOrchestrator();
 
   final SessionConfig config;
   final ExerciseSource exerciseSource;
-  final LevelUpdater levelUpdater;
+  final LevelCacheOrchestrator levelCacheOrchestrator;
   final SessionRepository repository;
   final String playerId;
   final Scorer scorer;
@@ -141,7 +139,13 @@ class SessionController extends ChangeNotifier {
 
     var levelUpdates = const <ExerciseType, LevelCacheEntry>{};
     try {
-      levelUpdates = await _computeLevelUpdates(createdAt);
+      levelUpdates = await levelCacheOrchestrator.computeUpdates(
+        outcomes: _state.outcomes,
+        frozenLevels: config.levels,
+        repository: repository,
+        playerId: playerId,
+        now: createdAt,
+      );
     } catch (_) {
       // Le cache de niveaux est recalculable depuis l'historique (voir
       // doc/decisions.md) : une lecture ratée ne doit pas empêcher
@@ -159,45 +163,5 @@ class SessionController extends ChangeNotifier {
       // La persistance ne doit jamais casser la partie en cours : échec
       // silencieux pour le MVP (pas de file d'attente/retry — hors périmètre).
     }
-  }
-
-  /// Une entrée par type activé ayant reçu au moins `n_min` réponses cette
-  /// session (les autres sont un échantillon de bruit, voir
-  /// `doc/decisions.md` — leur cache n'est pas touché). Le niveau de départ
-  /// utilisé est celui qui a réellement servi à générer la session
-  /// (`config.levels`), jamais relu depuis le cache à cet instant.
-  Future<Map<ExerciseType, LevelCacheEntry>> _computeLevelUpdates(DateTime now) async {
-    final outcomesByType = <ExerciseType, List<AnswerOutcome>>{};
-    for (final outcome in _state.outcomes) {
-      outcomesByType
-          .putIfAbsent(outcome.exercise.type, () => [])
-          .add(AnswerOutcome(isCorrect: outcome.isCorrect, elapsedMs: outcome.elapsedMs));
-    }
-
-    final priorLevels = await repository.currentLevels(playerId);
-    final updates = <ExerciseType, LevelCacheEntry>{};
-
-    for (final entry in outcomesByType.entries) {
-      final type = entry.key;
-      final answers = entry.value;
-      if (answers.length < levelUpdater.rules.nMin) continue;
-
-      final prior = priorLevels[type];
-      final currentLevel = config.levels[type] ?? 1;
-      final confidence = confidenceFor(entry: prior, now: now, rules: levelUpdater.rules);
-      final newLevel = levelUpdater.update(
-        currentLevel: currentLevel,
-        answers: answers,
-        confidence: confidence,
-      );
-
-      updates[type] = LevelCacheEntry(
-        level: newLevel,
-        sessionsPlayed: (prior?.sessionsPlayed ?? 0) + 1,
-        updatedAt: now,
-      );
-    }
-
-    return updates;
   }
 }

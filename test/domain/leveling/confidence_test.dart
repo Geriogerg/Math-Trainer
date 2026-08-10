@@ -1,5 +1,5 @@
 import 'package:math_trainer/core/domain/leveling/confidence.dart';
-import 'package:math_trainer/core/domain/leveling/level_cache_entry.dart';
+import 'package:math_trainer/core/domain/persistence/level_cache_entry.dart';
 import 'package:math_trainer/core/domain/leveling/leveling_rules.dart';
 import 'package:test/test.dart';
 

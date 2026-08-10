@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../composition_root.dart';
-import '../../core/domain/leveling/level_cache_entry.dart';
+import '../../core/domain/persistence/level_cache_entry.dart';
 import '../../core/domain/models/exercise_type.dart';
 import '../exercise_type_labels.dart';
 

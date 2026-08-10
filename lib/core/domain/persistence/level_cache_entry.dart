@@ -1,6 +1,9 @@
 /// État persisté du cache de niveau pour une opération : cache recalculable,
 /// pas une entité synchronisable (voir `doc/decisions.md`) — c'est pourquoi
-/// le stockage sous-jacent utilise une clé composite plutôt qu'un UUID.
+/// le stockage sous-jacent utilise une clé composite plutôt qu'un UUID, et
+/// pourquoi ce type n'est pas nommé `PersistedLevel` comme `PersistedSession`/
+/// `PersistedAnswer` : contrairement à eux, il n'a pas d'identité à
+/// synchroniser.
 class LevelCacheEntry {
   LevelCacheEntry({required this.level, required this.sessionsPlayed, required this.updatedAt}) {
     if (level < 1 || level > 100) {

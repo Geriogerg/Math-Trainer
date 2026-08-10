@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:sqflite/sqflite.dart';
 
-import '../../core/domain/leveling/level_cache_entry.dart';
+import '../../core/domain/persistence/level_cache_entry.dart';
 import '../../core/domain/models/exercise_type.dart';
 import '../../core/domain/persistence/persisted_answer.dart';
 import '../../core/domain/persistence/persisted_session.dart';

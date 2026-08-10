@@ -253,7 +253,8 @@ en même temps que les ~20 autres constantes non calibrées du système.
 tous les types actifs (k ≥ 4 avec les valeurs actuelles), `DebtAwareTypeSelectionStrategy`
 donne des blocs complets de `n_min` aux types les moins joués (`sessionsPlayed` de
 `player_levels`), dans l'ordre, jusqu'à épuisement du budget. Aucun état dédié : `sessionsPlayed`
-existe déjà, alimenté par `_computeLevelUpdates` (commit D), et reste recalculable côté serveur
+existe déjà, alimenté par `LevelCacheOrchestrator` (commit D, extrait de `SessionController` au
+commit D de l'étape 4.1 — voir plus bas), et reste recalculable côté serveur
 à partir des réponses individuelles — cohérent avec « les niveaux sont un cache, pas une source
 de vérité ». Le reste du budget (quand `n_min × k` ne divise pas exactement `cap` — n'arrive pas
 avec les valeurs actuelles, mais la logique le gère) va un par un aux types suivants dans l'ordre
@@ -300,6 +301,33 @@ Deux points signalés lors de la relecture critique de l'étape 4, explicitement
 - **Repli niveau 50 dans `CompositeExerciseGenerator`** (commit C) : mort en production depuis
   le commit D (`buildSessionController` alimente toujours `levels` intégralement), mais
   inoffensif — ses tests restent des garde-fous valides, rien à en faire pour l'instant.
+
+## Rangement et extraction — `LevelCacheEntry`, `LevelCacheOrchestrator` (étape 4.1, commit D)
+
+**`LevelCacheEntry` déplacé de `leveling/` vers `persistence/`**, aux côtés de
+`PersistedSession`/`PersistedAnswer` qui jouent le même rôle (représenter une ligne stockée).
+**Le nom ne change pas** : contrairement aux deux autres, `LevelCacheEntry` n'a ni UUID ni
+`syncedAt` — c'est un cache recalculable, pas une entité synchronisable (écart à la règle 5 déjà
+documenté plus haut). Le renommer en `PersistedLevel` aurait laissé croire au même statut.
+
+**Orchestration extraite de `SessionController` vers `LevelCacheOrchestrator`**
+(`core/domain/leveling/`, Dart pur). Avant, `SessionController._computeLevelUpdates` — groupe
+les réponses par type, filtre sous `n_min`, appelle `confidenceFor` puis `LevelUpdater.update` —
+vivait dans `core/state/`, le seul endroit du cœur métier autorisé à importer Flutter (règle 1).
+Rien dans cette logique n'avait besoin de `ChangeNotifier` : `AnswerResult`, `SessionRepository`
+et `LevelUpdater` sont déjà du Dart pur.
+
+**Pourquoi ce n'est pas juste du rangement** : la règle 1 existe explicitement pour que le cœur
+métier soit « réexécutable côté serveur pour revalider les duels ». Cette orchestration précise —
+rejouer une session, mettre à jour les niveaux — est exactement ce que la revalidation serveur
+d'un duel devra refaire un jour. La sortir de `SessionController` maintenant n'anticipe pas le
+duel (non implémenté) ; ça retire une violation mineure et déjà réelle d'une règle déjà actée.
+
+`SessionController` injecte `LevelCacheOrchestrator` comme il injecte déjà `scorer` (paramètre
+optionnel, défaut construit automatiquement) et se contente d'appeler `computeUpdates(...)` dans
+`_persistCompletedSession`. Les tests `SessionController` existants continuent de passer sans
+modification (comportement par défaut inchangé) ; `LevelCacheOrchestrator` gagne ses propres
+tests directs, sans avoir à faire tourner une session complète pour exercer chaque cas.
 
 ## Les niveaux sont un cache recalculable, pas une source de vérité
 
