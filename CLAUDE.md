@@ -3,8 +3,9 @@
 Jeu Flutter de calcul mental compétitif (ados et adultes). Rapide, ludique, orienté compétition.
 État : 8 commits, 7 types d'exercices, persistance locale. 69 tests domaine / 85 au total.
 
-Détails non nécessaires à chaque session : `docs/architecture.md` (structure, gestion d'état,
-modèle d'exercice, dépendances) et `docs/decisions.md` (arbitrages passés et leurs raisons).
+Détails non nécessaires à chaque session : `doc/architecture.md` (structure, gestion d'état,
+modèle d'exercice, dépendances), `doc/decisions.md` (arbitrages passés et leurs raisons) et
+`doc/design.md` (palette, typographie, notation, règles d'interface).
 Va les lire quand le sujet se présente — ils ne sont pas importés ici volontairement.
 
 ## Interlocuteur
@@ -56,6 +57,10 @@ Non négociables sans discussion explicite.
     timestamps non-UTC, `OperandRange`/`CompositeExerciseGenerator`). Chaque garde s'accompagne
     d'un test qui exerce le cas invalide.
 
+14. **Un signal d'interface ne repose jamais sur la couleur seule.** Juste/faux se distinguent
+    par la couleur *et* le mouvement *et* le retour haptique. → daltonisme, luminosité extérieure,
+    et lisibilité à la vitesse où le jeu se joue.
+
 ## Stratégie de données
 
 Tout est local aujourd'hui : `shared_preferences` pour les scalaires, SQLite pour l'historique.
@@ -78,31 +83,29 @@ Ne pas introduire de dépendance qui fermerait cette option.
 
 ## Périmètre
 
-Faites : 1. tests du cœur métier — 2. persistance locale — 3. sept types d'exercices.
+Faites : 1. tests du cœur métier — 2. persistance locale — 3. sept types d'exercices —
+4. système de niveaux — 4.1 corrections (échantillonnage garanti, erreurs UI, découplage,
+rangement, script de recalibration).
 
-**Étape 4 — système de niveaux ← courante.**
+**Étape 5 — direction visuelle et interface ← courante.** Direction « nuit électrique »,
+palette, typographie, notation mathématique, pavé numérique intégré, navigation et animations :
+tout est arrêté dans `doc/design.md`. Lis-le avant d'écrire une ligne de `presentation/`.
 
-La difficulté n'est **pas** un réglage utilisateur. Il n'y a ni sélecteur facile/moyen/difficile,
-ni contrôle de difficulté sur `HomeScreen`. Un niveau par opération est estimé à partir des
-performances passées, et les bornes d'opérandes en sont dérivées. Voir `docs/decisions.md` pour
-la sémantique, la formule et les paramètres déjà arrêtés.
+Contenu : centralisation du thème (`ThemeData` + extensions, les deux modes) ; suppression de
+`Exercise.prompt` au profit d'un formateur en couche présentation (résout la dette du français
+en dur dans le domaine) ; pavé numérique intégré remplaçant le clavier natif ; refonte de
+l'écran de session ; barre d'onglets basse ; écran de progression ; tests de golden.
 
-Contenu : la fonction de mise à jour du niveau (domaine pur, rejouable sur un historique) ;
-sept fonctions `niveau → bornes`, une par opération ; le passage des générateurs de constantes
-internes à des paramètres de construction ; la transmission de la config par
-`CompositeExerciseGenerator` ; la première vraie migration de schéma (`schemaVersion` → 2) pour
-stocker les niveaux figés d'une session ; la pondération du score par difficulté ; un écran de
-progression.
+Décision produit associée : la soustraction ne produit jamais de résultat négatif — le
+générateur garantit `operandA ≥ operandB`, et le pavé n'a donc pas de touche `−`.
 
-**Le niveau est figé au début de la session** et stocké avec elle — jamais recalculé en cours de
-route, sinon le serveur ne peut pas revalider et le mode duel devient impossible.
+Hors périmètre : tout ce qui touche aux comptes, au réseau ou au classement.
 
-Corriger au passage les deux `assert` restants (règle 13) : `CompositeExerciseGenerator`
-(`enabledTypes` vide) et `OperandRange` (`min > max`). L'étape 4 est précisément ce qui rend ces
-cas atteignables, puisque les bornes cessent d'être des constantes écrites à la main.
+Ensuite : 6. comptes et classement général — 7. matchs en ligne et Elo.
 
-Ensuite : 5. polish UI et direction visuelle — 6. comptes et classement général — 7. matchs en
-ligne et Elo.
+**Point d'attente indépendant du code :** les ~20 constantes du système de niveaux restent non
+calibrées faute de données. `tool/recalibrate.dart` existe mais n'a rien à traiter tant que
+quelques dizaines de sessions réelles n'ont pas été jouées.
 
 **N'implémente rien au-delà de l'étape courante sans demande explicite.**
 
@@ -128,7 +131,7 @@ Anticiper = ne pas fermer la porte. Pas d'abstraction pour un seul cas d'usage.
 - **Lister les fichiers modifiés** avec une justification brève.
 - En cas d'ambiguïté, proposer une solution raisonnable et expliciter le choix.
 - Simplicité avant sur-ingénierie. Une étape à la fois, livrable et testable, puis un commit.
-- **Signaler les écarts** constatés entre le code réel et `docs/architecture.md`.
+- **Signaler les écarts** constatés entre le code réel et `doc/architecture.md`.
 
 ## Conventions
 

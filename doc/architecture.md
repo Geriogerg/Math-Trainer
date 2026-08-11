@@ -16,18 +16,14 @@ lib/
       models/              # Exercise (sealed) et 4 variantes, ExerciseType, OperationType,
                            # AnswerResult, SessionConfig, SessionResult
       generation/          # ExerciseGenerator, CompositeExerciseGenerator, générateurs
-                           # par type, OperandRange, ExerciseSource, LocalExerciseSource
-                           # sessionLengthFor, TypeSelectionStrategy (interface),
-                           # DebtAwareTypeSelectionStrategy (solo, rotation par dette)
+                           # par type, OperandRange, ExerciseSource, LocalExerciseSource,
+                           # session_length.dart (longueur de session dynamique),
+                           # TypeSelectionStrategy / DebtAwareTypeSelectionStrategy
+      difficulty/          # dérivation des bornes de génération à partir d'un niveau
+                           # (interpolation linéaire), un fichier par type d'exercice
+      leveling/             # LevelingRules, LevelUpdater, confidenceFor, LevelCacheOrchestrator
+                           # (orchestration pure de la mise à jour du cache de niveaux)
       scoring/             # Scorer, ScoringRules
-      leveling/            # LevelUpdater, LevelingRules, ConfidenceMultiplier,
-                           # AnswerOutcome — domaine pur, rejouable sur un historique
-                           # confidenceFor — décision calibration/returning/normal
-                           # LevelCacheOrchestrator — calcule les mises à jour du cache
-                           # en fin de session (étape 4.1, commit D), Dart pur
-      difficulty/          # interpolateLevel, LinearOperandRangeDifficulty (4 opérations
-                           # arithmétiques), PowerDifficulty, SquareRootDifficulty,
-                           # PercentageDifficulty — sept fonctions niveau → bornes
       persistence/         # SessionRepository, LocalPlayerIdProvider (interfaces),
                            # PersistedSession/PersistedAnswer, LevelCacheEntry,
                            # InMemorySessionRepository, uuid.dart, exercise_codec.dart
@@ -38,39 +34,53 @@ lib/
                            # SharedPreferencesPlayerIdProvider — seul endroit qui importe
                            # sqflite / shared_preferences
   presentation/
-    exercise_type_labels.dart  # exerciseTypeLabel(ExerciseType) — partagé HomeScreen/ProgressScreen
+    exercise_type_labels.dart  # libellés français des ExerciseType, hors du domaine
     screens/               # HomeScreen (phase + choix des types), SessionScreen
-                           # (question/saisie/feedback), ResultScreen (stats + rejouer),
-                           # ProgressScreen (niveau actuel par opération, depuis le cache)
+                           # (question/saisie/feedback), ProgressScreen (niveaux par type),
+                           # ResultScreen (stats + rejouer)
+tool/
+  recalibrate.dart         # CLI hors app — rejoue l'historique réel pour évaluer les ~20
+                           # constantes de LevelingRules (convergence/oscillation/biais).
+                           # `dart run`, pas `flutter run` : lit SQLite via sqflite_common_ffi
+                           # directement, ne passe pas par SqfliteSessionRepository (qui tire
+                           # dart:ui via le plugin sqflite, indisponible hors tooling Flutter).
+  src/
+    replay_metrics.dart    # logique pure du script (extraite pour être testable — les membres
+                           # privés d'une lib Dart sont inaccessibles même en import relatif)
 test/
   domain/                  # miroir de core/domain — `dart test test/domain`
   state/                   # SessionController — `flutter test` (ChangeNotifier tire dart:ui)
   infrastructure/          # sqflite via sqflite_common_ffi, shared_preferences mocké
-  tool/                    # miroir de tool/src — `dart test test/tool`, Dart pur
+  presentation/            # écrans (ProgressScreen, etc.)
+  tool/                    # replay_metrics.dart — `dart test`, pas de dépendance Flutter
   widget_test.dart         # smoke test + parcours démarrage → session
-tool/
-  recalibrate.dart         # script CLI — `dart run tool/recalibrate.dart --db <chemin>` ;
-                           # lit en SQL brut (sqflite_common_ffi), ne passe pas par
-                           # SqfliteSessionRepository (importerait Flutter/dart:ui,
-                           # indisponible en `dart run` pur) — voir doc/decisions.md
-  src/
-    replay_metrics.dart    # rejeu et métriques (convergence/oscillation/biais) — logique
-                           # pure extraite du script pour rester testable, noms publics
-                           # contrairement au reste de tool/ (voir doc/decisions.md)
 ```
 
 ## Gestion d'état
 
 `ChangeNotifier` natif (`flutter/foundation.dart`), sans package tiers. `SessionController`
 détient un `SessionState` immuable et notifie l'UI via `ListenableBuilder`. Depuis l'étape 2,
-il déclenche aussi l'écriture en base en fin de session — asynchrone, non bloquante pour l'UI,
-échec silencieux.
+il déclenche aussi l'écriture en base en fin de session — asynchrone, non bloquante pour l'UI.
+Depuis l'étape 4.1, `_persistCompletedSession` est scindé en deux blocs `try`/`catch`
+indépendants : la persistance de la session (non reconstructible si perdue) ne doit pas
+empêcher la mise à jour du cache de niveaux, et réciproquement. Les deux blocs catchent
+`on Exception` (jamais `catch` nu) : une `Error` de programmation (`ArgumentError`,
+`StateError` — violation d'invariant, règle 13) doit remonter et planter, pas être avalée
+comme un échec d'I/O attendu.
 
 ## Composition root
 
 `lib/composition_root.dart` est le seul fichier qui choisit les implémentations concrètes
 (générateur, repository sqflite ou en mémoire selon la plateforme). Les écrans ne construisent
 plus aucun objet de domaine : ils observent le contrôleur qui en résulte.
+
+`buildSessionController(environment, enabledTypes)` est asynchrone : il lit d'abord le cache de
+niveaux du joueur (`currentLevels`) pour figer les niveaux de la session (niveau 1 pour toute
+opération jamais jouée), calcule une longueur de session dynamique via `sessionLengthFor`
+(assez de questions pour que chaque type actif atteigne `nMin`, plafonné à 24), construit une
+`DebtAwareTypeSelectionStrategy` à partir du même `sessionsPlayed` déjà lu (aucun appel
+supplémentaire au repository), puis assemble le `CompositeExerciseGenerator` et le
+`SessionController`. Le detail du calcul est documenté dans `doc/decisions.md`.
 
 ## Modèle d'exercice
 
@@ -82,7 +92,7 @@ Deux enums, deux rôles distincts à ne pas confondre :
 - **`OperationType`** — strictement interne à `ArithmeticExercise`, décrit une opération
   binaire (+ − × ÷). N'est jamais étendu pour un nouveau type d'exercice (règle 12).
 
-`Exercise` est une `sealed class` exposant `prompt`, `correctAnswer` (typé **`int`**),
+`Exercise` est une `sealed class` exposant `prompt` (`String`), `correctAnswer` (typé **`int`**),
 `isCorrectAnswer(int)` et `ExerciseType get type`. Chaque variante porte ses opérandes sous
 leur nom métier plutôt qu'une liste générique, et implémente `==` / `hashCode`.
 
@@ -93,81 +103,44 @@ leur nom métier plutôt qu'une liste générique, et implémente `==` / `hashCo
 | `SquareRootExercise` | `radicand` (carré parfait) | `√a` |
 | `PercentageExercise` | `percent`, `base` | `p% de a` |
 
-La réponse attendue est exposée par le domaine, jamais recalculée par l'UI ni par le `Scorer` :
-l'écran de session ne connaît qu'une saisie `int` et un booléen.
+La réponse attendue est exposée par le domaine, jamais recalculée par l'UI ni par le `Scorer`.
 
 Le stockage passe par `operands_json`, qui absorbe les variantes sans migration de schéma.
-Le discriminant stocké est le nom de la valeur d'`ExerciseType`.
+Le discriminant stocké est le nom de la valeur d'`ExerciseType`, sauf pour les quatre opérations
+arithmétiques : `exercise_type` vaut `'arithmetic'` pour toutes, l'opération précise est dans la
+colonne `operation_type` (piège pour tout code qui relit la table directement, cf.
+`tool/recalibrate.dart`).
 
-Dette connue : `prompt` contient de la copie d'interface en français (« 25% de 80 ») dans le
-domaine pur. Sans conséquence aujourd'hui, à traiter à la première internationalisation.
+Dette connue, **en cours de résolution à l'étape 5** (voir `doc/design.md`) : `prompt` contient
+de la copie d'interface en français (« 25% de 80 ») dans le domaine pur, et rend un exposant en
+`^` plutôt qu'en position haute — non représentable dans une `String` plate. `Exercise.prompt`
+va disparaître au profit d'un formateur en couche présentation.
 
-## Composition et paramètres
+## Système de niveaux
 
-`buildSessionController(environment, enabledTypes)` est asynchrone depuis l'étape 4 (commit D) :
-il lit le cache de niveaux du joueur (`SessionRepository.currentLevels`) avant de construire le
-générateur et la config. Toujours deux paramètres — les niveaux sont dérivés de la persistance en
-interne, jamais transmis par l'appelant, donc pas de 3ᵉ paramètre à empiler ni à regrouper dans un
-objet de configuration pour l'instant.
+Le niveau est un **cache recalculable**, pas une source de vérité (voir `CLAUDE.md`). Trois
+familles de modules en `core/domain/`, toutes Dart pur :
 
-`HomeScreen._startSession` attend ce `Future` (garde `_isStarting` anti-double-tap, spinner sur
-le bouton pendant l'attente — une seule requête indexée, donc bref).
+- **`leveling/`** — `LevelingRules` (les ~10 constantes de la formule, non calibrées faute de
+  données réelles ; validées au constructeur, ex. `tRapideMs < tLentMs`, `nMin > 0`),
+  `LevelUpdater.update(...)` (la formule elle-même, rejouable sur une liste de réponses),
+  `confidenceFor(...)` (multiplicateur `normal`/`calibration`/`returning` selon l'historique),
+  et `LevelCacheOrchestrator` — regroupe les réponses d'une session par `ExerciseType`, filtre
+  les groupes sous `nMin`, et appelle `confidenceFor` puis `LevelUpdater.update` pour produire
+  les nouvelles entrées de cache. Extrait de `SessionController` (étape 4.1) pour être
+  réexécutable côté serveur lors de la revalidation des duels (règle 1).
+- **`difficulty/`** — dérive les bornes de génération (`OperandRange` ou équivalent par type) à
+  partir d'un niveau entier, par interpolation linéaire entre les bornes du niveau 1 et du
+  niveau maximal. Un fichier par type d'exercice arithmétique/puissance/racine/pourcentage.
+- **`persistence/LevelCacheEntry`** — l'entrée de cache elle-même (niveau, `sessionsPlayed`,
+  dernière date de réponse par `ExerciseType`). Rangée sous `persistence/` avec
+  `PersistedSession`/`PersistedAnswer` par cohérence, mais sans UUID ni `syncedAt` : contrairement
+  à elles, une entrée de cache est jetable et recalculable, jamais synchronisée telle quelle.
 
-`HomeScreen` porte la sélection des types (`_TypeSelectionView`). L'étape 4 n'y ajoute **pas** de
-contrôle de difficulté — celle-ci est dérivée du niveau, pas choisie. Un bouton « Voir ma
-progression » ouvre `ProgressScreen` (`Navigator.push` — première utilisation du `Navigator`
-dans l'app, jusque-là `HomeScreen` gérait tout par état interne).
-
-**Sélection par défaut : 2 types** (addition, soustraction — étape 4.1, commit A), pas 4. Les 5
-autres restent affichés, juste décochés.
-
-## Longueur de session et sélection des types (étape 4.1, commit A)
-
-`exerciseCount` n'est plus une constante fixe : `sessionLengthFor(activeTypeCount, nMin, cap)`
-vise `n_min × types actifs`, plafonné à `cap = 24` dans `composition_root.dart`. Avec les 2 types
-par défaut, une session compte désormais **16 questions**, pas 10.
-
-Au-delà du plafond, `CompositeExerciseGenerator` accepte une `TypeSelectionStrategy?` optionnelle
-qui remplace le tirage uniforme par une séquence précalculée. Sans elle (`strategy: null`), le
-comportement historique — flux infini, tirage uniforme par appel — reste strictement inchangé ;
-c'est le seul mode utilisé par tous les tests antérieurs à l'étape 4.1. Avec elle, le générateur
-construit sa séquence une fois à la construction et la consomme dans l'ordre ; un appel au-delà
-lève `StateError`.
-
-`DebtAwareTypeSelectionStrategy` (solo) priorise les types les moins joués (`sessionsPlayed` de
-`player_levels`, déjà lu par `buildSessionController` pour les niveaux — aucun nouvel appel au
-repository). L'historique entre ainsi dans la config de génération ; voir `doc/decisions.md` pour
-ce que ça implique pour la règle 2 et pour le duel futur (`FixedQuotaTypeSelectionStrategy`, non
-implémentée — le point d'extension existe, pas la stratégie).
-
-## Cache de niveaux (`player_levels`)
-
-Table séparée de `sessions`, clé composite `(player_id, exercise_type)` plutôt qu'UUID — écart
-assumé à la règle 5, voir `doc/decisions.md`. `LevelCacheEntry` (le type domaine qui représente
-une ligne de ce cache) vit dans `persistence/`, aux côtés de `PersistedSession`/`PersistedAnswer`
-— même rôle, nom différent volontairement (voir `doc/decisions.md`).
-
-Le calcul des mises à jour est fait par `LevelCacheOrchestrator` (`core/domain/leveling/`, Dart
-pur — étape 4.1 commit D, sorti de `SessionController` pour rester réexécutable côté serveur,
-règle 1) : groupe les réponses par type, filtre sous `n_min`, appelle `confidenceFor` puis
-`LevelUpdater`. `SessionController` l'injecte (comme `scorer`) et se contente d'appeler
-`computeUpdates(...)` dans `_persistCompletedSession`, en fin de session — dans la même
-transaction que `recordSession`. Lu par `buildSessionController` au démarrage de la session
-suivante — et par `ProgressScreen` pour l'affichage, sans transformation, sans niveau 1 par
-défaut pour une opération jamais jouée (« Non joué », pour ne pas laisser croire qu'un niveau a
-été mesuré). `sessions.levels_json` stocke séparément les niveaux qui ont *servi* à générer
-chaque session — les deux peuvent diverger si le cache a évolué depuis (recalibration, autre
-appareil).
-
-## Score pondéré par la difficulté
-
-`Scorer.pointsFor` prend un `level` (niveau figé de l'opération pour la session, jamais le
-niveau courant du cache) et multiplie les points bruts (base + bonus vitesse + bonus streak,
-inchangés) par `1 + (level - 1) / 99 * difficultyBonusMax`. `difficultyBonusMax` (défaut 1,0,
-non calibré) vit dans `ScoringRules`, aux côtés des autres constantes de barème. Le score reste
-un retour de session sans valeur de classement — c'est le niveau qui classe (voir
-`doc/decisions.md`). Aucun nouveau champ de stockage : le score pondéré est déjà ce qui atterrit
-dans `AnswerResult`/`totalScore`.
+`tool/recalibrate.dart` est un script CLI hors app (pas un écran) qui rejoue l'historique réel
+d'un joueur à travers `LevelingRules` en faisant varier une constante à la fois, et rapporte
+convergence/oscillation/biais. Il n'a rien à traiter tant que peu de sessions réelles ont été
+jouées — voir le point d'attente dans `CLAUDE.md`.
 
 ## Dépendances
 
@@ -177,11 +150,12 @@ dans `AnswerResult`/`totalScore`.
 | `cupertino_icons ^1.0.8` | ajoutée par `flutter create` — **non utilisée**, supprimable |
 | `flutter_test` (SDK, dev) | tests widgets |
 | `flutter_lints ^6.0.0` (dev) | lints du projet |
-| `test ^1.25.0` (dev) | permet `dart test` sur le cœur métier pur |
+| `test ^1.25.0` (dev) | permet `dart test` sur le cœur métier pur, et sur `tool/` |
 | `sqflite` | SQLite local (règle 3), schéma écrit à la main |
 | `path` | jointure de chemin cross-platform pour localiser le `.db` |
 | `shared_preferences` | stockage du scalaire `player_id` |
-| `sqflite_common_ffi` (dev) | tests du repository sur la Dart VM, sans émulateur |
+| `sqflite_common_ffi` (dev) | tests du repository et `tool/recalibrate.dart` sur la Dart VM,
+  sans émulateur ni `dart:ui` |
 
-L'étape 3 n'introduit aucune dépendance : puissances, carrés parfaits et pourcentages entiers
-se calculent en arithmétique entière avec `dart:core` seul.
+Aucune dépendance de rendu graphique (police, thème) à ce jour — l'étape 5 en introduit
+potentiellement une (police `Inter`), voir `doc/decisions.md`.
