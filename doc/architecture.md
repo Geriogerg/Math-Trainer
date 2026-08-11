@@ -40,8 +40,9 @@ lib/
                            # texte discret, durées/courbes d'animation)
     exercise_type_labels.dart  # libellés français des ExerciseType, hors du domaine
     screens/               # HomeScreen (phase + choix des types), SessionScreen
-                           # (question/saisie/feedback), ProgressScreen (niveaux par type),
-                           # ResultScreen (stats + rejouer)
+                           # (pavé numérique intégré, chrono en barre, feedback 3 canaux —
+                           # doc/design.md), ProgressScreen (niveaux par type), ResultScreen
+                           # (stats + rejouer)
 tool/
   recalibrate.dart         # CLI hors app — rejoue l'historique réel pour évaluer les ~20
                            # constantes de LevelingRules (convergence/oscillation/biais).
@@ -168,6 +169,29 @@ jouées — voir le point d'attente dans `CLAUDE.md`.
 | `shared_preferences` | stockage du scalaire `player_id` |
 | `sqflite_common_ffi` (dev) | tests du repository et `tool/recalibrate.dart` sur la Dart VM,
   sans émulateur ni `dart:ui` |
+
+## Écran de session
+
+Pavé numérique intégré (`_NumericKeypad`, `_KeypadKey`) remplace le `TextField` et le clavier
+natif — `_typedDigits` (`String`) est un état local de `_SessionScreenState`, plus de
+`TextEditingController`. Aucun changement de `SessionController`/`SessionState` : `isCorrect` est
+calculé côté écran via `exercise.isCorrectAnswer(value)` (déjà public) avant l'appel à
+`submitAnswer`, qui reste appelé immédiatement — le chronométrage utilisé pour le score n'est
+jamais retardé.
+
+**Chrono en barre : purement cosmétique, aucune soumission forcée.** Représente
+`ScoringRules.speedBonusWindowMs` (5000 ms, déjà lu par `Scorer._speedBonus`) plutôt qu'une
+nouvelle constante. Suivi via un `AnimationController` local à `_SessionScreenState`, redémarré
+dans `didUpdateWidget` (nouvelle question = nouvelle instance de `SessionScreen` reçue depuis le
+`ListenableBuilder` de `HomeScreen`) — le contrôleur ne publie pas de timestamp, aucun besoin de
+lui en ajouter un.
+
+**Feedback (règle 14) sur le champ de saisie, pas l'écran entier** (`doc/design.md`) : flash +
+mise à l'échelle (juste) ou secousse (faux) + haptique, piloté par un second `AnimationController`
+dont la durée est lue sur `AppMotion.feedback` au moment du déclenchement (le thème n'est pas
+disponible dans `initState`). Limite connue : sur la toute dernière question d'une session,
+`HomeScreen` bascule vers `ResultScreen` dès la notification du contrôleur, ce qui peut tronquer
+le flash — assumé, non corrigé (corriger toucherait soit le chronométrage soit `HomeScreen`).
 
 ## Thème
 

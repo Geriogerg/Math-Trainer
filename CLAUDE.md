@@ -141,8 +141,8 @@ Anticiper = ne pas fermer la porte. Pas d'abstraction pour un seul cas d'usage.
 - Commenter uniquement le non-évident, jamais paraphraser le code.
 - Pas de valeur codée en dur dans l'UI : `Theme.of(context)`.
 - `SafeArea` sur tous les écrans (notch, Dynamic Island).
-- Saisie numérique : `TextInputType.number`, et vérifier que le clavier natif ne masque
-  ni le champ ni le chrono.
+- Saisie numérique : pavé intégré (`SessionScreen`), jamais le clavier natif (étape 5,
+  commit D) — `doc/design.md`.
 - **Les tests de déterminisme sont indexés sur le couple (seed, config)**, jamais sur la seed
   seule : ajouter une valeur à `ExerciseType` ou changer un niveau modifie légitimement la
   séquence.

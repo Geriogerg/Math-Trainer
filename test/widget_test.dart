@@ -43,7 +43,7 @@ void main() {
     expect(find.text('Math Trainer'), findsOneWidget);
   });
 
-  testWidgets('démarrer une session affiche une question et un champ de saisie', (
+  testWidgets('démarrer une session affiche une question et le pavé numérique', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
@@ -51,8 +51,10 @@ void main() {
     await tester.tap(find.text('Commencer'));
     await tester.pump();
 
-    expect(find.byType(TextField), findsOneWidget);
-    expect(find.text('Valider'), findsOneWidget);
+    // Les 10 chiffres + retour arrière + valider.
+    expect(find.text('7'), findsOneWidget);
+    expect(find.byIcon(Icons.check), findsOneWidget);
+    expect(find.byIcon(Icons.backspace_outlined), findsOneWidget);
     expect(find.text('Math Trainer'), findsNothing);
   });
 
@@ -69,7 +71,7 @@ void main() {
 
     // Toujours sur l'écran de sélection : le bouton désactivé n'a rien déclenché.
     expect(find.text('Math Trainer'), findsOneWidget);
-    expect(find.byType(TextField), findsNothing);
+    expect(find.byIcon(Icons.check), findsNothing);
   });
 
   testWidgets('un seul type sélectionné démarre une session mono-type', (
@@ -82,7 +84,7 @@ void main() {
     await tester.tap(find.text('Commencer'));
     await tester.pump();
 
-    expect(find.byType(TextField), findsOneWidget);
+    expect(find.byIcon(Icons.check), findsOneWidget);
   });
 
   testWidgets('recommencer après une session ramène à l\'écran de sélection', (
@@ -94,10 +96,13 @@ void main() {
     await tester.pump();
 
     // 2 types par défaut, n_min=8 : sessionLengthFor(2, 8, 24) = 16
-    // questions (étape 4.1, commit A) — pas 10.
+    // questions (étape 4.1, commit A) — pas 10. Le pavé remplace le clavier
+    // natif (étape 5, commit D) : taper '1' puis valider, sans pump entre
+    // les deux pour éviter toute collision avec le '1' qui apparaîtrait
+    // ensuite dans la réponse affichée.
     for (var i = 0; i < 20 && find.text('Session terminée').evaluate().isEmpty; i++) {
-      await tester.enterText(find.byType(TextField), '1');
-      await tester.tap(find.text('Valider'));
+      await tester.tap(find.text('1'));
+      await tester.tap(find.byIcon(Icons.check));
       await tester.pump();
     }
     expect(find.text('Session terminée'), findsOneWidget);

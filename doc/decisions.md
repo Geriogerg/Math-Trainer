@@ -218,7 +218,8 @@ que le coût serait de retoucher du code stable et de perdre le nommage métier 
 Décision produit, définitive. Toutes deux violent la règle 9 : les fractions par leur type de
 réponse, la division euclidienne par sa réponse composite (quotient + reste, donc deux champs
 de saisie, gestion du focus, validation partielle). Conséquence : la colonne de réponse reste
-`INTEGER` et `TextInputType.number` reste l'unique mode de saisie.
+`INTEGER` ; la saisie se fait via le pavé numérique intégré depuis l'étape 5 (commit D), un seul
+champ, jamais de virgule ni de second champ.
 
 ## `ChangeNotifier` natif plutôt que provider / riverpod / bloc
 
