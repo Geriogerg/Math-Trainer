@@ -119,10 +119,14 @@ colonne `operation_type` (piège pour tout code qui relit la table directement, 
 **Affichage : `presentation/exercise_prompt.dart`.** `ExercisePrompt`, un `switch` exhaustif sans
 `default` (règle 11) sur `Exercise`, compose le rendu à partir des champs de chaque variante —
 plus jamais un getter sur le domaine. Résout la dette documentée depuis l'étape 3 (copie
-française en dur dans `core/domain/`). Depuis ce commit, addition/soustraction/multiplication/
-division et pourcentage ont leur rendu définitif (vrais caractères `+ − × ÷`, U+2212 pour la
-soustraction — jamais le trait d'union) ; puissance (`3^2`) et racine carrée (`√16`) restent en
-notation provisoire jusqu'au commit suivant (exposant en position haute, barre sur le radicande).
+française en dur dans `core/domain/`).
+
+Notation conforme à `doc/design.md` sur toutes les variantes : addition/soustraction/
+multiplication/division et pourcentage en texte simple (vrais caractères `+ − × ÷`, U+2212 pour
+la soustraction — jamais le trait d'union) ; puissance via `_PowerPrompt` (`Text.rich`, exposant
+en `WidgetSpan` aligné en haut de ligne, ~55 % de la taille de la base) ; racine carrée via
+`_SquareRootPrompt` (`Row` avec un `Container` à `Border(top:)` sur le radicande, le symbole `√`
+n'étant pas lui-même sous la barre — simplification assumée par `doc/design.md`).
 
 ## Système de niveaux
 

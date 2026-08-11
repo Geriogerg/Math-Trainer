@@ -58,17 +58,40 @@ void main() {
     expect(find.text('25% de 80'), findsOneWidget);
   });
 
-  testWidgets('puissance affiche base^exposant (notation définitive au commit suivant)', (
+  testWidgets('puissance affiche la base et l\'exposant, jamais un accent circonflexe', (
     tester,
   ) async {
     await pump(tester, const PowerExercise(base: 3, exponent: 2));
-    expect(find.text('3^2'), findsOneWidget);
+
+    // La base vit dans le TextSpan d'un Text.rich (pas un Text.data séparé) :
+    // on vérifie son contenu textuel plutôt que sa présence via find.text.
+    final richText = tester.widget<Text>(
+      find.byWidgetPredicate((widget) => widget is Text && widget.textSpan != null),
+    );
+    expect(richText.textSpan!.toPlainText(includePlaceholders: false), '3');
+
+    // L'exposant est un Text indépendant (dans un WidgetSpan) : find.text le
+    // trouve directement, et on vérifie qu'il est bien plus petit que la base.
+    final exponentFinder = find.text('2');
+    expect(exponentFinder, findsOneWidget);
+    final baseSize = richText.textSpan!.style!.fontSize!;
+    final exponentSize = tester.widget<Text>(exponentFinder).style!.fontSize!;
+    expect(exponentSize, closeTo(baseSize * 0.55, 0.01));
+
+    expect(find.textContaining('^'), findsNothing);
   });
 
-  testWidgets('racine carrée affiche √radicand (notation définitive au commit suivant)', (
-    tester,
-  ) async {
+  testWidgets('racine carrée affiche une barre au-dessus du radicande', (tester) async {
     await pump(tester, const SquareRootExercise(radicand: 16));
-    expect(find.text('√16'), findsOneWidget);
+
+    expect(find.text('√'), findsOneWidget);
+    final radicandFinder = find.text('16');
+    expect(radicandFinder, findsOneWidget);
+
+    final container = tester.widget<Container>(
+      find.ancestor(of: radicandFinder, matching: find.byType(Container)),
+    );
+    final decoration = container.decoration as BoxDecoration;
+    expect(decoration.border, isNotNull);
   });
 }
