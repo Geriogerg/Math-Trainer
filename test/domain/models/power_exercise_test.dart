@@ -10,10 +10,6 @@ void main() {
       expect(const PowerExercise(base: 5, exponent: 1).correctAnswer, 5);
     });
 
-    test('prompt affiche base^exposant', () {
-      expect(const PowerExercise(base: 3, exponent: 2).prompt, '3^2');
-    });
-
     test('type est ExerciseType.power', () {
       expect(const PowerExercise(base: 3, exponent: 2).type, ExerciseType.power);
     });

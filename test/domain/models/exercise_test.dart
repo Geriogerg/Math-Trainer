@@ -50,17 +50,6 @@ void main() {
       expect(exercise.isCorrectAnswer(5), isFalse);
     });
 
-    test('prompt affiche le bon symbole', () {
-      expect(
-        const ArithmeticExercise(
-          operandA: 4,
-          operandB: 3,
-          operationType: OperationType.multiplication,
-        ).prompt,
-        '4 × 3',
-      );
-    });
-
     test('deux exercices avec les mêmes valeurs sont égaux', () {
       const a = ArithmeticExercise(
         operandA: 4,

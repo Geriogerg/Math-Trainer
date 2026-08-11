@@ -10,10 +10,6 @@ void main() {
       expect(const PercentageExercise(percent: 50, base: 12).correctAnswer, 6);
     });
 
-    test('prompt affiche « p% de a »', () {
-      expect(const PercentageExercise(percent: 25, base: 80).prompt, '25% de 80');
-    });
-
     test('type est ExerciseType.percentage', () {
       expect(const PercentageExercise(percent: 10, base: 50).type, ExerciseType.percentage);
     });

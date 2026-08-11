@@ -10,10 +10,6 @@ void main() {
       expect(const SquareRootExercise(radicand: 4).correctAnswer, 2);
     });
 
-    test('prompt affiche √radicand', () {
-      expect(const SquareRootExercise(radicand: 16).prompt, '√16');
-    });
-
     test('type est ExerciseType.squareRoot', () {
       expect(const SquareRootExercise(radicand: 16).type, ExerciseType.squareRoot);
     });

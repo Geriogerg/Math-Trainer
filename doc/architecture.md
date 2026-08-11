@@ -96,16 +96,17 @@ Deux enums, deux rôles distincts à ne pas confondre :
 - **`OperationType`** — strictement interne à `ArithmeticExercise`, décrit une opération
   binaire (+ − × ÷). N'est jamais étendu pour un nouveau type d'exercice (règle 12).
 
-`Exercise` est une `sealed class` exposant `prompt` (`String`), `correctAnswer` (typé **`int`**),
-`isCorrectAnswer(int)` et `ExerciseType get type`. Chaque variante porte ses opérandes sous
-leur nom métier plutôt qu'une liste générique, et implémente `==` / `hashCode`.
+`Exercise` est une `sealed class` exposant `correctAnswer` (typé **`int`**), `isCorrectAnswer(int)`
+et `ExerciseType get type` — plus aucun texte d'affichage depuis l'étape 5 (commit B) : le domaine
+ne connaît que les valeurs mathématiques, jamais leur mise en forme. Chaque variante porte ses
+opérandes sous leur nom métier plutôt qu'une liste générique, et implémente `==` / `hashCode`.
 
-| Variante | Opérandes | Forme présentée |
-|---|---|---|
-| `ArithmeticExercise` | `operandA`, `operandB`, `OperationType` | `a + b`, `a - b`, `a × b`, `a ÷ b` |
-| `PowerExercise` | `base`, `exponent` | `a^n` |
-| `SquareRootExercise` | `radicand` (carré parfait) | `√a` |
-| `PercentageExercise` | `percent`, `base` | `p% de a` |
+| Variante | Opérandes |
+|---|---|
+| `ArithmeticExercise` | `operandA`, `operandB`, `OperationType` |
+| `PowerExercise` | `base`, `exponent` |
+| `SquareRootExercise` | `radicand` (carré parfait) |
+| `PercentageExercise` | `percent`, `base` |
 
 La réponse attendue est exposée par le domaine, jamais recalculée par l'UI ni par le `Scorer`.
 
@@ -115,10 +116,13 @@ arithmétiques : `exercise_type` vaut `'arithmetic'` pour toutes, l'opération p
 colonne `operation_type` (piège pour tout code qui relit la table directement, cf.
 `tool/recalibrate.dart`).
 
-Dette connue, **en cours de résolution à l'étape 5** (voir `doc/design.md`) : `prompt` contient
-de la copie d'interface en français (« 25% de 80 ») dans le domaine pur, et rend un exposant en
-`^` plutôt qu'en position haute — non représentable dans une `String` plate. `Exercise.prompt`
-va disparaître au profit d'un formateur en couche présentation.
+**Affichage : `presentation/exercise_prompt.dart`.** `ExercisePrompt`, un `switch` exhaustif sans
+`default` (règle 11) sur `Exercise`, compose le rendu à partir des champs de chaque variante —
+plus jamais un getter sur le domaine. Résout la dette documentée depuis l'étape 3 (copie
+française en dur dans `core/domain/`). Depuis ce commit, addition/soustraction/multiplication/
+division et pourcentage ont leur rendu définitif (vrais caractères `+ − × ÷`, U+2212 pour la
+soustraction — jamais le trait d'union) ; puissance (`3^2`) et racine carrée (`√16`) restent en
+notation provisoire jusqu'au commit suivant (exposant en position haute, barre sur le radicande).
 
 ## Système de niveaux
 

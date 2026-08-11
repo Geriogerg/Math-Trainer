@@ -9,7 +9,6 @@ import 'operation_type.dart';
 sealed class Exercise {
   const Exercise();
 
-  String get prompt;
   int get correctAnswer;
   ExerciseType get type;
 
@@ -44,17 +43,6 @@ final class ArithmeticExercise extends Exercise {
   };
 
   @override
-  String get prompt {
-    final symbol = switch (operationType) {
-      OperationType.addition => '+',
-      OperationType.subtraction => '-',
-      OperationType.multiplication => '×',
-      OperationType.division => '÷',
-    };
-    return '$operandA $symbol $operandB';
-  }
-
-  @override
   bool operator ==(Object other) =>
       other is ArithmeticExercise &&
       other.operandA == operandA &&
@@ -82,9 +70,6 @@ final class PowerExercise extends Exercise {
     }
     return result;
   }
-
-  @override
-  String get prompt => '$base^$exponent';
 
   @override
   bool operator ==(Object other) =>
@@ -116,9 +101,6 @@ final class SquareRootExercise extends Exercise {
   }
 
   @override
-  String get prompt => '√$radicand';
-
-  @override
   bool operator ==(Object other) => other is SquareRootExercise && other.radicand == radicand;
 
   @override
@@ -136,9 +118,6 @@ final class PercentageExercise extends Exercise {
 
   @override
   int get correctAnswer => percent * base ~/ 100;
-
-  @override
-  String get prompt => '$percent% de $base';
 
   @override
   bool operator ==(Object other) =>

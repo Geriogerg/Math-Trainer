@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:math_trainer/core/domain/generation/arithmetic_generator.dart';
 import 'package:math_trainer/core/domain/generation/operand_range.dart';
+import 'package:math_trainer/core/domain/models/exercise.dart';
 import 'package:math_trainer/core/domain/models/operation_type.dart';
 import 'package:test/test.dart';
 
@@ -67,10 +68,10 @@ void main() {
       // Propriété constatée empiriquement sur cet échantillon, pas une
       // garantie mathématique : deux seeds distinctes pourraient en théorie
       // produire la même séquence par coïncidence.
-      List<String> sequenceFor(int seed) {
+      List<ArithmeticExercise> sequenceFor(int seed) {
         final generator = ArithmeticExerciseGenerator(operationTypes: OperationType.values);
         final random = Random(seed);
-        return List.generate(20, (_) => generator.next(random).prompt);
+        return List.generate(20, (_) => generator.next(random));
       }
 
       final sequences = [1, 2, 3, 4].map(sequenceFor).toList();

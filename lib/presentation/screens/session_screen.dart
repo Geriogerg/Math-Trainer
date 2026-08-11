@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/state/session_controller.dart';
+import '../exercise_prompt.dart';
 
 class SessionScreen extends StatefulWidget {
   const SessionScreen({super.key, required this.controller});
@@ -57,7 +58,7 @@ class _SessionScreenState extends State<SessionScreen> {
                   ),
           ),
           const SizedBox(height: 24),
-          Text(exercise.prompt, style: Theme.of(context).textTheme.displaySmall),
+          ExercisePrompt(exercise: exercise),
           const SizedBox(height: 24),
           TextField(
             controller: _answerController,
