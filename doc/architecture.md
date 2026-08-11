@@ -34,6 +34,10 @@ lib/
                            # SharedPreferencesPlayerIdProvider — seul endroit qui importe
                            # sqflite / shared_preferences
   presentation/
+    theme/
+      app_theme.dart        # ThemeData clair/sombre (doc/design.md), AppPalette et AppMotion
+                           # (extensions pour ce qui n'a pas de rôle Material 3 standard :
+                           # texte discret, durées/courbes d'animation)
     exercise_type_labels.dart  # libellés français des ExerciseType, hors du domaine
     screens/               # HomeScreen (phase + choix des types), SessionScreen
                            # (question/saisie/feedback), ProgressScreen (niveaux par type),
@@ -157,5 +161,16 @@ jouées — voir le point d'attente dans `CLAUDE.md`.
 | `sqflite_common_ffi` (dev) | tests du repository et `tool/recalibrate.dart` sur la Dart VM,
   sans émulateur ni `dart:ui` |
 
-Aucune dépendance de rendu graphique (police, thème) à ce jour — l'étape 5 en introduit
-potentiellement une (police `Inter`), voir `doc/decisions.md`.
+## Thème
+
+`ThemeData` clair et sombre centralisés dans `presentation/theme/app_theme.dart`
+(`buildLightTheme()` / `buildDarkTheme()`), branchés dans `app.dart` via
+`themeMode: ThemeMode.system` — aucun sélecteur manuel, le mode clair n'étant pas une variante de
+confort (`doc/design.md`). Palette posée sur les rôles `ColorScheme` Material 3 standard (voir
+`doc/decisions.md` pour le mapping exact) ; seul le texte discret (aucun rôle M3 adapté) et les
+durées/courbes d'animation vivent dans des `ThemeExtension` (`AppPalette`, `AppMotion`).
+
+Police `Inter` bundlée en asset local (`assets/fonts/Inter.ttf`, police variable, un seul
+fichier) — pas de dépendance ajoutée. `TextTheme` réécrit sur ce point : les 5 tailles de
+`doc/design.md` posées sur 5 des 15 styles nommés Material 3, chiffres tabulaires et plafond de
+graisse (400/500 max) appliqués à l'ensemble du `TextTheme`, pas qu'aux 5 tailles nommées.
