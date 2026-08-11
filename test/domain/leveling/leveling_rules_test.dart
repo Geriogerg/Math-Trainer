@@ -16,5 +16,10 @@ void main() {
       expect(() => LevelingRules(absenceDaysThreshold: 0), throwsArgumentError);
       expect(() => LevelingRules(absenceDaysThreshold: -1), throwsArgumentError);
     });
+
+    test('refuse un nMin <= 0', () {
+      expect(() => LevelingRules(nMin: 0), throwsArgumentError);
+      expect(() => LevelingRules(nMin: -1), throwsArgumentError);
+    });
   });
 }

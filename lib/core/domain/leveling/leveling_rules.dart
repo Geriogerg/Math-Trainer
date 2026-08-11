@@ -30,6 +30,9 @@ class LevelingRules {
         'doit être strictement positif.',
       );
     }
+    if (nMin <= 0) {
+      throw ArgumentError.value(nMin, 'nMin', 'doit être strictement positif.');
+    }
   }
 
   /// Performance d'équilibre visée.

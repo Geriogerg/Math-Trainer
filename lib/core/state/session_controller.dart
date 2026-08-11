@@ -146,11 +146,19 @@ class SessionController extends ChangeNotifier {
         playerId: playerId,
         now: createdAt,
       );
-    } catch (_) {
+    } on Exception catch (_) {
       // Le cache de niveaux est recalculable depuis l'historique (voir
       // doc/decisions.md) : une lecture ratée ne doit pas empêcher
       // l'enregistrement de la session, qui lui n'est reconstructible nulle
       // part ailleurs — priorité à ce qui n'est pas reconstructible.
+      //
+      // `on Exception`, pas `catch (_)` : un `Error` (ArgumentError,
+      // StateError...) signale un bug — un invariant qui lève quelque part
+      // dans cette chaîne (LevelUpdater, LevelCacheEntry, LevelingRules...)
+      // doit rester visible, pas être avalé au même titre qu'un échec
+      // réseau/disque. C'est exactement ce que la règle 13 défend : un
+      // catch trop large réintroduirait le même problème qu'un `assert`
+      // supprimé en release, côté try/catch cette fois.
     }
 
     try {
@@ -159,7 +167,7 @@ class SessionController extends ChangeNotifier {
         answers: answers,
         levelUpdates: levelUpdates,
       );
-    } catch (_) {
+    } on Exception catch (_) {
       // La persistance ne doit jamais casser la partie en cours : échec
       // silencieux pour le MVP (pas de file d'attente/retry — hors périmètre).
     }

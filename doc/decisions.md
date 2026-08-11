@@ -355,10 +355,11 @@ production), niveau de départ 1. `sessionsPlayed`/l'absence pour `confidenceFor
 recalculés depuis le rejeu lui-même, jamais depuis `player_levels` (qui ne reflète que l'état
 courant).
 
-**Métriques** : convergence = première session à partir de laquelle l'amplitude (max−min) du
-reste de la trajectoire descend sous ±2 ; oscillation = cette amplitude une fois convergé ;
-biais = variation moyenne par session sur la portion convergée. Comparées aux cibles déjà dans
-ce document (convergence 10–20 sessions, oscillation ≤ 2, biais légèrement positif).
+**Métriques** : convergence = première session à partir de laquelle une fenêtre glissante de 5
+sessions a une amplitude (max−min) sous ±2 (fenêtre bornée, pas tout le reste de la trajectoire —
+voir plus bas pourquoi) ; oscillation = amplitude sur tout le reste de la trajectoire une fois
+convergé ; biais = variation moyenne par session sur cette même portion. Comparées aux cibles
+déjà dans ce document (convergence 10–20 sessions, oscillation ≤ 2, biais légèrement positif).
 
 **Pourquoi le script ne réutilise pas `SqfliteSessionRepository`** : ce dernier importe
 `package:sqflite/sqflite.dart`, le plugin Flutter — qui tire `dart:ui`, indisponible à un script
@@ -375,6 +376,38 @@ fonctionne) et contre la vraie base de l'émulateur (2 trajectoires trouvées, c
 triviale faute d'assez de sessions — sain, pas un bug : avec seulement 2 sessions par
 trajectoire, il n'y a rien de long terme à observer). **Le volume de données réel est
 aujourd'hui trop faible pour une calibration utile** ; l'outil est prêt, pas encore nourri.
+
+## Corrections après relecture critique de l'étape 4.1 (même commit E)
+
+Trois faiblesses trouvées en rédigeant le compte rendu de l'étape 4.1, corrigées avant de
+commiter plutôt que laissées en dette :
+
+**`LevelingRules.nMin` n'était pas défendu par un `throw`**, contrairement aux autres champs du
+même constructeur (`tRapideMs < tLentMs`, `absenceDaysThreshold > 0`). Sans conséquence pratique
+(`nMin` n'est jamais construit qu'à sa valeur par défaut dans l'app), mais une incohérence du
+genre que la règle 13 existe pour éliminer — corrigé, avec test.
+
+**Les deux `catch (_)` de `SessionController._persistCompletedSession` avalaient aussi les
+bugs.** Le découplage du commit C (une lecture de cache ratée ne fait plus perdre la session)
+avait un effet de bord non voulu : un `Error` (`ArgumentError`, `StateError`...) levé par un
+invariant cassé quelque part dans `LevelUpdater`/`confidenceFor`/`LevelCacheOrchestrator`
+disparaissait silencieusement au même titre qu'un échec réseau/disque attendu. Changé en
+`on Exception catch (_)` — Dart distingue `Exception` (échec attendu, à récupérer) d'`Error`
+(bug de programmation, à laisser remonter) ; tous les `throw ArgumentError(...)` de ce projet
+(règle 13) sont des `Error`, donc désormais non avalés par ces deux `catch`. Testé avec
+`runZonedGuarded` : un `Error` simulé remonte bien à la zone, une `Exception` simulée reste
+silencieusement gérée (comportement inchangé pour ce cas, déjà testé au commit C).
+
+**La logique pure de `tool/recalibrate.dart` n'avait aucun test automatisé** — vérifiée
+seulement en lançant le script. Extraite vers `tool/src/replay_metrics.dart` (public,
+contrairement au reste du script, précisément pour rester testable), avec tests directs sur
+`replay`, `convergenceIndex`, `averageMetrics`, `mean`. Au passage, corrigé le défaut de
+définition qui avait motivé l'extraction : `convergenceIndex` exigeait auparavant qu'*aucun*
+point du reste de la trajectoire ne dépasse l'amplitude cible — un seul écart tardif isolé
+empêchait de détecter une convergence par ailleurs réelle. Remplacé par une fenêtre glissante de
+5 sessions pour la détection ; l'oscillation et le biais, une fois la convergence détectée,
+continuent de se mesurer sur tout le reste de la trajectoire (c'est la détection qui doit
+tolérer un accident isolé, pas la caractérisation de l'équilibre une fois atteint).
 
 ## Les niveaux sont un cache recalculable, pas une source de vérité
 

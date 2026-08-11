@@ -8,11 +8,10 @@ import 'dart:io';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'package:math_trainer/core/domain/leveling/answer_outcome.dart';
-import 'package:math_trainer/core/domain/leveling/confidence.dart';
 import 'package:math_trainer/core/domain/leveling/leveling_rules.dart';
-import 'package:math_trainer/core/domain/leveling/level_updater.dart';
 import 'package:math_trainer/core/domain/models/exercise_type.dart';
-import 'package:math_trainer/core/domain/persistence/level_cache_entry.dart';
+
+import 'src/replay_metrics.dart';
 
 /// Rejoue l'historique SQLite pour évaluer, un paramètre de [LevelingRules]
 /// à la fois, l'effet sur la convergence, l'oscillation et le biais de la
@@ -51,12 +50,13 @@ Future<void> main(List<String> args) async {
 
   print('${trajectories.length} trajectoire(s) (joueur, opération) chargée(s).\n');
 
+  final baseTime = DateTime.utc(2026, 1, 1);
   for (final sweep in _sweeps) {
     print('== ${sweep.name} (défaut : ${sweep.defaultValue}) ==');
     print('valeur\tconvergence (sessions)\toscillation (±niveaux)\tbiais (niveaux/session)');
     for (final candidate in sweep.candidates) {
       final rules = sweep.apply(defaultRules, candidate);
-      final metrics = _averageMetrics(trajectories, rules);
+      final metrics = averageMetrics(trajectories, rules, baseTime);
       print(
         '$candidate\t${_fmt(metrics.convergence, 1)}\t\t\t'
         '${_fmt(metrics.oscillation, 2)}\t\t\t${_fmt(metrics.bias, 3)}',
@@ -79,20 +79,16 @@ String? _argValue(List<String> args, String name) {
   return args[index + 1];
 }
 
-/// Une trajectoire = les lots de réponses d'une opération pour un joueur,
-/// triés chronologiquement par session, sessions sous `n_min` déjà exclues
-/// (ce filtre ne varie pas d'un balayage à l'autre, contrairement au reste
-/// de `LevelingRules`).
-typedef _Trajectory = List<List<AnswerOutcome>>;
-
-Future<List<_Trajectory>> _loadTrajectories(Database database, {required int nMin}) async {
+/// Sessions sous `n_min` déjà exclues ici (ce filtre ne varie pas d'un
+/// balayage à l'autre, contrairement au reste de `LevelingRules`).
+Future<List<Trajectory>> _loadTrajectories(Database database, {required int nMin}) async {
   final sessionRows = await database.query(
     'sessions',
     columns: ['id', 'player_id'],
     orderBy: 'created_at ASC', // chronologique, pas récent→ancien
   );
 
-  final byPlayerAndType = <String, _Trajectory>{};
+  final byPlayerAndType = <String, Trajectory>{};
   for (final sessionRow in sessionRows) {
     final sessionId = sessionRow['id'] as String;
     final playerId = sessionRow['player_id'] as String;
@@ -134,82 +130,6 @@ Future<List<_Trajectory>> _loadTrajectories(Database database, {required int nMi
   // converger) : exclue plutôt que de fausser la moyenne avec du bruit.
   return byPlayerAndType.values.where((t) => t.length >= 2).toList();
 }
-
-class _Metrics {
-  const _Metrics({this.convergence, this.oscillation, this.bias});
-  final double? convergence;
-  final double? oscillation;
-  final double? bias;
-}
-
-const _oscillationTarget = 2;
-
-/// Rejoue une trajectoire avec [rules], niveau de départ 1. `sessionsPlayed`
-/// et l'absence pour `confidenceFor` sont reconstruits depuis le rejeu
-/// lui-même — pas depuis `player_levels`, qui ne reflète que l'état courant,
-/// pas l'historique complet.
-List<int> _replay(_Trajectory trajectory, LevelingRules rules, DateTime baseTime) {
-  final updater = LevelUpdater(rules: rules);
-  var level = 1;
-  LevelCacheEntry? prior;
-  final levels = <int>[];
-
-  for (var i = 0; i < trajectory.length; i++) {
-    final now = baseTime.add(Duration(days: i)); // pas de vrais timestamps rejoués ici
-    final confidence = confidenceFor(entry: prior, now: now, rules: rules);
-    level = updater.update(currentLevel: level, answers: trajectory[i], confidence: confidence);
-    levels.add(level);
-    prior = LevelCacheEntry(
-      level: level,
-      sessionsPlayed: (prior?.sessionsPlayed ?? 0) + 1,
-      updatedAt: now,
-    );
-  }
-  return levels;
-}
-
-/// Premier indice à partir duquel l'amplitude (max−min) du reste de la
-/// trajectoire descend sous [_oscillationTarget] — `null` si jamais atteint.
-int? _convergenceIndex(List<int> levels) {
-  for (var i = 0; i < levels.length; i++) {
-    final tail = levels.sublist(i);
-    final amplitude = tail.reduce((a, b) => a > b ? a : b) - tail.reduce((a, b) => a < b ? a : b);
-    if (amplitude <= _oscillationTarget) return i;
-  }
-  return null;
-}
-
-_Metrics _averageMetrics(List<_Trajectory> trajectories, LevelingRules rules) {
-  final baseTime = DateTime.utc(2026, 1, 1);
-  final convergences = <double>[];
-  final oscillations = <double>[];
-  final biases = <double>[];
-
-  for (final trajectory in trajectories) {
-    final levels = _replay(trajectory, rules, baseTime);
-    final convergedAt = _convergenceIndex(levels);
-    if (convergedAt == null) continue;
-
-    convergences.add(convergedAt.toDouble());
-    final tail = levels.sublist(convergedAt);
-    oscillations.add(
-      (tail.reduce((a, b) => a > b ? a : b) - tail.reduce((a, b) => a < b ? a : b)).toDouble(),
-    );
-    if (tail.length >= 2) {
-      final diffs = [for (var i = 1; i < tail.length; i++) tail[i] - tail[i - 1]];
-      biases.add(diffs.reduce((a, b) => a + b) / diffs.length);
-    }
-  }
-
-  return _Metrics(
-    convergence: _mean(convergences),
-    oscillation: _mean(oscillations),
-    bias: _mean(biases),
-  );
-}
-
-double? _mean(List<double> values) =>
-    values.isEmpty ? null : values.reduce((a, b) => a + b) / values.length;
 
 /// Un paramètre de [LevelingRules] à la fois, les autres restant au défaut
 /// — pas de recherche combinatoire sur les 10 ensemble (illisible et hors
