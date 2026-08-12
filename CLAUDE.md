@@ -95,17 +95,24 @@ types, niveaux actualisés, **nouvelle seed**). Le nombre de questions reste dé
 (`n_min × types actifs`), le joueur ne le règle pas. Détail et justifications :
 `docs/decisions.md`.
 
-**Étape 5 — direction visuelle et interface.** Direction « nuit électrique »,
-palette, typographie, notation mathématique, pavé numérique intégré, navigation et animations :
-tout est arrêté dans `docs/design.md`. Lis-le avant d'écrire une ligne de `presentation/`.
+**Étape 5 — direction visuelle et expérience.** Direction « nuit électrique » : palette,
+typographie, notation mathématique, pavé intégré, navigation, animations et disposition des
+écrans, tout est arrêté dans `docs/design.md`. Lis-le avant d'écrire une ligne de `presentation/`.
 
-Contenu : centralisation du thème (`ThemeData` + extensions, les deux modes) ; suppression de
-`Exercise.prompt` au profit d'un formateur en couche présentation (résout la dette du français
-en dur dans le domaine) ; pavé numérique intégré remplaçant le clavier natif ; refonte de
-l'écran de session ; barre d'onglets basse ; écran de progression ; tests de golden.
+Contenu, dans l'ordre de priorité issu de l'audit UX :
 
-Décision produit associée : la soustraction ne produit jamais de résultat négatif — le
-générateur garantit `operandA ≥ operandB`, et le pavé n'a donc pas de touche `−`.
+1. **Défauts, pas du polish** — `PopScope` sur la session en cours (le geste retour Android
+   détruit aujourd'hui toutes les réponses) ; suppression des deux `SizedBox.shrink()` servant
+   d'état d'écran ; `Colors.black` littéral dans `exercise_prompt.dart`.
+2. **Thème** — `ThemeData` et extensions pour les deux modes ; élimination des valeurs en dur
+   (~15 dans `session_screen.dart`) ; padding racine et style de titre uniformes.
+3. **Écran de résultat** — changement de niveau avec `AppMotion.levelUp`, série finale,
+   distinction hors délai / faux, composition du score, types joués.
+4. **Écran de progression** — exploitation de l'historique : courbe de niveau, ventilation par
+   opération avec temps moyen, sessions récentes. Suppose des lectures agrégées sur
+   `SessionRepository` (seul point touchant le domaine).
+5. **Rendu et session** — `Text.rich` pour les exposants, barre de racine, pavé à hauteur fixe,
+   `currentStreak` visible, tests de golden dans les deux modes.
 
 Hors périmètre : tout ce qui touche aux comptes, au réseau ou au classement.
 

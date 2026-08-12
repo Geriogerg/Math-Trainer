@@ -175,6 +175,66 @@ Les niveaux actualisés sont le point important : la difficulté suit la progres
 montrait qu'il existait. Prévoir un retour visuel bref entre deux sessions (animation de montée
 de niveau, 600 ms, cf. `docs/design.md`).
 
+## L'historique écrit n'est jamais relu (constat d'audit, étape 5)
+
+Audit factuel avant l'étape 5 : `recentSessions()` et `answersForSession()` n'ont **aucun appel**
+dans `presentation/`. Chaque champ de `PersistedSession` et `PersistedAnswer` — seed, types,
+score, niveaux, opérandes, temps de réponse — est écrit puis jamais relu. La granularité
+obligatoire qui justifie toute l'architecture de persistance ne sert à personne aujourd'hui.
+
+Même constat côté animation : `AppMotion.levelUp`, `questionTransition` et `tabChange` sont
+définis dans le thème et n'ont aucune occurrence ailleurs dans `lib/`. L'animation de montée de
+niveau, identifiée comme le moment émotionnel du solo, n'existe pas. Le système de niveaux
+fonctionne et reste invisible pour le joueur.
+
+## Ne jamais afficher le taux de réussite comme mesure de progrès
+
+Il converge vers `p_cible` par construction, pour tout joueur et à tout niveau. L'afficher comme
+indicateur de progression apprendrait au joueur que rien ne bouge, alors qu'il progresse.
+
+Les deux métriques qui progressent réellement sont **le niveau** et **le temps de réponse
+moyen**. Le second est le meilleur des deux : il ne s'autorégule pas, il est immédiatement
+compréhensible, et il indique *où* travailler quand il est ventilé par opération.
+
+Le taux de réussite garde sa place comme retour de session (« 9/12 »), jamais comme courbe.
+
+## Le geste retour Android détruit la session en cours
+
+Aucun `PopScope` dans `presentation/` ; `SessionController.dispose()` annule le timer sans rien
+persister. Un balayage retour — réflexe courant sur Android — détruit toutes les réponses déjà
+données.
+
+Traitement retenu : intercepter le geste, demander confirmation, et persister comme session
+**interrompue**. La distinction terminée/interrompue existe déjà depuis l'étape 4.2, il n'y a
+rien de nouveau à modéliser.
+
+Même famille de défauts : les deux `SizedBox.shrink()` (`session_screen.dart` quand
+`exercise == null`, `session_flow_screen.dart` sur `notStarted`) produisent un écran vide sans
+message ni action — une impasse dont on ne sort que par le geste retour, qui détruit la session.
+
+## Charger l'historique sans le charger entièrement
+
+Afficher la progression suppose de lire un volume qui croît à chaque session. Deux options :
+requêtes agrégées côté SQLite, ou fenêtre bornée (N dernières sessions / N derniers jours).
+
+Préférer l'agrégation en SQL : elle ne dégrade pas avec le temps et prépare le terrain pour le
+recalcul serveur. Conséquence : `SessionRepository` gagne des méthodes de lecture agrégée — c'est
+le seul point de cet audit qui dépasse la couche présentation et touche le domaine.
+
+## Données disponibles à exposer au joueur
+
+Toutes déjà calculées ou stockées, aucune n'exige de nouveau calcul métier :
+
+| Donnée | Où elle vit | Où la montrer |
+|---|---|---|
+| Changement de niveau | `LevelCacheEntry.level` avant/après | écran de résultat, avec `AppMotion.levelUp` |
+| `currentStreak` | `SessionState.currentStreak` | pendant la session et en fin de session |
+| Timeout vs faux | `AnswerResult.isTimeout` | écran de résultat — corrections opposées (trop lent / erreur) |
+| Composition du score | `Scorer._speedBonus`, `_streakBonus`, `_difficultyMultiplier` | écran de résultat |
+| Types joués | `config.enabledTypes` | écran de résultat |
+| `sessionsPlayed`, `updatedAt` | `LevelCacheEntry` | écran de progression |
+| Temps moyen par opération | `PersistedAnswer.elapsedMs` agrégé | écran de progression, par opération |
+
 ## Direction visuelle : « nuit électrique »
 
 Quatre directions comparées (ardoise sobre, papier clair, nuit électrique, terrain chaleureux).

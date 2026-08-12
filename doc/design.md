@@ -151,6 +151,45 @@ décorative.
 La montée de niveau est la seule animation qui a le droit de prendre son temps : c'est le moment
 émotionnel du solo, le seul endroit où le joueur regarde au lieu de réagir.
 
+## Écran de résultat
+
+C'est la conclusion de la session et le moment où le système de niveaux devient perceptible.
+Aujourd'hui il n'affiche ni le changement de niveau, ni la série, ni la composition du score.
+
+De haut en bas : **le changement de niveau en premier** (animation `AppMotion.levelUp`, 600 ms,
+la seule qui a le droit de prendre son temps), le score avec sa décomposition (base, bonus de
+vitesse, bonus de série, multiplicateur de difficulté), le décompte juste / faux / **hors délai
+distingués**, le temps moyen, la meilleure série, et les types joués.
+
+Le taux de réussite s'affiche en décompte brut (« 9/12 »), jamais en courbe ni en pourcentage
+présenté comme un progrès.
+
+Deux actions : **Rejouer** (dominante, à droite) et **Nouvelle sélection**. Envisager de porter
+les puces de types directement sur cet écran — changer un seul type coûte aujourd'hui 3 taps.
+
+## Écran de progression
+
+Quatre blocs, du général au détail : niveau global avec sa variation récente ; courbe d'évolution
+du niveau sur 30 jours ; ventilation par opération (barre de niveau + **temps moyen**, qui dit au
+joueur où il est lent) ; sessions récentes avec score et variation de niveau.
+
+Les opérations jamais jouées apparaissent en état « non joué » plutôt que masquées — c'est ce qui
+rend visible ce que la sélection par défaut laisse de côté.
+
+## Règles de disposition
+
+- **Padding racine uniforme sur tous les écrans.** Trois valeurs différentes coexistent
+  aujourd'hui (`all(24)`, `fromLTRB(24,16,24,8)`, aucune).
+- **Un seul style de titre d'écran.** `headlineMedium` et `headlineSmall` coexistent.
+- **Tout `Text` cite un style de thème explicite.** Aucun style hérité par défaut.
+- **Hauteur du pavé en valeur fixe, jamais en ratio d'écran.** `0.38 * height` fait bouger la
+  mise en page d'un appareil à l'autre et contredit le principe de dimensionnement à l'envers.
+- **Un message d'erreur ne contient pas l'action.** Le texte décrit le problème, le bouton porte
+  l'action — une seule formulation partout, pas « Réessayez » tantôt dans le texte tantôt dans le
+  bouton.
+- **Un état désactivé explique pourquoi.** Un bouton grisé sans message (sélection de types vide)
+  laisse le joueur sans issue lisible.
+
 ## Règles d'implémentation
 
 - **Aucune couleur, taille ou durée en dur dans un widget.** Tout passe par `ThemeData` et des
@@ -158,5 +197,11 @@ La montée de niveau est la seule animation qui a le droit de prendre son temps 
 - `SafeArea` sur tous les écrans.
 - Les deux modes (clair et sombre) doivent être testés — un écran qui n'existe qu'en sombre est
   un écran non terminé.
-- **Tests de golden** sur l'écran de session et l'écran de progression, dans les deux modes.
-  C'est le seul filet contre les régressions visuelles, et l'étape 5 est le moment de les poser.
+- **Tests de golden** sur l'écran de session, l'écran de résultat et l'écran de progression,
+  dans les deux modes. C'est le seul filet contre les régressions visuelles.
+- **Aucune couleur Flutter littérale.** `Colors.black` en repli dans `exercise_prompt.dart`
+  produit une barre de racine invisible en mode sombre — le repli doit venir du thème.
+- **Aucun `SizedBox.shrink()` comme état d'écran.** Un écran vide est une impasse : message et
+  action de sortie obligatoires.
+- **Libellés centralisés**, sur le modèle de `exercise_type_labels.dart`. Pas urgent, mais chaque
+  chaîne littérale ajoutée dans un widget est une ligne de plus à reprendre à l'internationalisation.
