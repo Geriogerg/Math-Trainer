@@ -67,6 +67,14 @@ class SessionController extends ChangeNotifier {
   Timer? _timeoutTimer;
   bool _hasActivityThisQuestion = false;
   int _consecutiveTimeoutsWithoutActivity = 0;
+  Future<void>? _pendingPersistence;
+
+  /// Se résout quand l'écriture de fin de session (réponses + éventuelle
+  /// mise à jour du cache de niveaux) est terminée. Une relance immédiate
+  /// doit l'attendre avant de relire les niveaux — `_persistCompletedSession`
+  /// tourne en tâche de fond, sans ça `buildSessionController` pourrait lire
+  /// les niveaux d'*avant* la session qui vient de se terminer.
+  Future<void> get pendingPersistence => _pendingPersistence ?? Future<void>.value();
 
   void start() {
     _state = SessionState(
@@ -176,7 +184,7 @@ class SessionController extends ChangeNotifier {
     notifyListeners();
 
     if (isSessionComplete) {
-      unawaited(_persistCompletedSession(countsForLevels: true));
+      _pendingPersistence = _persistCompletedSession(countsForLevels: true);
     }
   }
 
@@ -189,7 +197,7 @@ class SessionController extends ChangeNotifier {
       currentStreak: _state.currentStreak,
     );
     notifyListeners();
-    unawaited(_persistCompletedSession(countsForLevels: false));
+    _pendingPersistence = _persistCompletedSession(countsForLevels: false);
   }
 
   SessionResult get result => SessionResult(outcomes: _state.outcomes, totalScore: _state.score);

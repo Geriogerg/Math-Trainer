@@ -490,6 +490,37 @@ void main() {
       },
     );
 
+    test(
+      'pendingPersistence ne se résout qu\'une fois la session écrite (relance immédiate, '
+      'étape 4.2 commit C)',
+      () async {
+        final repository = InMemorySessionRepository();
+        final controller = buildTimeoutController(
+          spy: _TimerSpy(),
+          exerciseCount: 3,
+          repository: repository,
+        );
+
+        controller.start();
+        controller.submitAnswer(0);
+        controller.submitAnswer(1);
+        controller.submitAnswer(2);
+
+        await controller.pendingPersistence;
+
+        final sessions = await repository.recentSessions();
+        expect(sessions, hasLength(1));
+      },
+    );
+
+    test('pendingPersistence est déjà résolue tant qu\'aucune session ne s\'est terminée', () async {
+      final controller = buildTimeoutController(spy: _TimerSpy(), exerciseCount: 5);
+      controller.start();
+
+      // Ne doit pas se bloquer : aucune persistance en cours.
+      await controller.pendingPersistence;
+    });
+
     test('restart() annule le timer de la session en cours', () {
       final spy = _TimerSpy();
       final controller = buildTimeoutController(spy: spy, exerciseCount: 5);

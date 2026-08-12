@@ -95,31 +95,53 @@ void main() {
     expect(find.byIcon(Icons.check), findsOneWidget);
   });
 
-  testWidgets('recommencer après une session ramène à l\'écran de sélection', (
-    WidgetTester tester,
-  ) async {
-    await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
-
-    await tester.tap(find.text('Commencer'));
-    await settlePageTransition(tester);
-
-    // 2 types par défaut, n_min=4 (étape 4.2) : sessionLengthFor(2, 4, 24) = 8
-    // questions. La borne de boucle (20) reste une marge de sécurité, pas le
-    // compte réel. Taper '1' puis valider, sans pump entre les deux pour
-    // éviter toute collision avec le '1' qui apparaîtrait ensuite dans la
-    // réponse affichée.
+  /// 2 types par défaut, n_min=4 (étape 4.2) : sessionLengthFor(2, 4, 24) = 8
+  /// questions. La borne de boucle (20) reste une marge de sécurité, pas le
+  /// compte réel. Taper '1' puis valider, sans pump entre les deux pour
+  /// éviter toute collision avec le '1' qui apparaîtrait ensuite dans la
+  /// réponse affichée.
+  Future<void> playToCompletion(WidgetTester tester) async {
     for (var i = 0; i < 20 && find.text('Session terminée').evaluate().isEmpty; i++) {
       await tester.tap(find.text('1'));
       await tester.tap(find.byIcon(Icons.check));
       await tester.pump();
     }
     expect(find.text('Session terminée'), findsOneWidget);
+  }
 
-    await tester.tap(find.text('Recommencer'));
+  testWidgets('« Nouvelle sélection » après une session ramène à l\'écran de sélection', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
+
+    await tester.tap(find.text('Commencer'));
+    await settlePageTransition(tester);
+    await playToCompletion(tester);
+
+    await tester.tap(find.text('Nouvelle sélection'));
     await settlePageTransition(tester);
 
     expect(find.text('Math Trainer'), findsOneWidget);
     expect(find.byType(FilterChip), findsWidgets);
+  });
+
+  testWidgets('« Rejouer » relance immédiatement sans repasser par la sélection', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
+
+    await tester.tap(find.text('Commencer'));
+    await settlePageTransition(tester);
+    await playToCompletion(tester);
+
+    await tester.tap(find.text('Rejouer'));
+    await settlePageTransition(tester);
+
+    // Directement de retour sur le pavé, pas sur l'écran de sélection : « 1 »
+    // est la nouvelle première question, jamais l'écran « Math Trainer ».
+    expect(find.text('Math Trainer'), findsNothing);
+    expect(find.text('1 / 8'), findsOneWidget);
+    expect(find.byIcon(Icons.check), findsOneWidget);
   });
 
   testWidgets('la barre d\'onglets bascule vers Progression sans perdre la sélection de Jouer', (

@@ -47,7 +47,7 @@ class _PlayTabState extends State<PlayTab> {
       Navigator.of(context).push(
         MaterialPageRoute(
           fullscreenDialog: true,
-          builder: (_) => SessionFlowScreen(controller: controller),
+          builder: (_) => SessionFlowScreen(controller: controller, environment: widget.environment),
         ),
       );
     } catch (_) {

@@ -133,3 +133,22 @@ données incluses), sans champ `status` : `PersistedSession.exerciseCount` reste
 *prévu*, donc `answers.length < exerciseCount` suffit à reconnaître une interruption après coup.
 Le cache de niveaux, lui, n'est pas mis à jour pour une session interrompue
 (`_persistCompletedSession(countsForLevels: false)`).
+
+## Relance immédiate (étape 4.2, commit C)
+
+`SessionFlowScreen` n'est plus un simple relais du contrôleur reçu : il en devient propriétaire
+(`_controller` mutable) pour pouvoir le remplacer sans dépiler la route plein écran. `ResultScreen`
+expose deux actions — « Rejouer » (mêmes types, relance immédiate) et « Nouvelle sélection »
+(retour à `PlayTab`, pop de la route).
+
+**Course évitée entre la relance et l'écriture du cache de niveaux.** `_persistCompletedSession`
+tourne en tâche de fond (fin de session normale ou interruption) ; `SessionController` garde
+désormais cette `Future` (`pendingPersistence`, remplace l'ancien `unawaited(...)`) plutôt que de
+la laisser filer. « Rejouer » l'attend avant d'appeler `buildSessionController` — sinon les
+niveaux relus seraient ceux d'*avant* la session qui vient de se terminer, à l'inverse de ce que
+la relance promet (`doc/decisions.md`). La transition session → résultat, elle, reste instantanée :
+seule la relance a besoin de la donnée fraîche, pas l'affichage du score.
+
+Revient explicitement sur une décision de l'étape 3 (`ResultScreen` n'utilisait jusque-là jamais
+`SessionController.restart()`, justement pour éviter de rejouer silencieusement les mêmes types) —
+assumé, la relance sert maintenant un besoin réel (niveaux perceptibles d'une session à l'autre).
