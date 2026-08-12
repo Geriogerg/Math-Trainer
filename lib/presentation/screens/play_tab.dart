@@ -2,12 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../composition_root.dart';
 import '../../core/domain/models/exercise_type.dart';
-import '../../core/state/session_controller.dart';
-import '../../core/state/session_state.dart';
 import '../exercise_type_labels.dart';
-import 'progress_screen.dart';
-import 'result_screen.dart';
-import 'session_screen.dart';
+import 'session_flow_screen.dart';
 
 /// 2 types par défaut, pas 4 : avec `n_min = 8` et le plafond de session,
 /// c'est ce qui garantit une couverture du cache de niveau dès la première
@@ -17,26 +13,23 @@ import 'session_screen.dart';
 /// joueur ; les 5 autres types restent tous disponibles, juste décochés.
 const _defaultSelectedTypes = {ExerciseType.addition, ExerciseType.subtraction};
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, required this.environment});
+/// Onglet « Jouer » de `AppShell`. Ne gère plus que la sélection des types :
+/// la session elle-même est poussée en plein écran par-dessus la barre
+/// d'onglets (`SessionFlowScreen`), pas basculée inline comme avant l'étape
+/// 5, commit E.
+class PlayTab extends StatefulWidget {
+  const PlayTab({super.key, required this.environment});
 
   final AppEnvironment environment;
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<PlayTab> createState() => _PlayTabState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  SessionController? _controller;
+class _PlayTabState extends State<PlayTab> {
   Set<ExerciseType> _selectedTypes = {..._defaultSelectedTypes};
   bool _isStarting = false;
   String? _startError;
-
-  @override
-  void dispose() {
-    _controller?.dispose();
-    super.dispose();
-  }
 
   Future<void> _startSession() async {
     setState(() {
@@ -47,10 +40,15 @@ class _HomeScreenState extends State<HomeScreen> {
       final controller = await buildSessionController(widget.environment, _selectedTypes);
       if (!mounted) return;
       controller.start();
-      setState(() {
-        _controller = controller;
-        _isStarting = false;
-      });
+      setState(() => _isStarting = false);
+      // SessionFlowScreen possède désormais le contrôleur (dispose() dans
+      // son propre State) : pas besoin d'attendre le retour de la route ici.
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          fullscreenDialog: true,
+          builder: (_) => SessionFlowScreen(controller: controller),
+        ),
+      );
     } catch (_) {
       if (!mounted) return;
       // Le bouton "Commencer" redevient actif : c'est l'action de reprise,
@@ -62,49 +60,14 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _backToSelection() {
-    _controller?.dispose();
-    setState(() => _controller = null);
-  }
-
-  void _openProgress() {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => ProgressScreen(environment: widget.environment)));
-  }
-
   @override
   Widget build(BuildContext context) {
-    final controller = _controller;
-
-    return Scaffold(
-      body: SafeArea(
-        child: controller == null
-            ? _TypeSelectionView(
-                selectedTypes: _selectedTypes,
-                onChanged: (types) => setState(() => _selectedTypes = types),
-                onStart: _selectedTypes.isEmpty || _isStarting ? null : _startSession,
-                isStarting: _isStarting,
-                startError: _startError,
-                onOpenProgress: _openProgress,
-              )
-            : ListenableBuilder(
-                listenable: controller,
-                builder: (context, _) {
-                  return switch (controller.state.status) {
-                    // N'arrive jamais en pratique : start() est appelé avant
-                    // le premier build (voir _startSession). Géré quand même
-                    // pour l'exhaustivité du switch (règle 11).
-                    SessionStatus.notStarted => const SizedBox.shrink(),
-                    SessionStatus.inProgress => SessionScreen(controller: controller),
-                    SessionStatus.finished => ResultScreen(
-                      controller: controller,
-                      onRestart: _backToSelection,
-                    ),
-                  };
-                },
-              ),
-      ),
+    return _TypeSelectionView(
+      selectedTypes: _selectedTypes,
+      onChanged: (types) => setState(() => _selectedTypes = types),
+      onStart: _selectedTypes.isEmpty || _isStarting ? null : _startSession,
+      isStarting: _isStarting,
+      startError: _startError,
     );
   }
 }
@@ -116,7 +79,6 @@ class _TypeSelectionView extends StatelessWidget {
     required this.onStart,
     required this.isStarting,
     required this.startError,
-    required this.onOpenProgress,
   });
 
   final Set<ExerciseType> selectedTypes;
@@ -124,7 +86,6 @@ class _TypeSelectionView extends StatelessWidget {
   final VoidCallback? onStart;
   final bool isStarting;
   final String? startError;
-  final VoidCallback onOpenProgress;
 
   void _toggle(ExerciseType type, bool selected) {
     final updated = Set<ExerciseType>.of(selectedTypes);
@@ -174,8 +135,6 @@ class _TypeSelectionView extends StatelessWidget {
               const SizedBox(height: 8),
               Text(startError!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
             ],
-            const SizedBox(height: 8),
-            TextButton(onPressed: onOpenProgress, child: const Text('Voir ma progression')),
           ],
         ),
       ),

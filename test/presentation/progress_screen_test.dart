@@ -70,7 +70,7 @@ void main() {
     final environment = AppEnvironment(repository: repository, playerId: 'test-player');
 
     await tester.pumpWidget(
-      MaterialApp(home: ProgressScreen(environment: environment)),
+      MaterialApp(home: Scaffold(body: ProgressScreen(environment: environment))),
     );
     await tester.pumpAndSettle();
 
@@ -87,7 +87,7 @@ void main() {
     final repository = _FlakySessionRepository();
     final environment = AppEnvironment(repository: repository, playerId: 'test-player');
 
-    await tester.pumpWidget(MaterialApp(home: ProgressScreen(environment: environment)));
+    await tester.pumpWidget(MaterialApp(home: Scaffold(body: ProgressScreen(environment: environment))));
     await tester.pumpAndSettle();
 
     expect(find.text('Impossible de charger la progression.'), findsOneWidget);
@@ -100,7 +100,7 @@ void main() {
     final repository = _FlakySessionRepository();
     final environment = AppEnvironment(repository: repository, playerId: 'test-player');
 
-    await tester.pumpWidget(MaterialApp(home: ProgressScreen(environment: environment)));
+    await tester.pumpWidget(MaterialApp(home: Scaffold(body: ProgressScreen(environment: environment))));
     await tester.pumpAndSettle();
     expect(find.text('Impossible de charger la progression.'), findsOneWidget);
 

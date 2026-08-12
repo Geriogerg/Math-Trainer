@@ -25,6 +25,9 @@ migrate_working_dir/
 
 # Flutter/Dart/Pub related
 **/doc/api/
+# Artefacts générés par flutter test en cas d'échec de comparaison golden
+# (diff/masked/master/test images) — jamais du code source.
+test/**/failures/
 **/ios/Flutter/.last_build_id
 .dart_tool/
 .flutter-plugins-dependencies

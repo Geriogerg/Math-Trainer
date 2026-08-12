@@ -39,10 +39,18 @@ lib/
                            # (extensions pour ce qui n'a pas de rôle Material 3 standard :
                            # texte discret, durées/courbes d'animation)
     exercise_type_labels.dart  # libellés français des ExerciseType, hors du domaine
-    screens/               # HomeScreen (phase + choix des types), SessionScreen
-                           # (pavé numérique intégré, chrono en barre, feedback 3 canaux —
-                           # doc/design.md), ProgressScreen (niveaux par type), ResultScreen
-                           # (stats + rejouer)
+    screens/
+      app_shell.dart        # coquille : NavigationBar 4 entrées + IndexedStack (onglets
+                           # construits à la première visite, pas tous au lancement)
+      play_tab.dart         # onglet Jouer : sélection des types, pousse SessionFlowScreen
+                           # en plein écran (par-dessus la barre d'onglets)
+      session_flow_screen.dart  # bascule SessionScreen ↔ ResultScreen selon le statut
+      session_screen.dart   # pavé numérique intégré, chrono en barre, feedback 3 canaux —
+                           # doc/design.md
+      progress_screen.dart  # contenu de l'onglet Progression (plus de Scaffold/AppBar
+                           # propres : fournis par AppShell)
+      coming_soon_screen.dart  # écran générique « bientôt disponible » (En ligne, Classement)
+      result_screen.dart    # stats + rejouer (dépile SessionFlowScreen)
 tool/
   recalibrate.dart         # CLI hors app — rejoue l'historique réel pour évaluer les ~20
                            # constantes de LevelingRules (convergence/oscillation/biais).
@@ -192,6 +200,35 @@ dont la durée est lue sur `AppMotion.feedback` au moment du déclenchement (le 
 disponible dans `initState`). Limite connue : sur la toute dernière question d'une session,
 `HomeScreen` bascule vers `ResultScreen` dès la notification du contrôleur, ce qui peut tronquer
 le flash — assumé, non corrigé (corriger toucherait soit le chronométrage soit `HomeScreen`).
+
+## Navigation
+
+`AppShell` est l'écran racine (`app.dart`) : `NavigationBar` Material 3 à quatre entrées (Jouer,
+En ligne, Progression, Classement — `doc/design.md`), corps en `IndexedStack`. Les onglets ne
+sont construits qu'à leur première visite (`_visited`, un `Set<int>`) plutôt qu'au lancement :
+un `IndexedStack` naïf construirait les quatre d'un coup, donc `ProgressScreen` lirait le cache
+de niveaux immédiatement même si le joueur ne quitte jamais l'onglet Jouer. Une fois visité, un
+onglet reste construit (même position dans `IndexedStack` ⇒ même `State`) : la sélection de
+types de `PlayTab` ou une session interrompue survit à un changement d'onglet.
+
+**Session en plein écran, par-dessus la barre.** `PlayTab._startSession` pousse
+`SessionFlowScreen` sur le `Navigator` racine (`MaterialPageRoute(fullscreenDialog: true)`)
+plutôt que de basculer inline comme avant l'étape 5, commit E — la route couvre `AppShell` et sa
+barre d'onglets entièrement. `SessionFlowScreen` bascule `SessionScreen` ↔ `ResultScreen` selon
+`SessionController.state.status` (logique reprise de l'ancien `HomeScreen`) et possède le
+contrôleur (`dispose()` dans son propre `State`) ; « Recommencer » dépile la route au lieu de
+réinitialiser un état local.
+
+« En ligne » et « Classement » : `ComingSoonScreen`, chrome posé sans contenu derrière
+(`doc/decisions.md`). Pas d'icône profil/réglages pour l'instant — rien n'existe encore derrière
+(comptes hors périmètre étape 5), contrairement aux deux onglets qui ont au moins une barre à
+habiter.
+
+Golden tests (`test/presentation/*_golden_test.dart`, `doc/design.md`) : chargent explicitement
+Inter et la police d'icônes Material (`test/presentation/golden_test_utils.dart`) — `flutter
+test` ne les charge pas par défaut, ce qui rendait les icônes du pavé numérique invisibles
+(carrés vides) dans les premiers golden générés. Limite déjà connue (signalée au commit A) : un
+golden généré sous Windows peut diverger si rejoué un jour sur un moteur de rendu différent.
 
 ## Thème
 

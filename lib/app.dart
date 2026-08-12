@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'composition_root.dart';
-import 'presentation/screens/home_screen.dart';
+import 'presentation/screens/app_shell.dart';
 import 'presentation/theme/app_theme.dart';
 
 class MathTrainerApp extends StatelessWidget {
@@ -16,10 +16,10 @@ class MathTrainerApp extends StatelessWidget {
       theme: buildLightTheme(),
       darkTheme: buildDarkTheme(),
       // Le mode clair est obligatoire, pas une variante de confort
-      // (`docs/design.md`) : c'est le système qui choisit, pas un bouton
+      // (`doc/design.md`) : c'est le système qui choisit, pas un bouton
       // dans l'app.
       themeMode: ThemeMode.system,
-      home: HomeScreen(environment: environment),
+      home: AppShell(environment: environment),
     );
   }
 }

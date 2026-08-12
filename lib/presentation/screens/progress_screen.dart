@@ -33,45 +33,35 @@ class _ProgressScreenState extends State<ProgressScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Progression')),
-      body: SafeArea(
-        child: FutureBuilder<Map<ExerciseType, LevelCacheEntry>>(
-          future: _levels,
-          builder: (context, snapshot) {
-            if (snapshot.hasError) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text('Impossible de charger la progression.'),
-                    const SizedBox(height: 16),
-                    FilledButton(
-                      onPressed: () => setState(_loadLevels),
-                      child: const Text('Réessayer'),
-                    ),
-                  ],
-                ),
-              );
-            }
-            if (!snapshot.hasData) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            final levels = snapshot.data!;
-            return ListView(
+    return FutureBuilder<Map<ExerciseType, LevelCacheEntry>>(
+      future: _levels,
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                for (final type in ExerciseType.values)
-                  ListTile(
-                    title: Text(exerciseTypeLabel(type)),
-                    trailing: Text(
-                      levels[type] == null ? 'Non joué' : 'Niveau ${levels[type]!.level}',
-                    ),
-                  ),
+                const Text('Impossible de charger la progression.'),
+                const SizedBox(height: 16),
+                FilledButton(onPressed: () => setState(_loadLevels), child: const Text('Réessayer')),
               ],
-            );
-          },
-        ),
-      ),
+            ),
+          );
+        }
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final levels = snapshot.data!;
+        return ListView(
+          children: [
+            for (final type in ExerciseType.values)
+              ListTile(
+                title: Text(exerciseTypeLabel(type)),
+                trailing: Text(levels[type] == null ? 'Non joué' : 'Niveau ${levels[type]!.level}'),
+              ),
+          ],
+        );
+      },
     );
   }
 }

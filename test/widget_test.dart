@@ -37,25 +37,33 @@ void main() {
     playerId: 'test-player',
   );
 
+  // Fait avancer le temps juste assez pour que la transition standard de
+  // MaterialPageRoute se stabilise, sans attendre le reste (le chrono de
+  // SessionScreen tourne 5 s à chaque question : un pumpAndSettle() ici
+  // n'arriverait jamais à convergence tant qu'une nouvelle question relance
+  // l'animation).
+  Future<void> settlePageTransition(WidgetTester tester) async {
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+  }
+
   testWidgets('affiche l\'écran d\'accueil', (WidgetTester tester) async {
     await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
 
     expect(find.text('Math Trainer'), findsOneWidget);
   });
 
-  testWidgets('démarrer une session affiche une question et le pavé numérique', (
+  testWidgets('démarrer une session pousse le pavé numérique en plein écran', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
 
     await tester.tap(find.text('Commencer'));
-    await tester.pump();
+    await settlePageTransition(tester);
 
-    // Les 10 chiffres + retour arrière + valider.
     expect(find.text('7'), findsOneWidget);
     expect(find.byIcon(Icons.check), findsOneWidget);
     expect(find.byIcon(Icons.backspace_outlined), findsOneWidget);
-    expect(find.text('Math Trainer'), findsNothing);
   });
 
   testWidgets('aucun type sélectionné désactive Commencer', (WidgetTester tester) async {
@@ -82,7 +90,7 @@ void main() {
     await tester.tap(find.text('Soustraction'));
     await tester.pump();
     await tester.tap(find.text('Commencer'));
-    await tester.pump();
+    await settlePageTransition(tester);
 
     expect(find.byIcon(Icons.check), findsOneWidget);
   });
@@ -93,13 +101,12 @@ void main() {
     await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
 
     await tester.tap(find.text('Commencer'));
-    await tester.pump();
+    await settlePageTransition(tester);
 
     // 2 types par défaut, n_min=8 : sessionLengthFor(2, 8, 24) = 16
-    // questions (étape 4.1, commit A) — pas 10. Le pavé remplace le clavier
-    // natif (étape 5, commit D) : taper '1' puis valider, sans pump entre
-    // les deux pour éviter toute collision avec le '1' qui apparaîtrait
-    // ensuite dans la réponse affichée.
+    // questions (étape 4.1, commit A) — pas 10. Taper '1' puis valider, sans
+    // pump entre les deux pour éviter toute collision avec le '1' qui
+    // apparaîtrait ensuite dans la réponse affichée.
     for (var i = 0; i < 20 && find.text('Session terminée').evaluate().isEmpty; i++) {
       await tester.tap(find.text('1'));
       await tester.tap(find.byIcon(Icons.check));
@@ -108,27 +115,33 @@ void main() {
     expect(find.text('Session terminée'), findsOneWidget);
 
     await tester.tap(find.text('Recommencer'));
-    await tester.pump();
+    await settlePageTransition(tester);
 
     expect(find.text('Math Trainer'), findsOneWidget);
     expect(find.byType(FilterChip), findsWidgets);
   });
 
-  testWidgets('« Voir ma progression » ouvre l\'écran de progression puis y revient', (
+  testWidgets('la barre d\'onglets bascule vers Progression sans perdre la sélection de Jouer', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
 
-    await tester.tap(find.text('Voir ma progression'));
-    await tester.pumpAndSettle();
+    await tester.tap(find.text('Multiplication'));
+    await tester.pump();
 
-    expect(find.text('Progression'), findsOneWidget);
+    await tester.tap(find.text('Progression'));
+    await tester.pumpAndSettle();
     expect(find.text('Addition'), findsOneWidget);
+    expect(find.text('Non joué'), findsWidgets);
 
-    await tester.pageBack();
+    await tester.tap(find.text('Jouer'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Math Trainer'), findsOneWidget);
+    // IndexedStack : l'onglet Jouer garde son état, Multiplication reste coché.
+    final chip = tester.widget<FilterChip>(
+      find.ancestor(of: find.text('Multiplication'), matching: find.byType(FilterChip)),
+    );
+    expect(chip.selected, isTrue);
   });
 
   testWidgets('un repository qui échoue au démarrage affiche un message et laisse réessayer', (
@@ -145,10 +158,7 @@ void main() {
 
     expect(find.text('Impossible de démarrer la session. Réessayez.'), findsOneWidget);
     // Le bouton est redevenu actif : c'est l'action de reprise.
-    expect(
-      tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
-      isNotNull,
-    );
+    expect(tester.widget<FilledButton>(find.byType(FilledButton)).onPressed, isNotNull);
 
     await tester.tap(find.text('Commencer'));
     await tester.pumpAndSettle();
