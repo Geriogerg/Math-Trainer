@@ -103,10 +103,11 @@ void main() {
     await tester.tap(find.text('Commencer'));
     await settlePageTransition(tester);
 
-    // 2 types par défaut, n_min=8 : sessionLengthFor(2, 8, 24) = 16
-    // questions (étape 4.1, commit A) — pas 10. Taper '1' puis valider, sans
-    // pump entre les deux pour éviter toute collision avec le '1' qui
-    // apparaîtrait ensuite dans la réponse affichée.
+    // 2 types par défaut, n_min=4 (étape 4.2) : sessionLengthFor(2, 4, 24) = 8
+    // questions. La borne de boucle (20) reste une marge de sécurité, pas le
+    // compte réel. Taper '1' puis valider, sans pump entre les deux pour
+    // éviter toute collision avec le '1' qui apparaîtrait ensuite dans la
+    // réponse affichée.
     for (var i = 0; i < 20 && find.text('Session terminée').evaluate().isEmpty; i++) {
       await tester.tap(find.text('1'));
       await tester.tap(find.byIcon(Icons.check));

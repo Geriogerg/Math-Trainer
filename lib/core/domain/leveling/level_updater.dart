@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'answer_outcome.dart';
 import 'leveling_rules.dart';
 
@@ -38,7 +40,14 @@ class LevelUpdater {
       ConfidenceMultiplier.returning => rules.boostRetour,
     };
 
-    final change = (deadbandRemoved * k * confidenceFactor).clamp(
+    // Pondération par volume : 1,0 pile à n = nMin (comportement inchangé à
+    // la frontière), croît en racine au-delà — 16 réponses ne pèsent pas 4×
+    // plus que 4, seulement 2×. Sans ça, une session de 4 réponses à 85 % et
+    // une de 16 réponses à 85 % déplaçaient le niveau identiquement (voir
+    // doc/decisions.md).
+    final volumeWeight = math.sqrt(answers.length / rules.nMin);
+
+    final change = (deadbandRemoved * k * confidenceFactor * volumeWeight).clamp(
       -rules.deltaMax.toDouble(),
       rules.deltaMax.toDouble(),
     );

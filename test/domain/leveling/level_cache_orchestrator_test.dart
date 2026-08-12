@@ -27,7 +27,7 @@ void main() {
       final repository = InMemorySessionRepository();
 
       final updates = await orchestrator.computeUpdates(
-        outcomes: correctOutcomes(7),
+        outcomes: correctOutcomes(3),
         frozenLevels: {ExerciseType.addition: 50},
         repository: repository,
         playerId: 'test-player',
@@ -43,15 +43,15 @@ void main() {
       final repository = InMemorySessionRepository();
 
       final updates = await orchestrator.computeUpdates(
-        outcomes: correctOutcomes(8),
+        outcomes: correctOutcomes(4),
         frozenLevels: {ExerciseType.addition: 50},
         repository: repository,
         playerId: 'test-player',
         now: DateTime.utc(2026, 8, 8),
       );
 
-      // Même scénario que le test LevelUpdater du commit B : depuis 50,
-      // 8 réponses justes et instantanées, confiance calibration → 53.
+      // Même scénario que le test LevelUpdater du commit A (étape 4.2) : depuis
+      // 50, n_min réponses justes et instantanées, confiance calibration → 53.
       expect(updates[ExerciseType.addition]?.level, 53);
       expect(updates[ExerciseType.addition]?.sessionsPlayed, 1);
     });

@@ -106,3 +106,13 @@ progression viendra s'ajouter ; si le fichier grossit, le scinder par vue.
 
 L'étape 3 n'introduit aucune dépendance : puissances, carrés parfaits et pourcentages entiers
 se calculent en arithmétique entière avec `dart:core` seul.
+
+## Formule de niveau (étape 4.2, commit A)
+
+Le système de niveaux (`core/domain/leveling/`, non détaillé plus haut — voir le code et
+`doc/decisions.md`) pondère désormais le déplacement de niveau par `√(n / n_min)` (`n` = nombre
+de réponses de la session pour l'opération, `LevelUpdater.update`) : 1,0 pile à `n = n_min`,
+croît en racine au-delà, pour qu'une session avec beaucoup de réponses ne pèse pas
+proportionnellement plus qu'une session minimale. `n_min` passe de 8 à 4, `δ` (bande morte) de
+0,05 à 0,07 pour compenser le bruit supplémentaire (raisonnement complet : `doc/decisions.md`).
+Valeurs toujours non calibrées.

@@ -5,12 +5,13 @@ import '../../core/domain/models/exercise_type.dart';
 import '../exercise_type_labels.dart';
 import 'session_flow_screen.dart';
 
-/// 2 types par défaut, pas 4 : avec `n_min = 8` et le plafond de session,
-/// c'est ce qui garantit une couverture du cache de niveau dès la première
-/// session pour un joueur qui ne touche pas à la sélection (étape 4.1,
-/// commit A — voir `doc/decisions.md`). Addition/soustraction : opérations
-/// inverses l'une de l'autre, charge cognitive minimale pour un premier
-/// joueur ; les 5 autres types restent tous disponibles, juste décochés.
+/// 2 types par défaut, pas 4 : avec `n_min` (4 depuis l'étape 4.2, 8
+/// jusque-là) et le plafond de session, c'est ce qui garantit une couverture
+/// du cache de niveau dès la première session pour un joueur qui ne touche
+/// pas à la sélection (étape 4.1, commit A — voir `doc/decisions.md`).
+/// Addition/soustraction : opérations inverses l'une de l'autre, charge
+/// cognitive minimale pour un premier joueur ; les 5 autres types restent
+/// tous disponibles, juste décochés.
 const _defaultSelectedTypes = {ExerciseType.addition, ExerciseType.subtraction};
 
 /// Onglet « Jouer » de `AppShell`. Ne gère plus que la sélection des types :

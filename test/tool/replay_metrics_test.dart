@@ -64,9 +64,9 @@ void main() {
 
       final levels = replay(trajectory, LevelingRules(), DateTime.utc(2026, 1, 1));
 
-      // Depuis 1, confiance calibration (jamais joué) : deadbandRemoved=0.25,
-      // k=kHaut=3.0, confidenceFactor=kCalib=4.0 → changement 3.0 (clampé
-      // par deltaMax) → 1 + 3 = 4.
+      // Depuis 1, confiance calibration (jamais joué) : deadbandRemoved=0.23,
+      // k=kHaut=3.0, confidenceFactor=kCalib=4.0, pondération volume √(8/4) —
+      // largement au-delà de deltaMax, clampé à 3.0 → 1 + 3 = 4.
       expect(levels, [4]);
     });
 
@@ -79,8 +79,8 @@ void main() {
       final levels = replay(trajectory, LevelingRules(), DateTime.utc(2026, 1, 1));
 
       // Session 1 : niveau 1 → confiance calibration (jamais joué) ; borné
-      // par deltaMax (3), donc 1 + 3 = 4. Session 2 : sessionsPlayed=1 < 3,
-      // encore calibration ; 4 + 3 = 7.
+      // par deltaMax (3) dans les deux sens du calcul, donc 1 + 3 = 4.
+      // Session 2 : sessionsPlayed=1 < 3, encore calibration ; 4 + 3 = 7.
       expect(levels, [4, 7]);
     });
   });
