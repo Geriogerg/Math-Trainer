@@ -105,6 +105,15 @@ la couleur seule n'a jamais été un signal fiable. Promu en règle 14.
 
 Palette, typographie et durées d'animation : `doc/design.md`.
 
+## Palette sombre assombrie après relecture au téléphone (étape 5, commits A-E)
+
+Les hex d'origine (`Fond #101528`, `Accent #5DCAA5`) rendaient un bleu-nuit clair et un accent
+pastel une fois sur l'écran réel — pas assez « nuit électrique », trop proche d'un simple thème
+sombre générique. Assombri (`Fond #0A0E1C`, `Surface #151A30`, `Bordure #232A47`) et l'accent
+resaturé (`#2ED9A0`, plus vif) pour se rapprocher de la référence visuelle initiale. Mode clair
+non touché : le retour ne portait que sur le sombre. `onPrimary` reste sombre sur l'accent (choix
+déjà pris au commit A, toujours valable avec le nouvel accent).
+
 ## Police Inter en asset local, pas `google_fonts`
 
 `google_fonts` télécharge la police au premier lancement par défaut — contraire à l'esprit

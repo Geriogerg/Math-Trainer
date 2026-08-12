@@ -134,7 +134,7 @@ class _SessionScreenState extends State<SessionScreen> with TickerProviderStateM
         SizedBox(
           // Hauteur fixe en premier, l'opération prend ce qu'il reste
           // au-dessus (`Expanded`) — rien ne bouge entre deux questions.
-          // Fraction approximative, à affiner à l'usage (docs/design.md ne
+          // Fraction approximative, à affiner à l'usage (doc/design.md ne
           // fixe pas de valeur).
           height: MediaQuery.sizeOf(context).height * 0.38,
           child: _NumericKeypad(onDigit: _appendDigit, onBackspace: _backspace, onValidate: _submit),
@@ -210,7 +210,7 @@ class _AnswerDisplay extends StatelessWidget {
         final t = feedback.value;
         final flashColor = correct ? theme.colorScheme.onSurface : theme.colorScheme.error;
         final opacity = (1 - t).clamp(0.0, 1.0);
-        // Mise à l'échelle 1,0 → 1,06 → 1,0 (docs/design.md) : une bosse en
+        // Mise à l'échelle 1,0 → 1,06 → 1,0 (doc/design.md) : une bosse en
         // sinus atteint son maximum au milieu de l'animation.
         final scale = correct ? 1.0 + 0.06 * math.sin(t * math.pi) : 1.0;
         // Secousse horizontale amortie : oscille puis se stabilise.
@@ -276,7 +276,7 @@ class _NumericKeypad extends StatelessWidget {
 }
 
 /// Touche/valider en `Surface`, valider en `Accent` (« action principale »,
-/// docs/design.md). Animation d'enfoncement 60 ms easeOut (`AppMotion.
+/// doc/design.md). Animation d'enfoncement 60 ms easeOut (`AppMotion.
 /// keyPress`, posée au commit A, premier consommateur ici).
 class _KeypadKey extends StatefulWidget {
   const _KeypadKey({this.label, this.icon, required this.onTap, this.isPrimary = false});

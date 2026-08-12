@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Thème « nuit électrique » (`docs/design.md`) : palette, typographie et
+/// Thème « nuit électrique » (`doc/design.md`) : palette, typographie et
 /// durées d'animation centralisées ici, jamais en dur dans un widget.
 /// `ColorScheme` couvre les rôles Material 3 usuels ; `AppPalette` et
 /// `AppMotion` couvrent ce qui n'a pas d'équivalent standard (texte discret,
@@ -27,19 +27,19 @@ ThemeData buildLightTheme() => _buildTheme(
 
 ThemeData buildDarkTheme() => _buildTheme(
   colorScheme: const ColorScheme.dark(
-    surface: Color(0xFF101528),
-    surfaceContainerHigh: Color(0xFF1B2340),
-    outline: Color(0xFF2A3352),
-    primary: Color(0xFF5DCAA5),
+    surface: Color(0xFF0A0E1C),
+    surfaceContainerHigh: Color(0xFF151A30),
+    outline: Color(0xFF232A47),
+    primary: Color(0xFF2ED9A0),
     // Accent clair : texte sombre plutôt que blanc pour le contraste
-    // (`design.md` ne tranche pas ce point, à confirmer à l'œil sur Android).
-    onPrimary: Color(0xFF101528),
-    onSurface: Color(0xFFE6F1FB),
-    onSurfaceVariant: Color(0xFF85B7EB),
+    // (`design.md` ne tranche pas ce point, confirmé à l'œil sur Android).
+    onPrimary: Color(0xFF0A0E1C),
+    onSurface: Color(0xFFEAF2FF),
+    onSurfaceVariant: Color(0xFF7FB0E8),
     error: Color(0xFFE24B4A),
     onError: Color(0xFFFFFFFF),
   ),
-  palette: const AppPalette(textMuted: Color(0xFF5A6B8C)),
+  palette: const AppPalette(textMuted: Color(0xFF4C5B7D)),
 );
 
 const _motion = AppMotion(
@@ -64,7 +64,7 @@ ThemeData _buildTheme({required ColorScheme colorScheme, required AppPalette pal
   );
 }
 
-/// Les 5 tailles de `docs/design.md` se posent sur 5 des 15 styles nommés du
+/// Les 5 tailles de `doc/design.md` se posent sur 5 des 15 styles nommés du
 /// `TextTheme` Material 3 (mapping arbitraire, aucun rôle standard n'y
 /// correspond nativement). Les 10 restants gardent la taille par défaut de
 /// Material 3 mais héritent quand même du plafond de graisse et des chiffres
@@ -100,7 +100,7 @@ TextTheme _textThemeFor(TextTheme base) {
   );
 }
 
-/// `docs/design.md` : « Deux graisses seulement : 400 [...] 500. Jamais 600
+/// `doc/design.md` : « Deux graisses seulement : 400 [...] 500. Jamais 600
 /// ou 700. » Les styles Material 3 par défaut restent en dessous de ce
 /// plafond dans la quasi-totalité des cas ; ce garde-fou couvre le cas où un
 /// futur changement de version Flutter en introduirait un.
@@ -113,7 +113,7 @@ FontWeight _capWeight(FontWeight? weight) {
 class AppPalette extends ThemeExtension<AppPalette> {
   const AppPalette({required this.textMuted});
 
-  /// Onglets inactifs, indications — seul rôle de `docs/design.md` sans
+  /// Onglets inactifs, indications — seul rôle de `doc/design.md` sans
   /// équivalent dans `ColorScheme`.
   final Color textMuted;
 
@@ -158,7 +158,7 @@ class AppMotion extends ThemeExtension<AppMotion> {
   final AnimationSpec tabChange;
 
   /// Montée de niveau sur l'écran de progression — seule animation lente
-  /// assumée (`docs/design.md`).
+  /// assumée (`doc/design.md`).
   final AnimationSpec levelUp;
 
   @override
