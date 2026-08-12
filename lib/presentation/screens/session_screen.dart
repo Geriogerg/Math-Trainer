@@ -29,7 +29,7 @@ class _SessionScreenState extends State<SessionScreen> with TickerProviderStateM
     super.initState();
     _chronoController = AnimationController(
       vsync: this,
-      duration: Duration(milliseconds: widget.controller.scorer.rules.speedBonusWindowMs),
+      duration: widget.controller.questionTimeout,
     )..forward();
     // Durée réelle posée juste avant chaque .forward() (AppMotion.feedback,
     // lu depuis le thème — indisponible ici, avant le premier frame).
@@ -44,6 +44,16 @@ class _SessionScreenState extends State<SessionScreen> with TickerProviderStateM
     // fiable — comparer les exercices par valeur risquerait de rater un
     // redémarrage si la même opération revient deux fois d'affilée.
     _chronoController.forward(from: 0);
+
+    // Un timeout fait avancer la session sans passer par _submit() (aucune
+    // touche « valider » pressée) : sans ce contrôle, il n'y aurait aucun
+    // flash/haptique, alors qu'un timeout compte comme une réponse fausse et
+    // doit se voir au même titre (règle 14).
+    final outcomes = widget.controller.state.outcomes;
+    final lastOutcome = outcomes.isEmpty ? null : outcomes.last;
+    if (lastOutcome != null && lastOutcome.isTimeout) {
+      _playFeedback(false);
+    }
   }
 
   @override
@@ -54,10 +64,12 @@ class _SessionScreenState extends State<SessionScreen> with TickerProviderStateM
   }
 
   void _appendDigit(String digit) {
+    widget.controller.registerActivity();
     setState(() => _typedDigits += digit);
   }
 
   void _backspace() {
+    widget.controller.registerActivity();
     if (_typedDigits.isEmpty) return;
     setState(() => _typedDigits = _typedDigits.substring(0, _typedDigits.length - 1));
   }
@@ -74,7 +86,13 @@ class _SessionScreenState extends State<SessionScreen> with TickerProviderStateM
     // chronométrage interne du contrôleur (qui sert au score) reste exact.
     final isCorrect = exercise.isCorrectAnswer(value);
     widget.controller.submitAnswer(value);
+    _playFeedback(isCorrect);
+  }
 
+  /// Partagé entre une validation explicite et un timeout (`didUpdateWidget`)
+  /// — dans les deux cas la réponse à la question qui vient de se terminer
+  /// est connue, seule la source du déclenchement diffère.
+  void _playFeedback(bool isCorrect) {
     HapticFeedback.lightImpact();
     if (!isCorrect) HapticFeedback.heavyImpact();
 

@@ -41,7 +41,8 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
               // switch (règle 11).
               SessionStatus.notStarted => const SizedBox.shrink(),
               SessionStatus.inProgress => SessionScreen(controller: widget.controller),
-              SessionStatus.finished => ResultScreen(
+              SessionStatus.finished ||
+              SessionStatus.interrupted => ResultScreen(
                 controller: widget.controller,
                 onRestart: _restart,
               ),

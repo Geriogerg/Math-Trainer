@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -26,6 +28,20 @@ class _FixedExerciseSource implements ExerciseSource {
   Exercise next() => _exercises[_index++];
 }
 
+/// Un vrai `Timer(Duration(seconds: 15), ...)` resterait en attente à la fin
+/// du test (`flutter_test` échoue dessus) ; ce golden n'a besoin ni de le
+/// déclencher ni de l'annuler explicitement, juste qu'il n'existe pas.
+class _InertTimer implements Timer {
+  @override
+  void cancel() {}
+
+  @override
+  bool get isActive => false;
+
+  @override
+  int get tick => 0;
+}
+
 void main() {
   setUpAll(loadInterFontForGoldens);
 
@@ -44,6 +60,7 @@ void main() {
       repository: InMemorySessionRepository(),
       playerId: 'golden-player',
       clock: () => DateTime(2026),
+      createTimer: (duration, callback) => _InertTimer(),
     )..start();
   }
 

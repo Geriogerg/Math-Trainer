@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/state/session_controller.dart';
+import '../../core/state/session_state.dart';
 
 class ResultScreen extends StatelessWidget {
   const ResultScreen({super.key, required this.controller, required this.onRestart});
@@ -16,13 +17,16 @@ class ResultScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final result = controller.result;
     final accuracyPercent = (result.accuracy * 100).round();
+    final title = controller.state.status == SessionStatus.interrupted
+        ? 'Session interrompue'
+        : 'Session terminée';
 
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text('Session terminée', style: Theme.of(context).textTheme.headlineSmall),
+          Text(title, style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 24),
           Text('Score : ${result.totalScore}', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8),

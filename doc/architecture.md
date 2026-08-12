@@ -116,3 +116,20 @@ croît en racine au-delà, pour qu'une session avec beaucoup de réponses ne pè
 proportionnellement plus qu'une session minimale. `n_min` passe de 8 à 4, `δ` (bande morte) de
 0,05 à 0,07 pour compenser le bruit supplémentaire (raisonnement complet : `doc/decisions.md`).
 Valeurs toujours non calibrées.
+
+## Timeout et interruption (étape 4.2, commit B)
+
+`SessionController` arme un `Timer` (15 s, `questionTimeout`, injectable via `createTimer` —
+même esprit que `clock`/`idGenerator`, un vrai `Timer` planté dans un test ne s'annule jamais).
+Un timeout suit le même chemin qu'une réponse fausse (`_recordOutcome`, factorisé avec
+`submitAnswer`), avec `submittedValue: timeoutSubmittedValue` (`-1` — jamais une vraie réponse,
+`AnswerResult.isTimeout`). `registerActivity()` (appelée par `SessionScreen` à chaque touche du
+pavé, pas seulement Valider) distingue un timeout « essayé » d'un timeout « ignoré » ; trois
+timeouts consécutifs sans la moindre activité passent le statut à `SessionStatus.interrupted`
+plutôt que `finished`.
+
+**Pas de migration de schéma.** Une session interrompue est persistée normalement (réponses déjà
+données incluses), sans champ `status` : `PersistedSession.exerciseCount` reste le compte
+*prévu*, donc `answers.length < exerciseCount` suffit à reconnaître une interruption après coup.
+Le cache de niveaux, lui, n'est pas mis à jour pour une session interrompue
+(`_persistCompletedSession(countsForLevels: false)`).

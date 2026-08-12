@@ -24,6 +24,49 @@ class _FixedExerciseSource implements ExerciseSource {
   Exercise next() => _exercises[_index++];
 }
 
+/// Timer factice : ne se déclenche jamais tout seul (pas de vraie horloge),
+/// seulement quand le test appelle [fire] explicitement. Le défaut de
+/// [buildController] en construit un par question sans jamais appeler
+/// [fire] — inerte, donc aucun timer réel ne reste en attente à la fin d'un
+/// test qui ne teste pas le timeout lui-même.
+class _FakeTimer implements Timer {
+  _FakeTimer(this._callback);
+
+  final void Function() _callback;
+  bool _cancelled = false;
+  bool _fired = false;
+
+  void fire() {
+    if (_cancelled || _fired) return;
+    _fired = true;
+    _callback();
+  }
+
+  @override
+  void cancel() => _cancelled = true;
+
+  @override
+  bool get isActive => !_cancelled && !_fired;
+
+  @override
+  int get tick => 0;
+}
+
+/// Capture chaque `_FakeTimer` créé par `SessionController` (un par
+/// question armée), dans l'ordre — `latest` est celui de la question
+/// actuellement affichée.
+class _TimerSpy {
+  final List<_FakeTimer> created = [];
+
+  Timer create(Duration duration, void Function() callback) {
+    final timer = _FakeTimer(callback);
+    created.add(timer);
+    return timer;
+  }
+
+  _FakeTimer get latest => created.last;
+}
+
 /// `currentLevels` échoue (simule une lecture de cache ratée), mais
 /// `recordSession` délègue à un `InMemorySessionRepository` interne
 /// fonctionnel — pour vérifier que la session et ses réponses sont bien
@@ -96,6 +139,10 @@ void main() {
       repository: repository ?? InMemorySessionRepository(),
       playerId: 'test-player',
       clock: () => DateTime(2024),
+      // Inerte par défaut : ces tests ne portent pas sur le timeout, un vrai
+      // Timer(Duration(seconds: 15), ...) resterait en attente à la fin du
+      // test.
+      createTimer: (duration, callback) => _FakeTimer(callback),
     );
   }
 
@@ -188,7 +235,7 @@ void main() {
       expect(answers, hasLength(3));
       expect(answers.map((a) => a.isCorrect), [true, false, true]);
 
-      // 3 réponses < n_min (8) : le cache de niveau n'est pas touché.
+      // 3 réponses < n_min (4, étape 4.2) : le cache de niveau n'est pas touché.
       expect(await repository.currentLevels('test-player'), isEmpty);
     });
 
@@ -210,6 +257,7 @@ void main() {
         repository: repository,
         playerId: 'test-player',
         clock: () => DateTime(2024),
+        createTimer: (duration, callback) => _FakeTimer(callback),
       );
 
       controller.start();
@@ -219,9 +267,10 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       final levels = await repository.currentLevels('test-player');
-      // Depuis niveau 50, 8 réponses justes et instantanées, confiance
-      // « calibration » (première session sur cette opération) : 53 — même
-      // scénario que le test `LevelUpdater` du commit B.
+      // Depuis niveau 50, 8 réponses justes et instantanées (n_min = 4,
+      // pondération √(8/4) — voir doc/decisions.md), confiance « calibration »
+      // (première session sur cette opération) : le changement non clampé
+      // dépasse deltaMax, borné à 3 → 53.
       expect(levels[ExerciseType.addition]?.level, 53);
       expect(levels[ExerciseType.addition]?.sessionsPlayed, 1);
     });
@@ -244,6 +293,7 @@ void main() {
         repository: repository,
         playerId: 'test-player',
         clock: () => DateTime(2024),
+        createTimer: (duration, callback) => _FakeTimer(callback),
       );
 
       controller.start();
@@ -281,6 +331,7 @@ void main() {
         repository: repository,
         playerId: 'test-player',
         clock: () => DateTime(2024),
+        createTimer: (duration, callback) => _FakeTimer(callback),
       );
 
       final uncaughtErrors = <Object>[];
@@ -316,6 +367,141 @@ void main() {
       expect(controller.state.score, 0);
       expect(controller.state.outcomes, isEmpty);
       expect(controller.state.currentExercise, isNull);
+    });
+  });
+
+  group('Timeout par question (étape 4.2, commit B)', () {
+    List<ArithmeticExercise> manyExercises(int count) => List.generate(
+      count,
+      (i) => ArithmeticExercise(operandA: i, operandB: 0, operationType: OperationType.addition),
+    );
+
+    SessionController buildTimeoutController({
+      required _TimerSpy spy,
+      required int exerciseCount,
+      SessionRepository? repository,
+    }) {
+      return SessionController(
+        config: SessionConfig(
+          seed: 1,
+          enabledTypes: {ExerciseType.addition},
+          exerciseCount: exerciseCount,
+          levels: {ExerciseType.addition: 50},
+        ),
+        exerciseSource: _FixedExerciseSource(manyExercises(exerciseCount)),
+        repository: repository ?? InMemorySessionRepository(),
+        playerId: 'test-player',
+        clock: () => DateTime(2024),
+        createTimer: spy.create,
+      );
+    }
+
+    test('un timeout sans activité compte comme faux et avance à la question suivante', () {
+      final spy = _TimerSpy();
+      final controller = buildTimeoutController(spy: spy, exerciseCount: 5);
+
+      controller.start();
+      spy.latest.fire();
+
+      expect(controller.state.status, SessionStatus.inProgress);
+      expect(controller.state.outcomes, hasLength(1));
+      expect(controller.state.outcomes.single.isCorrect, isFalse);
+      expect(controller.state.outcomes.single.isTimeout, isTrue);
+      expect(controller.state.currentExercise, manyExercises(5)[1]);
+    });
+
+    test(
+      'un timeout après une activité (saisie jamais validée) ne compte pas pour l\'abandon',
+      () {
+        final spy = _TimerSpy();
+        final controller = buildTimeoutController(spy: spy, exerciseCount: 10);
+
+        controller.start();
+        // 3 timeouts, mais avec une activité à chaque fois : ne doit jamais
+        // interrompre.
+        for (var i = 0; i < 3; i++) {
+          controller.registerActivity();
+          spy.latest.fire();
+        }
+
+        expect(controller.state.status, SessionStatus.inProgress);
+        expect(controller.state.outcomes, hasLength(3));
+      },
+    );
+
+    test('trois timeouts consécutifs sans aucune activité interrompent la session', () {
+      final spy = _TimerSpy();
+      final controller = buildTimeoutController(spy: spy, exerciseCount: 10);
+
+      controller.start();
+      spy.latest.fire();
+      spy.latest.fire();
+      spy.latest.fire();
+
+      expect(controller.state.status, SessionStatus.interrupted);
+      expect(controller.state.outcomes, hasLength(3));
+      expect(controller.state.currentExercise, isNull);
+    });
+
+    test('une vraie réponse entre deux timeouts remet le compteur d\'abandon à zéro', () {
+      final spy = _TimerSpy();
+      final controller = buildTimeoutController(spy: spy, exerciseCount: 10);
+
+      controller.start();
+      spy.latest.fire(); // timeout 1, pas d'activité
+      spy.latest.fire(); // timeout 2, pas d'activité
+      controller.submitAnswer(0); // réponse réelle : remet le compteur à 0
+      spy.latest.fire(); // timeout 1 (nouveau compte)
+      spy.latest.fire(); // timeout 2
+
+      // 4 timeouts + 1 vraie réponse, mais jamais 3 timeouts consécutifs sans
+      // activité : toujours en cours.
+      expect(controller.state.status, SessionStatus.inProgress);
+    });
+
+    test(
+      'une session interrompue enregistre les réponses déjà données mais pas le niveau',
+      () async {
+        final repository = InMemorySessionRepository();
+        final spy = _TimerSpy();
+        final controller = buildTimeoutController(
+          spy: spy,
+          exerciseCount: 10,
+          repository: repository,
+        );
+
+        controller.start();
+        spy.latest.fire();
+        spy.latest.fire();
+        spy.latest.fire();
+        await Future<void>.delayed(Duration.zero);
+
+        final sessions = await repository.recentSessions();
+        expect(sessions, hasLength(1));
+        // exerciseCount reste le compte prévu (10), pas le nombre de réponses
+        // réellement données (3) : c'est cet écart qui distingue une session
+        // interrompue d'une session terminée, sans champ dédié.
+        expect(sessions.single.exerciseCount, 10);
+        final answers = await repository.answersForSession(sessions.single.id);
+        expect(answers, hasLength(3));
+
+        // Pas comptabilisée pour les niveaux.
+        expect(await repository.currentLevels('test-player'), isEmpty);
+      },
+    );
+
+    test('restart() annule le timer de la session en cours', () {
+      final spy = _TimerSpy();
+      final controller = buildTimeoutController(spy: spy, exerciseCount: 5);
+
+      controller.start();
+      final staleTimer = spy.latest;
+      expect(staleTimer.isActive, isTrue);
+
+      controller.restart();
+
+      expect(staleTimer.isActive, isFalse);
+      expect(controller.state.status, SessionStatus.notStarted);
     });
   });
 }

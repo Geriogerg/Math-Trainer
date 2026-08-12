@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../domain/generation/exercise_source.dart';
 import '../domain/leveling/level_cache_orchestrator.dart';
 import '../domain/models/answer_result.dart';
+import '../domain/models/exercise.dart';
 import '../domain/models/exercise_type.dart';
 import '../domain/models/session_config.dart';
 import '../domain/models/session_result.dart';
@@ -36,6 +37,8 @@ class SessionController extends ChangeNotifier {
     this.scorer = const Scorer(),
     this.clock = DateTime.now,
     this.idGenerator = generateUuidV4,
+    this.createTimer = Timer.new,
+    this.questionTimeout = const Duration(seconds: 15),
     LevelCacheOrchestrator? levelCacheOrchestrator,
   }) : levelCacheOrchestrator = levelCacheOrchestrator ?? LevelCacheOrchestrator();
 
@@ -48,10 +51,22 @@ class SessionController extends ChangeNotifier {
   final DateTime Function() clock;
   final String Function() idGenerator;
 
+  /// Injectable pour les tests (même esprit que [clock]/[idGenerator]) — un
+  /// vrai `Timer` de 15 s ne doit jamais tourner pendant un test.
+  final Timer Function(Duration duration, void Function() callback) createTimer;
+  final Duration questionTimeout;
+
+  /// Trois timeouts consécutifs sans aucune touche pressée interrompent la
+  /// session (`doc/decisions.md`).
+  static const _abandonThreshold = 3;
+
   SessionState _state = SessionState.initial();
   SessionState get state => _state;
 
   DateTime? _questionStartedAt;
+  Timer? _timeoutTimer;
+  bool _hasActivityThisQuestion = false;
+  int _consecutiveTimeoutsWithoutActivity = 0;
 
   void start() {
     _state = SessionState(
@@ -59,15 +74,75 @@ class SessionController extends ChangeNotifier {
       currentExercise: exerciseSource.next(),
     );
     _questionStartedAt = clock();
+    _scheduleTimeout();
     notifyListeners();
+  }
+
+  /// Appelée par l'écran à chaque touche du pavé — chiffre *ou* retour
+  /// arrière, pas seulement Valider. C'est ce qui distingue « a essayé » de
+  /// « n'a rien touché » pour l'interruption pour abandon : un timeout après
+  /// une saisie jamais validée ne compte pas comme un abandon.
+  void registerActivity() {
+    _hasActivityThisQuestion = true;
+  }
+
+  void _scheduleTimeout() {
+    _timeoutTimer?.cancel();
+    _hasActivityThisQuestion = false;
+    _timeoutTimer = createTimer(questionTimeout, _onTimeout);
+  }
+
+  void _onTimeout() {
+    final exercise = _state.currentExercise;
+    if (_state.status != SessionStatus.inProgress || exercise == null) return;
+
+    final hadActivity = _hasActivityThisQuestion;
+    _recordOutcome(
+      exercise: exercise,
+      submittedValue: timeoutSubmittedValue,
+      isCorrect: false,
+      elapsedMs: questionTimeout.inMilliseconds,
+    );
+
+    if (hadActivity) {
+      _consecutiveTimeoutsWithoutActivity = 0;
+      return;
+    }
+    _consecutiveTimeoutsWithoutActivity++;
+    // La complétion prime : si ce timeout tombe pile sur la dernière
+    // question, _recordOutcome vient de passer le statut à `finished` —
+    // la session se termine normalement, elle ne s'interrompt pas.
+    if (_consecutiveTimeoutsWithoutActivity >= _abandonThreshold &&
+        _state.status == SessionStatus.inProgress) {
+      _interruptSession();
+    }
   }
 
   void submitAnswer(int submittedValue) {
     final exercise = _state.currentExercise;
     if (_state.status != SessionStatus.inProgress || exercise == null) return;
 
-    final elapsedMs = clock().difference(_questionStartedAt!).inMilliseconds;
     final isCorrect = exercise.isCorrectAnswer(submittedValue);
+    _consecutiveTimeoutsWithoutActivity = 0;
+    _recordOutcome(
+      exercise: exercise,
+      submittedValue: submittedValue,
+      isCorrect: isCorrect,
+      elapsedMs: clock().difference(_questionStartedAt!).inMilliseconds,
+    );
+  }
+
+  /// Calcule score/streak, avance à la question suivante ou termine la
+  /// session, notifie, et déclenche la persistance si la session se
+  /// termine. Partagé entre [submitAnswer] et [_onTimeout] : un timeout
+  /// suit exactement le même chemin qu'une réponse fausse, seule
+  /// [submittedValue] change.
+  void _recordOutcome({
+    required Exercise exercise,
+    required int submittedValue,
+    required bool isCorrect,
+    required int elapsedMs,
+  }) {
     final nextStreak = isCorrect ? _state.currentStreak + 1 : 0;
 
     final outcome = AnswerResult(
@@ -92,22 +167,53 @@ class SessionController extends ChangeNotifier {
       currentStreak: nextStreak,
     );
     _questionStartedAt = clock();
+
+    if (isSessionComplete) {
+      _timeoutTimer?.cancel();
+    } else {
+      _scheduleTimeout();
+    }
     notifyListeners();
 
     if (isSessionComplete) {
-      unawaited(_persistCompletedSession());
+      unawaited(_persistCompletedSession(countsForLevels: true));
     }
+  }
+
+  void _interruptSession() {
+    _timeoutTimer?.cancel();
+    _state = SessionState(
+      status: SessionStatus.interrupted,
+      outcomes: _state.outcomes,
+      score: _state.score,
+      currentStreak: _state.currentStreak,
+    );
+    notifyListeners();
+    unawaited(_persistCompletedSession(countsForLevels: false));
   }
 
   SessionResult get result => SessionResult(outcomes: _state.outcomes, totalScore: _state.score);
 
   void restart() {
+    _timeoutTimer?.cancel();
     _state = SessionState.initial();
     _questionStartedAt = null;
     notifyListeners();
   }
 
-  Future<void> _persistCompletedSession() async {
+  @override
+  void dispose() {
+    _timeoutTimer?.cancel();
+    super.dispose();
+  }
+
+  /// [countsForLevels] : `false` pour une session interrompue (abandon) —
+  /// la session et les réponses déjà données sont quand même enregistrées
+  /// (non reconstructibles autrement), seul le calcul du cache de niveaux
+  /// est sauté. `PersistedSession.exerciseCount` reste le compte *prévu* ;
+  /// `answers.length < exerciseCount` suffit à reconnaître une session
+  /// interrompue plus tard, sans champ supplémentaire à persister.
+  Future<void> _persistCompletedSession({required bool countsForLevels}) async {
     final sessionId = idGenerator();
     final createdAt = clock().toUtc();
 
@@ -138,27 +244,29 @@ class SessionController extends ChangeNotifier {
     );
 
     var levelUpdates = const <ExerciseType, LevelCacheEntry>{};
-    try {
-      levelUpdates = await levelCacheOrchestrator.computeUpdates(
-        outcomes: _state.outcomes,
-        frozenLevels: config.levels,
-        repository: repository,
-        playerId: playerId,
-        now: createdAt,
-      );
-    } on Exception catch (_) {
-      // Le cache de niveaux est recalculable depuis l'historique (voir
-      // doc/decisions.md) : une lecture ratée ne doit pas empêcher
-      // l'enregistrement de la session, qui lui n'est reconstructible nulle
-      // part ailleurs — priorité à ce qui n'est pas reconstructible.
-      //
-      // `on Exception`, pas `catch (_)` : un `Error` (ArgumentError,
-      // StateError...) signale un bug — un invariant qui lève quelque part
-      // dans cette chaîne (LevelUpdater, LevelCacheEntry, LevelingRules...)
-      // doit rester visible, pas être avalé au même titre qu'un échec
-      // réseau/disque. C'est exactement ce que la règle 13 défend : un
-      // catch trop large réintroduirait le même problème qu'un `assert`
-      // supprimé en release, côté try/catch cette fois.
+    if (countsForLevels) {
+      try {
+        levelUpdates = await levelCacheOrchestrator.computeUpdates(
+          outcomes: _state.outcomes,
+          frozenLevels: config.levels,
+          repository: repository,
+          playerId: playerId,
+          now: createdAt,
+        );
+      } on Exception catch (_) {
+        // Le cache de niveaux est recalculable depuis l'historique (voir
+        // doc/decisions.md) : une lecture ratée ne doit pas empêcher
+        // l'enregistrement de la session, qui lui n'est reconstructible nulle
+        // part ailleurs — priorité à ce qui n'est pas reconstructible.
+        //
+        // `on Exception`, pas `catch (_)` : un `Error` (ArgumentError,
+        // StateError...) signale un bug — un invariant qui lève quelque part
+        // dans cette chaîne (LevelUpdater, LevelCacheEntry, LevelingRules...)
+        // doit rester visible, pas être avalé au même titre qu'un échec
+        // réseau/disque. C'est exactement ce que la règle 13 défend : un
+        // catch trop large réintroduirait le même problème qu'un `assert`
+        // supprimé en release, côté try/catch cette fois.
+      }
     }
 
     try {
