@@ -16,17 +16,11 @@ lib/
       models/              # Exercise (sealed) et 4 variantes, ExerciseType, OperationType,
                            # AnswerResult, SessionConfig, SessionResult
       generation/          # ExerciseGenerator, CompositeExerciseGenerator, générateurs
-                           # par type, OperandRange, ExerciseSource, LocalExerciseSource,
-                           # session_length.dart (longueur de session dynamique),
-                           # TypeSelectionStrategy / DebtAwareTypeSelectionStrategy
-      difficulty/          # dérivation des bornes de génération à partir d'un niveau
-                           # (interpolation linéaire), un fichier par type d'exercice
-      leveling/             # LevelingRules, LevelUpdater, confidenceFor, LevelCacheOrchestrator
-                           # (orchestration pure de la mise à jour du cache de niveaux)
+                           # par type, OperandRange, ExerciseSource, LocalExerciseSource
       scoring/             # Scorer, ScoringRules
       persistence/         # SessionRepository, LocalPlayerIdProvider (interfaces),
-                           # PersistedSession/PersistedAnswer, LevelCacheEntry,
-                           # InMemorySessionRepository, uuid.dart, exercise_codec.dart
+                           # PersistedSession/PersistedAnswer, InMemorySessionRepository,
+                           # uuid.dart, exercise_codec.dart
     state/                 # SessionController (ChangeNotifier), SessionState — seul point
                            # du cœur métier qui importe Flutter (foundation.dart seulement)
   infrastructure/
@@ -34,38 +28,12 @@ lib/
                            # SharedPreferencesPlayerIdProvider — seul endroit qui importe
                            # sqflite / shared_preferences
   presentation/
-    theme/
-      app_theme.dart        # ThemeData clair/sombre (doc/design.md), AppPalette et AppMotion
-                           # (extensions pour ce qui n'a pas de rôle Material 3 standard :
-                           # texte discret, durées/courbes d'animation)
-    exercise_type_labels.dart  # libellés français des ExerciseType, hors du domaine
-    screens/
-      app_shell.dart        # coquille : NavigationBar 4 entrées + IndexedStack (onglets
-                           # construits à la première visite, pas tous au lancement)
-      play_tab.dart         # onglet Jouer : sélection des types, pousse SessionFlowScreen
-                           # en plein écran (par-dessus la barre d'onglets)
-      session_flow_screen.dart  # bascule SessionScreen ↔ ResultScreen selon le statut
-      session_screen.dart   # pavé numérique intégré, chrono en barre, feedback 3 canaux —
-                           # doc/design.md
-      progress_screen.dart  # contenu de l'onglet Progression (plus de Scaffold/AppBar
-                           # propres : fournis par AppShell)
-      coming_soon_screen.dart  # écran générique « bientôt disponible » (En ligne, Classement)
-      result_screen.dart    # stats + rejouer (dépile SessionFlowScreen)
-tool/
-  recalibrate.dart         # CLI hors app — rejoue l'historique réel pour évaluer les ~20
-                           # constantes de LevelingRules (convergence/oscillation/biais).
-                           # `dart run`, pas `flutter run` : lit SQLite via sqflite_common_ffi
-                           # directement, ne passe pas par SqfliteSessionRepository (qui tire
-                           # dart:ui via le plugin sqflite, indisponible hors tooling Flutter).
-  src/
-    replay_metrics.dart    # logique pure du script (extraite pour être testable — les membres
-                           # privés d'une lib Dart sont inaccessibles même en import relatif)
+    screens/               # HomeScreen (phase + choix des types), SessionScreen
+                           # (question/saisie/feedback), ResultScreen (stats + rejouer)
 test/
   domain/                  # miroir de core/domain — `dart test test/domain`
   state/                   # SessionController — `flutter test` (ChangeNotifier tire dart:ui)
   infrastructure/          # sqflite via sqflite_common_ffi, shared_preferences mocké
-  presentation/            # écrans (ProgressScreen, etc.)
-  tool/                    # replay_metrics.dart — `dart test`, pas de dépendance Flutter
   widget_test.dart         # smoke test + parcours démarrage → session
 ```
 
@@ -73,27 +41,14 @@ test/
 
 `ChangeNotifier` natif (`flutter/foundation.dart`), sans package tiers. `SessionController`
 détient un `SessionState` immuable et notifie l'UI via `ListenableBuilder`. Depuis l'étape 2,
-il déclenche aussi l'écriture en base en fin de session — asynchrone, non bloquante pour l'UI.
-Depuis l'étape 4.1, `_persistCompletedSession` est scindé en deux blocs `try`/`catch`
-indépendants : la persistance de la session (non reconstructible si perdue) ne doit pas
-empêcher la mise à jour du cache de niveaux, et réciproquement. Les deux blocs catchent
-`on Exception` (jamais `catch` nu) : une `Error` de programmation (`ArgumentError`,
-`StateError` — violation d'invariant, règle 13) doit remonter et planter, pas être avalée
-comme un échec d'I/O attendu.
+il déclenche aussi l'écriture en base en fin de session — asynchrone, non bloquante pour l'UI,
+échec silencieux.
 
 ## Composition root
 
 `lib/composition_root.dart` est le seul fichier qui choisit les implémentations concrètes
 (générateur, repository sqflite ou en mémoire selon la plateforme). Les écrans ne construisent
 plus aucun objet de domaine : ils observent le contrôleur qui en résulte.
-
-`buildSessionController(environment, enabledTypes)` est asynchrone : il lit d'abord le cache de
-niveaux du joueur (`currentLevels`) pour figer les niveaux de la session (niveau 1 pour toute
-opération jamais jouée), calcule une longueur de session dynamique via `sessionLengthFor`
-(assez de questions pour que chaque type actif atteigne `nMin`, plafonné à 24), construit une
-`DebtAwareTypeSelectionStrategy` à partir du même `sessionsPlayed` déjà lu (aucun appel
-supplémentaire au repository), puis assemble le `CompositeExerciseGenerator` et le
-`SessionController`. Le detail du calcul est documenté dans `doc/decisions.md`.
 
 ## Modèle d'exercice
 
@@ -105,63 +60,35 @@ Deux enums, deux rôles distincts à ne pas confondre :
 - **`OperationType`** — strictement interne à `ArithmeticExercise`, décrit une opération
   binaire (+ − × ÷). N'est jamais étendu pour un nouveau type d'exercice (règle 12).
 
-`Exercise` est une `sealed class` exposant `correctAnswer` (typé **`int`**), `isCorrectAnswer(int)`
-et `ExerciseType get type` — plus aucun texte d'affichage depuis l'étape 5 (commit B) : le domaine
-ne connaît que les valeurs mathématiques, jamais leur mise en forme. Chaque variante porte ses
-opérandes sous leur nom métier plutôt qu'une liste générique, et implémente `==` / `hashCode`.
+`Exercise` est une `sealed class` exposant `prompt`, `correctAnswer` (typé **`int`**),
+`isCorrectAnswer(int)` et `ExerciseType get type`. Chaque variante porte ses opérandes sous
+leur nom métier plutôt qu'une liste générique, et implémente `==` / `hashCode`.
 
-| Variante | Opérandes |
-|---|---|
-| `ArithmeticExercise` | `operandA`, `operandB`, `OperationType` |
-| `PowerExercise` | `base`, `exponent` |
-| `SquareRootExercise` | `radicand` (carré parfait) |
-| `PercentageExercise` | `percent`, `base` |
+| Variante | Opérandes | Forme présentée |
+|---|---|---|
+| `ArithmeticExercise` | `operandA`, `operandB`, `OperationType` | `a + b`, `a - b`, `a × b`, `a ÷ b` |
+| `PowerExercise` | `base`, `exponent` | `a^n` |
+| `SquareRootExercise` | `radicand` (carré parfait) | `√a` |
+| `PercentageExercise` | `percent`, `base` | `p% de a` |
 
-La réponse attendue est exposée par le domaine, jamais recalculée par l'UI ni par le `Scorer`.
+La réponse attendue est exposée par le domaine, jamais recalculée par l'UI ni par le `Scorer` :
+l'écran de session ne connaît qu'une saisie `int` et un booléen.
 
 Le stockage passe par `operands_json`, qui absorbe les variantes sans migration de schéma.
-Le discriminant stocké est le nom de la valeur d'`ExerciseType`, sauf pour les quatre opérations
-arithmétiques : `exercise_type` vaut `'arithmetic'` pour toutes, l'opération précise est dans la
-colonne `operation_type` (piège pour tout code qui relit la table directement, cf.
-`tool/recalibrate.dart`).
+Le discriminant stocké est le nom de la valeur d'`ExerciseType`.
 
-**Affichage : `presentation/exercise_prompt.dart`.** `ExercisePrompt`, un `switch` exhaustif sans
-`default` (règle 11) sur `Exercise`, compose le rendu à partir des champs de chaque variante —
-plus jamais un getter sur le domaine. Résout la dette documentée depuis l'étape 3 (copie
-française en dur dans `core/domain/`).
+Dette connue : `prompt` contient de la copie d'interface en français (« 25% de 80 ») dans le
+domaine pur. Sans conséquence aujourd'hui, à traiter à la première internationalisation.
 
-Notation conforme à `doc/design.md` sur toutes les variantes : addition/soustraction/
-multiplication/division et pourcentage en texte simple (vrais caractères `+ − × ÷`, U+2212 pour
-la soustraction — jamais le trait d'union) ; puissance via `_PowerPrompt` (`Text.rich`, exposant
-en `WidgetSpan` aligné en haut de ligne, ~55 % de la taille de la base) ; racine carrée via
-`_SquareRootPrompt` (`Row` avec un `Container` à `Border(top:)` sur le radicande, le symbole `√`
-n'étant pas lui-même sous la barre — simplification assumée par `doc/design.md`).
+## Composition et paramètres
 
-## Système de niveaux
+`buildSessionController(environment, enabledTypes)` — un troisième paramètre (niveaux du joueur)
+arrive à l'étape 4. Deux paramètres nommés restent lisibles ; au troisième, préférer un petit
+objet de configuration plutôt que d'empiler les paramètres.
 
-Le niveau est un **cache recalculable**, pas une source de vérité (voir `CLAUDE.md`). Trois
-familles de modules en `core/domain/`, toutes Dart pur :
-
-- **`leveling/`** — `LevelingRules` (les ~10 constantes de la formule, non calibrées faute de
-  données réelles ; validées au constructeur, ex. `tRapideMs < tLentMs`, `nMin > 0`),
-  `LevelUpdater.update(...)` (la formule elle-même, rejouable sur une liste de réponses),
-  `confidenceFor(...)` (multiplicateur `normal`/`calibration`/`returning` selon l'historique),
-  et `LevelCacheOrchestrator` — regroupe les réponses d'une session par `ExerciseType`, filtre
-  les groupes sous `nMin`, et appelle `confidenceFor` puis `LevelUpdater.update` pour produire
-  les nouvelles entrées de cache. Extrait de `SessionController` (étape 4.1) pour être
-  réexécutable côté serveur lors de la revalidation des duels (règle 1).
-- **`difficulty/`** — dérive les bornes de génération (`OperandRange` ou équivalent par type) à
-  partir d'un niveau entier, par interpolation linéaire entre les bornes du niveau 1 et du
-  niveau maximal. Un fichier par type d'exercice arithmétique/puissance/racine/pourcentage.
-- **`persistence/LevelCacheEntry`** — l'entrée de cache elle-même (niveau, `sessionsPlayed`,
-  dernière date de réponse par `ExerciseType`). Rangée sous `persistence/` avec
-  `PersistedSession`/`PersistedAnswer` par cohérence, mais sans UUID ni `syncedAt` : contrairement
-  à elles, une entrée de cache est jetable et recalculable, jamais synchronisée telle quelle.
-
-`tool/recalibrate.dart` est un script CLI hors app (pas un écran) qui rejoue l'historique réel
-d'un joueur à travers `LevelingRules` en faisant varier une constante à la fois, et rapporte
-convergence/oscillation/biais. Il n'a rien à traiter tant que peu de sessions réelles ont été
-jouées — voir le point d'attente dans `CLAUDE.md`.
+`HomeScreen` porte la sélection des types (`_TypeSelectionView`). L'étape 4 n'y ajoute **pas** de
+contrôle de difficulté — celle-ci est dérivée du niveau, pas choisie. En revanche un écran de
+progression viendra s'ajouter ; si le fichier grossit, le scinder par vue.
 
 ## Dépendances
 
@@ -171,75 +98,11 @@ jouées — voir le point d'attente dans `CLAUDE.md`.
 | `cupertino_icons ^1.0.8` | ajoutée par `flutter create` — **non utilisée**, supprimable |
 | `flutter_test` (SDK, dev) | tests widgets |
 | `flutter_lints ^6.0.0` (dev) | lints du projet |
-| `test ^1.25.0` (dev) | permet `dart test` sur le cœur métier pur, et sur `tool/` |
+| `test ^1.25.0` (dev) | permet `dart test` sur le cœur métier pur |
 | `sqflite` | SQLite local (règle 3), schéma écrit à la main |
 | `path` | jointure de chemin cross-platform pour localiser le `.db` |
 | `shared_preferences` | stockage du scalaire `player_id` |
-| `sqflite_common_ffi` (dev) | tests du repository et `tool/recalibrate.dart` sur la Dart VM,
-  sans émulateur ni `dart:ui` |
+| `sqflite_common_ffi` (dev) | tests du repository sur la Dart VM, sans émulateur |
 
-## Écran de session
-
-Pavé numérique intégré (`_NumericKeypad`, `_KeypadKey`) remplace le `TextField` et le clavier
-natif — `_typedDigits` (`String`) est un état local de `_SessionScreenState`, plus de
-`TextEditingController`. Aucun changement de `SessionController`/`SessionState` : `isCorrect` est
-calculé côté écran via `exercise.isCorrectAnswer(value)` (déjà public) avant l'appel à
-`submitAnswer`, qui reste appelé immédiatement — le chronométrage utilisé pour le score n'est
-jamais retardé.
-
-**Chrono en barre : purement cosmétique, aucune soumission forcée.** Représente
-`ScoringRules.speedBonusWindowMs` (5000 ms, déjà lu par `Scorer._speedBonus`) plutôt qu'une
-nouvelle constante. Suivi via un `AnimationController` local à `_SessionScreenState`, redémarré
-dans `didUpdateWidget` (nouvelle question = nouvelle instance de `SessionScreen` reçue depuis le
-`ListenableBuilder` de `HomeScreen`) — le contrôleur ne publie pas de timestamp, aucun besoin de
-lui en ajouter un.
-
-**Feedback (règle 14) sur le champ de saisie, pas l'écran entier** (`doc/design.md`) : flash +
-mise à l'échelle (juste) ou secousse (faux) + haptique, piloté par un second `AnimationController`
-dont la durée est lue sur `AppMotion.feedback` au moment du déclenchement (le thème n'est pas
-disponible dans `initState`). Limite connue : sur la toute dernière question d'une session,
-`HomeScreen` bascule vers `ResultScreen` dès la notification du contrôleur, ce qui peut tronquer
-le flash — assumé, non corrigé (corriger toucherait soit le chronométrage soit `HomeScreen`).
-
-## Navigation
-
-`AppShell` est l'écran racine (`app.dart`) : `NavigationBar` Material 3 à quatre entrées (Jouer,
-En ligne, Progression, Classement — `doc/design.md`), corps en `IndexedStack`. Les onglets ne
-sont construits qu'à leur première visite (`_visited`, un `Set<int>`) plutôt qu'au lancement :
-un `IndexedStack` naïf construirait les quatre d'un coup, donc `ProgressScreen` lirait le cache
-de niveaux immédiatement même si le joueur ne quitte jamais l'onglet Jouer. Une fois visité, un
-onglet reste construit (même position dans `IndexedStack` ⇒ même `State`) : la sélection de
-types de `PlayTab` ou une session interrompue survit à un changement d'onglet.
-
-**Session en plein écran, par-dessus la barre.** `PlayTab._startSession` pousse
-`SessionFlowScreen` sur le `Navigator` racine (`MaterialPageRoute(fullscreenDialog: true)`)
-plutôt que de basculer inline comme avant l'étape 5, commit E — la route couvre `AppShell` et sa
-barre d'onglets entièrement. `SessionFlowScreen` bascule `SessionScreen` ↔ `ResultScreen` selon
-`SessionController.state.status` (logique reprise de l'ancien `HomeScreen`) et possède le
-contrôleur (`dispose()` dans son propre `State`) ; « Recommencer » dépile la route au lieu de
-réinitialiser un état local.
-
-« En ligne » et « Classement » : `ComingSoonScreen`, chrome posé sans contenu derrière
-(`doc/decisions.md`). Pas d'icône profil/réglages pour l'instant — rien n'existe encore derrière
-(comptes hors périmètre étape 5), contrairement aux deux onglets qui ont au moins une barre à
-habiter.
-
-Golden tests (`test/presentation/*_golden_test.dart`, `doc/design.md`) : chargent explicitement
-Inter et la police d'icônes Material (`test/presentation/golden_test_utils.dart`) — `flutter
-test` ne les charge pas par défaut, ce qui rendait les icônes du pavé numérique invisibles
-(carrés vides) dans les premiers golden générés. Limite déjà connue (signalée au commit A) : un
-golden généré sous Windows peut diverger si rejoué un jour sur un moteur de rendu différent.
-
-## Thème
-
-`ThemeData` clair et sombre centralisés dans `presentation/theme/app_theme.dart`
-(`buildLightTheme()` / `buildDarkTheme()`), branchés dans `app.dart` via
-`themeMode: ThemeMode.system` — aucun sélecteur manuel, le mode clair n'étant pas une variante de
-confort (`doc/design.md`). Palette posée sur les rôles `ColorScheme` Material 3 standard (voir
-`doc/decisions.md` pour le mapping exact) ; seul le texte discret (aucun rôle M3 adapté) et les
-durées/courbes d'animation vivent dans des `ThemeExtension` (`AppPalette`, `AppMotion`).
-
-Police `Inter` bundlée en asset local (`assets/fonts/Inter.ttf`, police variable, un seul
-fichier) — pas de dépendance ajoutée. `TextTheme` réécrit sur ce point : les 5 tailles de
-`doc/design.md` posées sur 5 des 15 styles nommés Material 3, chiffres tabulaires et plafond de
-graisse (400/500 max) appliqués à l'ensemble du `TextTheme`, pas qu'aux 5 tailles nommées.
+L'étape 3 n'introduit aucune dépendance : puissances, carrés parfaits et pourcentages entiers
+se calculent en arithmétique entière avec `dart:core` seul.

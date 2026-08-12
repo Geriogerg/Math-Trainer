@@ -67,9 +67,6 @@ confiance, on borne à `Δ_max`, on applique.
 | `n_min` | 8 | en deçà, la session ne compte pas (échantillon de bruit) |
 | `K_calib` | ×4 sur 3 sessions | calibrage initial |
 | `boost_retour` | ×2 sur 2 sessions | après longue absence |
-| `t_rapide` | 2000 ms | en deçà, vitesse = 1 |
-| `t_lent` | 8000 ms | au-delà, vitesse = 0 |
-| `absence_days_threshold` | 30 jours | déclenche `boost_retour` |
 
 Cibles de réglage : convergence en 10–20 sessions, oscillation à l'équilibre sous ±2 niveaux,
 biais moyen légèrement positif (conséquence attendue de `K_haut > K_bas`, sans effet sur
@@ -93,6 +90,91 @@ peut pas revalider et le mode duel tombe.
 `niveau → bornes` par opération, cinq points d'ancrage vérifiés manuellement (1, 25, 50, 75, 100),
 et deux tests — monotonie et absence de saut brutal entre niveaux consécutifs.
 
+## Timeout par question : 15 s, compté comme faux
+
+`t_timeout` existait depuis l'étape 4 avec la sémantique « au-delà, compté comme faux », mais
+rien ne faisait avancer la session : le joueur pouvait rester bloqué indéfiniment. Le passage
+automatique à la question suivante est ajouté.
+
+Valeur fixe à 15 s, non dérivée de `t_lent` — choix de simplicité assumé, à revoir à la
+recalibration : 15 s est probablement trop long pour `7 + 4` au niveau 3 et peut-être court pour
+une multiplication au niveau 80.
+
+Un timeout compte comme une réponse fausse. C'est voulu : hésiter trop longtemps sur une
+question qu'on ne sait pas résoudre doit être pénalisé.
+
+### Exception : interruption pour abandon
+
+**Trois timeouts consécutifs sans aucune touche pressée** interrompent la session, qui n'est
+alors pas comptabilisée pour les niveaux. Les réponses déjà données restent enregistrées dans
+l'historique — ce sont des données réelles, et le niveau est de toute façon recalculable.
+
+Motif : la distinction utile n'est pas entre timeout et mauvaise réponse, mais entre **jouer
+mal** et **avoir arrêté de jouer**. Un joueur qui pose son téléphone en pleine session (appel,
+métro) accumulerait sinon une série de zéros sur un échantillon large — et depuis la pondération
+par le volume, la descente serait amplifiée. Il perdrait plusieurs niveaux pour une raison sans
+rapport avec sa compétence. Cohérent avec la décision de ne jamais faire descendre le niveau par
+inactivité.
+
+## Le pas de niveau est pondéré par le volume de réponses
+
+Défaut corrigé : la formule calculait `Δ = moyenne(p) − p_cible`, une moyenne pure. 16 additions
+à 85 % et 4 additions à 85 % produisaient donc **exactement le même déplacement de niveau**.
+
+Doublement problématique. Contre-intuitif pour le joueur — concentrer sa session sur une
+opération devrait la faire progresser plus vite. Et incitation perverse : le joueur optimal
+activait beaucoup de types et jouait des sessions minimales, puisque seul comptait le rapport.
+
+Correction : le pas est multiplié par `√(n / n_min)`. La racine plutôt que le rapport direct,
+pour que 64 réponses ne déplacent pas 16 fois plus que 4 — ce qui rendrait le système instable.
+C'est le facteur K variable d'un Elo, appliqué à la taille de l'échantillon.
+
+Effet de bord bienvenu : le bruit des petites sessions est automatiquement amorti, et quatre
+sessions courtes donnent à peu près le même résultat qu'une longue.
+
+## `n_min` passe de 8 à 4 — couplé à `δ`
+
+Motif produit : 8 réponses par opération rendait la session minimale trop longue. À 4, une
+session mono-type dure une trentaine de secondes, ce qui rend viable la boucle « jouer, relancer ».
+
+**Coût statistique, à ne pas ignorer :** l'écart-type de la moyenne varie en `1/√n`, donc passer
+de 8 à 4 augmente le bruit d'environ 40 %. Un joueur exactement au bon niveau peut faire 4/4 puis
+2/4 par pur hasard.
+
+**Conséquence : `δ` doit être élargie.** Les deux paramètres sont couplés — la bande morte avait
+été dimensionnée pour `n = 8`. Ne jamais bouger l'un sans l'autre. Valeur exacte à trancher à la
+recalibration ; la pondération par `√(n/n_min)` amortit déjà une partie du problème.
+
+## Le nombre de questions reste dérivé, pas choisi
+
+`exerciseCount = n_min × types actifs`, mécanisme mis en place en 4.1 et conservé tel quel.
+Avec `n_min = 4` : un type → 4 questions, trois types → 12, sept types → 28.
+
+Option envisagée puis écartée : laisser le joueur régler librement le nombre de questions
+(4 à 50). Elle aurait réintroduit exactement le défaut corrigé en 4.1 — une session trop courte
+pour la sélection ne fait progresser aucune opération — cette fois activé par le joueur sans
+qu'il comprenne pourquoi son niveau stagne. Il aurait fallu un avertissement d'interface pour
+compenser, donc un concept de plus.
+
+Le compte se déduisant de la sélection et de `n_min`, il n'y a rien de nouveau à persister ni à
+faire entrer dans la config de génération.
+
+Effet secondaire du passage de `n_min` à 4 : le plafond de session fixé en 4.1 (24 questions,
+soit une cible de ~90 s) n'est désormais atteint qu'à sept types actifs (28 questions). La
+politique de rotation par dette reste en place mais ne se déclenche plus qu'à la marge.
+
+## Relance immédiate en fin de session
+
+Bouton de relance sur l'écran de résultat : mêmes types, même nombre de questions,
+**niveaux actualisés** et **nouvelle seed**.
+
+La nouvelle seed est indispensable — la réutiliser ferait rejouer les mêmes questions.
+
+Les niveaux actualisés sont le point important : la difficulté suit la progression d'une session
+à l'autre, ce qui rend enfin le système de niveaux *perceptible*. Jusqu'ici rien dans le jeu ne
+montrait qu'il existait. Prévoir un retour visuel bref entre deux sessions (animation de montée
+de niveau, 600 ms, cf. `docs/design.md`).
+
 ## Direction visuelle : « nuit électrique »
 
 Quatre directions comparées (ardoise sobre, papier clair, nuit électrique, terrain chaleureux).
@@ -103,44 +185,7 @@ Conséquence directe : l'accent étant vert d'eau, le vert ne peut plus signaler
 Le feedback positif passe par un flash blanc — ce qui règle au passage l'accessibilité, puisque
 la couleur seule n'a jamais été un signal fiable. Promu en règle 14.
 
-Palette, typographie et durées d'animation : `doc/design.md`.
-
-## Palette sombre assombrie après relecture au téléphone (étape 5, commits A-E)
-
-Les hex d'origine (`Fond #101528`, `Accent #5DCAA5`) rendaient un bleu-nuit clair et un accent
-pastel une fois sur l'écran réel — pas assez « nuit électrique », trop proche d'un simple thème
-sombre générique. Assombri (`Fond #0A0E1C`, `Surface #151A30`, `Bordure #232A47`) et l'accent
-resaturé (`#2ED9A0`, plus vif) pour se rapprocher de la référence visuelle initiale. Mode clair
-non touché : le retour ne portait que sur le sombre. `onPrimary` reste sombre sur l'accent (choix
-déjà pris au commit A, toujours valable avec le nouvel accent).
-
-## Police Inter en asset local, pas `google_fonts`
-
-`google_fonts` télécharge la police au premier lancement par défaut — contraire à l'esprit
-offline-first (règle de stratégie de données), et il faudrait de toute façon la configurer en
-mode bundlé pour l'éviter. Un asset `.ttf` local (licence SIL OFL, librement redistribuable)
-n'ajoute aucune dépendance et reste cohérent avec le minimalisme déjà pratiqué ailleurs
-(pas de `uuid`, pas de `provider`).
-
-Un seul fichier suffit : la police récupérée (dépôt officiel `google/fonts`) est une police
-variable couvrant tout l'axe `wght`, pas des fichiers statiques par graisse. `TextStyle.
-fontWeight` pilote directement cet axe.
-
-Pas de fichier « Roboto Flex » distinct pour le repli de `doc/design.md` : une fois Inter
-bundlée elle est toujours disponible, ce scénario ne se déclenche donc jamais en pratique.
-« Roboto Flex » n'est de toute façon pas garantie préinstallée sur Android — seule la police
-`Roboto` (non `Flex`) l'est, et c'est elle que Flutter utiliserait par défaut si le chargement
-d'un asset bundlé venait à échouer.
-
-## Onglets « En ligne » et « Classement » : chrome posé, contenu en attente
-
-La barre à quatre entrées (`doc/design.md`) inclut deux onglets dont la fonctionnalité est
-explicitement hors périmètre étape 5 (comptes, réseau, classement). Construire les quatre
-onglets maintenant avec un écran « bientôt disponible » derrière les deux non implémentés,
-plutôt qu'une barre à deux entrées qui grossirait plus tard : c'est la structure de navigation
-qui est fixée par le design, pas le contenu de chaque onglet. Cohérent avec « anticiper = ne pas
-fermer la porte, pas d'abstraction pour un seul cas d'usage » — c'est du chrome, pas une
-abstraction métier anticipée.
+Palette, typographie et durées d'animation : `docs/design.md`.
 
 ## `Exercise.prompt` quitte le domaine
 
@@ -227,8 +272,7 @@ que le coût serait de retoucher du code stable et de perdre le nommage métier 
 Décision produit, définitive. Toutes deux violent la règle 9 : les fractions par leur type de
 réponse, la division euclidienne par sa réponse composite (quotient + reste, donc deux champs
 de saisie, gestion du focus, validation partielle). Conséquence : la colonne de réponse reste
-`INTEGER` ; la saisie se fait via le pavé numérique intégré depuis l'étape 5 (commit D), un seul
-champ, jamais de virgule ni de second champ.
+`INTEGER` et `TextInputType.number` reste l'unique mode de saisie.
 
 ## `ChangeNotifier` natif plutôt que provider / riverpod / bloc
 

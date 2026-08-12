@@ -16,17 +16,13 @@ Registre compétitif assumé, cohérent avec la trajectoire du produit (classeme
 
 | Rôle | Hex | Usage |
 |---|---|---|
-| Fond | `#0A0E1C` | canvas de tous les écrans |
-| Surface | `#151A30` | cartes, touches du pavé, champs |
-| Bordure | `#232A47` | séparateurs, piste du chrono |
-| Accent | `#2ED9A0` | action principale, chrono, saisie active, onglet actif |
-| Texte primaire | `#EAF2FF` | opération, chiffres, titres |
-| Texte secondaire | `#7FB0E8` | libellés, métadonnées |
-| Texte discret | `#4C5B7D` | onglets inactifs, indications |
-
-Assombrie et l'accent plus saturé par rapport à la première passe (étape 5, commits A-E) : le
-rendu initial manquait de profondeur pour ce que « nuit électrique » visait — voir
-`doc/decisions.md`.
+| Fond | `#101528` | canvas de tous les écrans |
+| Surface | `#1B2340` | cartes, touches du pavé, champs |
+| Bordure | `#2A3352` | séparateurs, piste du chrono |
+| Accent | `#5DCAA5` | action principale, chrono, saisie active, onglet actif |
+| Texte primaire | `#E6F1FB` | opération, chiffres, titres |
+| Texte secondaire | `#85B7EB` | libellés, métadonnées |
+| Texte discret | `#5A6B8C` | onglets inactifs, indications |
 
 ### Palette — mode clair (obligatoire, pas optionnel)
 

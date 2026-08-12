@@ -3,9 +3,9 @@
 Jeu Flutter de calcul mental compétitif (ados et adultes). Rapide, ludique, orienté compétition.
 État : 8 commits, 7 types d'exercices, persistance locale. 69 tests domaine / 85 au total.
 
-Détails non nécessaires à chaque session : `doc/architecture.md` (structure, gestion d'état,
-modèle d'exercice, dépendances), `doc/decisions.md` (arbitrages passés et leurs raisons) et
-`doc/design.md` (palette, typographie, notation, règles d'interface).
+Détails non nécessaires à chaque session : `docs/architecture.md` (structure, gestion d'état,
+modèle d'exercice, dépendances), `docs/decisions.md` (arbitrages passés et leurs raisons) et
+`docs/design.md` (palette, typographie, notation, règles d'interface).
 Va les lire quand le sujet se présente — ils ne sont pas importés ici volontairement.
 
 ## Interlocuteur
@@ -87,9 +87,17 @@ Faites : 1. tests du cœur métier — 2. persistance locale — 3. sept types d
 4. système de niveaux — 4.1 corrections (échantillonnage garanti, erreurs UI, découplage,
 rangement, script de recalibration).
 
-**Étape 5 — direction visuelle et interface ← courante.** Direction « nuit électrique »,
+**Étape 4.2 — boucle de session ← courante.** Timeout de 15 s par question avec passage
+automatique ; interruption de la session après 3 timeouts consécutifs sans saisie (non
+comptabilisée, réponses déjà données conservées) ; pas de niveau pondéré par `√(n / n_min)` ;
+`n_min` 8 → 4, **couplé à un élargissement de `δ`** ; relance immédiate en fin de session (mêmes
+types, niveaux actualisés, **nouvelle seed**). Le nombre de questions reste dérivé
+(`n_min × types actifs`), le joueur ne le règle pas. Détail et justifications :
+`docs/decisions.md`.
+
+**Étape 5 — direction visuelle et interface.** Direction « nuit électrique »,
 palette, typographie, notation mathématique, pavé numérique intégré, navigation et animations :
-tout est arrêté dans `doc/design.md`. Lis-le avant d'écrire une ligne de `presentation/`.
+tout est arrêté dans `docs/design.md`. Lis-le avant d'écrire une ligne de `presentation/`.
 
 Contenu : centralisation du thème (`ThemeData` + extensions, les deux modes) ; suppression de
 `Exercise.prompt` au profit d'un formateur en couche présentation (résout la dette du français
@@ -101,7 +109,7 @@ générateur garantit `operandA ≥ operandB`, et le pavé n'a donc pas de touch
 
 Hors périmètre : tout ce qui touche aux comptes, au réseau ou au classement.
 
-Ensuite : 6. comptes et classement général — 7. matchs en ligne et Elo.
+Ensuite : 5. direction visuelle — 6. comptes et classement général — 7. matchs en ligne et Elo.
 
 **Point d'attente indépendant du code :** les ~20 constantes du système de niveaux restent non
 calibrées faute de données. `tool/recalibrate.dart` existe mais n'a rien à traiter tant que
@@ -131,7 +139,7 @@ Anticiper = ne pas fermer la porte. Pas d'abstraction pour un seul cas d'usage.
 - **Lister les fichiers modifiés** avec une justification brève.
 - En cas d'ambiguïté, proposer une solution raisonnable et expliciter le choix.
 - Simplicité avant sur-ingénierie. Une étape à la fois, livrable et testable, puis un commit.
-- **Signaler les écarts** constatés entre le code réel et `doc/architecture.md`.
+- **Signaler les écarts** constatés entre le code réel et `docs/architecture.md`.
 
 ## Conventions
 
@@ -141,8 +149,8 @@ Anticiper = ne pas fermer la porte. Pas d'abstraction pour un seul cas d'usage.
 - Commenter uniquement le non-évident, jamais paraphraser le code.
 - Pas de valeur codée en dur dans l'UI : `Theme.of(context)`.
 - `SafeArea` sur tous les écrans (notch, Dynamic Island).
-- Saisie numérique : pavé intégré (`SessionScreen`), jamais le clavier natif (étape 5,
-  commit D) — `doc/design.md`.
+- Saisie numérique : `TextInputType.number`, et vérifier que le clavier natif ne masque
+  ni le champ ni le chrono.
 - **Les tests de déterminisme sont indexés sur le couple (seed, config)**, jamais sur la seed
   seule : ajouter une valeur à `ExerciseType` ou changer un niveau modifie légitimement la
   séquence.
