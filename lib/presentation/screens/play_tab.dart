@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../composition_root.dart';
 import '../../core/domain/models/exercise_type.dart';
 import '../exercise_type_labels.dart';
+import '../theme/app_theme.dart';
 import 'session_flow_screen.dart';
 
 /// 2 types par défaut, pas 4 : avec `n_min` (4 depuis l'étape 4.2, 8
@@ -56,7 +57,10 @@ class _PlayTabState extends State<PlayTab> {
       // pas besoin d'un bouton dédié.
       setState(() {
         _isStarting = false;
-        _startError = 'Impossible de démarrer la session. Réessayez.';
+        // Pas de « Réessayez. » : le bouton Commencer, redevenu actif, porte
+        // déjà l'action (`doc/design.md` — un message d'erreur ne contient
+        // pas l'action).
+        _startError = 'Impossible de démarrer la session.';
       });
     }
   }
@@ -100,13 +104,14 @@ class _TypeSelectionView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: theme.extension<AppMetrics>()!.rootPadding,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('Math Trainer', style: Theme.of(context).textTheme.headlineMedium),
+            Text('Math Trainer', style: theme.textTheme.titleMedium),
             const SizedBox(height: 24),
             Wrap(
               spacing: 8,
@@ -134,10 +139,13 @@ class _TypeSelectionView extends StatelessWidget {
             ),
             if (selectedTypes.isEmpty) ...[
               const SizedBox(height: 8),
-              const Text('Aucun type sélectionné.'),
+              Text('Aucun type sélectionné.', style: theme.textTheme.bodyMedium),
             ] else if (startError != null) ...[
               const SizedBox(height: 8),
-              Text(startError!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              Text(
+                startError!,
+                style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error),
+              ),
             ],
           ],
         ),

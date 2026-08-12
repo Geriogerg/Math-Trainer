@@ -9,6 +9,7 @@ import 'package:math_trainer/core/domain/persistence/persisted_answer.dart';
 import 'package:math_trainer/core/domain/persistence/persisted_session.dart';
 import 'package:math_trainer/core/domain/persistence/session_repository.dart';
 import 'package:math_trainer/presentation/screens/progress_screen.dart';
+import 'package:math_trainer/presentation/theme/app_theme.dart';
 
 /// Échoue tant que [shouldFail] est vrai, réussit ensuite — simule un
 /// réseau/disque qui se rétablit, pour tester le bouton « Réessayer ».
@@ -70,7 +71,10 @@ void main() {
     final environment = AppEnvironment(repository: repository, playerId: 'test-player');
 
     await tester.pumpWidget(
-      MaterialApp(home: Scaffold(body: ProgressScreen(environment: environment))),
+      MaterialApp(
+        theme: buildLightTheme(),
+        home: Scaffold(body: ProgressScreen(environment: environment)),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -87,7 +91,12 @@ void main() {
     final repository = _FlakySessionRepository();
     final environment = AppEnvironment(repository: repository, playerId: 'test-player');
 
-    await tester.pumpWidget(MaterialApp(home: Scaffold(body: ProgressScreen(environment: environment))));
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildLightTheme(),
+        home: Scaffold(body: ProgressScreen(environment: environment)),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Impossible de charger la progression.'), findsOneWidget);
@@ -100,7 +109,12 @@ void main() {
     final repository = _FlakySessionRepository();
     final environment = AppEnvironment(repository: repository, playerId: 'test-player');
 
-    await tester.pumpWidget(MaterialApp(home: Scaffold(body: ProgressScreen(environment: environment))));
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildLightTheme(),
+        home: Scaffold(body: ProgressScreen(environment: environment)),
+      ),
+    );
     await tester.pumpAndSettle();
     expect(find.text('Impossible de charger la progression.'), findsOneWidget);
 

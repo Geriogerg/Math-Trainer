@@ -100,7 +100,9 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
       if (!mounted) return;
       setState(() {
         _isRestarting = false;
-        _restartError = 'Impossible de relancer une session. Réessayez.';
+        // Pas de « Réessayez. » : le bouton Rejouer, redevenu actif, porte
+        // déjà l'action (`doc/design.md`).
+        _restartError = 'Impossible de relancer une session.';
       });
     }
   }

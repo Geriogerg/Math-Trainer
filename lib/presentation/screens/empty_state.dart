@@ -20,7 +20,11 @@ class EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(message, textAlign: TextAlign.center),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyLarge,
+          ),
           const SizedBox(height: 16),
           FilledButton(onPressed: onAction, child: Text(actionLabel)),
         ],

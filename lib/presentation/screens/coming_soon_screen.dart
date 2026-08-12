@@ -13,11 +13,14 @@ class ComingSoonScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Center(
-      child: Text(
-        '$label — bientôt disponible',
-        style: theme.textTheme.bodyMedium?.copyWith(
-          color: theme.extension<AppPalette>()?.textMuted,
+    return Padding(
+      padding: theme.extension<AppMetrics>()!.rootPadding,
+      child: Center(
+        child: Text(
+          '$label — bientôt disponible',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.extension<AppPalette>()?.textMuted,
+          ),
         ),
       ),
     );

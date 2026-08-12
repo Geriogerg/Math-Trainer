@@ -121,12 +121,13 @@ class _SessionScreenState extends State<SessionScreen> with TickerProviderStateM
     }
 
     final theme = Theme.of(context);
+    final metrics = theme.extension<AppMetrics>()!;
     final level = widget.controller.config.levels[exercise.type] ?? 1;
 
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+          padding: metrics.rootPadding,
           child: _TopBar(
             questionIndex: state.outcomes.length + 1,
             totalQuestions: widget.controller.config.exerciseCount,
@@ -158,10 +159,9 @@ class _SessionScreenState extends State<SessionScreen> with TickerProviderStateM
         ),
         SizedBox(
           // Hauteur fixe en premier, l'opération prend ce qu'il reste
-          // au-dessus (`Expanded`) — rien ne bouge entre deux questions.
-          // Fraction approximative, à affiner à l'usage (doc/design.md ne
-          // fixe pas de valeur).
-          height: MediaQuery.sizeOf(context).height * 0.38,
+          // au-dessus (`Expanded`) — rien ne bouge entre deux questions
+          // (`doc/design.md` : jamais un ratio d'écran, voir `AppMetrics`).
+          height: metrics.keypadHeight,
           child: _NumericKeypad(onDigit: _appendDigit, onBackspace: _backspace, onValidate: _submit),
         ),
       ],

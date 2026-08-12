@@ -4,6 +4,8 @@ import '../../composition_root.dart';
 import '../../core/domain/persistence/level_cache_entry.dart';
 import '../../core/domain/models/exercise_type.dart';
 import '../exercise_type_labels.dart';
+import '../theme/app_theme.dart';
+import 'empty_state.dart';
 
 /// Affiche le niveau actuel par opération (`SessionRepository.
 /// currentLevels`), tel qu'il alimentera la prochaine session — jamais un
@@ -33,19 +35,15 @@ class _ProgressScreenState extends State<ProgressScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return FutureBuilder<Map<ExerciseType, LevelCacheEntry>>(
       future: _levels,
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text('Impossible de charger la progression.'),
-                const SizedBox(height: 16),
-                FilledButton(onPressed: () => setState(_loadLevels), child: const Text('Réessayer')),
-              ],
-            ),
+          return EmptyState(
+            message: 'Impossible de charger la progression.',
+            actionLabel: 'Réessayer',
+            onAction: () => setState(_loadLevels),
           );
         }
         if (!snapshot.hasData) {
@@ -53,11 +51,15 @@ class _ProgressScreenState extends State<ProgressScreen> {
         }
         final levels = snapshot.data!;
         return ListView(
+          padding: theme.extension<AppMetrics>()!.rootPadding,
           children: [
             for (final type in ExerciseType.values)
               ListTile(
-                title: Text(exerciseTypeLabel(type)),
-                trailing: Text(levels[type] == null ? 'Non joué' : 'Niveau ${levels[type]!.level}'),
+                title: Text(exerciseTypeLabel(type), style: theme.textTheme.bodyLarge),
+                trailing: Text(
+                  levels[type] == null ? 'Non joué' : 'Niveau ${levels[type]!.level}',
+                  style: theme.textTheme.bodyMedium,
+                ),
               ),
           ],
         );

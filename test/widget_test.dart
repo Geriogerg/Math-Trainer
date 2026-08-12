@@ -226,7 +226,7 @@ void main() {
     await tester.tap(find.text('Commencer'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Impossible de démarrer la session. Réessayez.'), findsOneWidget);
+    expect(find.text('Impossible de démarrer la session.'), findsOneWidget);
     // Le bouton est redevenu actif : c'est l'action de reprise.
     expect(tester.widget<FilledButton>(find.byType(FilledButton)).onPressed, isNotNull);
 
@@ -234,6 +234,6 @@ void main() {
     await tester.pumpAndSettle();
 
     // Toujours bloqué (même repository), toujours le même message, pas de crash.
-    expect(find.text('Impossible de démarrer la session. Réessayez.'), findsOneWidget);
+    expect(find.text('Impossible de démarrer la session.'), findsOneWidget);
   });
 }

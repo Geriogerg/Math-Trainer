@@ -1,12 +1,14 @@
+import 'dart:ui' show lerpDouble;
+
 import 'package:flutter/material.dart';
 
 /// Thème « nuit électrique » (`doc/design.md`) : palette, typographie et
 /// durées d'animation centralisées ici, jamais en dur dans un widget.
-/// `ColorScheme` couvre les rôles Material 3 usuels ; `AppPalette` et
-/// `AppMotion` couvrent ce qui n'a pas d'équivalent standard (texte discret,
-/// durées d'animation). Les deux modes doivent rester strictement
-/// symétriques dans leur structure : n'ajouter un champ que dans les deux
-/// fonctions à la fois.
+/// `ColorScheme` couvre les rôles Material 3 usuels ; `AppPalette`, `AppMotion`
+/// et `AppMetrics` couvrent ce qui n'a pas d'équivalent standard (texte
+/// discret, durées d'animation, tailles/paddings partagés). Les deux modes
+/// doivent rester strictement symétriques dans leur structure : n'ajouter un
+/// champ que dans les deux fonctions à la fois.
 
 const _fontFamily = 'Inter';
 
@@ -50,6 +52,13 @@ const _motion = AppMotion(
   levelUp: AnimationSpec(Duration(milliseconds: 600), Curves.easeOutCubic),
 );
 
+/// `rootPadding` : seule valeur commune aux trois variantes de padding racine
+/// qui coexistaient avant l'étape 5, commit B (`all(24)`, `fromLTRB(24,16,24,8)`,
+/// aucune). `keypadHeight` : `doc/design.md` impose une valeur fixe (jamais un
+/// ratio d'écran) mais n'en fixe pas le nombre — 300 reste proche du rendu
+/// antérieur (`0.38 × ~800 dp` sur un téléphone courant).
+const _metrics = AppMetrics(rootPadding: EdgeInsets.all(24), keypadHeight: 300);
+
 ThemeData _buildTheme({required ColorScheme colorScheme, required AppPalette palette}) {
   final base = ThemeData(
     useMaterial3: true,
@@ -60,7 +69,7 @@ ThemeData _buildTheme({required ColorScheme colorScheme, required AppPalette pal
 
   return base.copyWith(
     textTheme: _textThemeFor(base.textTheme),
-    extensions: [palette, _motion],
+    extensions: [palette, _motion, _metrics],
   );
 }
 
@@ -124,6 +133,33 @@ class AppPalette extends ThemeExtension<AppPalette> {
   AppPalette lerp(ThemeExtension<AppPalette>? other, double t) {
     if (other is! AppPalette) return this;
     return AppPalette(textMuted: Color.lerp(textMuted, other.textMuted, t) ?? textMuted);
+  }
+}
+
+@immutable
+class AppMetrics extends ThemeExtension<AppMetrics> {
+  const AppMetrics({required this.rootPadding, required this.keypadHeight});
+
+  /// Padding uniforme du contenu racine de chaque écran.
+  final EdgeInsets rootPadding;
+
+  /// Hauteur fixe du pavé numérique (`doc/design.md` : jamais un ratio
+  /// d'écran — la mise en page ne doit pas bouger d'un appareil à l'autre).
+  final double keypadHeight;
+
+  @override
+  AppMetrics copyWith({EdgeInsets? rootPadding, double? keypadHeight}) => AppMetrics(
+    rootPadding: rootPadding ?? this.rootPadding,
+    keypadHeight: keypadHeight ?? this.keypadHeight,
+  );
+
+  @override
+  AppMetrics lerp(ThemeExtension<AppMetrics>? other, double t) {
+    if (other is! AppMetrics) return this;
+    return AppMetrics(
+      rootPadding: EdgeInsets.lerp(rootPadding, other.rootPadding, t) ?? rootPadding,
+      keypadHeight: lerpDouble(keypadHeight, other.keypadHeight, t) ?? keypadHeight,
+    );
   }
 }
 

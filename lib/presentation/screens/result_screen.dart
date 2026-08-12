@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/state/session_controller.dart';
 import '../../core/state/session_state.dart';
+import '../theme/app_theme.dart';
 
 class ResultScreen extends StatelessWidget {
   const ResultScreen({
@@ -27,6 +28,7 @@ class ResultScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final result = controller.result;
     final accuracyPercent = (result.accuracy * 100).round();
     final title = controller.state.status == SessionStatus.interrupted
@@ -35,29 +37,30 @@ class ResultScreen extends StatelessWidget {
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: theme.extension<AppMetrics>()!.rootPadding,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
+            Text(title, textAlign: TextAlign.center, style: theme.textTheme.titleMedium),
             const SizedBox(height: 24),
             Text(
               'Score : ${result.totalScore}',
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleLarge,
+              style: theme.textTheme.titleLarge,
             ),
             const SizedBox(height: 8),
             Text(
               '${result.correctCount} / ${result.outcomes.length} bonnes réponses ($accuracyPercent %)',
               textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 8),
-            Text('Temps moyen : ${result.averageElapsedMs.round()} ms', textAlign: TextAlign.center),
+            Text(
+              'Temps moyen : ${result.averageElapsedMs.round()} ms',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium,
+            ),
             const SizedBox(height: 32),
             FilledButton(
               onPressed: isRestarting ? null : onPlayAgain,
@@ -74,7 +77,7 @@ class ResultScreen extends StatelessWidget {
               Text(
                 restartError!,
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
+                style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error),
               ),
             ],
             const SizedBox(height: 8),
