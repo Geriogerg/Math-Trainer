@@ -37,11 +37,30 @@ class Scorer {
   /// levels`), jamais le niveau courant du cache — la difficulté qui a
   /// réellement produit cette question.
   int pointsFor(AnswerResult answer, {required int currentStreak, required int level}) {
+    // `level` validé même pour une réponse fausse (compat. avec le
+    // comportement d'origine, testé explicitement) : `_difficultyMultiplier`
+    // doit s'évaluer avant le court-circuit de `rawPointsFor`.
     final multiplier = _difficultyMultiplier(level);
     if (!answer.isCorrect) return 0;
-    final rawPoints =
-        rules.basePoints + _speedBonus(answer.elapsedMs) + _streakBonus(currentStreak);
+    final raw = rawPointsFor(answer, currentStreak: currentStreak);
+    final rawPoints = raw.base + raw.speedBonus + raw.streakBonus;
     return (rawPoints * multiplier).round();
+  }
+
+  /// Décomposition d'une réponse avant multiplicateur de difficulté —
+  /// {base: 0, speedBonus: 0, streakBonus: 0} si `!answer.isCorrect`. Sert à
+  /// afficher la composition du score en fin de session (`doc/design.md`) ;
+  /// `pointsFor` s'appuie dessus plutôt que de dupliquer le calcul.
+  ({int base, int speedBonus, int streakBonus}) rawPointsFor(
+    AnswerResult answer, {
+    required int currentStreak,
+  }) {
+    if (!answer.isCorrect) return (base: 0, speedBonus: 0, streakBonus: 0);
+    return (
+      base: rules.basePoints,
+      speedBonus: _speedBonus(answer.elapsedMs),
+      streakBonus: _streakBonus(currentStreak),
+    );
   }
 
   int _speedBonus(int elapsedMs) {

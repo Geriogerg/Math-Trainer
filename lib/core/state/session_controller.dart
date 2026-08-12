@@ -68,6 +68,15 @@ class SessionController extends ChangeNotifier {
   bool _hasActivityThisQuestion = false;
   int _consecutiveTimeoutsWithoutActivity = 0;
   Future<void>? _pendingPersistence;
+  Map<ExerciseType, LevelCacheEntry>? _lastLevelUpdates;
+
+  /// Niveaux mis à jour par la session qui vient de se terminer — `null`
+  /// tant que le calcul asynchrone (`_persistCompletedSession`) n'a pas
+  /// résolu, ou après une session interrompue (jamais calculé, voir
+  /// `countsForLevels`). Absent de `outcomes`, donc pas reconstituible
+  /// autrement : sert à l'écran de résultat pour animer le changement de
+  /// niveau (`doc/design.md`, `AppMotion.levelUp`).
+  Map<ExerciseType, LevelCacheEntry>? get lastLevelUpdates => _lastLevelUpdates;
 
   /// Se résout quand l'écriture de fin de session (réponses + éventuelle
   /// mise à jour du cache de niveaux) est terminée. Une relance immédiate
@@ -210,12 +219,14 @@ class SessionController extends ChangeNotifier {
     _interruptSession();
   }
 
-  SessionResult get result => SessionResult(outcomes: _state.outcomes, totalScore: _state.score);
+  SessionResult get result =>
+      SessionResult(outcomes: _state.outcomes, totalScore: _state.score, scorer: scorer);
 
   void restart() {
     _timeoutTimer?.cancel();
     _state = SessionState.initial();
     _questionStartedAt = null;
+    _lastLevelUpdates = null;
     notifyListeners();
   }
 
@@ -285,6 +296,11 @@ class SessionController extends ChangeNotifier {
         // catch trop large réintroduirait le même problème qu'un `assert`
         // supprimé en release, côté try/catch cette fois.
       }
+      // Peuplé même vide (échec ci-dessus, ou aucun type n'a atteint n_min
+      // cette session) : `null` signifie spécifiquement « jamais calculé »
+      // (session interrompue), pas « calculé, rien n'a changé ».
+      _lastLevelUpdates = levelUpdates;
+      notifyListeners();
     }
 
     try {

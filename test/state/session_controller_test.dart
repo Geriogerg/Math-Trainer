@@ -644,4 +644,99 @@ void main() {
       expect(controller.state.status, SessionStatus.finished);
     });
   });
+
+  group('lastLevelUpdates (étape 5, commit D)', () {
+    test('se peuple une fois la session terminée normalement', () async {
+      final repository = InMemorySessionRepository();
+      final eightExercises = List.generate(
+        8,
+        (i) => ArithmeticExercise(operandA: i, operandB: 0, operationType: OperationType.addition),
+      );
+      final controller = SessionController(
+        config: SessionConfig(
+          seed: 1,
+          enabledTypes: {ExerciseType.addition},
+          exerciseCount: 8,
+          levels: {ExerciseType.addition: 50},
+        ),
+        exerciseSource: _FixedExerciseSource(eightExercises),
+        repository: repository,
+        playerId: 'test-player',
+        clock: () => DateTime(2024),
+        createTimer: (duration, callback) => _FakeTimer(callback),
+      );
+
+      expect(controller.lastLevelUpdates, isNull);
+
+      controller.start();
+      for (var i = 0; i < 8; i++) {
+        controller.submitAnswer(i); // i + 0 = i : toujours correct
+      }
+      await controller.pendingPersistence;
+
+      expect(controller.lastLevelUpdates?[ExerciseType.addition]?.level, 53);
+    });
+
+    test('reste null après une session interrompue (countsForLevels: false)', () async {
+      final repository = InMemorySessionRepository();
+      final controller = SessionController(
+        config: SessionConfig(
+          seed: 1,
+          enabledTypes: {ExerciseType.addition},
+          exerciseCount: 8,
+          levels: {ExerciseType.addition: 50},
+        ),
+        exerciseSource: _FixedExerciseSource(
+          List.generate(
+            8,
+            (i) => ArithmeticExercise(operandA: i, operandB: 0, operationType: OperationType.addition),
+          ),
+        ),
+        repository: repository,
+        playerId: 'test-player',
+        clock: () => DateTime(2024),
+        createTimer: (duration, callback) => _FakeTimer(callback),
+      );
+
+      controller.start();
+      controller.submitAnswer(0);
+      controller.abandon();
+      await controller.pendingPersistence;
+
+      expect(controller.lastLevelUpdates, isNull);
+    });
+
+    test('restart() efface la valeur précédente', () async {
+      final repository = InMemorySessionRepository();
+      final controller = SessionController(
+        config: SessionConfig(
+          seed: 1,
+          enabledTypes: {ExerciseType.addition},
+          exerciseCount: 4,
+          levels: {ExerciseType.addition: 50},
+        ),
+        exerciseSource: _FixedExerciseSource(
+          List.generate(
+            4,
+            (i) => ArithmeticExercise(operandA: i, operandB: 0, operationType: OperationType.addition),
+          ),
+        ),
+        repository: repository,
+        playerId: 'test-player',
+        clock: () => DateTime(2024),
+        createTimer: (duration, callback) => _FakeTimer(callback),
+      );
+
+      controller.start();
+      for (var i = 0; i < 4; i++) {
+        controller.submitAnswer(i);
+      }
+      await controller.pendingPersistence;
+      expect(controller.lastLevelUpdates, isNotNull);
+
+      controller.restart();
+
+      expect(controller.lastLevelUpdates, isNull);
+    });
+  });
 }

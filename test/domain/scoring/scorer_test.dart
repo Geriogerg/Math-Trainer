@@ -120,6 +120,34 @@ void main() {
       expect(points, (rules.basePoints * (1 + 49 / 99)).round());
     });
 
+    test('rawPointsFor décompose une réponse fausse en zéros', () {
+      final raw = scorer.rawPointsFor(answer(isCorrect: false, elapsedMs: 0), currentStreak: 5);
+
+      expect(raw, (base: 0, speedBonus: 0, streakBonus: 0));
+    });
+
+    test('rawPointsFor décompose une réponse correcte (base, vitesse, série séparés)', () {
+      final rules = scorer.rules;
+
+      final raw = scorer.rawPointsFor(answer(isCorrect: true, elapsedMs: 0), currentStreak: 5);
+
+      expect(raw.base, rules.basePoints);
+      expect(raw.speedBonus, rules.maxSpeedBonus);
+      expect(raw.streakBonus, 4 * rules.streakBonusPerStep);
+    });
+
+    test('pointsFor applique le multiplicateur de difficulté à la somme de rawPointsFor', () {
+      const scorerWithRules = Scorer(rules: ScoringRules(difficultyBonusMax: 1.0));
+      final theAnswer = answer(isCorrect: true, elapsedMs: 5000);
+
+      final raw = scorerWithRules.rawPointsFor(theAnswer, currentStreak: 1);
+      final points = scorerWithRules.pointsFor(theAnswer, currentStreak: 1, level: 50);
+
+      // Niveau 50 : multiplicateur = 1 + 49/99 * 1.0.
+      final expectedMultiplier = 1 + 49 / 99;
+      expect(points, ((raw.base + raw.speedBonus + raw.streakBonus) * expectedMultiplier).round());
+    });
+
     test('refuse un niveau hors [1, 100], y compris pour une réponse fausse', () {
       expect(
         () => scorer.pointsFor(
