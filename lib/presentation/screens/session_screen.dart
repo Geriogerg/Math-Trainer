@@ -7,6 +7,7 @@ import '../../core/state/session_controller.dart';
 import '../exercise_prompt.dart';
 import '../exercise_type_labels.dart';
 import '../theme/app_theme.dart';
+import 'empty_state.dart';
 
 class SessionScreen extends StatefulWidget {
   const SessionScreen({super.key, required this.controller});
@@ -111,7 +112,13 @@ class _SessionScreenState extends State<SessionScreen> with TickerProviderStateM
   Widget build(BuildContext context) {
     final state = widget.controller.state;
     final exercise = state.currentExercise;
-    if (exercise == null) return const SizedBox.shrink();
+    if (exercise == null) {
+      return EmptyState(
+        message: 'Aucune question à afficher.',
+        actionLabel: 'Quitter',
+        onAction: () => Navigator.of(context).maybePop(),
+      );
+    }
 
     final theme = Theme.of(context);
     final level = widget.controller.config.levels[exercise.type] ?? 1;

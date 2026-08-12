@@ -200,6 +200,16 @@ class SessionController extends ChangeNotifier {
     _pendingPersistence = _persistCompletedSession(countsForLevels: false);
   }
 
+  /// Abandon manuel (retour Android confirmé, étape 5 commit A) : même
+  /// traitement qu'une interruption automatique — statut `interrupted`,
+  /// réponses déjà données persistées, cache de niveaux non touché. Aucune
+  /// notion nouvelle, la distinction terminée/interrompue existe depuis
+  /// l'étape 4.2.
+  void abandon() {
+    if (_state.status != SessionStatus.inProgress) return;
+    _interruptSession();
+  }
+
   SessionResult get result => SessionResult(outcomes: _state.outcomes, totalScore: _state.score);
 
   void restart() {

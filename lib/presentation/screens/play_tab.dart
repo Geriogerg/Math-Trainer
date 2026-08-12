@@ -132,7 +132,10 @@ class _TypeSelectionView extends StatelessWidget {
                     )
                   : const Text('Commencer'),
             ),
-            if (startError != null) ...[
+            if (selectedTypes.isEmpty) ...[
+              const SizedBox(height: 8),
+              const Text('Aucun type sélectionné.'),
+            ] else if (startError != null) ...[
               const SizedBox(height: 8),
               Text(startError!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
             ],

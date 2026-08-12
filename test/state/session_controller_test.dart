@@ -535,4 +535,97 @@ void main() {
       expect(controller.state.status, SessionStatus.notStarted);
     });
   });
+
+  group('abandon() (étape 5, commit A)', () {
+    List<ArithmeticExercise> manyExercises(int count) => List.generate(
+      count,
+      (i) => ArithmeticExercise(operandA: i, operandB: 0, operationType: OperationType.addition),
+    );
+
+    test('interrompt une session en cours, réponses déjà données conservées', () async {
+      final repository = InMemorySessionRepository();
+      final controller = SessionController(
+        config: SessionConfig(
+          seed: 1,
+          enabledTypes: {ExerciseType.addition},
+          exerciseCount: 10,
+          levels: {ExerciseType.addition: 50},
+        ),
+        exerciseSource: _FixedExerciseSource(manyExercises(10)),
+        repository: repository,
+        playerId: 'test-player',
+        clock: () => DateTime(2024),
+        createTimer: (duration, callback) => _FakeTimer(callback),
+      );
+
+      controller.start();
+      controller.submitAnswer(0);
+      controller.submitAnswer(1);
+      controller.abandon();
+
+      expect(controller.state.status, SessionStatus.interrupted);
+      expect(controller.state.outcomes, hasLength(2));
+      expect(controller.state.currentExercise, isNull);
+
+      await controller.pendingPersistence;
+      final sessions = await repository.recentSessions();
+      expect(sessions, hasLength(1));
+      expect(sessions.single.exerciseCount, 10);
+      final answers = await repository.answersForSession(sessions.single.id);
+      expect(answers, hasLength(2));
+      // Pas comptabilisée pour les niveaux, comme une interruption automatique.
+      expect(await repository.currentLevels('test-player'), isEmpty);
+    });
+
+    test('annule le timer en cours', () {
+      final spy = _TimerSpy();
+      final controller = SessionController(
+        config: SessionConfig(
+          seed: 1,
+          enabledTypes: {ExerciseType.addition},
+          exerciseCount: 5,
+          levels: {ExerciseType.addition: 1},
+        ),
+        exerciseSource: _FixedExerciseSource(manyExercises(5)),
+        repository: InMemorySessionRepository(),
+        playerId: 'test-player',
+        clock: () => DateTime(2024),
+        createTimer: spy.create,
+      );
+
+      controller.start();
+      final timer = spy.latest;
+      expect(timer.isActive, isTrue);
+
+      controller.abandon();
+
+      expect(timer.isActive, isFalse);
+    });
+
+    test('ne fait rien avant start() ou après la fin de la session', () {
+      final controller = SessionController(
+        config: SessionConfig(
+          seed: 1,
+          enabledTypes: {ExerciseType.addition},
+          exerciseCount: 1,
+          levels: {ExerciseType.addition: 1},
+        ),
+        exerciseSource: _FixedExerciseSource(manyExercises(1)),
+        repository: InMemorySessionRepository(),
+        playerId: 'test-player',
+        clock: () => DateTime(2024),
+        createTimer: (duration, callback) => _FakeTimer(callback),
+      );
+
+      controller.abandon();
+      expect(controller.state.status, SessionStatus.notStarted);
+
+      controller.start();
+      controller.submitAnswer(0); // seule question : session déjà finished
+      expect(controller.state.status, SessionStatus.finished);
+
+      controller.abandon();
+      expect(controller.state.status, SessionStatus.finished);
+    });
+  });
 }

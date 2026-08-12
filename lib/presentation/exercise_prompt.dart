@@ -85,7 +85,12 @@ class _SquareRootPrompt extends StatelessWidget {
         Container(
           padding: const EdgeInsets.only(top: 2),
           decoration: BoxDecoration(
-            border: Border(top: BorderSide(color: style?.color ?? Colors.black, width: 2)),
+            border: Border(
+              top: BorderSide(
+                color: style?.color ?? Theme.of(context).colorScheme.onSurface,
+                width: 2,
+              ),
+            ),
           ),
           child: Text('${exercise.radicand}', style: style),
         ),

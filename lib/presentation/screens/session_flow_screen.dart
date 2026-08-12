@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../composition_root.dart';
 import '../../core/state/session_controller.dart';
 import '../../core/state/session_state.dart';
+import 'empty_state.dart';
 import 'result_screen.dart';
 import 'session_screen.dart';
 
@@ -42,6 +43,37 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
 
   void _exitToSelection() => Navigator.of(context).pop();
 
+  /// Geste retour pendant une session en cours (étape 5, commit A) : le
+  /// pop est intercepté (`canPop: false` tant que `inProgress`), confirmé
+  /// puis traité comme un abandon manuel — même distinction terminée/
+  /// interrompue qu'un abandon automatique par timeouts (étape 4.2).
+  Future<void> _handlePopAttempt(bool didPop) async {
+    if (didPop) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Quitter la partie ?'),
+        content: const Text(
+          'La session sera interrompue. Les réponses déjà données restent enregistrées.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Quitter'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    _controller.abandon();
+    if (!mounted) return;
+    Navigator.of(context).pop();
+  }
+
   /// Mêmes types, niveaux relus (donc à jour), nouvelle seed — la réutiliser
   /// ferait rejouer exactement les mêmes questions (`doc/decisions.md`).
   Future<void> _playAgain() async {
@@ -75,29 +107,35 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: ListenableBuilder(
-          listenable: _controller,
-          builder: (context, _) {
-            return switch (_controller.state.status) {
-              // N'arrive jamais en pratique : start() est appelé avant de
-              // pousser cette route (et avant chaque relance). Géré quand
-              // même pour l'exhaustivité du switch (règle 11).
-              SessionStatus.notStarted => const SizedBox.shrink(),
-              SessionStatus.inProgress => SessionScreen(controller: _controller),
-              SessionStatus.finished ||
-              SessionStatus.interrupted => ResultScreen(
-                controller: _controller,
-                onPlayAgain: _playAgain,
-                onExitToSelection: _exitToSelection,
-                isRestarting: _isRestarting,
-                restartError: _restartError,
-              ),
-            };
-          },
-        ),
-      ),
+    return ListenableBuilder(
+      listenable: _controller,
+      builder: (context, _) {
+        final status = _controller.state.status;
+        return PopScope(
+          canPop: status != SessionStatus.inProgress,
+          onPopInvokedWithResult: (didPop, result) => _handlePopAttempt(didPop),
+          child: Scaffold(
+            body: SafeArea(
+              child: switch (status) {
+                SessionStatus.notStarted => EmptyState(
+                  message: 'Session non démarrée.',
+                  actionLabel: 'Quitter',
+                  onAction: () => Navigator.of(context).maybePop(),
+                ),
+                SessionStatus.inProgress => SessionScreen(controller: _controller),
+                SessionStatus.finished ||
+                SessionStatus.interrupted => ResultScreen(
+                  controller: _controller,
+                  onPlayAgain: _playAgain,
+                  onExitToSelection: _exitToSelection,
+                  isRestarting: _isRestarting,
+                  restartError: _restartError,
+                ),
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 }

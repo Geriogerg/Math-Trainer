@@ -44,6 +44,13 @@ détient un `SessionState` immuable et notifie l'UI via `ListenableBuilder`. Dep
 il déclenche aussi l'écriture en base en fin de session — asynchrone, non bloquante pour l'UI,
 échec silencieux.
 
+`SessionController.abandon()` (étape 5, commit A) délègue à `_interruptSession()`, déjà
+existante depuis l'étape 4.2 pour l'abandon automatique par timeouts — pas de nouvelle notion,
+juste un second déclencheur du même statut `interrupted`. `SessionFlowScreen` l'appelle depuis un
+`PopScope` qui intercepte la tentative de sortie tant que `status == inProgress` (`canPop` réévalué
+à chaque notification, donc placé à l'intérieur du `ListenableBuilder`) et demande confirmation
+avant d'abandonner.
+
 ## Composition root
 
 `lib/composition_root.dart` est le seul fichier qui choisit les implémentations concrètes

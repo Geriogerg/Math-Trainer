@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:math_trainer/app.dart';
+import 'package:math_trainer/presentation/screens/session_screen.dart';
 import 'package:math_trainer/composition_root.dart';
 import 'package:math_trainer/core/domain/persistence/level_cache_entry.dart';
 import 'package:math_trainer/core/domain/models/exercise_type.dart';
@@ -66,7 +67,9 @@ void main() {
     expect(find.byIcon(Icons.backspace_outlined), findsOneWidget);
   });
 
-  testWidgets('aucun type sélectionné désactive Commencer', (WidgetTester tester) async {
+  testWidgets('aucun type sélectionné désactive Commencer et explique pourquoi', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
 
     // Décoche les 2 types pré-sélectionnés par défaut (étape 4.1, commit A).
@@ -74,6 +77,9 @@ void main() {
       await tester.tap(find.text(label));
       await tester.pump();
     }
+
+    expect(find.text('Aucun type sélectionné.'), findsOneWidget);
+
     await tester.tap(find.text('Commencer'));
     await tester.pump();
 
@@ -94,6 +100,47 @@ void main() {
 
     expect(find.byIcon(Icons.check), findsOneWidget);
   });
+
+  testWidgets(
+    'le geste retour pendant une session demande confirmation avant d\'interrompre (étape 5, commit A)',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
+
+      await tester.tap(find.text('Commencer'));
+      await settlePageTransition(tester);
+      expect(find.byIcon(Icons.check), findsOneWidget);
+
+      // Pas de bouton retour visible (`doc/design.md` : l'écran de session ne
+      // porte aucune navigation) : on déclenche la tentative de pop comme le
+      // ferait le geste système, via le Navigator qui porte la route poussée.
+      // `pumpAndSettle()` est proscrit ici (voir `settlePageTransition`) : le
+      // chrono de la question tourne toujours pendant que le dialogue est
+      // ouvert, et ferait avancer le temps virtuel jusqu'au timeout.
+      Future<void> attemptPop() async {
+        final context = tester.element(find.byType(SessionScreen));
+        Navigator.of(context).maybePop();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200));
+      }
+
+      await attemptPop();
+      expect(find.text('Quitter la partie ?'), findsOneWidget);
+
+      // Annuler : le dialogue se ferme, la session continue sans rien perdre.
+      await tester.tap(find.text('Annuler'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(find.text('Quitter la partie ?'), findsNothing);
+      expect(find.byIcon(Icons.check), findsOneWidget);
+
+      // Nouvelle tentative, confirmée cette fois : la session est interrompue.
+      await attemptPop();
+      await tester.tap(find.text('Quitter'));
+      await settlePageTransition(tester);
+
+      expect(find.text('Session interrompue'), findsOneWidget);
+    },
+  );
 
   /// 2 types par défaut, n_min=4 (étape 4.2) : sessionLengthFor(2, 4, 24) = 8
   /// questions. La borne de boucle (20) reste une marge de sécurité, pas le
