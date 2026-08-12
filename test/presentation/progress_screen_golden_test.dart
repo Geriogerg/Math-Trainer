@@ -13,8 +13,43 @@ import 'package:math_trainer/presentation/theme/app_theme.dart';
 import 'golden_test_utils.dart';
 
 /// Niveaux fixes pour deux types, les cinq autres restent « Non joué » —
-/// assez pour voir les deux états dans le même golden.
+/// assez pour voir les deux états dans le même golden. Dates de session
+/// relatives à `DateTime.now()` (calculées une fois à la construction) :
+/// l'écran positionne la courbe par rapport à « maintenant », des dates
+/// figées en dur dériveraient hors de la fenêtre de 30 jours au fil du
+/// temps et rendraient le golden non reproductible.
 class _FixedLevelsRepository implements SessionRepository {
+  _FixedLevelsRepository(DateTime now)
+    : _windowSessions = [
+        _session('window-1', now.subtract(const Duration(days: 25)), level: 20, score: 40),
+        _session('window-2', now.subtract(const Duration(days: 15)), level: 30, score: 60),
+        _session('window-3', now.subtract(const Duration(days: 5)), level: 42, score: 90),
+      ],
+      _recentSessions = [
+        _session('recent-1', now.subtract(const Duration(days: 5)), level: 42, score: 90),
+        _session('recent-2', now.subtract(const Duration(days: 15)), level: 30, score: 60),
+        _session('recent-3', now.subtract(const Duration(days: 25)), level: 20, score: 40),
+      ];
+
+  final List<PersistedSession> _windowSessions;
+  final List<PersistedSession> _recentSessions;
+
+  static PersistedSession _session(
+    String id,
+    DateTime createdAt, {
+    required int level,
+    required int score,
+  }) => PersistedSession(
+    id: id,
+    playerId: 'golden-player',
+    seed: 1,
+    enabledTypes: const {ExerciseType.addition},
+    exerciseCount: 4,
+    totalScore: score,
+    levels: {ExerciseType.addition: level},
+    createdAt: createdAt,
+  );
+
   @override
   Future<Map<ExerciseType, LevelCacheEntry>> currentLevels(String playerId) async => {
     ExerciseType.addition: LevelCacheEntry(
@@ -30,6 +65,19 @@ class _FixedLevelsRepository implements SessionRepository {
   };
 
   @override
+  Future<Map<ExerciseType, double>> averageElapsedMsByType(String playerId) async => {
+    ExerciseType.addition: 1200,
+    ExerciseType.multiplication: 3400,
+  };
+
+  @override
+  Future<List<PersistedSession>> sessionsSince(String playerId, DateTime since) async =>
+      _windowSessions;
+
+  @override
+  Future<List<PersistedSession>> recentSessions({int limit = 20}) async => _recentSessions;
+
+  @override
   Future<void> recordSession({
     required PersistedSession session,
     required List<PersistedAnswer> answers,
@@ -37,18 +85,7 @@ class _FixedLevelsRepository implements SessionRepository {
   }) => throw UnimplementedError();
 
   @override
-  Future<List<PersistedSession>> recentSessions({int limit = 20}) => throw UnimplementedError();
-
-  @override
   Future<List<PersistedAnswer>> answersForSession(String sessionId) => throw UnimplementedError();
-
-  @override
-  Future<Map<ExerciseType, double>> averageElapsedMsByType(String playerId) =>
-      throw UnimplementedError();
-
-  @override
-  Future<List<PersistedSession>> sessionsSince(String playerId, DateTime since) =>
-      throw UnimplementedError();
 }
 
 void main() {
@@ -61,7 +98,7 @@ void main() {
     testWidgets('écran de progression — ${mode.name}', (tester) async {
       await setGoldenSurfaceSize(tester);
       final environment = AppEnvironment(
-        repository: _FixedLevelsRepository(),
+        repository: _FixedLevelsRepository(DateTime.now().toUtc()),
         playerId: 'golden-player',
       );
 
