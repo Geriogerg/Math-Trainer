@@ -92,6 +92,14 @@ class _LevelReadFailureRepository implements SessionRepository {
   @override
   Future<List<PersistedAnswer>> answersForSession(String sessionId) =>
       inner.answersForSession(sessionId);
+
+  @override
+  Future<Map<ExerciseType, double>> averageElapsedMsByType(String playerId) =>
+      inner.averageElapsedMsByType(playerId);
+
+  @override
+  Future<List<PersistedSession>> sessionsSince(String playerId, DateTime since) =>
+      inner.sessionsSince(playerId, since);
 }
 
 /// `currentLevels` lève un `Error` (pas une `Exception`) : simule un bug —
@@ -118,6 +126,14 @@ class _BuggyLevelReadRepository implements SessionRepository {
   @override
   Future<List<PersistedAnswer>> answersForSession(String sessionId) =>
       inner.answersForSession(sessionId);
+
+  @override
+  Future<Map<ExerciseType, double>> averageElapsedMsByType(String playerId) =>
+      inner.averageElapsedMsByType(playerId);
+
+  @override
+  Future<List<PersistedSession>> sessionsSince(String playerId, DateTime since) =>
+      inner.sessionsSince(playerId, since);
 }
 
 void main() {

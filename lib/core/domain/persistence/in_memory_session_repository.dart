@@ -38,4 +38,32 @@ class InMemorySessionRepository implements SessionRepository {
   Future<Map<ExerciseType, LevelCacheEntry>> currentLevels(String playerId) async {
     return Map.of(_levelsByPlayer[playerId] ?? {});
   }
+
+  @override
+  Future<Map<ExerciseType, double>> averageElapsedMsByType(String playerId) async {
+    final sessionIds = _sessions
+        .where((session) => session.playerId == playerId)
+        .map((session) => session.id)
+        .toSet();
+    final byType = <ExerciseType, List<int>>{};
+    for (final answer in _answers) {
+      if (!sessionIds.contains(answer.sessionId)) continue;
+      // `operationType`, pas `exerciseType` : voir le commentaire équivalent
+      // dans SqfliteSessionRepository — 'arithmetic' n'est pas un ExerciseType.
+      final type = ExerciseType.values.byName(answer.operationType);
+      byType.putIfAbsent(type, () => []).add(answer.elapsedMs);
+    }
+    return {
+      for (final entry in byType.entries)
+        entry.key: entry.value.reduce((a, b) => a + b) / entry.value.length,
+    };
+  }
+
+  @override
+  Future<List<PersistedSession>> sessionsSince(String playerId, DateTime since) async {
+    final matching = _sessions.where(
+      (session) => session.playerId == playerId && !session.createdAt.isBefore(since),
+    );
+    return matching.toList()..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+  }
 }

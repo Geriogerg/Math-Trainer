@@ -26,10 +26,10 @@ void main() {
 
   tearDown(() => db.close());
 
-  PersistedSession session(String id, {required DateTime createdAt}) {
+  PersistedSession session(String id, {required DateTime createdAt, String playerId = 'player-1'}) {
     return PersistedSession(
       id: id,
-      playerId: 'player-1',
+      playerId: playerId,
       seed: 42,
       enabledTypes: const {ExerciseType.addition, ExerciseType.division},
       exerciseCount: 10,
@@ -39,16 +39,21 @@ void main() {
     );
   }
 
-  PersistedAnswer answer(String id, String sessionId) {
+  PersistedAnswer answer(
+    String id,
+    String sessionId, {
+    String operationType = 'addition',
+    int elapsedMs = 1200,
+  }) {
     return PersistedAnswer(
       id: id,
       sessionId: sessionId,
       exerciseType: 'arithmetic',
-      operationType: 'addition',
+      operationType: operationType,
       operands: const {'operandA': 4, 'operandB': 3},
       submittedValue: 7,
       isCorrect: true,
-      elapsedMs: 1200,
+      elapsedMs: elapsedMs,
       createdAt: DateTime.utc(2026, 8, 8),
       syncedAt: DateTime.utc(2026, 8, 8, 1),
     );
@@ -154,6 +159,57 @@ void main() {
       final levels = await repository.currentLevels('player-1');
       expect(levels[ExerciseType.addition]?.level, 45);
       expect(levels[ExerciseType.addition]?.sessionsPlayed, 2);
+    });
+
+    test('averageElapsedMsByType moyenne par opération, réponses d\'un seul joueur', () async {
+      await repository.recordSession(
+        session: session('session-1', createdAt: DateTime.utc(2026, 8, 8)),
+        answers: [
+          answer('a1', 'session-1', operationType: 'addition', elapsedMs: 1000),
+          answer('a2', 'session-1', operationType: 'addition', elapsedMs: 2000),
+          answer('a3', 'session-1', operationType: 'subtraction', elapsedMs: 500),
+        ],
+        levelUpdates: const {},
+      );
+      // Réponse d'un autre joueur — ne doit pas entrer dans la moyenne.
+      await repository.recordSession(
+        session: session('session-2', createdAt: DateTime.utc(2026, 8, 8), playerId: 'player-b'),
+        answers: [answer('a4', 'session-2', operationType: 'addition', elapsedMs: 9999)],
+        levelUpdates: const {},
+      );
+
+      final result = await repository.averageElapsedMsByType('player-1');
+
+      expect(result[ExerciseType.addition], 1500);
+      expect(result[ExerciseType.subtraction], 500);
+      expect(result.containsKey(ExerciseType.multiplication), isFalse);
+    });
+
+    test('sessionsSince ne retourne que les sessions du joueur à partir de la date, triées', () async {
+      await repository.recordSession(
+        session: session('too-old', createdAt: DateTime.utc(2026, 7, 1)),
+        answers: const [],
+        levelUpdates: const {},
+      );
+      await repository.recordSession(
+        session: session('in-window-late', createdAt: DateTime.utc(2026, 8, 10)),
+        answers: const [],
+        levelUpdates: const {},
+      );
+      await repository.recordSession(
+        session: session('in-window-early', createdAt: DateTime.utc(2026, 8, 5)),
+        answers: const [],
+        levelUpdates: const {},
+      );
+      await repository.recordSession(
+        session: session('other-player', createdAt: DateTime.utc(2026, 8, 5), playerId: 'player-b'),
+        answers: const [],
+        levelUpdates: const {},
+      );
+
+      final result = await repository.sessionsSince('player-1', DateTime.utc(2026, 8, 1));
+
+      expect(result.map((s) => s.id), equals(['in-window-early', 'in-window-late']));
     });
   });
 }

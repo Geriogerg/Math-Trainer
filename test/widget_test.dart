@@ -30,6 +30,14 @@ class _ThrowingSessionRepository implements SessionRepository {
   @override
   Future<Map<ExerciseType, LevelCacheEntry>> currentLevels(String playerId) =>
       throw Exception('échec simulé');
+
+  @override
+  Future<Map<ExerciseType, double>> averageElapsedMsByType(String playerId) =>
+      throw Exception('échec simulé');
+
+  @override
+  Future<List<PersistedSession>> sessionsSince(String playerId, DateTime since) =>
+      throw Exception('échec simulé');
 }
 
 void main() {

@@ -67,6 +67,41 @@ class SqfliteSessionRepository implements SessionRepository {
     };
   }
 
+  @override
+  Future<Map<ExerciseType, double>> averageElapsedMsByType(String playerId) async {
+    // `operation_type`, pas `exercise_type` : pour une variante arithmétique,
+    // `exercise_type` vaut toujours le littéral 'arithmetic' (`exercise_codec.
+    // dart`) — c'est `operation_type` qui porte le nom exploitable en
+    // `ExerciseType` (addition/soustraction/... ou le nom de la variante pour
+    // les trois autres familles, où les deux colonnes coïncident).
+    final rows = await _database.rawQuery(
+      '''
+      SELECT a.operation_type AS operation_type, AVG(a.elapsed_ms) AS avg_elapsed_ms
+      FROM answers a
+      JOIN sessions s ON s.id = a.session_id
+      WHERE s.player_id = ?
+      GROUP BY a.operation_type
+      ''',
+      [playerId],
+    );
+    return {
+      for (final row in rows)
+        ExerciseType.values.byName(row['operation_type'] as String):
+            (row['avg_elapsed_ms'] as num).toDouble(),
+    };
+  }
+
+  @override
+  Future<List<PersistedSession>> sessionsSince(String playerId, DateTime since) async {
+    final rows = await _database.query(
+      'sessions',
+      where: 'player_id = ? AND created_at >= ?',
+      whereArgs: [playerId, since.toIso8601String()],
+      orderBy: 'created_at ASC',
+    );
+    return rows.map(_sessionFromRow).toList();
+  }
+
   Map<String, Object?> _sessionToRow(PersistedSession session) {
     return {
       'id': session.id,

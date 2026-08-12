@@ -41,6 +41,14 @@ class _FlakySessionRepository implements SessionRepository {
   @override
   Future<List<PersistedAnswer>> answersForSession(String sessionId) =>
       throw UnimplementedError();
+
+  @override
+  Future<Map<ExerciseType, double>> averageElapsedMsByType(String playerId) =>
+      throw UnimplementedError();
+
+  @override
+  Future<List<PersistedSession>> sessionsSince(String playerId, DateTime since) =>
+      throw UnimplementedError();
 }
 
 void main() {
