@@ -29,19 +29,19 @@ ThemeData buildLightTheme() => _buildTheme(
 
 ThemeData buildDarkTheme() => _buildTheme(
   colorScheme: const ColorScheme.dark(
-    surface: Color(0xFF0A0E1C),
-    surfaceContainerHigh: Color(0xFF151A30),
-    outline: Color(0xFF232A47),
-    primary: Color(0xFF2ED9A0),
+    surface: Color(0xFF101528),
+    surfaceContainerHigh: Color(0xFF1B2340),
+    outline: Color(0xFF2A3352),
+    primary: Color(0xFF5DCAA5),
     // Accent clair : texte sombre plutôt que blanc pour le contraste
     // (`design.md` ne tranche pas ce point, confirmé à l'œil sur Android).
-    onPrimary: Color(0xFF0A0E1C),
-    onSurface: Color(0xFFEAF2FF),
-    onSurfaceVariant: Color(0xFF7FB0E8),
+    onPrimary: Color(0xFF101528),
+    onSurface: Color(0xFFE6F1FB),
+    onSurfaceVariant: Color(0xFF85B7EB),
     error: Color(0xFFE24B4A),
     onError: Color(0xFFFFFFFF),
   ),
-  palette: const AppPalette(textMuted: Color(0xFF4C5B7D)),
+  palette: const AppPalette(textMuted: Color(0xFF5A6B8C)),
 );
 
 const _motion = AppMotion(

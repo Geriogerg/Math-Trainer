@@ -164,7 +164,7 @@ distingués**, le temps moyen, la meilleure série, et les types joués.
 Le taux de réussite s'affiche en décompte brut (« 9/12 »), jamais en courbe ni en pourcentage
 présenté comme un progrès.
 
-Deux actions : **Rejouer** (dominante, à droite) et **Nouvelle sélection**. Envisager de porter
+Deux actions, centrées : **Rejouer** (dominante, style rempli) et **Nouvelle sélection**. Envisager de porter
 les puces de types directement sur cet écran — changer un seul type coûte aujourd'hui 3 taps.
 
 ## Écran de progression
