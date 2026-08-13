@@ -99,6 +99,72 @@ void main() {
     expect(find.textContaining('%'), findsNothing);
   });
 
+  testWidgets(
+    'Bonus de difficulté absent quand il vaut 0 (niveau 1, aucun multiplicateur)',
+    (tester) async {
+      final controller = SessionController(
+        config: SessionConfig(
+          seed: 1,
+          enabledTypes: const {ExerciseType.addition},
+          exerciseCount: 4,
+          levels: const {ExerciseType.addition: 1},
+        ),
+        exerciseSource: _FixedExerciseSource(additionExercises(4)),
+        repository: InMemorySessionRepository(),
+        playerId: 'test-player',
+        clock: () => DateTime(2024),
+        createTimer: (duration, callback) => _InertTimer(),
+      );
+      addTearDown(controller.dispose);
+      controller.start();
+      for (var i = 0; i < 4; i++) {
+        controller.submitAnswer(i);
+      }
+      await controller.pendingPersistence;
+
+      await pumpResultScreen(tester, controller);
+
+      expect(find.textContaining('Bonus de difficulté'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'un type resté sous n_min cette session est distingué d\'un niveau inchangé',
+    (tester) async {
+      // Deux types activés, mais la source d'exercices ne produit que de
+      // l'addition : la soustraction reste à 0 réponse, donc sous n_min —
+      // computeUpdates ne lui crée aucune entrée (voir level_cache_orchestrator.dart).
+      final controller = SessionController(
+        config: SessionConfig(
+          seed: 1,
+          enabledTypes: const {ExerciseType.addition, ExerciseType.subtraction},
+          exerciseCount: 4,
+          levels: const {ExerciseType.addition: 50, ExerciseType.subtraction: 50},
+        ),
+        exerciseSource: _FixedExerciseSource(additionExercises(4)),
+        repository: InMemorySessionRepository(),
+        playerId: 'test-player',
+        clock: () => DateTime(2024),
+        createTimer: (duration, callback) => _InertTimer(),
+      );
+      addTearDown(controller.dispose);
+      controller.start();
+      for (var i = 0; i < 4; i++) {
+        controller.submitAnswer(i);
+      }
+      await controller.pendingPersistence;
+
+      await pumpResultScreen(tester, controller);
+
+      expect(
+        find.text('Soustraction — niveau 50 (pas assez de réponses pour compter)'),
+        findsOneWidget,
+      );
+      // L'addition, elle, a bien été évaluée : pas ce texte-là pour elle.
+      expect(find.textContaining('Addition — niveau 50 (pas assez'), findsNothing);
+    },
+  );
+
   testWidgets('session interrompue : pas de bloc de changement de niveau', (tester) async {
     final controller = SessionController(
       config: SessionConfig(

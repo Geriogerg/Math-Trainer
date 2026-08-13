@@ -75,11 +75,15 @@ class ResultScreen extends StatelessWidget {
             textAlign: TextAlign.center,
             style: labelStyle,
           ),
-          Text(
-            'Bonus de difficulté : ${breakdown.difficultyBonus}',
-            textAlign: TextAlign.center,
-            style: labelStyle,
-          ),
+          // Vaut 0 pour tout joueur sous un niveau significatif
+          // (`_difficultyMultiplier(1) == 1`) — une ligne à 0 pour la
+          // majorité des sessions des premières semaines n'apprend rien.
+          if (breakdown.difficultyBonus != 0)
+            Text(
+              'Bonus de difficulté : ${breakdown.difficultyBonus}',
+              textAlign: TextAlign.center,
+              style: labelStyle,
+            ),
           const SizedBox(height: 16),
           // Décompte brut, jamais un pourcentage présenté comme un progrès
           // (`doc/design.md`) : le taux de réussite converge vers p_cible par
@@ -166,11 +170,21 @@ class _LevelChangeRow extends StatelessWidget {
       return Text('$label — niveau $before', textAlign: TextAlign.center, style: style);
     }
 
-    // Type resté sous n_min cette session : pas d'entrée, pas de changement.
-    final after = updates![type]?.level ?? before;
+    final entry = updates![type];
+    if (entry == null) {
+      // Type resté sous n_min cette session : aucune entrée calculée, donc
+      // rien à animer — distinct de « évalué, niveau inchangé » (le joueur
+      // ne peut pas faire la différence si les deux cas rendent pareil).
+      return Text(
+        '$label — niveau $before (pas assez de réponses pour compter)',
+        textAlign: TextAlign.center,
+        style: style,
+      );
+    }
+
     final motion = theme.extension<AppMotion>()!.levelUp;
     return TweenAnimationBuilder<double>(
-      tween: Tween(begin: before.toDouble(), end: after.toDouble()),
+      tween: Tween(begin: before.toDouble(), end: entry.level.toDouble()),
       duration: motion.duration,
       curve: motion.curve,
       builder: (context, value, _) =>
