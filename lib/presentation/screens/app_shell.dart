@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../composition_root.dart';
+import '../theme/app_theme.dart';
 import 'coming_soon_screen.dart';
 import 'play_tab.dart';
 import 'progress_screen.dart';
@@ -26,15 +27,37 @@ class AppShell extends StatefulWidget {
   State<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends State<AppShell> {
+class _AppShellState extends State<AppShell> with SingleTickerProviderStateMixin {
   int _index = 0;
   final _visited = {0};
+
+  /// Fondu de changement d'onglet (`AppMotion.tabChange`) — anime une
+  /// `Opacity` par-dessus l'`IndexedStack`, qui lui reste intact : le
+  /// remplacer par un widget reconstruit à chaque bascule perdrait l'état de
+  /// chaque onglet (sélection de types en cours sur Jouer, entre autres).
+  /// Durée posée juste avant `.forward()` (indisponible avant le premier
+  /// frame), même schéma que `_feedbackController` de `session_screen.dart`.
+  late final AnimationController _tabTransitionController = AnimationController(
+    vsync: this,
+    value: 1,
+  );
 
   void _selectTab(int index) {
     setState(() {
       _index = index;
       _visited.add(index);
     });
+    final motion = Theme.of(context).extension<AppMotion>()!.tabChange;
+    _tabTransitionController
+      ..duration = motion.duration
+      ..value = 0
+      ..animateTo(1, curve: motion.curve);
+  }
+
+  @override
+  void dispose() {
+    _tabTransitionController.dispose();
+    super.dispose();
   }
 
   @override
@@ -48,12 +71,16 @@ class _AppShellState extends State<AppShell> {
 
     return Scaffold(
       body: SafeArea(
-        child: IndexedStack(
-          index: _index,
-          children: [
-            for (var i = 0; i < tabs.length; i++)
-              _visited.contains(i) ? tabs[i] : const SizedBox.shrink(),
-          ],
+        child: AnimatedBuilder(
+          animation: _tabTransitionController,
+          builder: (context, child) => Opacity(opacity: _tabTransitionController.value, child: child),
+          child: IndexedStack(
+            index: _index,
+            children: [
+              for (var i = 0; i < tabs.length; i++)
+                _visited.contains(i) ? tabs[i] : const SizedBox.shrink(),
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: NavigationBar(

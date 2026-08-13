@@ -140,13 +140,23 @@ class _SessionScreenState extends State<SessionScreen> with TickerProviderStateM
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  '${exerciseTypeLabel(exercise.type)} · niveau $level',
+                  // Série visible seulement si > 0 : pas de bruit « série 0 »
+                  // à chaque première question (`doc/decisions.md` —
+                  // currentStreak affiché pendant la session).
+                  state.currentStreak > 0
+                      ? '${exerciseTypeLabel(exercise.type)} · niveau $level · série ${state.currentStreak}'
+                      : '${exerciseTypeLabel(exercise.type)} · niveau $level',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.extension<AppPalette>()!.textMuted,
                   ),
                 ),
                 const SizedBox(height: 16),
-                ExercisePrompt(exercise: exercise),
+                AnimatedSwitcher(
+                  duration: theme.extension<AppMotion>()!.questionTransition.duration,
+                  switchInCurve: theme.extension<AppMotion>()!.questionTransition.curve,
+                  switchOutCurve: theme.extension<AppMotion>()!.questionTransition.curve,
+                  child: ExercisePrompt(key: ValueKey(exercise), exercise: exercise),
+                ),
                 const SizedBox(height: 24),
                 _AnswerDisplay(
                   typedDigits: _typedDigits,
