@@ -12,10 +12,12 @@ import 'core/domain/models/session_config.dart';
 import 'core/domain/persistence/in_memory_session_repository.dart';
 import 'core/domain/persistence/local_player_id_provider.dart';
 import 'core/domain/persistence/session_repository.dart';
+import 'core/domain/persistence/theme_mode_store.dart';
 import 'core/domain/persistence/type_selection_store.dart';
 import 'core/state/session_controller.dart';
 import 'infrastructure/persistence/database.dart';
 import 'infrastructure/persistence/shared_preferences_player_id_provider.dart';
+import 'infrastructure/persistence/shared_preferences_theme_mode_store.dart';
 import 'infrastructure/persistence/shared_preferences_type_selection_store.dart';
 import 'infrastructure/persistence/sqflite_session_repository.dart';
 
@@ -36,6 +38,7 @@ class AppEnvironment {
     required this.repository,
     required this.playerId,
     this.typeSelectionStore = const SharedPreferencesTypeSelectionStore(),
+    this.themeModeStore = const SharedPreferencesThemeModeStore(),
   });
 
   final SessionRepository repository;
@@ -46,6 +49,11 @@ class AppEnvironment {
   /// (`ProgressScreen`, `ResultScreen`...), même raisonnement que
   /// `SessionResult.scorer` (étape 5, commit D).
   final TypeSelectionStore typeSelectionStore;
+
+  /// Même raisonnement que `typeSelectionStore` : optionnel pour ne pas
+  /// casser la construction dans les tests qui ne s'intéressent pas à la
+  /// bascule de thème.
+  final ThemeModeStore themeModeStore;
 }
 
 Future<AppEnvironment> buildAppEnvironment() async {

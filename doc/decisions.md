@@ -396,3 +396,28 @@ test de déterminisme régénérées dans le même commit.
 Contourne un bug Windows : le compilateur Kotlin plante quand le projet et les caches Gradle
 sont sur des lettres de lecteur différentes (D: vs C:). Purement environnemental.
 **À revérifier** sur machine propre ou en CI avant le premier `flutter build appbundle`.
+
+## Bouton nuit/jour manuel
+
+`app.dart` fixait `themeMode: ThemeMode.system` avec un commentaire disant que le choix revenait
+au système, pas à un bouton dans l'app — un choix de code, jamais acté ici. Revenu dessus :
+bouton dans le coin de l'écran d'accueil (`doc/design.md` — emplacement déjà prévu pour
+profil/réglages), bascule persistée via `ThemeModeStore` (même schéma que `TypeSelectionStore` :
+interface dans `core/domain/`, implémentation `SharedPreferences` dans `infrastructure/`). Tant
+que rien n'est enregistré, le thème système reste le défaut — le bouton ne fait que le
+remplacer une fois actionné.
+
+## Niveau global : plancher à 1 pour les types non joués
+
+`averageLevel` faisait la moyenne des seuls types déjà joués — un joueur qui n'a joué qu'à 2
+types sur 7 affichait un niveau global gonflé par l'absence des 5 autres. Corrigé avec
+`overallLevel` (`presentation/level_summary.dart`) : moyenne sur les 7 types, plancher 1 pour un
+type jamais joué (pas 0, hors du domaine valide `[1, 100]` de `LevelCacheEntry`).
+
+Effet de bord direct : la « Variation (30 j) » de l'écran de progression comparait ce chiffre
+(cache live, potentiellement 7 types) à un instantané de session ancien (1-2 types touchés ce
+jour-là) — une échelle différente à chaque bord de la comparaison, invisible avant le plancher
+mais devenue trompeuse avec lui. Corrigé en comparant deux instantanés de session de même
+échelle (la plus récente et la plus ancienne de la fenêtre de 30 jours) plutôt que le cache live
+à un instantané — `averageLevel` (non modifiée) reste l'outil pour ce genre de comparaison
+session-à-session ; `overallLevel` est réservé au chiffre affiché comme « niveau global ».

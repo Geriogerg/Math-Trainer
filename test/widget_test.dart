@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:math_trainer/app.dart';
 import 'package:math_trainer/presentation/screens/session_screen.dart';
@@ -41,6 +42,10 @@ class _ThrowingSessionRepository implements SessionRepository {
 }
 
 void main() {
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
+
   final testEnvironment = AppEnvironment(
     repository: InMemorySessionRepository(),
     playerId: 'test-player',
@@ -243,5 +248,33 @@ void main() {
 
     // Toujours bloqué (même repository), toujours le même message, pas de crash.
     expect(find.text('Impossible de démarrer la session.'), findsOneWidget);
+  });
+
+  testWidgets('le bouton nuit/jour bascule le thème et persiste le choix', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
+    await tester.pumpAndSettle();
+
+    final initialBrightness = Theme.of(tester.element(find.text('Math Trainer'))).brightness;
+
+    await tester.tap(
+      find.byIcon(
+        initialBrightness == Brightness.dark
+            ? Icons.light_mode_outlined
+            : Icons.dark_mode_outlined,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final toggledBrightness = Theme.of(tester.element(find.text('Math Trainer'))).brightness;
+    expect(toggledBrightness, isNot(initialBrightness));
+
+    // Une nouvelle instance pointant sur le même environnement retrouve le choix.
+    await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
+    await tester.pumpAndSettle();
+
+    final reloadedBrightness = Theme.of(tester.element(find.text('Math Trainer'))).brightness;
+    expect(reloadedBrightness, toggledBrightness);
   });
 }

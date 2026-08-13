@@ -51,9 +51,15 @@ class _ProgressData {
 /// réussite ni un score comme mesure de progrès (`doc/decisions.md`) — ce
 /// qui progresse, c'est le niveau.
 class ProgressScreen extends StatefulWidget {
-  const ProgressScreen({super.key, required this.environment});
+  const ProgressScreen({super.key, required this.environment, this.isActive = true});
 
   final AppEnvironment environment;
+
+  /// Vrai quand cet onglet est celui affiché par `AppShell`. `IndexedStack`
+  /// garde ce widget monté après sa première visite (`app_shell.dart`), donc
+  /// sans ce signal `_load()` ne serait jamais rejouée après une nouvelle
+  /// session : `initState` ne se déclenche qu'une fois par cycle de vie.
+  final bool isActive;
 
   @override
   State<ProgressScreen> createState() => _ProgressScreenState();
@@ -66,6 +72,12 @@ class _ProgressScreenState extends State<ProgressScreen> {
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void didUpdateWidget(covariant ProgressScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive && !oldWidget.isActive) setState(_load);
   }
 
   void _load() {
@@ -104,9 +116,17 @@ class _ProgressScreenState extends State<ProgressScreen> {
           return const Center(child: CircularProgressIndicator());
         }
         final data = snapshot.data!;
-        final globalLevel = averageLevel(data.levels.values.map((e) => e.level));
+        final globalLevel = data.levels.isEmpty ? null : overallLevel(data.levels);
+        // Comparaison entre deux instantanés de session de même échelle
+        // (types touchés ce jour-là), pas entre le cache live (7 types,
+        // `globalLevel` ci-dessus) et un instantané de session (1-2 types) —
+        // ce dernier ferait sauter la variation sans rapport avec un vrai
+        // progrès dès qu'un joueur ne couvre pas tous les types.
         final windowStart = averageLevel(
           (data.windowSessions.isEmpty ? const <int>[] : data.windowSessions.first.levels.values),
+        );
+        final windowEnd = averageLevel(
+          (data.windowSessions.isEmpty ? const <int>[] : data.windowSessions.last.levels.values),
         );
 
         return ListView(
@@ -120,9 +140,9 @@ class _ProgressScreenState extends State<ProgressScreen> {
             ),
             const SizedBox(height: 4),
             Text(
-              windowStart == null || globalLevel == null
+              windowStart == null || windowEnd == null
                   ? 'Variation (30 j) : —'
-                  : 'Variation (30 j) : ${_formatDelta(globalLevel - windowStart)}',
+                  : 'Variation (30 j) : ${_formatDelta(windowEnd - windowStart)}',
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 24),

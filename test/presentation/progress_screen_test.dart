@@ -113,6 +113,60 @@ void main() {
     }
   });
 
+  testWidgets(
+    'redevenir actif après une session recharge les niveaux (IndexedStack ne '
+    'reconstruit pas le widget)',
+    (WidgetTester tester) async {
+      await setTallSurface(tester);
+      final repository = InMemorySessionRepository();
+      final environment = AppEnvironment(repository: repository, playerId: 'test-player');
+
+      Future<void> pump(bool isActive) => tester.pumpWidget(
+        MaterialApp(
+          theme: buildLightTheme(),
+          home: Scaffold(body: ProgressScreen(environment: environment, isActive: isActive)),
+        ),
+      );
+
+      await pump(false);
+      await tester.pumpAndSettle();
+      expect(find.text('Non joué'), findsNWidgets(7));
+
+      await repository.recordSession(
+        session: PersistedSession(
+          id: 'session-1',
+          playerId: 'test-player',
+          seed: 1,
+          enabledTypes: const {ExerciseType.addition},
+          exerciseCount: 8,
+          totalScore: 80,
+          levels: const {ExerciseType.addition: 1},
+          createdAt: DateTime.utc(2026, 8, 8),
+        ),
+        answers: const [],
+        levelUpdates: {
+          ExerciseType.addition: LevelCacheEntry(
+            level: 42,
+            sessionsPlayed: 1,
+            updatedAt: DateTime.utc(2026, 8, 8),
+          ),
+        },
+      );
+
+      // Toujours inactif : pas de rechargement, la vue reste celle d'avant la session.
+      await pump(false);
+      await tester.pumpAndSettle();
+      expect(find.text('Non joué'), findsNWidgets(7));
+
+      // Transition inactif → actif : didUpdateWidget doit relancer le chargement.
+      await pump(true);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Niveau 42'), findsOneWidget);
+      expect(find.text('Non joué'), findsNWidgets(6));
+    },
+  );
+
   testWidgets('un repository qui échoue affiche un message et un bouton Réessayer', (
     WidgetTester tester,
   ) async {
@@ -232,8 +286,11 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Progression'), findsOneWidget);
-      expect(find.textContaining('Niveau global : 50'), findsOneWidget);
-      // Variation vs la session la plus ancienne de la fenêtre (session-a, niveau 30) : +20.
+      // (50 + 6 × 1 plancher pour les 6 types non joués) / 7 = 8.
+      expect(find.textContaining('Niveau global : 8'), findsOneWidget);
+      // Session la plus récente de la fenêtre (session-c, niveau 50) vs la plus
+      // ancienne (session-a, niveau 30) : +20 — même valeur qu'avant la
+      // correction ici, un seul type ayant jamais été touché dans ce test.
       expect(find.textContaining('Variation (30 j) : +20'), findsOneWidget);
       // 3 sessions dans les 30 jours : la courbe a assez de points, pas de repli.
       expect(find.text('Pas assez de données sur les 30 derniers jours.'), findsNothing);

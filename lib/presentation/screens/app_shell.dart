@@ -19,9 +19,14 @@ import 'progress_screen.dart';
 /// chaque démarrage, et une source d'échec (ex. lecture qui lève) sans
 /// rapport avec l'onglet réellement affiché.
 class AppShell extends StatefulWidget {
-  const AppShell({super.key, required this.environment});
+  const AppShell({super.key, required this.environment, this.onToggleTheme});
 
   final AppEnvironment environment;
+
+  /// Relayé jusqu'au bouton nuit/jour de `PlayTab` — `null` par défaut pour
+  /// ne pas casser les tests qui construisent `AppShell` sans s'intéresser
+  /// au thème.
+  final VoidCallback? onToggleTheme;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -63,9 +68,9 @@ class _AppShellState extends State<AppShell> with SingleTickerProviderStateMixin
   @override
   Widget build(BuildContext context) {
     final tabs = [
-      PlayTab(environment: widget.environment),
+      PlayTab(environment: widget.environment, onToggleTheme: widget.onToggleTheme),
       const ComingSoonScreen(label: 'En ligne'),
-      ProgressScreen(environment: widget.environment),
+      ProgressScreen(environment: widget.environment, isActive: _index == 2),
       const ComingSoonScreen(label: 'Classement'),
     ];
 

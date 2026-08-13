@@ -22,9 +22,14 @@ const _defaultSelectedTypes = {ExerciseType.addition, ExerciseType.subtraction};
 /// d'onglets (`SessionFlowScreen`), pas basculée inline comme avant l'étape
 /// 5, commit E.
 class PlayTab extends StatefulWidget {
-  const PlayTab({super.key, required this.environment});
+  const PlayTab({super.key, required this.environment, this.onToggleTheme});
 
   final AppEnvironment environment;
+
+  /// Bouton nuit/jour, dans le coin de l'écran d'accueil (`doc/design.md`) —
+  /// `null` par défaut pour ne pas casser les tests qui ne s'intéressent pas
+  /// au thème.
+  final VoidCallback? onToggleTheme;
 
   @override
   State<PlayTab> createState() => _PlayTabState();
@@ -56,7 +61,9 @@ class _PlayTabState extends State<PlayTab> {
     try {
       final results = await Future.wait([
         widget.environment.typeSelectionStore.load(),
-        widget.environment.repository.currentLevels(widget.environment.playerId),
+        widget.environment.repository.currentLevels(
+          widget.environment.playerId,
+        ),
       ]);
       if (!mounted) return;
       final storedSelection = results[0] as Set<ExerciseType>?;
@@ -64,7 +71,7 @@ class _PlayTabState extends State<PlayTab> {
       setState(() {
         if (storedSelection != null) _selectedTypes = storedSelection;
         _hasHistory = levels.isNotEmpty;
-        _globalLevel = averageLevel(levels.values.map((e) => e.level));
+        _globalLevel = levels.isEmpty ? null : overallLevel(levels);
       });
     } on Exception catch (_) {
       // Reste sur le défaut déjà affiché — pas d'état d'erreur sur l'écran
@@ -85,7 +92,10 @@ class _PlayTabState extends State<PlayTab> {
       _startError = null;
     });
     try {
-      final controller = await buildSessionController(widget.environment, _selectedTypes);
+      final controller = await buildSessionController(
+        widget.environment,
+        _selectedTypes,
+      );
       if (!mounted) return;
       controller.start();
       setState(() => _isStarting = false);
@@ -94,7 +104,10 @@ class _PlayTabState extends State<PlayTab> {
       Navigator.of(context).push(
         MaterialPageRoute(
           fullscreenDialog: true,
-          builder: (_) => SessionFlowScreen(controller: controller, environment: widget.environment),
+          builder: (_) => SessionFlowScreen(
+            controller: controller,
+            environment: widget.environment,
+          ),
         ),
       );
     } catch (_) {
@@ -121,6 +134,7 @@ class _PlayTabState extends State<PlayTab> {
       startError: _startError,
       hasHistory: _hasHistory,
       globalLevel: _globalLevel,
+      onToggleTheme: widget.onToggleTheme,
     );
   }
 }
@@ -134,6 +148,7 @@ class _TypeSelectionView extends StatelessWidget {
     required this.startError,
     required this.hasHistory,
     required this.globalLevel,
+    required this.onToggleTheme,
   });
 
   final Set<ExerciseType> selectedTypes;
@@ -141,6 +156,7 @@ class _TypeSelectionView extends StatelessWidget {
   final VoidCallback? onStart;
   final bool isStarting;
   final String? startError;
+  final VoidCallback? onToggleTheme;
 
   /// Historique existant pour ce joueur (au moins un type déjà joué) —
   /// distingue le repère de niveau de la phrase d'accueil pour un nouveau
@@ -161,58 +177,81 @@ class _TypeSelectionView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Center(
-      child: Padding(
-        padding: theme.extension<AppMetrics>()!.rootPadding,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('Math Trainer', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 8),
-            Text(
-              hasHistory ? 'Niveau global : ${globalLevel?.round() ?? '—'}' : 'La difficulté s\'ajuste à vos réponses.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.extension<AppPalette>()!.textMuted,
-              ),
-            ),
-            const SizedBox(height: 24),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              alignment: WrapAlignment.center,
+    final isDark = theme.brightness == Brightness.dark;
+    return Stack(
+      children: [
+        Center(
+          child: Padding(
+            padding: theme.extension<AppMetrics>()!.rootPadding,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                for (final type in ExerciseType.values)
-                  FilterChip(
-                    label: Text(exerciseTypeLabel(type)),
-                    selected: selectedTypes.contains(type),
-                    onSelected: (selected) => _toggle(type, selected),
+                Text('Math Trainer', style: theme.textTheme.titleMedium),
+                const SizedBox(height: 8),
+                Text(
+                  hasHistory
+                      ? 'Niveau global : ${globalLevel?.round() ?? '—'}'
+                      : 'La difficulté s\'ajuste à vos réponses.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.extension<AppPalette>()!.textMuted,
                   ),
+                ),
+                const SizedBox(height: 24),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    for (final type in ExerciseType.values)
+                      FilterChip(
+                        label: Text(exerciseTypeLabel(type)),
+                        selected: selectedTypes.contains(type),
+                        onSelected: (selected) => _toggle(type, selected),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                FilledButton(
+                  onPressed: onStart,
+                  child: isStarting
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Commencer'),
+                ),
+                if (selectedTypes.isEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Aucun type sélectionné.',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                ] else if (startError != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    startError!,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.error,
+                    ),
+                  ),
+                ],
               ],
             ),
-            const SizedBox(height: 24),
-            FilledButton(
-              onPressed: onStart,
-              child: isStarting
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('Commencer'),
-            ),
-            if (selectedTypes.isEmpty) ...[
-              const SizedBox(height: 8),
-              Text('Aucun type sélectionné.', style: theme.textTheme.bodyMedium),
-            ] else if (startError != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                startError!,
-                style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error),
-              ),
-            ],
-          ],
+          ),
         ),
-      ),
+        Positioned(
+          top: 8,
+          right: 8,
+          child: IconButton(
+            icon: Icon(
+              isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+            ),
+            tooltip: isDark ? 'Mode clair' : 'Mode sombre',
+            onPressed: onToggleTheme,
+          ),
+        ),
+      ],
     );
   }
 }
