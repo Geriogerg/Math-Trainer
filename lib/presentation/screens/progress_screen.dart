@@ -5,20 +5,12 @@ import '../../core/domain/persistence/level_cache_entry.dart';
 import '../../core/domain/models/exercise_type.dart';
 import '../../core/domain/persistence/persisted_session.dart';
 import '../exercise_type_labels.dart';
+import '../level_summary.dart';
 import '../theme/app_theme.dart';
 import 'empty_state.dart';
 
 const _windowDuration = Duration(days: 30);
 const _recentSessionsLimit = 10;
-
-/// Moyenne des niveaux d'une session/du cache courant, types non joués
-/// exclus — sert de « niveau global » partout sur cet écran (niveau global,
-/// courbe, variations). `null` si aucun type communiqué n'a de niveau.
-double? _averageLevel(Iterable<int> levels) {
-  final values = levels.toList();
-  if (values.isEmpty) return null;
-  return values.reduce((a, b) => a + b) / values.length;
-}
 
 /// `+3`/`−3`/`0` — vrai signe moins U+2212 (`doc/design.md`), jamais `-`.
 String _formatDelta(double delta) {
@@ -112,8 +104,8 @@ class _ProgressScreenState extends State<ProgressScreen> {
           return const Center(child: CircularProgressIndicator());
         }
         final data = snapshot.data!;
-        final globalLevel = _averageLevel(data.levels.values.map((e) => e.level));
-        final windowStart = _averageLevel(
+        final globalLevel = averageLevel(data.levels.values.map((e) => e.level));
+        final windowStart = averageLevel(
           (data.windowSessions.isEmpty ? const <int>[] : data.windowSessions.first.levels.values),
         );
 
@@ -224,8 +216,8 @@ class _RecentSessionRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final currentAvg = _averageLevel(session.levels.values);
-    final previousAvg = previous == null ? null : _averageLevel(previous!.levels.values);
+    final currentAvg = averageLevel(session.levels.values);
+    final previousAvg = previous == null ? null : averageLevel(previous!.levels.values);
     final variation = currentAvg == null || previousAvg == null
         ? '—'
         : _formatDelta(currentAvg - previousAvg);
@@ -271,7 +263,7 @@ class _LevelCurve extends StatelessWidget {
 
     final points = <Offset>[];
     for (final session in sessions) {
-      final avg = _averageLevel(session.levels.values);
+      final avg = averageLevel(session.levels.values);
       if (avg == null) continue;
       final xFrac = spanMs == 0
           ? 1.0

@@ -12,9 +12,11 @@ import 'core/domain/models/session_config.dart';
 import 'core/domain/persistence/in_memory_session_repository.dart';
 import 'core/domain/persistence/local_player_id_provider.dart';
 import 'core/domain/persistence/session_repository.dart';
+import 'core/domain/persistence/type_selection_store.dart';
 import 'core/state/session_controller.dart';
 import 'infrastructure/persistence/database.dart';
 import 'infrastructure/persistence/shared_preferences_player_id_provider.dart';
+import 'infrastructure/persistence/shared_preferences_type_selection_store.dart';
 import 'infrastructure/persistence/sqflite_session_repository.dart';
 
 /// Cible de durée (~90 s à ~4 s/question, grossier — voir `doc/decisions.md`)
@@ -30,10 +32,20 @@ final _levelingRules = LevelingRules();
 /// (génération, persistance) ; `home_screen.dart` ne fait qu'observer le
 /// `SessionController` qui en résulte.
 class AppEnvironment {
-  const AppEnvironment({required this.repository, required this.playerId});
+  const AppEnvironment({
+    required this.repository,
+    required this.playerId,
+    this.typeSelectionStore = const SharedPreferencesTypeSelectionStore(),
+  });
 
   final SessionRepository repository;
   final String playerId;
+
+  /// Optionnel, défaut concret plutôt que requis : un champ requis casserait
+  /// la construction dans les tests qui ne s'intéressent jamais à `PlayTab`
+  /// (`ProgressScreen`, `ResultScreen`...), même raisonnement que
+  /// `SessionResult.scorer` (étape 5, commit D).
+  final TypeSelectionStore typeSelectionStore;
 }
 
 Future<AppEnvironment> buildAppEnvironment() async {

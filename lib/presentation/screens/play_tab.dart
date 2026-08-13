@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../composition_root.dart';
 import '../../core/domain/models/exercise_type.dart';
+import '../../core/domain/persistence/level_cache_entry.dart';
 import '../exercise_type_labels.dart';
+import '../level_summary.dart';
 import '../theme/app_theme.dart';
 import 'session_flow_screen.dart';
 
@@ -32,6 +34,50 @@ class _PlayTabState extends State<PlayTab> {
   Set<ExerciseType> _selectedTypes = {..._defaultSelectedTypes};
   bool _isStarting = false;
   String? _startError;
+
+  /// `null` tant que la lecture n'a pas résolu — le défaut ci-dessus reste
+  /// affiché pendant ce court intervalle plutôt qu'un état de chargement sur
+  /// l'écran principal (analyse UX post-étape 5 : lecture locale, pas de
+  /// spinner justifié pour ça).
+  double? _globalLevel;
+  bool _hasHistory = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStartupState();
+  }
+
+  Future<void> _loadStartupState() async {
+    // Purement auxiliaire (repère de niveau, accueil, sélection mémorisée) :
+    // un échec ici ne doit jamais empêcher de lancer une session avec le
+    // défaut déjà affiché — même logique que l'échec silencieux de
+    // `_persistCompletedSession` côté contrôleur.
+    try {
+      final results = await Future.wait([
+        widget.environment.typeSelectionStore.load(),
+        widget.environment.repository.currentLevels(widget.environment.playerId),
+      ]);
+      if (!mounted) return;
+      final storedSelection = results[0] as Set<ExerciseType>?;
+      final levels = results[1] as Map<ExerciseType, LevelCacheEntry>;
+      setState(() {
+        if (storedSelection != null) _selectedTypes = storedSelection;
+        _hasHistory = levels.isNotEmpty;
+        _globalLevel = averageLevel(levels.values.map((e) => e.level));
+      });
+    } on Exception catch (_) {
+      // Reste sur le défaut déjà affiché — pas d'état d'erreur sur l'écran
+      // principal pour une information secondaire.
+    }
+  }
+
+  void _updateSelection(Set<ExerciseType> types) {
+    setState(() => _selectedTypes = types);
+    // Écriture continue, pas de bouton dédié — en tâche de fond, l'échec
+    // silencieux ne coûte qu'un retour au défaut au prochain lancement.
+    widget.environment.typeSelectionStore.save(types);
+  }
 
   Future<void> _startSession() async {
     setState(() {
@@ -69,10 +115,12 @@ class _PlayTabState extends State<PlayTab> {
   Widget build(BuildContext context) {
     return _TypeSelectionView(
       selectedTypes: _selectedTypes,
-      onChanged: (types) => setState(() => _selectedTypes = types),
+      onChanged: _updateSelection,
       onStart: _selectedTypes.isEmpty || _isStarting ? null : _startSession,
       isStarting: _isStarting,
       startError: _startError,
+      hasHistory: _hasHistory,
+      globalLevel: _globalLevel,
     );
   }
 }
@@ -84,6 +132,8 @@ class _TypeSelectionView extends StatelessWidget {
     required this.onStart,
     required this.isStarting,
     required this.startError,
+    required this.hasHistory,
+    required this.globalLevel,
   });
 
   final Set<ExerciseType> selectedTypes;
@@ -91,6 +141,12 @@ class _TypeSelectionView extends StatelessWidget {
   final VoidCallback? onStart;
   final bool isStarting;
   final String? startError;
+
+  /// Historique existant pour ce joueur (au moins un type déjà joué) —
+  /// distingue le repère de niveau de la phrase d'accueil pour un nouveau
+  /// joueur (analyse UX post-étape 5).
+  final bool hasHistory;
+  final double? globalLevel;
 
   void _toggle(ExerciseType type, bool selected) {
     final updated = Set<ExerciseType>.of(selectedTypes);
@@ -112,6 +168,13 @@ class _TypeSelectionView extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text('Math Trainer', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Text(
+              hasHistory ? 'Niveau global : ${globalLevel?.round() ?? '—'}' : 'La difficulté s\'ajuste à vos réponses.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.extension<AppPalette>()!.textMuted,
+              ),
+            ),
             const SizedBox(height: 24),
             Wrap(
               spacing: 8,
