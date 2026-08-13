@@ -10,6 +10,7 @@ import 'package:math_trainer/core/domain/persistence/session_repository.dart';
 import 'package:math_trainer/presentation/screens/progress_screen.dart';
 import 'package:math_trainer/presentation/theme/app_theme.dart';
 
+import '../fake_account_repository.dart';
 import 'golden_test_utils.dart';
 
 /// Niveaux fixes pour deux types, les cinq autres restent « Non joué » —
@@ -21,14 +22,44 @@ import 'golden_test_utils.dart';
 class _FixedLevelsRepository implements SessionRepository {
   _FixedLevelsRepository(DateTime now)
     : _windowSessions = [
-        _session('window-1', now.subtract(const Duration(days: 25)), level: 20, score: 40),
-        _session('window-2', now.subtract(const Duration(days: 15)), level: 30, score: 60),
-        _session('window-3', now.subtract(const Duration(days: 5)), level: 42, score: 90),
+        _session(
+          'window-1',
+          now.subtract(const Duration(days: 25)),
+          level: 20,
+          score: 40,
+        ),
+        _session(
+          'window-2',
+          now.subtract(const Duration(days: 15)),
+          level: 30,
+          score: 60,
+        ),
+        _session(
+          'window-3',
+          now.subtract(const Duration(days: 5)),
+          level: 42,
+          score: 90,
+        ),
       ],
       _recentSessions = [
-        _session('recent-1', now.subtract(const Duration(days: 5)), level: 42, score: 90),
-        _session('recent-2', now.subtract(const Duration(days: 15)), level: 30, score: 60),
-        _session('recent-3', now.subtract(const Duration(days: 25)), level: 20, score: 40),
+        _session(
+          'recent-1',
+          now.subtract(const Duration(days: 5)),
+          level: 42,
+          score: 90,
+        ),
+        _session(
+          'recent-2',
+          now.subtract(const Duration(days: 15)),
+          level: 30,
+          score: 60,
+        ),
+        _session(
+          'recent-3',
+          now.subtract(const Duration(days: 25)),
+          level: 20,
+          score: 40,
+        ),
       ];
 
   final List<PersistedSession> _windowSessions;
@@ -51,7 +82,9 @@ class _FixedLevelsRepository implements SessionRepository {
   );
 
   @override
-  Future<Map<ExerciseType, LevelCacheEntry>> currentLevels(String playerId) async => {
+  Future<Map<ExerciseType, LevelCacheEntry>> currentLevels(
+    String playerId,
+  ) async => {
     ExerciseType.addition: LevelCacheEntry(
       level: 42,
       sessionsPlayed: 5,
@@ -65,17 +98,19 @@ class _FixedLevelsRepository implements SessionRepository {
   };
 
   @override
-  Future<Map<ExerciseType, double>> averageElapsedMsByType(String playerId) async => {
-    ExerciseType.addition: 1200,
-    ExerciseType.multiplication: 3400,
-  };
+  Future<Map<ExerciseType, double>> averageElapsedMsByType(
+    String playerId,
+  ) async => {ExerciseType.addition: 1200, ExerciseType.multiplication: 3400};
 
   @override
-  Future<List<PersistedSession>> sessionsSince(String playerId, DateTime since) async =>
-      _windowSessions;
+  Future<List<PersistedSession>> sessionsSince(
+    String playerId,
+    DateTime since,
+  ) async => _windowSessions;
 
   @override
-  Future<List<PersistedSession>> recentSessions({int limit = 20}) async => _recentSessions;
+  Future<List<PersistedSession>> recentSessions({int limit = 20}) async =>
+      _recentSessions;
 
   @override
   Future<void> recordSession({
@@ -85,7 +120,8 @@ class _FixedLevelsRepository implements SessionRepository {
   }) => throw UnimplementedError();
 
   @override
-  Future<List<PersistedAnswer>> answersForSession(String sessionId) => throw UnimplementedError();
+  Future<List<PersistedAnswer>> answersForSession(String sessionId) =>
+      throw UnimplementedError();
 }
 
 void main() {
@@ -100,6 +136,7 @@ void main() {
       final environment = AppEnvironment(
         repository: _FixedLevelsRepository(DateTime.now().toUtc()),
         playerId: 'golden-player',
+        accountRepository: FakeAccountRepository(),
       );
 
       await tester.pumpWidget(

@@ -9,33 +9,50 @@ En cas de divergence, le code fait foi.
 ```
 lib/
   main.dart                # runApp() — async, résout l'environnement avant
-  app.dart                 # MaterialApp, thème, écran racine
-  composition_root.dart    # seul fichier qui choisit les implémentations concrètes
+  app.dart                 # MaterialApp, thème (clair/sombre/bascule persistée), écran racine
+  composition_root.dart    # seul fichier qui choisit les implémentations concrètes (AppEnvironment)
   core/
     domain/                # Dart pur — zéro import Flutter (règle 1)
       models/              # Exercise (sealed) et 4 variantes, ExerciseType, OperationType,
                            # AnswerResult, SessionConfig, SessionResult
       generation/          # ExerciseGenerator, CompositeExerciseGenerator, générateurs
-                           # par type, OperandRange, ExerciseSource, LocalExerciseSource
-      scoring/             # Scorer, ScoringRules
-      persistence/         # SessionRepository, LocalPlayerIdProvider (interfaces),
-                           # PersistedSession/PersistedAnswer, InMemorySessionRepository,
-                           # uuid.dart, exercise_codec.dart
+                           # par type, OperandRange, ExerciseSource, LocalExerciseSource,
+                           # DebtAwareTypeSelectionStrategy, session_length.dart
+      difficulty/          # interpolation de niveau par type (arithmetic/power/square_root/percentage)
+      leveling/            # LevelUpdater, LevelCacheOrchestrator, LevelingRules, Confidence,
+                           # AnswerOutcome — recalcule les niveaux à partir de l'historique
+      scoring/              # Scorer, ScoringRules
+      persistence/         # SessionRepository, LocalPlayerIdProvider, TypeSelectionStore,
+                           # ThemeModeStore (interfaces), PersistedSession/PersistedAnswer,
+                           # LevelCacheEntry, InMemorySessionRepository, uuid.dart, exercise_codec.dart
     state/                 # SessionController (ChangeNotifier), SessionState — seul point
                            # du cœur métier qui importe Flutter (foundation.dart seulement)
   infrastructure/
     persistence/           # SqfliteSessionRepository, database.dart (schéma + migrations),
-                           # SharedPreferencesPlayerIdProvider — seul endroit qui importe
-                           # sqflite / shared_preferences
+                           # SharedPreferences{PlayerIdProvider,TypeSelectionStore,ThemeModeStore}
+                           # — seul endroit qui importe sqflite / shared_preferences
   presentation/
-    screens/               # HomeScreen (phase + choix des types), SessionScreen
-                           # (question/saisie/feedback), ResultScreen (stats + rejouer)
+    theme/                 # app_theme.dart — ColorScheme clair/sombre, AppPalette/AppMotion/AppMetrics
+    screens/               # AppShell (coquille à onglets, IndexedStack), PlayTab (sélection +
+                           # bouton nuit/jour), SessionFlowScreen/SessionScreen (session plein
+                           # écran), ResultScreen, ProgressScreen (recharge à l'activation de
+                           # l'onglet), ComingSoonScreen, EmptyState
+    exercise_prompt.dart, exercise_type_labels.dart, level_summary.dart
 test/
   domain/                  # miroir de core/domain — `dart test test/domain`
   state/                   # SessionController — `flutter test` (ChangeNotifier tire dart:ui)
   infrastructure/          # sqflite via sqflite_common_ffi, shared_preferences mocké
-  widget_test.dart         # smoke test + parcours démarrage → session
+  presentation/            # écrans + tests de golden (clair/sombre)
+  widget_test.dart         # smoke test + parcours démarrage → session, bascule de thème
 ```
+
+## Mode en ligne (étape 6+)
+
+Comptes, classement et duels ajoutent une nouvelle frontière : `infrastructure/` gagnera un
+client Supabase, et un service Dart séparé (hors de cette app Flutter) réutilisera `core/domain`
+pour la validation côté serveur. Direction, choix de backend et découpage détaillés dans
+`docs/online.md` — pas dupliqué ici tant que le code n'existe pas (ce fichier décrit l'état des
+lieux, pas les intentions).
 
 ## Gestion d'état
 
@@ -110,6 +127,7 @@ progression viendra s'ajouter ; si le fichier grossit, le scinder par vue.
 | `path` | jointure de chemin cross-platform pour localiser le `.db` |
 | `shared_preferences` | stockage du scalaire `player_id` |
 | `sqflite_common_ffi` (dev) | tests du repository sur la Dart VM, sans émulateur |
+| `supabase_flutter` | Auth + Postgres pour le mode en ligne (étape 6, `docs/online.md`) — seul import hors de `infrastructure/backend/` |
 
 L'étape 3 n'introduit aucune dépendance : puissances, carrés parfaits et pourcentages entiers
 se calculent en arithmétique entière avec `dart:core` seul.

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../composition_root.dart';
 import '../theme/app_theme.dart';
 import 'coming_soon_screen.dart';
+import 'online_tab.dart';
 import 'play_tab.dart';
 import 'progress_screen.dart';
 
@@ -32,7 +33,8 @@ class AppShell extends StatefulWidget {
   State<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends State<AppShell> with SingleTickerProviderStateMixin {
+class _AppShellState extends State<AppShell>
+    with SingleTickerProviderStateMixin {
   int _index = 0;
   final _visited = {0};
 
@@ -68,8 +70,11 @@ class _AppShellState extends State<AppShell> with SingleTickerProviderStateMixin
   @override
   Widget build(BuildContext context) {
     final tabs = [
-      PlayTab(environment: widget.environment, onToggleTheme: widget.onToggleTheme),
-      const ComingSoonScreen(label: 'En ligne'),
+      PlayTab(
+        environment: widget.environment,
+        onToggleTheme: widget.onToggleTheme,
+      ),
+      OnlineTab(environment: widget.environment),
       ProgressScreen(environment: widget.environment, isActive: _index == 2),
       const ComingSoonScreen(label: 'Classement'),
     ];
@@ -78,7 +83,8 @@ class _AppShellState extends State<AppShell> with SingleTickerProviderStateMixin
       body: SafeArea(
         child: AnimatedBuilder(
           animation: _tabTransitionController,
-          builder: (context, child) => Opacity(opacity: _tabTransitionController.value, child: child),
+          builder: (context, child) =>
+              Opacity(opacity: _tabTransitionController.value, child: child),
           child: IndexedStack(
             index: _index,
             children: [
@@ -92,10 +98,22 @@ class _AppShellState extends State<AppShell> with SingleTickerProviderStateMixin
         selectedIndex: _index,
         onDestinationSelected: _selectTab,
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.sports_esports_outlined), label: 'Jouer'),
-          NavigationDestination(icon: Icon(Icons.wifi_outlined), label: 'En ligne'),
-          NavigationDestination(icon: Icon(Icons.bar_chart_outlined), label: 'Progression'),
-          NavigationDestination(icon: Icon(Icons.leaderboard_outlined), label: 'Classement'),
+          NavigationDestination(
+            icon: Icon(Icons.sports_esports_outlined),
+            label: 'Jouer',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.wifi_outlined),
+            label: 'En ligne',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.bar_chart_outlined),
+            label: 'Progression',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.leaderboard_outlined),
+            label: 'Classement',
+          ),
         ],
       ),
     );

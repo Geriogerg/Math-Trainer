@@ -1,7 +1,9 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart' show getDatabasesPath;
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'core/domain/account/account_repository.dart';
 import 'core/domain/generation/composite_exercise_generator.dart';
 import 'core/domain/generation/debt_aware_type_selection_strategy.dart';
 import 'core/domain/generation/local_exercise_source.dart';
@@ -15,6 +17,7 @@ import 'core/domain/persistence/session_repository.dart';
 import 'core/domain/persistence/theme_mode_store.dart';
 import 'core/domain/persistence/type_selection_store.dart';
 import 'core/state/session_controller.dart';
+import 'infrastructure/backend/supabase_account_repository.dart';
 import 'infrastructure/persistence/database.dart';
 import 'infrastructure/persistence/shared_preferences_player_id_provider.dart';
 import 'infrastructure/persistence/shared_preferences_theme_mode_store.dart';
@@ -37,12 +40,21 @@ class AppEnvironment {
   const AppEnvironment({
     required this.repository,
     required this.playerId,
+    required this.accountRepository,
     this.typeSelectionStore = const SharedPreferencesTypeSelectionStore(),
     this.themeModeStore = const SharedPreferencesThemeModeStore(),
   });
 
   final SessionRepository repository;
   final String playerId;
+
+  /// Requis, pas de défaut concret : contrairement à `typeSelectionStore`/
+  /// `themeModeStore` (lecture locale auxiliaire, échec silencieux
+  /// acceptable), le compte est la fonctionnalité même de l'onglet En ligne
+  /// — un défaut masquerait un oubli de câblage plutôt que de simplifier les
+  /// tests. Les tests qui ne s'intéressent pas au compte passent
+  /// `FakeAccountRepository` (`test/fake_account_repository.dart`).
+  final AccountRepository accountRepository;
 
   /// Optionnel, défaut concret plutôt que requis : un champ requis casserait
   /// la construction dans les tests qui ne s'intéressent jamais à `PlayTab`
@@ -56,8 +68,18 @@ class AppEnvironment {
   final ThemeModeStore themeModeStore;
 }
 
+/// URL et clé publique lues à la compilation (`--dart-define`), jamais en
+/// dur dans le code source (`docs/online.md`) — la clé publique est conçue
+/// pour être embarquée côté client (RLS protège les données, pas le secret
+/// de cette clé), mais l'URL/clé restent spécifiques à chaque projet Supabase.
+const _supabaseUrl = String.fromEnvironment('SUPABASE_URL');
+const _supabasePublishableKey = String.fromEnvironment(
+  'SUPABASE_PUBLISHABLE_KEY',
+);
+
 Future<AppEnvironment> buildAppEnvironment() async {
-  final LocalPlayerIdProvider playerIdProvider = SharedPreferencesPlayerIdProvider();
+  final LocalPlayerIdProvider playerIdProvider =
+      SharedPreferencesPlayerIdProvider();
   final playerId = await playerIdProvider.currentPlayerId();
 
   final SessionRepository repository;
@@ -67,10 +89,21 @@ Future<AppEnvironment> buildAppEnvironment() async {
     repository = InMemorySessionRepository();
   } else {
     final databasePath = p.join(await getDatabasesPath(), 'math_trainer.db');
-    repository = SqfliteSessionRepository(await openMathTrainerDatabase(databasePath));
+    repository = SqfliteSessionRepository(
+      await openMathTrainerDatabase(databasePath),
+    );
   }
 
-  return AppEnvironment(repository: repository, playerId: playerId);
+  await Supabase.initialize(
+    url: _supabaseUrl,
+    publishableKey: _supabasePublishableKey,
+  );
+
+  return AppEnvironment(
+    repository: repository,
+    playerId: playerId,
+    accountRepository: SupabaseAccountRepository(Supabase.instance.client),
+  );
 }
 
 /// Assemble un `SessionController` prêt à jouer : source d'exercices locale
@@ -90,8 +123,12 @@ Future<SessionController> buildSessionController(
   AppEnvironment environment,
   Set<ExerciseType> enabledTypes,
 ) async {
-  final priorLevels = await environment.repository.currentLevels(environment.playerId);
-  final levels = {for (final type in enabledTypes) type: priorLevels[type]?.level ?? 1};
+  final priorLevels = await environment.repository.currentLevels(
+    environment.playerId,
+  );
+  final levels = {
+    for (final type in enabledTypes) type: priorLevels[type]?.level ?? 1,
+  };
 
   final exerciseCount = sessionLengthFor(
     activeTypeCount: enabledTypes.length,
@@ -102,7 +139,8 @@ Future<SessionController> buildSessionController(
     exerciseCount: exerciseCount,
     nMin: _levelingRules.nMin,
     sessionsPlayedByType: {
-      for (final entry in priorLevels.entries) entry.key: entry.value.sessionsPlayed,
+      for (final entry in priorLevels.entries)
+        entry.key: entry.value.sessionsPlayed,
     },
   );
 

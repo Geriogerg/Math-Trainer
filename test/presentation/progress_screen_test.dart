@@ -11,13 +11,17 @@ import 'package:math_trainer/core/domain/persistence/session_repository.dart';
 import 'package:math_trainer/presentation/screens/progress_screen.dart';
 import 'package:math_trainer/presentation/theme/app_theme.dart';
 
+import '../fake_account_repository.dart';
+
 /// Échoue tant que [shouldFail] est vrai, réussit ensuite — simule un
 /// réseau/disque qui se rétablit, pour tester le bouton « Réessayer ».
 class _FlakySessionRepository implements SessionRepository {
   bool shouldFail = true;
 
   @override
-  Future<Map<ExerciseType, LevelCacheEntry>> currentLevels(String playerId) async {
+  Future<Map<ExerciseType, LevelCacheEntry>> currentLevels(
+    String playerId,
+  ) async {
     if (shouldFail) throw Exception('échec simulé');
     return {
       ExerciseType.addition: LevelCacheEntry(
@@ -46,13 +50,18 @@ class _FlakySessionRepository implements SessionRepository {
       throw UnimplementedError();
 
   @override
-  Future<Map<ExerciseType, double>> averageElapsedMsByType(String playerId) async {
+  Future<Map<ExerciseType, double>> averageElapsedMsByType(
+    String playerId,
+  ) async {
     if (shouldFail) throw Exception('échec simulé');
     return {};
   }
 
   @override
-  Future<List<PersistedSession>> sessionsSince(String playerId, DateTime since) async {
+  Future<List<PersistedSession>> sessionsSince(
+    String playerId,
+    DateTime since,
+  ) async {
     if (shouldFail) throw Exception('échec simulé');
     return [];
   }
@@ -71,47 +80,52 @@ void main() {
     });
   }
 
-  testWidgets('affiche les 7 types, un niveau connu et "Non joué" pour les autres', (
-    WidgetTester tester,
-  ) async {
-    await setTallSurface(tester);
-    final repository = InMemorySessionRepository();
-    await repository.recordSession(
-      session: PersistedSession(
-        id: 'session-1',
-        playerId: 'test-player',
-        seed: 1,
-        enabledTypes: const {ExerciseType.addition},
-        exerciseCount: 8,
-        totalScore: 80,
-        levels: const {ExerciseType.addition: 1},
-        createdAt: DateTime.utc(2026, 8, 8),
-      ),
-      answers: const [],
-      levelUpdates: {
-        ExerciseType.addition: LevelCacheEntry(
-          level: 42,
-          sessionsPlayed: 1,
-          updatedAt: DateTime.utc(2026, 8, 8),
+  testWidgets(
+    'affiche les 7 types, un niveau connu et "Non joué" pour les autres',
+    (WidgetTester tester) async {
+      await setTallSurface(tester);
+      final repository = InMemorySessionRepository();
+      await repository.recordSession(
+        session: PersistedSession(
+          id: 'session-1',
+          playerId: 'test-player',
+          seed: 1,
+          enabledTypes: const {ExerciseType.addition},
+          exerciseCount: 8,
+          totalScore: 80,
+          levels: const {ExerciseType.addition: 1},
+          createdAt: DateTime.utc(2026, 8, 8),
         ),
-      },
-    );
-    final environment = AppEnvironment(repository: repository, playerId: 'test-player');
+        answers: const [],
+        levelUpdates: {
+          ExerciseType.addition: LevelCacheEntry(
+            level: 42,
+            sessionsPlayed: 1,
+            updatedAt: DateTime.utc(2026, 8, 8),
+          ),
+        },
+      );
+      final environment = AppEnvironment(
+        repository: repository,
+        playerId: 'test-player',
+        accountRepository: FakeAccountRepository(),
+      );
 
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: buildLightTheme(),
-        home: Scaffold(body: ProgressScreen(environment: environment)),
-      ),
-    );
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildLightTheme(),
+          home: Scaffold(body: ProgressScreen(environment: environment)),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.text('Niveau 42'), findsOneWidget);
-    expect(find.text('Non joué'), findsNWidgets(6));
-    for (final type in ExerciseType.values) {
-      expect(find.text(_labelFor(type)), findsOneWidget);
-    }
-  });
+      expect(find.text('Niveau 42'), findsOneWidget);
+      expect(find.text('Non joué'), findsNWidgets(6));
+      for (final type in ExerciseType.values) {
+        expect(find.text(_labelFor(type)), findsOneWidget);
+      }
+    },
+  );
 
   testWidgets(
     'redevenir actif après une session recharge les niveaux (IndexedStack ne '
@@ -119,12 +133,18 @@ void main() {
     (WidgetTester tester) async {
       await setTallSurface(tester);
       final repository = InMemorySessionRepository();
-      final environment = AppEnvironment(repository: repository, playerId: 'test-player');
+      final environment = AppEnvironment(
+        repository: repository,
+        playerId: 'test-player',
+        accountRepository: FakeAccountRepository(),
+      );
 
       Future<void> pump(bool isActive) => tester.pumpWidget(
         MaterialApp(
           theme: buildLightTheme(),
-          home: Scaffold(body: ProgressScreen(environment: environment, isActive: isActive)),
+          home: Scaffold(
+            body: ProgressScreen(environment: environment, isActive: isActive),
+          ),
         ),
       );
 
@@ -167,48 +187,64 @@ void main() {
     },
   );
 
-  testWidgets('un repository qui échoue affiche un message et un bouton Réessayer', (
-    WidgetTester tester,
-  ) async {
-    await setTallSurface(tester);
-    final repository = _FlakySessionRepository();
-    final environment = AppEnvironment(repository: repository, playerId: 'test-player');
+  testWidgets(
+    'un repository qui échoue affiche un message et un bouton Réessayer',
+    (WidgetTester tester) async {
+      await setTallSurface(tester);
+      final repository = _FlakySessionRepository();
+      final environment = AppEnvironment(
+        repository: repository,
+        playerId: 'test-player',
+        accountRepository: FakeAccountRepository(),
+      );
 
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: buildLightTheme(),
-        home: Scaffold(body: ProgressScreen(environment: environment)),
-      ),
-    );
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildLightTheme(),
+          home: Scaffold(body: ProgressScreen(environment: environment)),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.text('Impossible de charger la progression.'), findsOneWidget);
-    expect(find.widgetWithText(FilledButton, 'Réessayer'), findsOneWidget);
-  });
+      expect(
+        find.text('Impossible de charger la progression.'),
+        findsOneWidget,
+      );
+      expect(find.widgetWithText(FilledButton, 'Réessayer'), findsOneWidget);
+    },
+  );
 
-  testWidgets('Réessayer relance la lecture et affiche la progression si elle réussit', (
-    WidgetTester tester,
-  ) async {
-    await setTallSurface(tester);
-    final repository = _FlakySessionRepository();
-    final environment = AppEnvironment(repository: repository, playerId: 'test-player');
+  testWidgets(
+    'Réessayer relance la lecture et affiche la progression si elle réussit',
+    (WidgetTester tester) async {
+      await setTallSurface(tester);
+      final repository = _FlakySessionRepository();
+      final environment = AppEnvironment(
+        repository: repository,
+        playerId: 'test-player',
+        accountRepository: FakeAccountRepository(),
+      );
 
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: buildLightTheme(),
-        home: Scaffold(body: ProgressScreen(environment: environment)),
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(find.text('Impossible de charger la progression.'), findsOneWidget);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildLightTheme(),
+          home: Scaffold(body: ProgressScreen(environment: environment)),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Impossible de charger la progression.'),
+        findsOneWidget,
+      );
 
-    repository.shouldFail = false;
-    await tester.tap(find.widgetWithText(FilledButton, 'Réessayer'));
-    await tester.pumpAndSettle();
+      repository.shouldFail = false;
+      await tester.tap(find.widgetWithText(FilledButton, 'Réessayer'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Impossible de charger la progression.'), findsNothing);
-    expect(find.text('Niveau 7'), findsOneWidget);
-  });
+      expect(find.text('Impossible de charger la progression.'), findsNothing);
+      expect(find.text('Niveau 7'), findsOneWidget);
+    },
+  );
 
   testWidgets(
     'niveau global, variation, courbe et sessions récentes reflètent l\'historique (commit E)',
@@ -239,12 +275,26 @@ void main() {
         ),
         answers: answers,
         levelUpdates: {
-          ExerciseType.addition: LevelCacheEntry(level: level, sessionsPlayed: 1, updatedAt: createdAt),
+          ExerciseType.addition: LevelCacheEntry(
+            level: level,
+            sessionsPlayed: 1,
+            updatedAt: createdAt,
+          ),
         },
       );
 
-      await recordAt('session-a', now.subtract(const Duration(days: 20)), 30, 50);
-      await recordAt('session-b', now.subtract(const Duration(days: 10)), 40, 60);
+      await recordAt(
+        'session-a',
+        now.subtract(const Duration(days: 20)),
+        30,
+        50,
+      );
+      await recordAt(
+        'session-b',
+        now.subtract(const Duration(days: 10)),
+        40,
+        60,
+      );
       await recordAt(
         'session-c',
         now.subtract(const Duration(days: 1)),
@@ -275,7 +325,11 @@ void main() {
           ),
         ],
       );
-      final environment = AppEnvironment(repository: repository, playerId: 'test-player');
+      final environment = AppEnvironment(
+        repository: repository,
+        playerId: 'test-player',
+        accountRepository: FakeAccountRepository(),
+      );
 
       await tester.pumpWidget(
         MaterialApp(
@@ -293,7 +347,10 @@ void main() {
       // correction ici, un seul type ayant jamais été touché dans ce test.
       expect(find.textContaining('Variation (30 j) : +20'), findsOneWidget);
       // 3 sessions dans les 30 jours : la courbe a assez de points, pas de repli.
-      expect(find.text('Pas assez de données sur les 30 derniers jours.'), findsNothing);
+      expect(
+        find.text('Pas assez de données sur les 30 derniers jours.'),
+        findsNothing,
+      );
       expect(find.textContaining('Niveau 50 · 1500 ms'), findsOneWidget);
       expect(find.textContaining('Score 70'), findsOneWidget);
       expect(find.textContaining('Score 60'), findsOneWidget);

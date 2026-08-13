@@ -12,6 +12,8 @@ import 'package:math_trainer/core/domain/persistence/persisted_answer.dart';
 import 'package:math_trainer/core/domain/persistence/persisted_session.dart';
 import 'package:math_trainer/core/domain/persistence/session_repository.dart';
 
+import 'fake_account_repository.dart';
+
 class _ThrowingSessionRepository implements SessionRepository {
   @override
   Future<void> recordSession({
@@ -37,8 +39,10 @@ class _ThrowingSessionRepository implements SessionRepository {
       throw Exception('échec simulé');
 
   @override
-  Future<List<PersistedSession>> sessionsSince(String playerId, DateTime since) =>
-      throw Exception('échec simulé');
+  Future<List<PersistedSession>> sessionsSince(
+    String playerId,
+    DateTime since,
+  ) => throw Exception('échec simulé');
 }
 
 void main() {
@@ -49,6 +53,7 @@ void main() {
   final testEnvironment = AppEnvironment(
     repository: InMemorySessionRepository(),
     playerId: 'test-player',
+    accountRepository: FakeAccountRepository(),
   );
 
   // Fait avancer le temps juste assez pour que la transition standard de
@@ -161,7 +166,11 @@ void main() {
   /// éviter toute collision avec le '1' qui apparaîtrait ensuite dans la
   /// réponse affichée.
   Future<void> playToCompletion(WidgetTester tester) async {
-    for (var i = 0; i < 20 && find.text('Session terminée').evaluate().isEmpty; i++) {
+    for (
+      var i = 0;
+      i < 20 && find.text('Session terminée').evaluate().isEmpty;
+      i++
+    ) {
       await tester.tap(find.text('1'));
       await tester.tap(find.byIcon(Icons.check));
       await tester.pump();
@@ -169,86 +178,97 @@ void main() {
     expect(find.text('Session terminée'), findsOneWidget);
   }
 
-  testWidgets('« Nouvelle sélection » après une session ramène à l\'écran de sélection', (
-    WidgetTester tester,
-  ) async {
-    await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
+  testWidgets(
+    '« Nouvelle sélection » après une session ramène à l\'écran de sélection',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
 
-    await tester.tap(find.text('Commencer'));
-    await settlePageTransition(tester);
-    await playToCompletion(tester);
+      await tester.tap(find.text('Commencer'));
+      await settlePageTransition(tester);
+      await playToCompletion(tester);
 
-    await tester.tap(find.text('Nouvelle sélection'));
-    await settlePageTransition(tester);
+      await tester.tap(find.text('Nouvelle sélection'));
+      await settlePageTransition(tester);
 
-    expect(find.text('Math Trainer'), findsOneWidget);
-    expect(find.byType(FilterChip), findsWidgets);
-  });
+      expect(find.text('Math Trainer'), findsOneWidget);
+      expect(find.byType(FilterChip), findsWidgets);
+    },
+  );
 
-  testWidgets('« Rejouer » relance immédiatement sans repasser par la sélection', (
-    WidgetTester tester,
-  ) async {
-    await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
+  testWidgets(
+    '« Rejouer » relance immédiatement sans repasser par la sélection',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
 
-    await tester.tap(find.text('Commencer'));
-    await settlePageTransition(tester);
-    await playToCompletion(tester);
+      await tester.tap(find.text('Commencer'));
+      await settlePageTransition(tester);
+      await playToCompletion(tester);
 
-    await tester.tap(find.text('Rejouer'));
-    await settlePageTransition(tester);
+      await tester.tap(find.text('Rejouer'));
+      await settlePageTransition(tester);
 
-    // Directement de retour sur le pavé, pas sur l'écran de sélection : « 1 »
-    // est la nouvelle première question, jamais l'écran « Math Trainer ».
-    expect(find.text('Math Trainer'), findsNothing);
-    expect(find.text('1 / 8'), findsOneWidget);
-    expect(find.byIcon(Icons.check), findsOneWidget);
-  });
+      // Directement de retour sur le pavé, pas sur l'écran de sélection : « 1 »
+      // est la nouvelle première question, jamais l'écran « Math Trainer ».
+      expect(find.text('Math Trainer'), findsNothing);
+      expect(find.text('1 / 8'), findsOneWidget);
+      expect(find.byIcon(Icons.check), findsOneWidget);
+    },
+  );
 
-  testWidgets('la barre d\'onglets bascule vers Progression sans perdre la sélection de Jouer', (
-    WidgetTester tester,
-  ) async {
-    await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
+  testWidgets(
+    'la barre d\'onglets bascule vers Progression sans perdre la sélection de Jouer',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
 
-    await tester.tap(find.text('Multiplication'));
-    await tester.pump();
+      await tester.tap(find.text('Multiplication'));
+      await tester.pump();
 
-    await tester.tap(find.text('Progression'));
-    await tester.pumpAndSettle();
-    expect(find.text('Addition'), findsOneWidget);
-    expect(find.text('Non joué'), findsWidgets);
+      await tester.tap(find.text('Progression'));
+      await tester.pumpAndSettle();
+      expect(find.text('Addition'), findsOneWidget);
+      expect(find.text('Non joué'), findsWidgets);
 
-    await tester.tap(find.text('Jouer'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Jouer'));
+      await tester.pumpAndSettle();
 
-    // IndexedStack : l'onglet Jouer garde son état, Multiplication reste coché.
-    final chip = tester.widget<FilterChip>(
-      find.ancestor(of: find.text('Multiplication'), matching: find.byType(FilterChip)),
-    );
-    expect(chip.selected, isTrue);
-  });
+      // IndexedStack : l'onglet Jouer garde son état, Multiplication reste coché.
+      final chip = tester.widget<FilterChip>(
+        find.ancestor(
+          of: find.text('Multiplication'),
+          matching: find.byType(FilterChip),
+        ),
+      );
+      expect(chip.selected, isTrue);
+    },
+  );
 
-  testWidgets('un repository qui échoue au démarrage affiche un message et laisse réessayer', (
-    WidgetTester tester,
-  ) async {
-    final failingEnvironment = AppEnvironment(
-      repository: _ThrowingSessionRepository(),
-      playerId: 'test-player',
-    );
-    await tester.pumpWidget(MathTrainerApp(environment: failingEnvironment));
+  testWidgets(
+    'un repository qui échoue au démarrage affiche un message et laisse réessayer',
+    (WidgetTester tester) async {
+      final failingEnvironment = AppEnvironment(
+        repository: _ThrowingSessionRepository(),
+        playerId: 'test-player',
+        accountRepository: FakeAccountRepository(),
+      );
+      await tester.pumpWidget(MathTrainerApp(environment: failingEnvironment));
 
-    await tester.tap(find.text('Commencer'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Commencer'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Impossible de démarrer la session.'), findsOneWidget);
-    // Le bouton est redevenu actif : c'est l'action de reprise.
-    expect(tester.widget<FilledButton>(find.byType(FilledButton)).onPressed, isNotNull);
+      expect(find.text('Impossible de démarrer la session.'), findsOneWidget);
+      // Le bouton est redevenu actif : c'est l'action de reprise.
+      expect(
+        tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
+        isNotNull,
+      );
 
-    await tester.tap(find.text('Commencer'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Commencer'));
+      await tester.pumpAndSettle();
 
-    // Toujours bloqué (même repository), toujours le même message, pas de crash.
-    expect(find.text('Impossible de démarrer la session.'), findsOneWidget);
-  });
+      // Toujours bloqué (même repository), toujours le même message, pas de crash.
+      expect(find.text('Impossible de démarrer la session.'), findsOneWidget);
+    },
+  );
 
   testWidgets('le bouton nuit/jour bascule le thème et persiste le choix', (
     WidgetTester tester,
@@ -256,7 +276,9 @@ void main() {
     await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
     await tester.pumpAndSettle();
 
-    final initialBrightness = Theme.of(tester.element(find.text('Math Trainer'))).brightness;
+    final initialBrightness = Theme.of(
+      tester.element(find.text('Math Trainer')),
+    ).brightness;
 
     await tester.tap(
       find.byIcon(
@@ -267,14 +289,18 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final toggledBrightness = Theme.of(tester.element(find.text('Math Trainer'))).brightness;
+    final toggledBrightness = Theme.of(
+      tester.element(find.text('Math Trainer')),
+    ).brightness;
     expect(toggledBrightness, isNot(initialBrightness));
 
     // Une nouvelle instance pointant sur le même environnement retrouve le choix.
     await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
     await tester.pumpAndSettle();
 
-    final reloadedBrightness = Theme.of(tester.element(find.text('Math Trainer'))).brightness;
+    final reloadedBrightness = Theme.of(
+      tester.element(find.text('Math Trainer')),
+    ).brightness;
     expect(reloadedBrightness, toggledBrightness);
   });
 }

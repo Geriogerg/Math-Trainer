@@ -1,11 +1,13 @@
 # Math Trainer
 
 Jeu Flutter de calcul mental compétitif (ados et adultes). Rapide, ludique, orienté compétition.
-État : 8 commits, 7 types d'exercices, persistance locale. 69 tests domaine / 85 au total.
+État : 42 commits, 7 types d'exercices, persistance locale, direction visuelle « nuit
+électrique » livrée (étape 5). 166 tests domaine / 261 au total.
 
 Détails non nécessaires à chaque session : `docs/architecture.md` (structure, gestion d'état,
-modèle d'exercice, dépendances), `docs/decisions.md` (arbitrages passés et leurs raisons) et
-`docs/design.md` (palette, typographie, notation, règles d'interface).
+modèle d'exercice, dépendances), `docs/decisions.md` (arbitrages passés et leurs raisons),
+`docs/design.md` (palette, typographie, notation, règles d'interface) et `docs/online.md`
+(comptes, classement, mode en ligne — étapes 6 et 7).
 Va les lire quand le sujet se présente — ils ne sont pas importés ici volontairement.
 
 ## Interlocuteur
@@ -78,8 +80,12 @@ pur, au même titre que le `Scorer`, et doit pouvoir être rejouée sur une list
 Plus tard, offline-first : local = source de vérité en solo et cache du reste ; serveur =
 autorité **exclusive** sur tout le compétitif (Elo, classement, résultats de duels).
 
-Backend non tranché, Supabase privilégié (Postgres, agrégations natives pour le ladder).
-Ne pas introduire de dépendance qui fermerait cette option.
+Backend tranché à l'étape 6 : **Supabase** (Postgres, agrégations natives pour le ladder ;
+Auth intégrée). La règle 1 (code réexécutable côté serveur) exclut de faire porter le calcul de
+niveau/score par les Edge Functions Supabase (TypeScript, pas Dart) : un petit service Dart
+dédié (probablement `shelf`), hébergé à part, réutilise `core/domain` tel quel pour revalider
+niveau et score à partir des réponses soumises — Supabase reste la source pour Auth et Postgres,
+mais n'est jamais celle qui calcule un niveau. Détail : `docs/online.md`.
 
 ## Périmètre
 
@@ -95,28 +101,22 @@ types, niveaux actualisés, **nouvelle seed**). Le nombre de questions reste dé
 (`n_min × types actifs`), le joueur ne le règle pas. Détail et justifications :
 `docs/decisions.md`.
 
-**Étape 5 — direction visuelle et expérience.** Direction « nuit électrique » : palette,
-typographie, notation mathématique, pavé intégré, navigation, animations et disposition des
-écrans, tout est arrêté dans `docs/design.md`. Lis-le avant d'écrire une ligne de `presentation/`.
+**Étape 5 — direction visuelle et expérience (terminée).** Direction « nuit électrique » :
+palette, typographie, notation mathématique, pavé intégré, navigation, animations et disposition
+des écrans, tout est arrêté dans `docs/design.md`. Lis-le avant d'écrire une ligne de
+`presentation/`. Livrée avec, en plus du périmètre initial : bascule nuit/jour persistée, niveau
+global calculé sur les 7 types (plancher à 1 pour un type jamais joué, pas d'exclusion), écran de
+progression qui se recharge à chaque retour sur l'onglet.
 
-Contenu, dans l'ordre de priorité issu de l'audit UX :
+**Étape 6 — comptes et classement général ← courante.** Création de compte, identité en ligne,
+classement solo entre tous les joueurs de l'app. Direction, choix de backend (Supabase) et
+architecture détaillés dans `docs/online.md` — lis-le avant d'écrire une ligne touchant aux
+comptes ou au réseau. Pas de duels ni d'Elo dans cette étape (voir étape 7) : « pas d'abstraction
+pour un seul cas d'usage » s'applique aussi au matchmaking, qui n'existe pas encore.
 
-1. **Défauts, pas du polish** — `PopScope` sur la session en cours (le geste retour Android
-   détruit aujourd'hui toutes les réponses) ; suppression des deux `SizedBox.shrink()` servant
-   d'état d'écran ; `Colors.black` littéral dans `exercise_prompt.dart`.
-2. **Thème** — `ThemeData` et extensions pour les deux modes ; élimination des valeurs en dur
-   (~15 dans `session_screen.dart`) ; padding racine et style de titre uniformes.
-3. **Écran de résultat** — changement de niveau avec `AppMotion.levelUp`, série finale,
-   distinction hors délai / faux, composition du score, types joués.
-4. **Écran de progression** — exploitation de l'historique : courbe de niveau, ventilation par
-   opération avec temps moyen, sessions récentes. Suppose des lectures agrégées sur
-   `SessionRepository` (seul point touchant le domaine).
-5. **Rendu et session** — `Text.rich` pour les exposants, barre de racine, pavé à hauteur fixe,
-   `currentStreak` visible, tests de golden dans les deux modes.
+Hors périmètre de l'étape 6 : matchs en ligne, Elo, matchmaking (étape 7).
 
-Hors périmètre : tout ce qui touche aux comptes, au réseau ou au classement.
-
-Ensuite : 5. direction visuelle — 6. comptes et classement général — 7. matchs en ligne et Elo.
+Ensuite : 7. matchs en ligne et Elo (`docs/online.md`, section « Étape 7 »).
 
 **Point d'attente indépendant du code :** les ~20 constantes du système de niveaux restent non
 calibrées faute de données. `tool/recalibrate.dart` existe mais n'a rien à traiter tant que

@@ -6,6 +6,8 @@ import 'package:math_trainer/core/domain/persistence/in_memory_session_repositor
 import 'package:math_trainer/presentation/screens/app_shell.dart';
 import 'package:math_trainer/presentation/theme/app_theme.dart';
 
+import '../fake_account_repository.dart';
+
 void main() {
   testWidgets(
     'le fondu de changement d\'onglet ne casse pas la préservation d\'état (commit F)',
@@ -13,10 +15,14 @@ void main() {
       final environment = AppEnvironment(
         repository: InMemorySessionRepository(),
         playerId: 'test-player',
+        accountRepository: FakeAccountRepository(),
       );
 
       await tester.pumpWidget(
-        MaterialApp(theme: buildLightTheme(), home: AppShell(environment: environment)),
+        MaterialApp(
+          theme: buildLightTheme(),
+          home: AppShell(environment: environment),
+        ),
       );
       await tester.pump();
 
@@ -39,7 +45,10 @@ void main() {
       await tester.pump(const Duration(milliseconds: 250));
 
       final chip = tester.widget<FilterChip>(
-        find.ancestor(of: find.text('Multiplication'), matching: find.byType(FilterChip)),
+        find.ancestor(
+          of: find.text('Multiplication'),
+          matching: find.byType(FilterChip),
+        ),
       );
       expect(chip.selected, isTrue);
     },
