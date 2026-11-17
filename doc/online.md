@@ -9,11 +9,41 @@ encore dans le code tant que l'étape 6 n'a pas commencé.
 
 ## Phasage
 
-- **Étape 6 (courante)** — création de compte, classement solo entre tous les joueurs de l'app.
-  Pas de duels, pas d'Elo, pas de matchmaking.
+- **Étape 6, tranche 1 (livrée)** — création de compte et connexion (email/mot de passe),
+  sans classement ni synchronisation.
+- **Étape 6, tranche 2 (courante)** — connexion obligatoire pour utiliser l'app, nom de joueur,
+  onglet Progression renommé Profil.
+- **Étape 6, tranche 3** — classement solo entre tous les joueurs de l'app, synchronisation des
+  réponses, service Dart de validation serveur.
 - **Étape 7** — matchs en ligne synchronisés (mêmes questions, en même temps) et Elo. S'appuie
-  sur l'infrastructure posée à l'étape 6 (comptes, service de validation serveur) sans la
-  refondre.
+  sur l'infrastructure posée à l'étape 6 sans la refondre.
+
+### Connexion obligatoire (tranche 2) — révision du principe offline-first
+
+Décision explicite de l'utilisateur, qui revient sur « local = source de vérité en solo,
+utilisable sans compte » (`CLAUDE.md`, stratégie de données). Nuance importante, confirmée dans
+la discussion : **la connexion obligatoire ne veut pas dire réseau obligatoire à chaque
+lancement.** Supabase persiste la session localement (comme `TypeSelectionStore`/`ThemeModeStore`
+le font déjà pour d'autres préférences) — un joueur déjà connecté au moins une fois retrouve sa
+session sans réseau au lancement suivant, et continue de jouer hors ligne normalement. La porte
+d'entrée ne bloque que deux cas : aucune session locale n'a jamais existé sur cet appareil, ou le
+joueur s'est explicitement déconnecté. Dans ces deux cas seulement, une connexion réseau est
+nécessaire pour (re)passer la porte.
+
+### Nom de joueur (tranche 2)
+
+Nouvelle table Postgres `profiles` (`id` référence `auth.users.id`, `display_name`) plutôt que
+`user_metadata` sur l'utilisateur Auth : `user_metadata` n'est pas conçu pour être lisible par
+les autres joueurs, alors qu'un nom de joueur doit l'être (RLS : lecture publique, écriture
+restreinte à son propre profil) — et c'est exactement la table dont la tranche 3 (classement)
+aura besoin pour afficher un nom à côté d'un niveau. Domaine : `ProfileRepository` (même schéma
+que `AccountRepository`), dans `core/domain/account/`.
+
+Schéma et RLS versionnés dans `supabase/profiles.sql` (idempotent, à exécuter dans l'éditeur
+SQL du projet). Pas de trigger de création à l'inscription : la ligne naît au premier nom choisi
+(`upsert`), et une ligne absente se lit comme « aucun nom choisi » (`maybeSingle`) — une pièce
+mobile de moins côté serveur. Nom limité à 30 caractères (contrainte `check`, même borne dans
+le dialogue de saisie).
 
 Cohérent avec `CLAUDE.md` : « pas d'abstraction pour un seul cas d'usage » — l'étape 6 ne
 construit pas de scaffolding de matchmaking par anticipation.
@@ -96,10 +126,16 @@ Rien de tout ça n'est construit à l'étape 6. Ce paragraphe existe pour que le
 (comptes, service de validation, découpage Supabase) n'aient pas à être défaits quand l'étape 7
 arrivera.
 
-## Points ouverts (à trancher dans le plan concret de l'étape 6)
+## Décisions actées
 
-- Modèle d'inscription : email/mot de passe, OAuth, ou compte anonyme upgradable.
+- Modèle d'inscription : email/mot de passe (tranche 1).
+- Connexion obligatoire pour utiliser l'app, session persistée localement — pas de réseau requis
+  à chaque lancement pour un joueur déjà connecté (tranche 2, voir plus haut).
+- Nom de joueur via une table `profiles` dédiée, pas `user_metadata` (tranche 2, voir plus haut).
+
+## Points ouverts (à trancher dans le plan concret de la tranche 3)
+
 - Forme exacte de l'extraction de `core/domain` pour le service Dart (package séparé vs dossier
   `server/` du même repo).
 - Hébergement du service Dart (Cloud Run, Fly.io, autre).
-- Schéma Postgres précis (tables comptes/classement), fréquence de synchronisation des réponses.
+- Schéma Postgres précis de la table de classement, fréquence de synchronisation des réponses.

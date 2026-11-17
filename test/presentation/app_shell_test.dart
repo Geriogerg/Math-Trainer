@@ -7,6 +7,7 @@ import 'package:math_trainer/presentation/screens/app_shell.dart';
 import 'package:math_trainer/presentation/theme/app_theme.dart';
 
 import '../fake_account_repository.dart';
+import '../fake_profile_repository.dart';
 
 void main() {
   testWidgets(
@@ -16,6 +17,7 @@ void main() {
         repository: InMemorySessionRepository(),
         playerId: 'test-player',
         accountRepository: FakeAccountRepository(),
+        profileRepository: FakeProfileRepository(),
       );
 
       await tester.pumpWidget(
@@ -29,14 +31,14 @@ void main() {
       await tester.tap(find.text('Multiplication'));
       await tester.pump();
 
-      await tester.tap(find.text('Progression'));
+      await tester.tap(find.text('Profil'));
       // Une seule frame : le fondu (200 ms) est encore en cours, exactement
       // ce qu'on veut vérifier — pas de pumpAndSettle qui masquerait un
       // crash pendant la transition elle-même.
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 250));
 
-      // Pas `find.text('Progression')` : ambigu avec le libellé de
+      // Pas `find.text('Profil')` : ambigu avec le libellé de
       // l'onglet lui-même, présent en même temps dans l'arbre.
       expect(find.text('Par opération'), findsOneWidget);
 

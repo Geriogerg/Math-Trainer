@@ -3,9 +3,8 @@ import 'package:flutter/material.dart';
 import '../../composition_root.dart';
 import '../theme/app_theme.dart';
 import 'coming_soon_screen.dart';
-import 'online_tab.dart';
 import 'play_tab.dart';
-import 'progress_screen.dart';
+import 'profile_screen.dart';
 
 /// Coquille permanente de l'app : barre d'onglets basse à quatre entrées
 /// (`doc/design.md` — pas de tiroir latéral, `doc/decisions.md`).
@@ -15,7 +14,7 @@ import 'progress_screen.dart';
 ///
 /// Les onglets ne sont construits qu'à la première visite (`_visited`) : un
 /// `IndexedStack` naïf construit ses quatre enfants dès le lancement, donc
-/// `ProgressScreen` lirait le cache de niveaux immédiatement même si le
+/// `ProfileScreen` lirait le cache de niveaux immédiatement même si le
 /// joueur ne quitte jamais l'onglet Jouer — un aller-disque inutile à
 /// chaque démarrage, et une source d'échec (ex. lecture qui lève) sans
 /// rapport avec l'onglet réellement affiché.
@@ -74,8 +73,8 @@ class _AppShellState extends State<AppShell>
         environment: widget.environment,
         onToggleTheme: widget.onToggleTheme,
       ),
-      OnlineTab(environment: widget.environment),
-      ProgressScreen(environment: widget.environment, isActive: _index == 2),
+      const ComingSoonScreen(label: 'En ligne'),
+      ProfileScreen(environment: widget.environment, isActive: _index == 2),
       const ComingSoonScreen(label: 'Classement'),
     ];
 
@@ -107,8 +106,8 @@ class _AppShellState extends State<AppShell>
             label: 'En ligne',
           ),
           NavigationDestination(
-            icon: Icon(Icons.bar_chart_outlined),
-            label: 'Progression',
+            icon: Icon(Icons.person_outline),
+            label: 'Profil',
           ),
           NavigationDestination(
             icon: Icon(Icons.leaderboard_outlined),

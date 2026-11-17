@@ -3,7 +3,7 @@ class Account {
 
   /// Identifiant utilisateur côté Supabase Auth — distinct du `playerId`
   /// local (`LocalPlayerIdProvider`), qui ne change pas à la création du
-  /// compte (`docs/online.md`).
+  /// compte (`doc/online.md`).
   final String id;
 
   final String email;

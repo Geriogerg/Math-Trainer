@@ -14,6 +14,11 @@ class SupabaseAccountRepository implements AccountRepository {
     return Account(id: user.id, email: email);
   }
 
+  /// Malgré son nom, le `ReplaySubject` de `supabase_common` derrière
+  /// `onAuthStateChange` ne rejoue que le **dernier** événement à un nouvel
+  /// abonné, pas tout l'historique — c'est ce qui garantit le contrat
+  /// « état courant d'abord » d'`AccountRepository.authState`. Comportement
+  /// de bibliothèque verrouillé par `supabase_account_repository_test.dart`.
   @override
   Stream<Account?> get authState => _client.auth.onAuthStateChange.map(
     (state) => _toAccount(state.session?.user),

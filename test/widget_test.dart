@@ -13,6 +13,7 @@ import 'package:math_trainer/core/domain/persistence/persisted_session.dart';
 import 'package:math_trainer/core/domain/persistence/session_repository.dart';
 
 import 'fake_account_repository.dart';
+import 'fake_profile_repository.dart';
 
 class _ThrowingSessionRepository implements SessionRepository {
   @override
@@ -54,6 +55,7 @@ void main() {
     repository: InMemorySessionRepository(),
     playerId: 'test-player',
     accountRepository: FakeAccountRepository(),
+    profileRepository: FakeProfileRepository(),
   );
 
   // Fait avancer le temps juste assez pour que la transition standard de
@@ -68,6 +70,10 @@ void main() {
 
   testWidgets('affiche l\'écran d\'accueil', (WidgetTester tester) async {
     await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
+    // `AuthGate` résout la session locale de façon asynchrone (même hors
+    // réseau) : une frame supplémentaire est nécessaire avant que le contenu
+    // réel (ici `AppShell`) ne remplace le spinner initial.
+    await tester.pump();
 
     expect(find.text('Math Trainer'), findsOneWidget);
   });
@@ -76,6 +82,10 @@ void main() {
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
+    // `AuthGate` résout la session locale de façon asynchrone (même hors
+    // réseau) : une frame supplémentaire est nécessaire avant que le contenu
+    // réel (ici `AppShell`) ne remplace le spinner initial.
+    await tester.pump();
 
     await tester.tap(find.text('Commencer'));
     await settlePageTransition(tester);
@@ -89,6 +99,10 @@ void main() {
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
+    // `AuthGate` résout la session locale de façon asynchrone (même hors
+    // réseau) : une frame supplémentaire est nécessaire avant que le contenu
+    // réel (ici `AppShell`) ne remplace le spinner initial.
+    await tester.pump();
 
     // Décoche les 2 types pré-sélectionnés par défaut (étape 4.1, commit A).
     for (final label in ['Addition', 'Soustraction']) {
@@ -110,6 +124,10 @@ void main() {
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
+    // `AuthGate` résout la session locale de façon asynchrone (même hors
+    // réseau) : une frame supplémentaire est nécessaire avant que le contenu
+    // réel (ici `AppShell`) ne remplace le spinner initial.
+    await tester.pump();
 
     await tester.tap(find.text('Soustraction'));
     await tester.pump();
@@ -123,6 +141,10 @@ void main() {
     'le geste retour pendant une session demande confirmation avant d\'interrompre (étape 5, commit A)',
     (WidgetTester tester) async {
       await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
+      // `AuthGate` résout la session locale de façon asynchrone (même hors
+      // réseau) : une frame supplémentaire est nécessaire avant que le contenu
+      // réel (ici `AppShell`) ne remplace le spinner initial.
+      await tester.pump();
 
       await tester.tap(find.text('Commencer'));
       await settlePageTransition(tester);
@@ -182,6 +204,10 @@ void main() {
     '« Nouvelle sélection » après une session ramène à l\'écran de sélection',
     (WidgetTester tester) async {
       await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
+      // `AuthGate` résout la session locale de façon asynchrone (même hors
+      // réseau) : une frame supplémentaire est nécessaire avant que le contenu
+      // réel (ici `AppShell`) ne remplace le spinner initial.
+      await tester.pump();
 
       await tester.tap(find.text('Commencer'));
       await settlePageTransition(tester);
@@ -199,6 +225,10 @@ void main() {
     '« Rejouer » relance immédiatement sans repasser par la sélection',
     (WidgetTester tester) async {
       await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
+      // `AuthGate` résout la session locale de façon asynchrone (même hors
+      // réseau) : une frame supplémentaire est nécessaire avant que le contenu
+      // réel (ici `AppShell`) ne remplace le spinner initial.
+      await tester.pump();
 
       await tester.tap(find.text('Commencer'));
       await settlePageTransition(tester);
@@ -216,14 +246,27 @@ void main() {
   );
 
   testWidgets(
-    'la barre d\'onglets bascule vers Progression sans perdre la sélection de Jouer',
+    'la barre d\'onglets bascule vers Profil sans perdre la sélection de Jouer',
     (WidgetTester tester) async {
+      // Le bloc identité en tête de Profil (étape 6, tranche 2) pousse
+      // « Non joué » hors de la fenêtre de test par défaut.
+      tester.view.physicalSize = const Size(412, 1800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
       await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
+      // `AuthGate` résout la session locale de façon asynchrone (même hors
+      // réseau) : une frame supplémentaire est nécessaire avant que le contenu
+      // réel (ici `AppShell`) ne remplace le spinner initial.
+      await tester.pump();
 
       await tester.tap(find.text('Multiplication'));
       await tester.pump();
 
-      await tester.tap(find.text('Progression'));
+      await tester.tap(find.text('Profil'));
       await tester.pumpAndSettle();
       expect(find.text('Addition'), findsOneWidget);
       expect(find.text('Non joué'), findsWidgets);
@@ -249,8 +292,10 @@ void main() {
         repository: _ThrowingSessionRepository(),
         playerId: 'test-player',
         accountRepository: FakeAccountRepository(),
+        profileRepository: FakeProfileRepository(),
       );
       await tester.pumpWidget(MathTrainerApp(environment: failingEnvironment));
+      await tester.pump();
 
       await tester.tap(find.text('Commencer'));
       await tester.pumpAndSettle();
@@ -274,6 +319,10 @@ void main() {
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
+    // `AuthGate` résout la session locale de façon asynchrone (même hors
+    // réseau) : une frame supplémentaire est nécessaire avant que le contenu
+    // réel (ici `AppShell`) ne remplace le spinner initial.
+    await tester.pump();
     await tester.pumpAndSettle();
 
     final initialBrightness = Theme.of(
@@ -296,6 +345,10 @@ void main() {
 
     // Une nouvelle instance pointant sur le même environnement retrouve le choix.
     await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
+    // `AuthGate` résout la session locale de façon asynchrone (même hors
+    // réseau) : une frame supplémentaire est nécessaire avant que le contenu
+    // réel (ici `AppShell`) ne remplace le spinner initial.
+    await tester.pump();
     await tester.pumpAndSettle();
 
     final reloadedBrightness = Theme.of(

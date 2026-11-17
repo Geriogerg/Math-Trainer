@@ -7,10 +7,11 @@ import 'package:math_trainer/core/domain/persistence/level_cache_entry.dart';
 import 'package:math_trainer/core/domain/persistence/persisted_answer.dart';
 import 'package:math_trainer/core/domain/persistence/persisted_session.dart';
 import 'package:math_trainer/core/domain/persistence/session_repository.dart';
-import 'package:math_trainer/presentation/screens/progress_screen.dart';
+import 'package:math_trainer/presentation/screens/profile_screen.dart';
 import 'package:math_trainer/presentation/theme/app_theme.dart';
 
 import '../fake_account_repository.dart';
+import '../fake_profile_repository.dart';
 import 'golden_test_utils.dart';
 
 /// Niveaux fixes pour deux types, les cinq autres restent « Non joué » —
@@ -131,25 +132,26 @@ void main() {
     (name: 'light', theme: buildLightTheme()),
     (name: 'dark', theme: buildDarkTheme()),
   ]) {
-    testWidgets('écran de progression — ${mode.name}', (tester) async {
+    testWidgets('écran de profil — ${mode.name}', (tester) async {
       await setGoldenSurfaceSize(tester);
       final environment = AppEnvironment(
         repository: _FixedLevelsRepository(DateTime.now().toUtc()),
         playerId: 'golden-player',
         accountRepository: FakeAccountRepository(),
+        profileRepository: FakeProfileRepository()..displayName = 'Alex',
       );
 
       await tester.pumpWidget(
         MaterialApp(
           theme: mode.theme,
-          home: Scaffold(body: ProgressScreen(environment: environment)),
+          home: Scaffold(body: ProfileScreen(environment: environment)),
         ),
       );
       await tester.pumpAndSettle();
 
       await expectLater(
-        find.byType(ProgressScreen),
-        matchesGoldenFile('goldens/progress_screen_${mode.name}.png'),
+        find.byType(ProfileScreen),
+        matchesGoldenFile('goldens/profile_screen_${mode.name}.png'),
       );
     });
   }

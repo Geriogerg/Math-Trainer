@@ -1,0 +1,10 @@
+# Fins de ligne LF dans le dépôt quel que soit l'éditeur Windows : sans ça,
+# un éditeur qui réécrit en CRLF fait apparaître des fichiers entiers comme
+# modifiés sans aucun changement réel.
+*.dart text eol=lf
+*.md text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.sql text eol=lf
+*.bat text eol=crlf
+*.png binary

@@ -2,16 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:math_trainer/composition_root.dart';
+import 'package:math_trainer/core/domain/account/account.dart';
+import 'package:math_trainer/core/domain/account/account_repository.dart';
 import 'package:math_trainer/core/domain/persistence/level_cache_entry.dart';
 import 'package:math_trainer/core/domain/models/exercise_type.dart';
 import 'package:math_trainer/core/domain/persistence/in_memory_session_repository.dart';
 import 'package:math_trainer/core/domain/persistence/persisted_answer.dart';
 import 'package:math_trainer/core/domain/persistence/persisted_session.dart';
 import 'package:math_trainer/core/domain/persistence/session_repository.dart';
-import 'package:math_trainer/presentation/screens/progress_screen.dart';
+import 'package:math_trainer/presentation/screens/profile_screen.dart';
 import 'package:math_trainer/presentation/theme/app_theme.dart';
 
 import '../fake_account_repository.dart';
+import '../fake_profile_repository.dart';
 
 /// Échoue tant que [shouldFail] est vrai, réussit ensuite — simule un
 /// réseau/disque qui se rétablit, pour tester le bouton « Réessayer ».
@@ -67,10 +70,35 @@ class _FlakySessionRepository implements SessionRepository {
   }
 }
 
+/// Fausse implémentation locale qui enregistre l'appel à `signOut()` — le
+/// `FakeAccountRepository` partagé le lance en `UnimplementedError` (il ne
+/// sert qu'à satisfaire le constructeur pour les tests qui ne s'y
+/// intéressent pas).
+class _RecordingAccountRepository implements AccountRepository {
+  bool signOutCalled = false;
+
+  @override
+  Stream<Account?> get authState =>
+      Stream.value(const Account(id: 'test-account', email: 'joueur@test.com'));
+
+  @override
+  Future<Account?> signUp({required String email, required String password}) =>
+      throw UnimplementedError();
+
+  @override
+  Future<Account> signIn({required String email, required String password}) =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> signOut() async {
+    signOutCalled = true;
+  }
+}
+
 void main() {
-  // Écran désormais plus long (4 blocs, commit E) : une fenêtre de test trop
-  // courte laisserait les dernières lignes de la ventilation par opération
-  // hors du viewport initial, donc absentes de `find.text()` sans scroll.
+  // Écran désormais plus long (bloc identité + 4 blocs de progression) : une
+  // fenêtre de test trop courte laisserait les dernières lignes hors du
+  // viewport initial, donc absentes de `find.text()` sans scroll.
   Future<void> setTallSurface(WidgetTester tester) async {
     tester.view.physicalSize = const Size(412, 1800);
     tester.view.devicePixelRatio = 1.0;
@@ -109,12 +137,13 @@ void main() {
         repository: repository,
         playerId: 'test-player',
         accountRepository: FakeAccountRepository(),
+        profileRepository: FakeProfileRepository(),
       );
 
       await tester.pumpWidget(
         MaterialApp(
           theme: buildLightTheme(),
-          home: Scaffold(body: ProgressScreen(environment: environment)),
+          home: Scaffold(body: ProfileScreen(environment: environment)),
         ),
       );
       await tester.pumpAndSettle();
@@ -137,13 +166,14 @@ void main() {
         repository: repository,
         playerId: 'test-player',
         accountRepository: FakeAccountRepository(),
+        profileRepository: FakeProfileRepository(),
       );
 
       Future<void> pump(bool isActive) => tester.pumpWidget(
         MaterialApp(
           theme: buildLightTheme(),
           home: Scaffold(
-            body: ProgressScreen(environment: environment, isActive: isActive),
+            body: ProfileScreen(environment: environment, isActive: isActive),
           ),
         ),
       );
@@ -196,26 +226,24 @@ void main() {
         repository: repository,
         playerId: 'test-player',
         accountRepository: FakeAccountRepository(),
+        profileRepository: FakeProfileRepository(),
       );
 
       await tester.pumpWidget(
         MaterialApp(
           theme: buildLightTheme(),
-          home: Scaffold(body: ProgressScreen(environment: environment)),
+          home: Scaffold(body: ProfileScreen(environment: environment)),
         ),
       );
       await tester.pumpAndSettle();
 
-      expect(
-        find.text('Impossible de charger la progression.'),
-        findsOneWidget,
-      );
+      expect(find.text('Impossible de charger le profil.'), findsOneWidget);
       expect(find.widgetWithText(FilledButton, 'Réessayer'), findsOneWidget);
     },
   );
 
   testWidgets(
-    'Réessayer relance la lecture et affiche la progression si elle réussit',
+    'Réessayer relance la lecture et affiche le profil si elle réussit',
     (WidgetTester tester) async {
       await setTallSurface(tester);
       final repository = _FlakySessionRepository();
@@ -223,25 +251,23 @@ void main() {
         repository: repository,
         playerId: 'test-player',
         accountRepository: FakeAccountRepository(),
+        profileRepository: FakeProfileRepository(),
       );
 
       await tester.pumpWidget(
         MaterialApp(
           theme: buildLightTheme(),
-          home: Scaffold(body: ProgressScreen(environment: environment)),
+          home: Scaffold(body: ProfileScreen(environment: environment)),
         ),
       );
       await tester.pumpAndSettle();
-      expect(
-        find.text('Impossible de charger la progression.'),
-        findsOneWidget,
-      );
+      expect(find.text('Impossible de charger le profil.'), findsOneWidget);
 
       repository.shouldFail = false;
       await tester.tap(find.widgetWithText(FilledButton, 'Réessayer'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Impossible de charger la progression.'), findsNothing);
+      expect(find.text('Impossible de charger le profil.'), findsNothing);
       expect(find.text('Niveau 7'), findsOneWidget);
     },
   );
@@ -329,24 +355,21 @@ void main() {
         repository: repository,
         playerId: 'test-player',
         accountRepository: FakeAccountRepository(),
+        profileRepository: FakeProfileRepository(),
       );
 
       await tester.pumpWidget(
         MaterialApp(
           theme: buildLightTheme(),
-          home: Scaffold(body: ProgressScreen(environment: environment)),
+          home: Scaffold(body: ProfileScreen(environment: environment)),
         ),
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Progression'), findsOneWidget);
+      expect(find.text('Profil'), findsOneWidget);
       // (50 + 6 × 1 plancher pour les 6 types non joués) / 7 = 8.
       expect(find.textContaining('Niveau global : 8'), findsOneWidget);
-      // Session la plus récente de la fenêtre (session-c, niveau 50) vs la plus
-      // ancienne (session-a, niveau 30) : +20 — même valeur qu'avant la
-      // correction ici, un seul type ayant jamais été touché dans ce test.
       expect(find.textContaining('Variation (30 j) : +20'), findsOneWidget);
-      // 3 sessions dans les 30 jours : la courbe a assez de points, pas de repli.
       expect(
         find.text('Pas assez de données sur les 30 derniers jours.'),
         findsNothing,
@@ -357,6 +380,147 @@ void main() {
       expect(find.textContaining('Score 50'), findsOneWidget);
     },
   );
+
+  testWidgets('affiche l\'invite quand aucun nom de joueur n\'est enregistré', (
+    WidgetTester tester,
+  ) async {
+    await setTallSurface(tester);
+    final environment = AppEnvironment(
+      repository: InMemorySessionRepository(),
+      playerId: 'test-player',
+      accountRepository: FakeAccountRepository(),
+      profileRepository: FakeProfileRepository()..displayName = null,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildLightTheme(),
+        home: Scaffold(body: ProfileScreen(environment: environment)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Choisir un nom de joueur'), findsOneWidget);
+    expect(find.text('joueur@test.com'), findsOneWidget);
+  });
+
+  // Régression : le nom (réseau) et les statistiques (locales) étaient lus
+  // dans un même `Future.wait` — hors ligne, tout l'écran tombait sur
+  // « Impossible de charger le profil. », statistiques locales comprises.
+  testWidgets(
+    'nom de joueur injoignable : les statistiques locales restent affichées',
+    (WidgetTester tester) async {
+      await setTallSurface(tester);
+      final profileRepository = FakeProfileRepository()..shouldFail = true;
+      final environment = AppEnvironment(
+        repository: InMemorySessionRepository(),
+        playerId: 'test-player',
+        accountRepository: FakeAccountRepository(),
+        profileRepository: profileRepository,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildLightTheme(),
+          home: Scaffold(body: ProfileScreen(environment: environment)),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Impossible de charger le profil.'), findsNothing);
+      expect(find.text('Par opération'), findsOneWidget);
+      expect(find.text('joueur@test.com'), findsOneWidget);
+      expect(find.text('Nom de joueur indisponible'), findsOneWidget);
+      expect(find.byIcon(Icons.edit_outlined), findsNothing);
+
+      profileRepository
+        ..shouldFail = false
+        ..displayName = 'Alex';
+      await tester.tap(find.byIcon(Icons.refresh));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Alex'), findsOneWidget);
+      expect(find.byIcon(Icons.edit_outlined), findsOneWidget);
+    },
+  );
+
+  testWidgets('affiche le nom de joueur déjà enregistré', (
+    WidgetTester tester,
+  ) async {
+    await setTallSurface(tester);
+    final environment = AppEnvironment(
+      repository: InMemorySessionRepository(),
+      playerId: 'test-player',
+      accountRepository: FakeAccountRepository(),
+      profileRepository: FakeProfileRepository()..displayName = 'Alex',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildLightTheme(),
+        home: Scaffold(body: ProfileScreen(environment: environment)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Alex'), findsOneWidget);
+    expect(find.text('Choisir un nom de joueur'), findsNothing);
+  });
+
+  testWidgets(
+    'modifier le nom de joueur appelle updateDisplayName et rafraîchit l\'affichage',
+    (WidgetTester tester) async {
+      await setTallSurface(tester);
+      final profileRepository = FakeProfileRepository()..displayName = 'Alex';
+      final environment = AppEnvironment(
+        repository: InMemorySessionRepository(),
+        playerId: 'test-player',
+        accountRepository: FakeAccountRepository(),
+        profileRepository: profileRepository,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildLightTheme(),
+          home: Scaffold(body: ProfileScreen(environment: environment)),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.edit_outlined));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'Nouveau nom');
+      await tester.tap(find.widgetWithText(FilledButton, 'Enregistrer'));
+      await tester.pumpAndSettle();
+
+      expect(profileRepository.displayName, 'Nouveau nom');
+      expect(find.text('Nouveau nom'), findsOneWidget);
+    },
+  );
+
+  testWidgets('Se déconnecter appelle signOut', (WidgetTester tester) async {
+    await setTallSurface(tester);
+    final accountRepository = _RecordingAccountRepository();
+    final environment = AppEnvironment(
+      repository: InMemorySessionRepository(),
+      playerId: 'test-player',
+      accountRepository: accountRepository,
+      profileRepository: FakeProfileRepository(),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildLightTheme(),
+        home: Scaffold(body: ProfileScreen(environment: environment)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Se déconnecter'));
+    await tester.pumpAndSettle();
+
+    expect(accountRepository.signOutCalled, isTrue);
+  });
 }
 
 String _labelFor(ExerciseType type) => switch (type) {

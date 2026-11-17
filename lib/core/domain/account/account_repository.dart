@@ -3,9 +3,10 @@ import 'account.dart';
 /// Compte en ligne — implémentation concrète (Supabase) dans
 /// `infrastructure/backend/`, jamais dans le domaine (règle 3).
 abstract class AccountRepository {
-  /// Compte connecté, `null` si personne n'est connecté. Reflète les
-  /// changements (connexion, déconnexion, expiration de session) sans
-  /// polling.
+  /// Compte connecté, `null` si personne n'est connecté. Chaque abonnement
+  /// reçoit d'abord l'état **courant**, puis chaque changement (connexion,
+  /// déconnexion, expiration de session) sans polling — donc `.first` donne
+  /// le compte connecté à l'instant de l'appel, jamais un état antérieur.
   Stream<Account?> get authState;
 
   /// `null` : compte créé, mais confirmation par email requise avant de

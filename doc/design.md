@@ -127,13 +127,18 @@ Disposition : 1–9 sur trois rangées, puis rangée basse `retour arrière` / `
 
 ## Navigation
 
-**Barre d'onglets en bas**, quatre entrées : Jouer, En ligne, Progression, Classement.
+**Barre d'onglets en bas**, quatre entrées : Jouer, En ligne, Profil, Classement.
 
 Pas de tiroir latéral : deux gestes au lieu d'un, navigation cachée, et sur un grand téléphone
 il force le pouce vers le coin haut-gauche, le point le moins accessible. La barre basse reste
 visible, atteignable, et accueillera les pastilles de notification quand les duels arriveront.
 
-Profil et réglages : icône dans un coin de l'écran d'accueil, pas un cinquième onglet.
+**Révision (étape 6, tranche 2) : l'onglet Progression devient Profil**, et porte désormais
+l'identité du joueur (nom de joueur, email, déconnexion) en plus des statistiques déjà présentes
+(niveau global, courbe, ventilation par opération, sessions récentes) — décision explicite de
+l'utilisateur, qui revient sur le principe initial (« pas un cinquième onglet », profil en icône
+de coin). Le bouton nuit/jour, lui, reste une icône de coin sur l'écran Jouer — décision
+indépendante, non concernée par cette révision.
 
 ## Animation
 

@@ -8,11 +8,13 @@ En cas de divergence, le code fait foi.
 
 ```
 lib/
-  main.dart                # runApp() — async, résout l'environnement avant
-  app.dart                 # MaterialApp, thème (clair/sombre/bascule persistée), écran racine
+  main.dart                # runApp() — async, résout l'environnement avant ; ConfigErrorApp
+                           # si le build n'embarque pas la configuration Supabase
+  app.dart                 # MaterialApp, thème (clair/sombre/bascule persistée), AuthGate en racine
   composition_root.dart    # seul fichier qui choisit les implémentations concrètes (AppEnvironment)
   core/
     domain/                # Dart pur — zéro import Flutter (règle 1)
+      account/             # Account, AccountRepository, PlayerProfile, ProfileRepository (interfaces)
       models/              # Exercise (sealed) et 4 variantes, ExerciseType, OperationType,
                            # AnswerResult, SessionConfig, SessionResult
       generation/          # ExerciseGenerator, CompositeExerciseGenerator, générateurs
@@ -31,28 +33,37 @@ lib/
     persistence/           # SqfliteSessionRepository, database.dart (schéma + migrations),
                            # SharedPreferences{PlayerIdProvider,TypeSelectionStore,ThemeModeStore}
                            # — seul endroit qui importe sqflite / shared_preferences
+    backend/               # Supabase{Account,Profile}Repository — seul endroit qui importe
+                           # supabase_flutter (hors composition_root.dart)
   presentation/
     theme/                 # app_theme.dart — ColorScheme clair/sombre, AppPalette/AppMotion/AppMetrics
-    screens/               # AppShell (coquille à onglets, IndexedStack), PlayTab (sélection +
-                           # bouton nuit/jour), SessionFlowScreen/SessionScreen (session plein
-                           # écran), ResultScreen, ProgressScreen (recharge à l'activation de
-                           # l'onglet), ComingSoonScreen, EmptyState
+    screens/               # AuthGate (connexion obligatoire) + AuthForm, AppShell (coquille à
+                           # onglets, IndexedStack), PlayTab (sélection + bouton nuit/jour),
+                           # SessionFlowScreen/SessionScreen (session plein écran), ResultScreen,
+                           # ProfileScreen (identité + progression, recharge à l'activation de
+                           # l'onglet), ComingSoonScreen, EmptyState, ConfigErrorApp
     exercise_prompt.dart, exercise_type_labels.dart, level_summary.dart
+supabase/
+  profiles.sql             # table `profiles` + RLS, à exécuter dans l'éditeur SQL du projet
 test/
   domain/                  # miroir de core/domain — `dart test test/domain`
   state/                   # SessionController — `flutter test` (ChangeNotifier tire dart:ui)
-  infrastructure/          # sqflite via sqflite_common_ffi, shared_preferences mocké
+  infrastructure/          # sqflite via sqflite_common_ffi, shared_preferences mocké ;
+                           # backend/ : vrai SupabaseClient, transport HTTP simulé (MockClient)
   presentation/            # écrans + tests de golden (clair/sombre)
   widget_test.dart         # smoke test + parcours démarrage → session, bascule de thème
 ```
 
 ## Mode en ligne (étape 6+)
 
-Comptes, classement et duels ajoutent une nouvelle frontière : `infrastructure/` gagnera un
-client Supabase, et un service Dart séparé (hors de cette app Flutter) réutilisera `core/domain`
-pour la validation côté serveur. Direction, choix de backend et découpage détaillés dans
-`docs/online.md` — pas dupliqué ici tant que le code n'existe pas (ce fichier décrit l'état des
-lieux, pas les intentions).
+Comptes (tranches 1 et 2 de l'étape 6) : client Supabase dans `infrastructure/backend/`,
+derrière `AccountRepository`/`ProfileRepository`. `AuthGate` exige un compte connecté ; la
+session est persistée localement par Supabase, donc pas de réseau requis au lancement pour un
+joueur déjà connecté. Sur `ProfileScreen`, seul le nom de joueur passe par le réseau, chargé à
+part des statistiques locales : hors ligne, seule la ligne du nom est indisponible.
+
+À venir (tranche 3, étape 7) : un service Dart séparé (hors de cette app Flutter) réutilisera
+`core/domain` pour la validation côté serveur. Direction et découpage dans `doc/online.md`.
 
 ## Gestion d'état
 
@@ -127,7 +138,7 @@ progression viendra s'ajouter ; si le fichier grossit, le scinder par vue.
 | `path` | jointure de chemin cross-platform pour localiser le `.db` |
 | `shared_preferences` | stockage du scalaire `player_id` |
 | `sqflite_common_ffi` (dev) | tests du repository sur la Dart VM, sans émulateur |
-| `supabase_flutter` | Auth + Postgres pour le mode en ligne (étape 6, `docs/online.md`) — seul import hors de `infrastructure/backend/` |
+| `supabase_flutter` | Auth + Postgres pour le mode en ligne (étape 6, `doc/online.md`) — seul import hors de `infrastructure/backend/` |
 
 L'étape 3 n'introduit aucune dépendance : puissances, carrés parfaits et pourcentages entiers
 se calculent en arithmétique entière avec `dart:core` seul.

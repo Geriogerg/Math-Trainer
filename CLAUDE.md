@@ -1,12 +1,13 @@
 # Math Trainer
 
 Jeu Flutter de calcul mental compétitif (ados et adultes). Rapide, ludique, orienté compétition.
-État : 42 commits, 7 types d'exercices, persistance locale, direction visuelle « nuit
-électrique » livrée (étape 5). 166 tests domaine / 261 au total.
+État : 43 commits, 7 types d'exercices, persistance locale, direction visuelle « nuit
+électrique » livrée (étape 5), comptes Supabase (étape 6, tranches 1-2). 166 tests domaine /
+280 au total.
 
-Détails non nécessaires à chaque session : `docs/architecture.md` (structure, gestion d'état,
-modèle d'exercice, dépendances), `docs/decisions.md` (arbitrages passés et leurs raisons),
-`docs/design.md` (palette, typographie, notation, règles d'interface) et `docs/online.md`
+Détails non nécessaires à chaque session : `doc/architecture.md` (structure, gestion d'état,
+modèle d'exercice, dépendances), `doc/decisions.md` (arbitrages passés et leurs raisons),
+`doc/design.md` (palette, typographie, notation, règles d'interface) et `doc/online.md`
 (comptes, classement, mode en ligne — étapes 6 et 7).
 Va les lire quand le sujet se présente — ils ne sont pas importés ici volontairement.
 
@@ -85,7 +86,7 @@ Auth intégrée). La règle 1 (code réexécutable côté serveur) exclut de fai
 niveau/score par les Edge Functions Supabase (TypeScript, pas Dart) : un petit service Dart
 dédié (probablement `shelf`), hébergé à part, réutilise `core/domain` tel quel pour revalider
 niveau et score à partir des réponses soumises — Supabase reste la source pour Auth et Postgres,
-mais n'est jamais celle qui calcule un niveau. Détail : `docs/online.md`.
+mais n'est jamais celle qui calcule un niveau. Détail : `doc/online.md`.
 
 ## Périmètre
 
@@ -99,24 +100,30 @@ comptabilisée, réponses déjà données conservées) ; pas de niveau pondéré
 `n_min` 8 → 4, **couplé à un élargissement de `δ`** ; relance immédiate en fin de session (mêmes
 types, niveaux actualisés, **nouvelle seed**). Le nombre de questions reste dérivé
 (`n_min × types actifs`), le joueur ne le règle pas. Détail et justifications :
-`docs/decisions.md`.
+`doc/decisions.md`.
 
 **Étape 5 — direction visuelle et expérience (terminée).** Direction « nuit électrique » :
 palette, typographie, notation mathématique, pavé intégré, navigation, animations et disposition
-des écrans, tout est arrêté dans `docs/design.md`. Lis-le avant d'écrire une ligne de
+des écrans, tout est arrêté dans `doc/design.md`. Lis-le avant d'écrire une ligne de
 `presentation/`. Livrée avec, en plus du périmètre initial : bascule nuit/jour persistée, niveau
 global calculé sur les 7 types (plancher à 1 pour un type jamais joué, pas d'exclusion), écran de
 progression qui se recharge à chaque retour sur l'onglet.
 
-**Étape 6 — comptes et classement général ← courante.** Création de compte, identité en ligne,
-classement solo entre tous les joueurs de l'app. Direction, choix de backend (Supabase) et
-architecture détaillés dans `docs/online.md` — lis-le avant d'écrire une ligne touchant aux
-comptes ou au réseau. Pas de duels ni d'Elo dans cette étape (voir étape 7) : « pas d'abstraction
-pour un seul cas d'usage » s'applique aussi au matchmaking, qui n'existe pas encore.
+**Étape 6 — comptes et classement général.** Création de compte, identité en ligne, classement
+solo entre tous les joueurs de l'app. Direction, choix de backend (Supabase) et architecture
+détaillés dans `doc/online.md` — lis-le avant d'écrire une ligne touchant aux comptes ou au
+réseau. Pas de duels ni d'Elo dans cette étape (voir étape 7) : « pas d'abstraction pour un seul
+cas d'usage » s'applique aussi au matchmaking, qui n'existe pas encore.
+
+- Tranche 1 (livrée) : création de compte, connexion.
+- Tranche 2 ← courante : connexion obligatoire pour utiliser l'app (session persistée
+  localement — pas de réseau requis à chaque lancement pour un joueur déjà connecté), nom de
+  joueur, onglet Progression renommé Profil.
+- Tranche 3 : classement solo, synchronisation des réponses, service Dart de validation serveur.
 
 Hors périmètre de l'étape 6 : matchs en ligne, Elo, matchmaking (étape 7).
 
-Ensuite : 7. matchs en ligne et Elo (`docs/online.md`, section « Étape 7 »).
+Ensuite : 7. matchs en ligne et Elo (`doc/online.md`, section « Étape 7 »).
 
 **Point d'attente indépendant du code :** les ~20 constantes du système de niveaux restent non
 calibrées faute de données. `tool/recalibrate.dart` existe mais n'a rien à traiter tant que
@@ -146,7 +153,7 @@ Anticiper = ne pas fermer la porte. Pas d'abstraction pour un seul cas d'usage.
 - **Lister les fichiers modifiés** avec une justification brève.
 - En cas d'ambiguïté, proposer une solution raisonnable et expliciter le choix.
 - Simplicité avant sur-ingénierie. Une étape à la fois, livrable et testable, puis un commit.
-- **Signaler les écarts** constatés entre le code réel et `docs/architecture.md`.
+- **Signaler les écarts** constatés entre le code réel et `doc/architecture.md`.
 
 ## Conventions
 
@@ -168,7 +175,10 @@ Anticiper = ne pas fermer la porte. Pas d'abstraction pour un seul cas d'usage.
 
 1. `dart test test/domain` puis `flutter test` au vert
 2. `flutter analyze` sans avertissement
-3. **Vérification sur Android réel ou émulateur** — jamais uniquement sur web
+3. **Vérification sur Android réel ou émulateur** — jamais uniquement sur web.
+   *Suspendu temporairement (depuis le 2026-11-17, demande de l'utilisateur) : émulateur
+   inutilisable, développement sur web uniquement. Signaler dans chaque commit que la
+   vérification Android reste à faire.*
 
 ## Commandes
 
@@ -176,10 +186,15 @@ Anticiper = ne pas fermer la porte. Pas d'abstraction pour un seul cas d'usage.
 dart test test/domain      # cœur métier — le scope est obligatoire (cf. pièges)
 flutter test               # tests incluant les widgets
 flutter analyze            # analyse statique
-flutter run -d edge        # itération rapide
-flutter build apk --debug && adb install -r <apk> && adb shell am start <activité>
+flutter run -d edge --web-port=8080 --dart-define-from-file=dart_defines.json
+                           # itération rapide (port fixe : cf. pièges)
+flutter build apk --debug --dart-define-from-file=dart_defines.json \
+  && adb install -r <apk> && adb shell am start <activité>
                            # vérification Android fiable (cf. pièges)
 ```
+
+`dart_defines.json` (non versionné, modèle : `dart_defines.example.json`) porte l'URL et la clé
+publique Supabase. Sans lui, l'app démarre sur un écran « Configuration manquante ».
 
 ## Pièges (non déductibles du code)
 
@@ -199,4 +214,13 @@ flutter build apk --debug && adb install -r <apk> && adb shell am start <activit
   différentes). À revérifier sur machine propre ou en CI avant le premier `flutter build appbundle`.
 - **Rien n'est persisté sur web** : `InMemorySessionRepository` sert de repli, un rechargement
   efface tout. À traiter avant tout déploiement web public.
+- **Sur web, toujours le même port** (`--web-port=8080`). Session Supabase, `playerId`, thème et
+  sélection de types vivent dans le `localStorage`, propre à l'origine (port compris) : un port
+  aléatoire à chaque `flutter run` repart d'un joueur inconnu et déconnecté.
+- **Environnement Windows à cheval sur C: et D:** (migration partielle du 14/08/2026) : SDK
+  Android, AVD et `GRADLE_USER_HOME` sur `D:\Users\GREgo`, cache pub encore sur `C:`. Le cache
+  Gradle copié était corrompu (« immutable workspace … modified ») ; vider
+  `D:\Users\GREgo\.gradle\caches\<version>\transforms` règle ce symptôme.
+- **Table `profiles` côté Supabase** : créée par `supabase/profiles.sql` (à exécuter dans
+  l'éditeur SQL du projet) — rien ne la crée automatiquement.
 - `sqrt()` en virgule flottante est à proscrire : arithmétique entière uniquement.

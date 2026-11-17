@@ -54,6 +54,9 @@ dev_dependencies:
   # binding Flutter — flutter_test seul ne s'exécute pas hors tooling Flutter.
   test: ^1.25.0
   sqflite_common_ffi: ^2.4.2
+  # `MockClient` : un vrai `SupabaseClient` dans les tests d'infrastructure,
+  # seul le transport HTTP est simulé (`test/infrastructure/backend/`).
+  http: ^1.6.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

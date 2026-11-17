@@ -11,6 +11,7 @@ import 'package:math_trainer/presentation/screens/play_tab.dart';
 import 'package:math_trainer/presentation/theme/app_theme.dart';
 
 import '../fake_account_repository.dart';
+import '../fake_profile_repository.dart';
 
 /// Store en mémoire — pas d'infrastructure de test partagée pour une seule
 /// classe de quelques lignes (convention du projet).
@@ -47,6 +48,7 @@ void main() {
         repository: InMemorySessionRepository(),
         playerId: 'test-player',
         accountRepository: FakeAccountRepository(),
+        profileRepository: FakeProfileRepository(),
         typeSelectionStore: store,
       );
 
@@ -70,6 +72,7 @@ void main() {
         repository: InMemorySessionRepository(),
         playerId: 'test-player',
         accountRepository: FakeAccountRepository(),
+        profileRepository: FakeProfileRepository(),
         typeSelectionStore: _FakeTypeSelectionStore(),
       );
 
@@ -92,6 +95,7 @@ void main() {
       repository: InMemorySessionRepository(),
       playerId: 'test-player',
       accountRepository: FakeAccountRepository(),
+      profileRepository: FakeProfileRepository(),
       typeSelectionStore: store,
     );
 
@@ -110,6 +114,7 @@ void main() {
       repository: InMemorySessionRepository(),
       playerId: 'test-player',
       accountRepository: FakeAccountRepository(),
+      profileRepository: FakeProfileRepository(),
       typeSelectionStore: store,
     );
     await pumpPlayTab(tester, secondEnvironment);
@@ -130,6 +135,7 @@ void main() {
       repository: InMemorySessionRepository(),
       playerId: 'test-player',
       accountRepository: FakeAccountRepository(),
+      profileRepository: FakeProfileRepository(),
       typeSelectionStore: _FakeTypeSelectionStore(),
     );
 
@@ -170,6 +176,7 @@ void main() {
         repository: repository,
         playerId: 'test-player',
         accountRepository: FakeAccountRepository(),
+        profileRepository: FakeProfileRepository(),
         typeSelectionStore: _FakeTypeSelectionStore(),
       );
 

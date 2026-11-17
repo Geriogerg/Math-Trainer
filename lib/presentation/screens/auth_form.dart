@@ -1,47 +1,36 @@
 import 'package:flutter/material.dart';
 
-import '../../composition_root.dart';
-import '../../core/domain/account/account.dart';
 import '../../core/domain/account/account_repository.dart';
 import '../theme/app_theme.dart';
 
-/// Onglet « En ligne » de `AppShell`. Étape 6, tranche 1 (`doc/online.md`) :
-/// création de compte et connexion seulement, pas de classement ni de duels
-/// ici.
-class OnlineTab extends StatelessWidget {
-  const OnlineTab({super.key, required this.environment});
-
-  final AppEnvironment environment;
-
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<Account?>(
-      stream: environment.accountRepository.authState,
-      builder: (context, snapshot) {
-        final account = snapshot.data;
-        return account == null
-            ? _AuthForm(accountRepository: environment.accountRepository)
-            : _SignedInView(
-                account: account,
-                accountRepository: environment.accountRepository,
-              );
-      },
-    );
-  }
-}
-
 enum _AuthMode { signIn, signUp }
 
-class _AuthForm extends StatefulWidget {
-  const _AuthForm({required this.accountRepository});
+/// `Exception(message)` se formate en `Exception: message` — retire ce
+/// préfixe technique. Le message lui-même vient tel quel de Supabase (pas
+/// traduit — court terme, mais un mot de passe trop court ou un email déjà
+/// utilisé reste plus utile en anglais qu'un message générique muet).
+String _describeError(Object error) {
+  final message = error.toString();
+  const prefix = 'Exception: ';
+  return message.startsWith(prefix)
+      ? message.substring(prefix.length)
+      : message;
+}
+
+/// Formulaire connexion/inscription — porte d'entrée de l'app (`AuthGate`,
+/// connexion obligatoire, `doc/online.md`). Extrait de l'ancien `OnlineTab`
+/// (étape 6, tranche 1) : la connexion n'est plus un onglet, mais une porte
+/// au niveau de l'app.
+class AuthForm extends StatefulWidget {
+  const AuthForm({super.key, required this.accountRepository});
 
   final AccountRepository accountRepository;
 
   @override
-  State<_AuthForm> createState() => _AuthFormState();
+  State<AuthForm> createState() => _AuthFormState();
 }
 
-class _AuthFormState extends State<_AuthForm> {
+class _AuthFormState extends State<AuthForm> {
   _AuthMode _mode = _AuthMode.signIn;
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -87,17 +76,15 @@ class _AuthFormState extends State<_AuthForm> {
       } else {
         await widget.accountRepository.signIn(email: email, password: password);
       }
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
       setState(() {
         _isSubmitting = false;
-        _error = _mode == _AuthMode.signUp
-            ? 'Impossible de créer le compte.'
-            : 'Impossible de se connecter.';
+        _error = _describeError(e);
       });
       return;
     }
-    // Succès avec session active : `OnlineTab.authState` émettra le compte
+    // Succès avec session active : `AuthGate.authState` émettra le compte
     // connecté et reconstruira au-dessus de ce widget — rien à faire ici.
     if (mounted) setState(() => _isSubmitting = false);
   }
@@ -179,76 +166,6 @@ class _AuthFormState extends State<_AuthForm> {
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SignedInView extends StatefulWidget {
-  const _SignedInView({required this.account, required this.accountRepository});
-
-  final Account account;
-  final AccountRepository accountRepository;
-
-  @override
-  State<_SignedInView> createState() => _SignedInViewState();
-}
-
-class _SignedInViewState extends State<_SignedInView> {
-  bool _isSigningOut = false;
-  String? _error;
-
-  Future<void> _signOut() async {
-    setState(() {
-      _isSigningOut = true;
-      _error = null;
-    });
-    try {
-      await widget.accountRepository.signOut();
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _isSigningOut = false;
-        _error = 'Impossible de se déconnecter.';
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Center(
-      child: Padding(
-        padding: theme.extension<AppMetrics>()!.rootPadding,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Connecté', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 8),
-            Text(widget.account.email, style: theme.textTheme.bodyMedium),
-            const SizedBox(height: 24),
-            FilledButton(
-              onPressed: _isSigningOut ? null : _signOut,
-              child: _isSigningOut
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('Se déconnecter'),
-            ),
-            if (_error != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                _error!,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.error,
-                ),
-              ),
-            ],
-          ],
         ),
       ),
     );

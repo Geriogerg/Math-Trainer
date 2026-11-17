@@ -7,12 +7,14 @@ import 'package:math_trainer/core/domain/persistence/in_memory_session_repositor
 import 'package:math_trainer/presentation/theme/app_theme.dart';
 
 import '../fake_account_repository.dart';
+import '../fake_profile_repository.dart';
 
 void main() {
   final testEnvironment = AppEnvironment(
     repository: InMemorySessionRepository(),
     playerId: 'test-player',
     accountRepository: FakeAccountRepository(),
+    profileRepository: FakeProfileRepository(),
   );
 
   test('les deux thèmes exposent AppPalette et AppMotion', () {

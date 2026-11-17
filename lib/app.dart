@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'composition_root.dart';
 import 'core/domain/persistence/theme_mode_store.dart';
-import 'presentation/screens/app_shell.dart';
+import 'presentation/screens/auth_gate.dart';
 import 'presentation/theme/app_theme.dart';
 
 class MathTrainerApp extends StatefulWidget {
@@ -43,7 +43,8 @@ class _MathTrainerAppState extends State<MathTrainerApp> {
       ThemeMode.light => false,
       // Pas encore de choix explicite : se base sur la luminosité système
       // effective plutôt que de figer arbitrairement clair ou sombre.
-      ThemeMode.system => PlatformDispatcher.instance.platformBrightness == Brightness.dark,
+      ThemeMode.system =>
+        PlatformDispatcher.instance.platformBrightness == Brightness.dark,
     };
     final next = isDark ? ThemeModePreference.light : ThemeModePreference.dark;
     setState(() => _themeMode = _toThemeMode(next));
@@ -60,7 +61,10 @@ class _MathTrainerAppState extends State<MathTrainerApp> {
       theme: buildLightTheme(),
       darkTheme: buildDarkTheme(),
       themeMode: _themeMode,
-      home: AppShell(environment: widget.environment, onToggleTheme: _toggleTheme),
+      home: AuthGate(
+        environment: widget.environment,
+        onToggleTheme: _toggleTheme,
+      ),
     );
   }
 }

@@ -173,7 +173,7 @@ La nouvelle seed est indispensable — la réutiliser ferait rejouer les mêmes 
 Les niveaux actualisés sont le point important : la difficulté suit la progression d'une session
 à l'autre, ce qui rend enfin le système de niveaux *perceptible*. Jusqu'ici rien dans le jeu ne
 montrait qu'il existait. Prévoir un retour visuel bref entre deux sessions (animation de montée
-de niveau, 600 ms, cf. `docs/design.md`).
+de niveau, 600 ms, cf. `doc/design.md`).
 
 ## L'historique écrit n'est jamais relu (constat d'audit, étape 5)
 
@@ -245,7 +245,7 @@ Conséquence directe : l'accent étant vert d'eau, le vert ne peut plus signaler
 Le feedback positif passe par un flash blanc — ce qui règle au passage l'accessibilité, puisque
 la couleur seule n'a jamais été un signal fiable. Promu en règle 14.
 
-Palette, typographie et durées d'animation : `docs/design.md`.
+Palette, typographie et durées d'animation : `doc/design.md`.
 
 ## `Exercise.prompt` quitte le domaine
 

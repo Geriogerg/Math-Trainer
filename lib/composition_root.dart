@@ -4,6 +4,7 @@ import 'package:sqflite/sqflite.dart' show getDatabasesPath;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/domain/account/account_repository.dart';
+import 'core/domain/account/profile_repository.dart';
 import 'core/domain/generation/composite_exercise_generator.dart';
 import 'core/domain/generation/debt_aware_type_selection_strategy.dart';
 import 'core/domain/generation/local_exercise_source.dart';
@@ -18,6 +19,7 @@ import 'core/domain/persistence/theme_mode_store.dart';
 import 'core/domain/persistence/type_selection_store.dart';
 import 'core/state/session_controller.dart';
 import 'infrastructure/backend/supabase_account_repository.dart';
+import 'infrastructure/backend/supabase_profile_repository.dart';
 import 'infrastructure/persistence/database.dart';
 import 'infrastructure/persistence/shared_preferences_player_id_provider.dart';
 import 'infrastructure/persistence/shared_preferences_theme_mode_store.dart';
@@ -41,6 +43,7 @@ class AppEnvironment {
     required this.repository,
     required this.playerId,
     required this.accountRepository,
+    required this.profileRepository,
     this.typeSelectionStore = const SharedPreferencesTypeSelectionStore(),
     this.themeModeStore = const SharedPreferencesThemeModeStore(),
   });
@@ -56,6 +59,10 @@ class AppEnvironment {
   /// `FakeAccountRepository` (`test/fake_account_repository.dart`).
   final AccountRepository accountRepository;
 
+  /// Même raisonnement que `accountRepository` : requis, pas de défaut
+  /// silencieux — c'est la fonctionnalité centrale de l'onglet Profil.
+  final ProfileRepository profileRepository;
+
   /// Optionnel, défaut concret plutôt que requis : un champ requis casserait
   /// la construction dans les tests qui ne s'intéressent jamais à `PlayTab`
   /// (`ProgressScreen`, `ResultScreen`...), même raisonnement que
@@ -69,7 +76,7 @@ class AppEnvironment {
 }
 
 /// URL et clé publique lues à la compilation (`--dart-define`), jamais en
-/// dur dans le code source (`docs/online.md`) — la clé publique est conçue
+/// dur dans le code source (`doc/online.md`) — la clé publique est conçue
 /// pour être embarquée côté client (RLS protège les données, pas le secret
 /// de cette clé), mais l'URL/clé restent spécifiques à chaque projet Supabase.
 const _supabaseUrl = String.fromEnvironment('SUPABASE_URL');
@@ -77,7 +84,30 @@ const _supabasePublishableKey = String.fromEnvironment(
   'SUPABASE_PUBLISHABLE_KEY',
 );
 
+/// Build lancé sans `--dart-define-from-file=dart_defines.json` (voir
+/// `dart_defines.example.json`). Sans ce contrôle, l'app démarrait quand même
+/// sur la porte de connexion, avec un client Supabase sans adresse : chaque
+/// tentative échouait sur une erreur d'URI incompréhensible, et la connexion
+/// étant obligatoire, l'app entière devenait inutilisable sans explication.
+class MissingBackendConfigException implements Exception {
+  const MissingBackendConfigException(this.missingKeys);
+
+  final List<String> missingKeys;
+
+  @override
+  String toString() =>
+      'MissingBackendConfigException: ${missingKeys.join(', ')} absent(s)';
+}
+
 Future<AppEnvironment> buildAppEnvironment() async {
+  final missingKeys = [
+    if (_supabaseUrl.isEmpty) 'SUPABASE_URL',
+    if (_supabasePublishableKey.isEmpty) 'SUPABASE_PUBLISHABLE_KEY',
+  ];
+  if (missingKeys.isNotEmpty) {
+    throw MissingBackendConfigException(missingKeys);
+  }
+
   final LocalPlayerIdProvider playerIdProvider =
       SharedPreferencesPlayerIdProvider();
   final playerId = await playerIdProvider.currentPlayerId();
@@ -103,6 +133,7 @@ Future<AppEnvironment> buildAppEnvironment() async {
     repository: repository,
     playerId: playerId,
     accountRepository: SupabaseAccountRepository(Supabase.instance.client),
+    profileRepository: SupabaseProfileRepository(Supabase.instance.client),
   );
 }
 
