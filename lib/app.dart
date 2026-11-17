@@ -48,7 +48,9 @@ class _MathTrainerAppState extends State<MathTrainerApp> {
     };
     final next = isDark ? ThemeModePreference.light : ThemeModePreference.dark;
     setState(() => _themeMode = _toThemeMode(next));
-    widget.environment.themeModeStore.save(next);
+    // Échec silencieux voulu (préférence auxiliaire) ; `ignore()` l'empêche de
+    // remonter en erreur asynchrone non gérée.
+    widget.environment.themeModeStore.save(next).ignore();
   }
 
   ThemeMode _toThemeMode(ThemeModePreference preference) =>

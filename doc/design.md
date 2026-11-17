@@ -125,6 +125,11 @@ Disposition : 1–9 sur trois rangées, puis rangée basse `retour arrière` / `
   saisie sans intérêt pédagogique à ce stade. Si cette décision change un jour, le pavé change
   aussi.
 
+**Clavier physique en parallèle du pavé** (web, ordinateur, tablette avec clavier) : chiffres de
+la rangée du haut *sans Maj* (touches physiques — en AZERTY elles produisent « & é " … »),
+pavé numérique, retour arrière, Entrée pour valider. Mêmes chemins que le pavé tactile, donc même
+chronométrage. Saisie plafonnée à 7 chiffres (plus longue réponse possible : 10⁵).
+
 ## Navigation
 
 **Barre d'onglets en bas**, quatre entrées : Jouer, En ligne, Profil, Classement.

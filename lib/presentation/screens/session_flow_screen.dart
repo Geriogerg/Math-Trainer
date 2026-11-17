@@ -41,7 +41,10 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
     super.dispose();
   }
 
-  void _exitToSelection() => Navigator.of(context).pop();
+  /// Rend l'écriture de fin de session en cours à `PlayTab`, qui l'attend
+  /// avant de relire le niveau global affiché.
+  void _exitToSelection() =>
+      Navigator.of(context).pop(_controller.pendingPersistence);
 
   /// Geste retour pendant une session en cours (étape 5, commit A) : le
   /// pop est intercepté (`canPop: false` tant que `inProgress`), confirmé

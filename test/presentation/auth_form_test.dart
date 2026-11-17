@@ -114,4 +114,22 @@ void main() {
     expect(repository.signInCalls, isEmpty);
     expect(find.text('Renseigne l\'email et le mot de passe.'), findsOneWidget);
   });
+
+  testWidgets('Entrée dans le mot de passe valide le formulaire', (tester) async {
+    final repository = _RecordingAccountRepository();
+    await pumpForm(tester, repository);
+
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Email'),
+      'joueur@test.com',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Mot de passe'),
+      'secret',
+    );
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pump();
+
+    expect(repository.signInCalls, ['joueur@test.com']);
+  });
 }

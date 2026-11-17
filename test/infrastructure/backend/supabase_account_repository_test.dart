@@ -73,6 +73,21 @@ void main() {
     expect(emitted, [null, _account, null]);
   });
 
+  test('déconnexion hors ligne : déconnecté localement, sans erreur', () async {
+    final offlineLogout = SupabaseTestClient(
+      authHandler: (request) async => request.url.path == '/auth/v1/logout'
+          ? throw http.ClientException('Failed host lookup')
+          : null,
+    );
+    addTearDown(offlineLogout.client.dispose);
+    final repo = SupabaseAccountRepository(offlineLogout.client);
+    await offlineLogout.signIn();
+
+    await repo.signOut();
+
+    expect(await repo.authState.first, isNull);
+  });
+
   group('erreurs traduites en AccountException', () {
     /// Format actuel de Supabase Auth : en-tête de version d'API, code dans
     /// `code` (avant 2024 : `error_code`).

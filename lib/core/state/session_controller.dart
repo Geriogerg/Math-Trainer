@@ -69,6 +69,22 @@ class SessionController extends ChangeNotifier {
   int _consecutiveTimeoutsWithoutActivity = 0;
   Future<void>? _pendingPersistence;
   Map<ExerciseType, LevelCacheEntry>? _lastLevelUpdates;
+  bool _persistenceFailed = false;
+  bool _isDisposed = false;
+
+  /// L'enregistrement de fin de session a échoué : la partie n'est pas dans
+  /// l'historique et les niveaux n'ont pas bougé. Affiché sur l'écran de
+  /// résultat — sans ça, le joueur croirait sa progression comptée.
+  bool get persistenceFailed => _persistenceFailed;
+
+  /// L'écriture de fin de session continue après la fermeture de l'écran
+  /// (« Nouvelle sélection » juste après la dernière réponse dispose le
+  /// contrôleur) : notifier un `ChangeNotifier` disposé lève en debug, et
+  /// cette erreur interrompait l'écriture avant `recordSession` — partie
+  /// perdue.
+  void _notifyIfAlive() {
+    if (!_isDisposed) notifyListeners();
+  }
 
   /// Niveaux mis à jour par la session qui vient de se terminer — `null`
   /// tant que le calcul asynchrone (`_persistCompletedSession`) n'a pas
@@ -206,6 +222,10 @@ class SessionController extends ChangeNotifier {
       currentStreak: _state.currentStreak,
     );
     notifyListeners();
+    // Abandon avant toute réponse (seul cas possible : un timeout enregistre
+    // toujours une réponse) — rien à conserver, et une session vide
+    // apparaîtrait comme une partie à 0 point dans l'historique du Profil.
+    if (_state.outcomes.isEmpty) return;
     _pendingPersistence = _persistCompletedSession(countsForLevels: false);
   }
 
@@ -227,11 +247,13 @@ class SessionController extends ChangeNotifier {
     _state = SessionState.initial();
     _questionStartedAt = null;
     _lastLevelUpdates = null;
+    _persistenceFailed = false;
     notifyListeners();
   }
 
   @override
   void dispose() {
+    _isDisposed = true;
     _timeoutTimer?.cancel();
     super.dispose();
   }
@@ -300,7 +322,7 @@ class SessionController extends ChangeNotifier {
       // cette session) : `null` signifie spécifiquement « jamais calculé »
       // (session interrompue), pas « calculé, rien n'a changé ».
       _lastLevelUpdates = levelUpdates;
-      notifyListeners();
+      _notifyIfAlive();
     }
 
     try {
@@ -310,8 +332,10 @@ class SessionController extends ChangeNotifier {
         levelUpdates: levelUpdates,
       );
     } on Exception catch (_) {
-      // La persistance ne doit jamais casser la partie en cours : échec
-      // silencieux pour le MVP (pas de file d'attente/retry — hors périmètre).
+      // La persistance ne doit jamais casser la partie en cours ; pas de
+      // file d'attente/retry (hors périmètre), mais l'échec est signalé.
+      _persistenceFailed = true;
+      _notifyIfAlive();
     }
   }
 }

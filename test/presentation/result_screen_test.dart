@@ -9,6 +9,10 @@ import 'package:math_trainer/core/domain/models/exercise_type.dart';
 import 'package:math_trainer/core/domain/models/operation_type.dart';
 import 'package:math_trainer/core/domain/models/session_config.dart';
 import 'package:math_trainer/core/domain/persistence/in_memory_session_repository.dart';
+import 'package:math_trainer/core/domain/persistence/level_cache_entry.dart';
+import 'package:math_trainer/core/domain/persistence/persisted_answer.dart';
+import 'package:math_trainer/core/domain/persistence/persisted_session.dart';
+import 'package:math_trainer/core/domain/persistence/session_repository.dart';
 import 'package:math_trainer/core/state/session_controller.dart';
 import 'package:math_trainer/presentation/screens/result_screen.dart';
 import 'package:math_trainer/presentation/theme/app_theme.dart';
@@ -26,13 +30,22 @@ class _FixedExerciseSource implements ExerciseSource {
   Exercise next() => _exercises[_index++];
 }
 
+class _RecordFailureRepository extends InMemorySessionRepository {
+  @override
+  Future<void> recordSession({
+    required PersistedSession session,
+    required List<PersistedAnswer> answers,
+    required Map<ExerciseType, LevelCacheEntry> levelUpdates,
+  }) async => throw Exception('stockage indisponible (simulé)');
+}
+
 void main() {
   List<Exercise> additionExercises(int count) => List.generate(
     count,
     (i) => ArithmeticExercise(operandA: i, operandB: 0, operationType: OperationType.addition),
   );
 
-  SessionController finishedController() {
+  SessionController finishedController({SessionRepository? repository}) {
     final controller = SessionController(
       config: SessionConfig(
         seed: 1,
@@ -41,7 +54,7 @@ void main() {
         levels: const {ExerciseType.addition: 50},
       ),
       exerciseSource: _FixedExerciseSource(additionExercises(4)),
-      repository: InMemorySessionRepository(),
+      repository: repository ?? InMemorySessionRepository(),
       playerId: 'test-player',
       clock: () => DateTime(2024),
       createTimer: (duration, callback) => _InertTimer(),
@@ -212,6 +225,30 @@ void main() {
 
     await tester.tap(find.text('Nouvelle sélection'));
     expect(exitTapped, isTrue);
+  });
+
+  testWidgets('enregistrement raté : la partie est signalée comme non comptée', (
+    tester,
+  ) async {
+    final controller = finishedController(
+      repository: _RecordFailureRepository(),
+    );
+    addTearDown(controller.dispose);
+    await controller.pendingPersistence;
+
+    await pumpResultScreen(tester, controller);
+
+    expect(find.textContaining('Partie non enregistrée'), findsOneWidget);
+  });
+
+  testWidgets('enregistrement réussi : aucun avertissement', (tester) async {
+    final controller = finishedController();
+    addTearDown(controller.dispose);
+    await controller.pendingPersistence;
+
+    await pumpResultScreen(tester, controller);
+
+    expect(find.textContaining('Partie non enregistrée'), findsNothing);
   });
 }
 

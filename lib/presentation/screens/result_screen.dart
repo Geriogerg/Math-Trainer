@@ -126,6 +126,17 @@ class ResultScreen extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: labelStyle,
                 ),
+                if (controller.persistenceFailed) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    'Partie non enregistrée : elle ne compte ni dans '
+                    "l'historique ni pour les niveaux.",
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.error,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 32),
                 // Centrés (`doc/design.md`) — Rejouer reste visuellement
                 // dominant via son style rempli (`FilledButton`), pas via sa

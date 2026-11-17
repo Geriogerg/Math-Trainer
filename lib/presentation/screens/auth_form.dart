@@ -126,16 +126,38 @@ class _AuthFormState extends State<AuthForm> {
                   style: theme.textTheme.titleMedium,
                 ),
                 const SizedBox(height: 24),
-                TextField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(labelText: 'Email'),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _passwordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(labelText: 'Mot de passe'),
+                // `AutofillGroup` + `autofillHints` : le gestionnaire de mots de
+                // passe du navigateur/téléphone propose et enregistre les
+                // identifiants. Entrée dans le mot de passe valide le formulaire.
+                AutofillGroup(
+                  child: Column(
+                    children: [
+                      TextField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        textInputAction: TextInputAction.next,
+                        autofillHints: const [AutofillHints.email],
+                        decoration: const InputDecoration(labelText: 'Email'),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _passwordController,
+                        obscureText: true,
+                        textInputAction: TextInputAction.done,
+                        autofillHints: [
+                          isSignUp
+                              ? AutofillHints.newPassword
+                              : AutofillHints.password,
+                        ],
+                        onSubmitted: (_) {
+                          if (!_isSubmitting) _submit();
+                        },
+                        decoration: const InputDecoration(
+                          labelText: 'Mot de passe',
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 24),
                 FilledButton(

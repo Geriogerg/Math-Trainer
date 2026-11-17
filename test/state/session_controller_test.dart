@@ -137,6 +137,7 @@ class _BuggyLevelReadRepository implements SessionRepository {
 }
 
 void main() {
+  persistenceRobustnessTests();
   const exercises = [
     ArithmeticExercise(operandA: 2, operandB: 2, operationType: OperationType.addition),
     ArithmeticExercise(operandA: 5, operandB: 3, operationType: OperationType.addition),
@@ -593,6 +594,30 @@ void main() {
       expect(await repository.currentLevels('test-player'), isEmpty);
     });
 
+    test("avant toute réponse : rien n'est enregistré", () async {
+      final repository = InMemorySessionRepository();
+      final controller = SessionController(
+        config: SessionConfig(
+          seed: 1,
+          enabledTypes: {ExerciseType.addition},
+          exerciseCount: 10,
+          levels: {ExerciseType.addition: 50},
+        ),
+        exerciseSource: _FixedExerciseSource(manyExercises(10)),
+        repository: repository,
+        playerId: 'test-player',
+        clock: () => DateTime(2024),
+        createTimer: (duration, callback) => _FakeTimer(callback),
+      );
+
+      controller.start();
+      controller.abandon();
+      await controller.pendingPersistence;
+
+      expect(controller.state.status, SessionStatus.interrupted);
+      expect(await repository.recentSessions(), isEmpty);
+    });
+
     test('annule le timer en cours', () {
       final spy = _TimerSpy();
       final controller = SessionController(
@@ -737,6 +762,73 @@ void main() {
       controller.restart();
 
       expect(controller.lastLevelUpdates, isNull);
+    });
+  });
+}
+
+class _RecordFailureRepository extends InMemorySessionRepository {
+  @override
+  Future<void> recordSession({
+    required PersistedSession session,
+    required List<PersistedAnswer> answers,
+    required Map<ExerciseType, LevelCacheEntry> levelUpdates,
+  }) async => throw Exception('disque plein (simulé)');
+}
+
+void persistenceRobustnessTests() {
+  SessionController finishedSoon(SessionRepository repository) =>
+      SessionController(
+        config: SessionConfig(
+          seed: 1,
+          enabledTypes: {ExerciseType.addition},
+          exerciseCount: 4,
+          levels: {ExerciseType.addition: 10},
+        ),
+        exerciseSource: _FixedExerciseSource(
+          List.generate(
+            4,
+            (i) => ArithmeticExercise(
+              operandA: i,
+              operandB: 0,
+              operationType: OperationType.addition,
+            ),
+          ),
+        ),
+        repository: repository,
+        playerId: 'test-player',
+        clock: () => DateTime(2024),
+        createTimer: (duration, callback) => _FakeTimer(callback),
+      );
+
+  group('robustesse de l\'enregistrement de fin de session', () {
+    test(
+      'contrôleur disposé juste après la dernière réponse : la partie est quand même enregistrée',
+      () async {
+        final repository = InMemorySessionRepository();
+        final controller = finishedSoon(repository)..start();
+        for (var i = 0; i < 4; i++) {
+          controller.submitAnswer(i);
+        }
+        // « Nouvelle sélection » tapé avant la fin de l'écriture.
+        controller.dispose();
+
+        await controller.pendingPersistence;
+
+        expect(await repository.recentSessions(), hasLength(1));
+        expect(await repository.currentLevels('test-player'), isNotEmpty);
+      },
+    );
+
+    test('un échec d\'enregistrement est exposé, pas avalé en silence', () async {
+      final controller = finishedSoon(_RecordFailureRepository())..start();
+      expect(controller.persistenceFailed, isFalse);
+      for (var i = 0; i < 4; i++) {
+        controller.submitAnswer(i);
+      }
+
+      await controller.pendingPersistence;
+
+      expect(controller.persistenceFailed, isTrue);
     });
   });
 }

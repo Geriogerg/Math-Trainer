@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../composition_root.dart';
 import '../../core/domain/models/exercise_type.dart';
 import '../../core/domain/persistence/level_cache_entry.dart';
+import '../../core/state/session_controller.dart';
 import '../exercise_type_labels.dart';
 import '../level_summary.dart';
 import '../theme/app_theme.dart';
@@ -83,7 +84,7 @@ class _PlayTabState extends State<PlayTab> {
     setState(() => _selectedTypes = types);
     // Écriture continue, pas de bouton dédié — en tâche de fond, l'échec
     // silencieux ne coûte qu'un retour au défaut au prochain lancement.
-    widget.environment.typeSelectionStore.save(types);
+    widget.environment.typeSelectionStore.save(types).ignore();
   }
 
   Future<void> _startSession() async {
@@ -91,24 +92,11 @@ class _PlayTabState extends State<PlayTab> {
       _isStarting = true;
       _startError = null;
     });
+    final SessionController controller;
     try {
-      final controller = await buildSessionController(
+      controller = await buildSessionController(
         widget.environment,
         _selectedTypes,
-      );
-      if (!mounted) return;
-      controller.start();
-      setState(() => _isStarting = false);
-      // SessionFlowScreen possède désormais le contrôleur (dispose() dans
-      // son propre State) : pas besoin d'attendre le retour de la route ici.
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          fullscreenDialog: true,
-          builder: (_) => SessionFlowScreen(
-            controller: controller,
-            environment: widget.environment,
-          ),
-        ),
       );
     } catch (_) {
       if (!mounted) return;
@@ -121,7 +109,27 @@ class _PlayTabState extends State<PlayTab> {
         // pas l'action).
         _startError = 'Impossible de démarrer la session.';
       });
+      return;
     }
+    if (!mounted) return;
+    controller.start();
+    setState(() => _isStarting = false);
+    // SessionFlowScreen possède le contrôleur (dispose() dans son propre
+    // State). La route rend l'écriture de fin de session encore en cours
+    // (`SessionFlowScreen._exitToSelection`) : relire les niveaux avant
+    // qu'elle aboutisse afficherait le niveau global d'avant la partie.
+    final pendingPersistence = await Navigator.of(context)
+        .push<Future<void>>(
+          MaterialPageRoute(
+            fullscreenDialog: true,
+            builder: (_) => SessionFlowScreen(
+              controller: controller,
+              environment: widget.environment,
+            ),
+          ),
+        );
+    await pendingPersistence;
+    if (mounted) await _loadStartupState();
   }
 
   @override
@@ -191,7 +199,7 @@ class _TypeSelectionView extends StatelessWidget {
                 Text(
                   hasHistory
                       ? 'Niveau global : ${globalLevel?.round() ?? '—'}'
-                      : 'La difficulté s\'ajuste à vos réponses.',
+                      : 'La difficulté s\'ajuste à tes réponses.',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.extension<AppPalette>()!.textMuted,
                   ),

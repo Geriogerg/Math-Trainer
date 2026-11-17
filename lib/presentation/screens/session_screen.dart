@@ -9,6 +9,36 @@ import '../exercise_type_labels.dart';
 import '../theme/app_theme.dart';
 import 'empty_state.dart';
 
+/// Plus longue réponse possible : 10⁵ (puissances) ; 7 laisse une marge sans
+/// laisser une saisie folle déborder de l'écran.
+const _maxTypedDigits = 7;
+
+/// Rangée des chiffres *physique*, pas logique : sur un clavier AZERTY, ces
+/// touches produisent « & é " ' ( - è _ ç à » sans Maj — le joueur doit
+/// pouvoir taper les chiffres sans Maj, comme sur un pavé numérique.
+final _digitKeys = {
+  PhysicalKeyboardKey.digit0: '0',
+  PhysicalKeyboardKey.digit1: '1',
+  PhysicalKeyboardKey.digit2: '2',
+  PhysicalKeyboardKey.digit3: '3',
+  PhysicalKeyboardKey.digit4: '4',
+  PhysicalKeyboardKey.digit5: '5',
+  PhysicalKeyboardKey.digit6: '6',
+  PhysicalKeyboardKey.digit7: '7',
+  PhysicalKeyboardKey.digit8: '8',
+  PhysicalKeyboardKey.digit9: '9',
+  PhysicalKeyboardKey.numpad0: '0',
+  PhysicalKeyboardKey.numpad1: '1',
+  PhysicalKeyboardKey.numpad2: '2',
+  PhysicalKeyboardKey.numpad3: '3',
+  PhysicalKeyboardKey.numpad4: '4',
+  PhysicalKeyboardKey.numpad5: '5',
+  PhysicalKeyboardKey.numpad6: '6',
+  PhysicalKeyboardKey.numpad7: '7',
+  PhysicalKeyboardKey.numpad8: '8',
+  PhysicalKeyboardKey.numpad9: '9',
+};
+
 class SessionScreen extends StatefulWidget {
   const SessionScreen({super.key, required this.controller});
 
@@ -66,7 +96,33 @@ class _SessionScreenState extends State<SessionScreen> with TickerProviderStateM
 
   void _appendDigit(String digit) {
     widget.controller.registerActivity();
+    if (_typedDigits.length >= _maxTypedDigits) return;
     setState(() => _typedDigits += digit);
+  }
+
+  /// Clavier physique (web, ordinateur, tablette avec clavier) : sans lui,
+  /// chaque chiffre se clique à la souris sur le pavé — le jeu se vend sur la
+  /// vitesse. Mêmes chemins que le pavé tactile, donc même chronométrage et
+  /// même détection d'activité.
+  KeyEventResult _handleKey(FocusNode node, KeyEvent event) {
+    if (event is KeyUpEvent) return KeyEventResult.ignored;
+    final digit = _digitKeys[event.physicalKey];
+    if (digit != null) {
+      _appendDigit(digit);
+      return KeyEventResult.handled;
+    }
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.backspace) {
+      _backspace();
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.numpadEnter) {
+      // Pas de répétition : garder Entrée enfoncé ne doit pas valider la
+      // question suivante avant même qu'elle soit lue.
+      if (event is KeyDownEvent) _submit();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
   }
 
   void _backspace() {
@@ -124,57 +180,61 @@ class _SessionScreenState extends State<SessionScreen> with TickerProviderStateM
     final metrics = theme.extension<AppMetrics>()!;
     final level = widget.controller.config.levels[exercise.type] ?? 1;
 
-    return Column(
-      children: [
-        Padding(
-          padding: metrics.rootPadding,
-          child: _TopBar(
-            questionIndex: state.outcomes.length + 1,
-            totalQuestions: widget.controller.config.exerciseCount,
-            chrono: _chronoController,
-          ),
-        ),
-        Expanded(
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  // Série visible seulement si > 0 : pas de bruit « série 0 »
-                  // à chaque première question (`doc/decisions.md` —
-                  // currentStreak affiché pendant la session).
-                  state.currentStreak > 0
-                      ? '${exerciseTypeLabel(exercise.type)} · niveau $level · série ${state.currentStreak}'
-                      : '${exerciseTypeLabel(exercise.type)} · niveau $level',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.extension<AppPalette>()!.textMuted,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                AnimatedSwitcher(
-                  duration: theme.extension<AppMotion>()!.questionTransition.duration,
-                  switchInCurve: theme.extension<AppMotion>()!.questionTransition.curve,
-                  switchOutCurve: theme.extension<AppMotion>()!.questionTransition.curve,
-                  child: ExercisePrompt(key: ValueKey(exercise), exercise: exercise),
-                ),
-                const SizedBox(height: 24),
-                _AnswerDisplay(
-                  typedDigits: _typedDigits,
-                  feedback: _feedbackController,
-                  feedbackCorrect: _feedbackCorrect,
-                ),
-              ],
+    return Focus(
+      autofocus: true,
+      onKeyEvent: _handleKey,
+      child: Column(
+        children: [
+          Padding(
+            padding: metrics.rootPadding,
+            child: _TopBar(
+              questionIndex: state.outcomes.length + 1,
+              totalQuestions: widget.controller.config.exerciseCount,
+              chrono: _chronoController,
             ),
           ),
-        ),
-        SizedBox(
-          // Hauteur fixe en premier, l'opération prend ce qu'il reste
-          // au-dessus (`Expanded`) — rien ne bouge entre deux questions
-          // (`doc/design.md` : jamais un ratio d'écran, voir `AppMetrics`).
-          height: metrics.keypadHeight,
-          child: _NumericKeypad(onDigit: _appendDigit, onBackspace: _backspace, onValidate: _submit),
-        ),
-      ],
+          Expanded(
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    // Série visible seulement si > 0 : pas de bruit « série 0 »
+                    // à chaque première question (`doc/decisions.md` —
+                    // currentStreak affiché pendant la session).
+                    state.currentStreak > 0
+                        ? '${exerciseTypeLabel(exercise.type)} · niveau $level · série ${state.currentStreak}'
+                        : '${exerciseTypeLabel(exercise.type)} · niveau $level',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.extension<AppPalette>()!.textMuted,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  AnimatedSwitcher(
+                    duration: theme.extension<AppMotion>()!.questionTransition.duration,
+                    switchInCurve: theme.extension<AppMotion>()!.questionTransition.curve,
+                    switchOutCurve: theme.extension<AppMotion>()!.questionTransition.curve,
+                    child: ExercisePrompt(key: ValueKey(exercise), exercise: exercise),
+                  ),
+                  const SizedBox(height: 24),
+                  _AnswerDisplay(
+                    typedDigits: _typedDigits,
+                    feedback: _feedbackController,
+                    feedbackCorrect: _feedbackCorrect,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SizedBox(
+            // Hauteur fixe en premier, l'opération prend ce qu'il reste
+            // au-dessus (`Expanded`) — rien ne bouge entre deux questions
+            // (`doc/design.md` : jamais un ratio d'écran, voir `AppMetrics`).
+            height: metrics.keypadHeight,
+            child: _NumericKeypad(onDigit: _appendDigit, onBackspace: _backspace, onValidate: _submit),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -299,9 +359,13 @@ class _NumericKeypad extends StatelessWidget {
         Expanded(
           child: Row(
             children: [
-              Expanded(child: _KeypadKey(icon: Icons.backspace_outlined, onTap: onBackspace)),
+              Expanded(
+                child: _KeypadKey(icon: Icons.backspace_outlined, semanticLabel: 'Effacer', onTap: onBackspace),
+              ),
               Expanded(child: _KeypadKey(label: '0', onTap: () => onDigit('0'))),
-              Expanded(child: _KeypadKey(icon: Icons.check, onTap: onValidate, isPrimary: true)),
+              Expanded(
+                child: _KeypadKey(icon: Icons.check, semanticLabel: 'Valider', onTap: onValidate, isPrimary: true),
+              ),
             ],
           ),
         ),
@@ -314,10 +378,13 @@ class _NumericKeypad extends StatelessWidget {
 /// doc/design.md). Animation d'enfoncement 60 ms easeOut (`AppMotion.
 /// keyPress`, posée au commit A, premier consommateur ici).
 class _KeypadKey extends StatefulWidget {
-  const _KeypadKey({this.label, this.icon, required this.onTap, this.isPrimary = false});
+  const _KeypadKey({this.label, this.icon, this.semanticLabel, required this.onTap, this.isPrimary = false});
 
   final String? label;
   final IconData? icon;
+
+  /// Lu par les lecteurs d'écran pour les touches sans texte (icônes).
+  final String? semanticLabel;
   final VoidCallback onTap;
   final bool isPrimary;
 
@@ -352,7 +419,7 @@ class _KeypadKeyState extends State<_KeypadKey> {
           decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(16)),
           alignment: Alignment.center,
           child: widget.icon != null
-              ? Icon(widget.icon, color: foreground)
+              ? Icon(widget.icon, color: foreground, semanticLabel: widget.semanticLabel)
               : Text(widget.label!, style: theme.textTheme.displaySmall?.copyWith(color: foreground)),
         ),
       ),

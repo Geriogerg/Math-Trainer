@@ -222,6 +222,34 @@ void main() {
   );
 
   testWidgets(
+    'le niveau global de l\'écran Jouer est relu au retour d\'une session',
+    (WidgetTester tester) async {
+      // Environnement neuf : celui partagé accumule l'historique des autres
+      // tests, et ce test a besoin de partir sans historique.
+      final environment = AppEnvironment(
+        repository: InMemorySessionRepository(),
+        playerId: 'test-player',
+        accountRepository: FakeAccountRepository(),
+        profileRepository: FakeProfileRepository(),
+      );
+      await tester.pumpWidget(MathTrainerApp(environment: environment));
+      await tester.pump();
+      expect(
+        find.text('La difficulté s\'ajuste à tes réponses.'),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.text('Commencer'));
+      await settlePageTransition(tester);
+      await playToCompletion(tester);
+      await tester.tap(find.text('Nouvelle sélection'));
+      await settlePageTransition(tester);
+
+      expect(find.textContaining('Niveau global'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
     '« Rejouer » relance immédiatement sans repasser par la sélection',
     (WidgetTester tester) async {
       await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));

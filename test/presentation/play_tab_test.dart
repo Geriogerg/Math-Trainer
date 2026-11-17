@@ -142,7 +142,7 @@ void main() {
     await pumpPlayTab(tester, environment);
 
     expect(
-      find.text('La difficulté s\'ajuste à vos réponses.'),
+      find.text('La difficulté s\'ajuste à tes réponses.'),
       findsOneWidget,
     );
     expect(find.textContaining('Niveau global'), findsNothing);
@@ -185,7 +185,7 @@ void main() {
       // (42 + 6 × 1 plancher pour les 6 types non joués) / 7 ≈ 6,86 → 7.
       expect(find.text('Niveau global : 7'), findsOneWidget);
       expect(
-        find.text('La difficulté s\'ajuste à vos réponses.'),
+        find.text('La difficulté s\'ajuste à tes réponses.'),
         findsNothing,
       );
     },

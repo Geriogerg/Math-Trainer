@@ -39,21 +39,22 @@ Map<String, Object?> _sessionJson() => {
 /// est simulé : connexion et déconnexion répondent comme Supabase Auth, et
 /// [restHandler] répond aux requêtes PostgREST (`/rest/v1/...`). Chaque
 /// requête PostgREST reçue est ajoutée à [restRequests]. [authHandler], s'il
-/// est fourni, remplace les réponses d'Auth (connexion, inscription) — pour
-/// simuler un refus du serveur ou une panne réseau (lever une exception).
+/// est fourni, répond en premier aux requêtes d'Auth (connexion,
+/// inscription, déconnexion) — pour simuler un refus du serveur ou une panne
+/// réseau (lever une exception) ; `null` laisse la réponse par défaut.
 class SupabaseTestClient {
   SupabaseTestClient({
     Future<http.Response> Function(http.Request request)? restHandler,
-    Future<http.Response> Function(http.Request request)? authHandler,
+    Future<http.Response?> Function(http.Request request)? authHandler,
   }) {
     client = SupabaseClient(
       'https://test-project.supabase.co',
       'sb_publishable_test',
       httpClient: MockClient((request) async {
         final path = request.url.path;
-        if (authHandler != null &&
-            (path == '/auth/v1/token' || path == '/auth/v1/signup')) {
-          return authHandler(request);
+        if (authHandler != null && path.startsWith('/auth/v1/')) {
+          final response = await authHandler(request);
+          if (response != null) return response;
         }
         if (path == '/auth/v1/token') {
           return http.Response(

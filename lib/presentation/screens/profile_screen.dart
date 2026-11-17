@@ -307,6 +307,7 @@ class _DisplayNameDialogState extends State<_DisplayNameDialog> {
         controller: _controller,
         autofocus: true,
         maxLength: 30,
+        onSubmitted: (value) => Navigator.of(context).pop(value.trim()),
       ),
       actions: [
         TextButton(

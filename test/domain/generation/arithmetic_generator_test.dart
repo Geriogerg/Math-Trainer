@@ -102,6 +102,13 @@ void main() {
       }
     });
 
+    test("refuse une liste de types d'opération vide", () {
+      expect(
+        () => ArithmeticExerciseGenerator(operationTypes: const []),
+        throwsArgumentError,
+      );
+    });
+
     test('refuse une plage autorisant un diviseur nul quand la division est activée', () {
       expect(
         () => ArithmeticExerciseGenerator(

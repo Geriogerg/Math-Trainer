@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:math_trainer/core/domain/generation/exercise_source.dart';
@@ -98,4 +99,79 @@ void main() {
       expect(controller.state.status.name, 'finished');
     },
   );
+
+  group('clavier physique', () {
+    Future<SessionController> pumpSession(WidgetTester tester) async {
+      const exercises = [
+        ArithmeticExercise(operandA: 6, operandB: 6, operationType: OperationType.addition),
+        ArithmeticExercise(operandA: 1, operandB: 1, operationType: OperationType.addition),
+      ];
+      final controller = SessionController(
+        config: SessionConfig(
+          seed: 1,
+          enabledTypes: const {ExerciseType.addition},
+          exerciseCount: exercises.length,
+          levels: const {ExerciseType.addition: 1},
+        ),
+        exerciseSource: _FixedExerciseSource(exercises),
+        repository: InMemorySessionRepository(),
+        playerId: 'test-player',
+        clock: () => DateTime(2026),
+        createTimer: (duration, callback) => _InertTimer(),
+      )..start();
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildLightTheme(),
+          home: Scaffold(
+            body: ListenableBuilder(
+              listenable: controller,
+              builder: (context, _) => SessionScreen(controller: controller),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      return controller;
+    }
+
+    testWidgets('chiffres, retour arrière et Entrée valident une réponse', (tester) async {
+      final controller = await pumpSession(tester);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.digit1);
+      await tester.sendKeyEvent(LogicalKeyboardKey.digit3);
+      await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+      await tester.sendKeyEvent(LogicalKeyboardKey.digit2);
+      await tester.pump();
+      expect(find.text('12'), findsOneWidget);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+
+      expect(controller.state.outcomes.single.submittedValue, 12);
+      expect(controller.state.outcomes.single.isCorrect, isTrue);
+    });
+
+    testWidgets('pavé numérique du clavier', (tester) async {
+      final controller = await pumpSession(tester);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.numpad1);
+      await tester.sendKeyEvent(LogicalKeyboardKey.numpad2);
+      await tester.sendKeyEvent(LogicalKeyboardKey.numpadEnter);
+      await tester.pump();
+
+      expect(controller.state.outcomes.single.submittedValue, 12);
+    });
+
+    testWidgets('la saisie est plafonnée à 7 chiffres', (tester) async {
+      await pumpSession(tester);
+
+      for (var i = 0; i < 10; i++) {
+        await tester.sendKeyEvent(LogicalKeyboardKey.digit9);
+      }
+      await tester.pump();
+
+      expect(find.text('9999999'), findsOneWidget);
+    });
+  });
 }

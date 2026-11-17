@@ -1,9 +1,9 @@
 # Math Trainer
 
 Jeu Flutter de calcul mental compétitif (ados et adultes). Rapide, ludique, orienté compétition.
-État : 43 commits, 7 types d'exercices, persistance locale, direction visuelle « nuit
-électrique » livrée (étape 5), comptes Supabase (étape 6, tranches 1-2). 166 tests domaine /
-280 au total.
+État : 46 commits, 7 types d'exercices, persistance locale, direction visuelle « nuit
+électrique » livrée (étape 5), comptes Supabase (étape 6, tranches 1-2). 167 tests domaine /
+306 au total.
 
 Détails non nécessaires à chaque session : `doc/architecture.md` (structure, gestion d'état,
 modèle d'exercice, dépendances), `doc/decisions.md` (arbitrages passés et leurs raisons),
@@ -92,9 +92,9 @@ mais n'est jamais celle qui calcule un niveau. Détail : `doc/online.md`.
 
 Faites : 1. tests du cœur métier — 2. persistance locale — 3. sept types d'exercices —
 4. système de niveaux — 4.1 corrections (échantillonnage garanti, erreurs UI, découplage,
-rangement, script de recalibration).
+rangement, script de recalibration) — 4.2 boucle de session (détail ci-dessous).
 
-**Étape 4.2 — boucle de session ← courante.** Timeout de 15 s par question avec passage
+**Étape 4.2 — boucle de session (terminée).** Timeout de 15 s par question avec passage
 automatique ; interruption de la session après 3 timeouts consécutifs sans saisie (non
 comptabilisée, réponses déjà données conservées) ; pas de niveau pondéré par `√(n / n_min)` ;
 `n_min` 8 → 4, **couplé à un élargissement de `δ`** ; relance immédiate en fin de session (mêmes

@@ -23,5 +23,6 @@ abstract class AccountRepository {
   /// réseau indisponible).
   Future<Account> signIn({required String email, required String password});
 
+  /// Déconnecte localement dans tous les cas, même hors ligne — ne lève pas.
   Future<void> signOut();
 }

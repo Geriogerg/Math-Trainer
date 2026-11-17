@@ -90,6 +90,17 @@ class SupabaseAccountRepository implements AccountRepository {
     }
   }
 
+  /// gotrue efface la session locale et émet `signedOut` *avant* de
+  /// prévenir le serveur : hors ligne, le joueur est donc bien déconnecté,
+  /// seule la révocation côté serveur échoue (le jeton expirera de lui-même).
+  /// Laisser remonter cette erreur la rendait non gérée depuis le bouton
+  /// « Se déconnecter », pour une déconnexion pourtant effective.
   @override
-  Future<void> signOut() => _client.auth.signOut();
+  Future<void> signOut() async {
+    try {
+      await _client.auth.signOut();
+    } on AuthException catch (_) {
+      // Déconnexion locale déjà faite, voir ci-dessus.
+    }
+  }
 }
