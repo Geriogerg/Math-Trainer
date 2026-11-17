@@ -1,5 +1,8 @@
 import 'account.dart';
 
+// Fait partie du contrat : tout appelant de `signIn`/`signUp` en a besoin.
+export 'account_exception.dart';
+
 /// Compte en ligne — implémentation concrète (Supabase) dans
 /// `infrastructure/backend/`, jamais dans le domaine (règle 3).
 abstract class AccountRepository {
@@ -12,12 +15,12 @@ abstract class AccountRepository {
   /// `null` : compte créé, mais confirmation par email requise avant de
   /// pouvoir se connecter (comportement par défaut d'un projet Supabase) —
   /// distinct d'un échec, `authState` reste `null` jusqu'à la confirmation
-  /// et une connexion explicite. Lance une `Exception` en cas d'échec réel
-  /// (email déjà utilisé, réseau indisponible).
+  /// et une connexion explicite. Lance une `AccountException` en cas d'échec
+  /// réel (email déjà utilisé, réseau indisponible).
   Future<Account?> signUp({required String email, required String password});
 
-  /// Lance une `Exception` en cas d'échec (identifiants invalides, réseau
-  /// indisponible).
+  /// Lance une `AccountException` en cas d'échec (identifiants invalides,
+  /// réseau indisponible).
   Future<Account> signIn({required String email, required String password});
 
   Future<void> signOut();

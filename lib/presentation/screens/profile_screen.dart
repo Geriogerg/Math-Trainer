@@ -157,8 +157,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await widget.environment.profileRepository.updateDisplayName(newName);
       if (mounted) setState(_loadProfile);
     } catch (_) {
-      // Pas d'état d'erreur dédié pour cette action secondaire — l'ancien
-      // nom reste affiché, l'utilisateur peut réessayer depuis l'icône.
+      // L'ancien nom reste affiché ; sans ce message, le joueur croirait
+      // son nouveau nom enregistré (réseau coupé, table `profiles` absente).
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Nom non enregistré — vérifie ta connexion et réessaie.',
+          ),
+        ),
+      );
     }
   }
 

@@ -498,6 +498,39 @@ void main() {
     },
   );
 
+  testWidgets(
+    'un nom non enregistré est signalé, l\'ancien nom reste affiché',
+    (WidgetTester tester) async {
+      await setTallSurface(tester);
+      final profileRepository = FakeProfileRepository()
+        ..displayName = 'Alex'
+        ..updateShouldFail = true;
+      final environment = AppEnvironment(
+        repository: InMemorySessionRepository(),
+        playerId: 'test-player',
+        accountRepository: FakeAccountRepository(),
+        profileRepository: profileRepository,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildLightTheme(),
+          home: Scaffold(body: ProfileScreen(environment: environment)),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.edit_outlined));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'Nouveau nom');
+      await tester.tap(find.widgetWithText(FilledButton, 'Enregistrer'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Nom non enregistré'), findsOneWidget);
+      expect(find.text('Alex'), findsOneWidget);
+    },
+  );
+
   testWidgets('Se déconnecter appelle signOut', (WidgetTester tester) async {
     await setTallSurface(tester);
     final accountRepository = _RecordingAccountRepository();

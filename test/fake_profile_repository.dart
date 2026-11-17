@@ -19,8 +19,12 @@ class FakeProfileRepository implements ProfileRepository {
     );
   }
 
+  /// Simule un enregistrement refusé (réseau, table absente).
+  bool updateShouldFail = false;
+
   @override
   Future<void> updateDisplayName(String displayName) async {
+    if (updateShouldFail) throw Exception('enregistrement refusé (simulé)');
     this.displayName = displayName;
   }
 }

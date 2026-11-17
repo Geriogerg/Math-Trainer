@@ -38,16 +38,23 @@ Map<String, Object?> _sessionJson() => {
 /// Un vrai `SupabaseClient` (même code que l'app) dont seul le transport HTTP
 /// est simulé : connexion et déconnexion répondent comme Supabase Auth, et
 /// [restHandler] répond aux requêtes PostgREST (`/rest/v1/...`). Chaque
-/// requête PostgREST reçue est ajoutée à [restRequests].
+/// requête PostgREST reçue est ajoutée à [restRequests]. [authHandler], s'il
+/// est fourni, remplace les réponses d'Auth (connexion, inscription) — pour
+/// simuler un refus du serveur ou une panne réseau (lever une exception).
 class SupabaseTestClient {
   SupabaseTestClient({
     Future<http.Response> Function(http.Request request)? restHandler,
+    Future<http.Response> Function(http.Request request)? authHandler,
   }) {
     client = SupabaseClient(
       'https://test-project.supabase.co',
       'sb_publishable_test',
       httpClient: MockClient((request) async {
         final path = request.url.path;
+        if (authHandler != null &&
+            (path == '/auth/v1/token' || path == '/auth/v1/signup')) {
+          return authHandler(request);
+        }
         if (path == '/auth/v1/token') {
           return http.Response(
             jsonEncode(_sessionJson()),
@@ -70,7 +77,14 @@ class SupabaseTestClient {
         }
         return http.Response('non simulé : ${request.method} $path', 500);
       }),
-      authOptions: const AuthClientOptions(autoRefreshToken: false),
+      // `implicit` : le flux PKCE par défaut exige un stockage pour le
+      // vérificateur de code dès `signUp` (l'app l'obtient de
+      // `Supabase.initialize`). Seul le lien de confirmation par email en
+      // dépend — hors du champ de ces tests.
+      authOptions: const AuthClientOptions(
+        autoRefreshToken: false,
+        authFlowType: AuthFlowType.implicit,
+      ),
     );
   }
 

@@ -5,16 +5,26 @@ import '../theme/app_theme.dart';
 
 enum _AuthMode { signIn, signUp }
 
-/// `Exception(message)` se formate en `Exception: message` — retire ce
-/// préfixe technique. Le message lui-même vient tel quel de Supabase (pas
-/// traduit — court terme, mais un mot de passe trop court ou un email déjà
-/// utilisé reste plus utile en anglais qu'un message générique muet).
+/// Le message brut du serveur (anglais, pensé pour un développeur) n'apparaît
+/// que pour un échec non répertorié — seul indice disponible dans ce cas.
 String _describeError(Object error) {
-  final message = error.toString();
-  const prefix = 'Exception: ';
-  return message.startsWith(prefix)
-      ? message.substring(prefix.length)
-      : message;
+  if (error is! AccountException) return 'Erreur inattendue : $error';
+  return switch (error.failure) {
+    AccountFailure.invalidCredentials => 'Email ou mot de passe incorrect.',
+    AccountFailure.emailNotConfirmed =>
+      'Email pas encore confirmé — ouvre le lien reçu par mail, puis réessaie.',
+    AccountFailure.emailAlreadyUsed =>
+      'Un compte existe déjà avec cet email. Connecte-toi plutôt.',
+    AccountFailure.weakPassword =>
+      // Pas de longueur citée : le minimum se règle par projet Supabase.
+      'Mot de passe trop faible — choisis-en un plus long.',
+    AccountFailure.invalidInput => 'Adresse email invalide.',
+    AccountFailure.rateLimited =>
+      'Trop de tentatives. Patiente quelques minutes avant de réessayer.',
+    AccountFailure.network =>
+      'Serveur injoignable. Vérifie ta connexion, puis réessaie.',
+    AccountFailure.unknown => 'Erreur inattendue : ${error.detail ?? '-'}',
+  };
 }
 
 /// Formulaire connexion/inscription — porte d'entrée de l'app (`AuthGate`,
@@ -46,13 +56,22 @@ class _AuthFormState extends State<AuthForm> {
   }
 
   Future<void> _submit() async {
+    // L'autocomplétion des claviers mobiles ajoute souvent une espace après
+    // l'email, que le serveur refuserait comme adresse invalide.
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    if (email.isEmpty || password.isEmpty) {
+      setState(() {
+        _error = 'Renseigne l\'email et le mot de passe.';
+        _info = null;
+      });
+      return;
+    }
     setState(() {
       _isSubmitting = true;
       _error = null;
       _info = null;
     });
-    final email = _emailController.text;
-    final password = _passwordController.text;
     try {
       if (_mode == _AuthMode.signUp) {
         final account = await widget.accountRepository.signUp(
