@@ -86,8 +86,12 @@ class _LevelReadFailureRepository implements SessionRepository {
   }) => inner.recordSession(session: session, answers: answers, levelUpdates: levelUpdates);
 
   @override
-  Future<List<PersistedSession>> recentSessions({int limit = 20}) =>
-      inner.recentSessions(limit: limit);
+  Future<List<PersistedSession>> recentSessions(String playerId, {int limit = 20}) =>
+      inner.recentSessions(playerId, limit: limit);
+
+  @override
+  Future<void> transferPlayerData({required String fromPlayerId, required String toPlayerId}) =>
+      inner.transferPlayerData(fromPlayerId: fromPlayerId, toPlayerId: toPlayerId);
 
   @override
   Future<List<PersistedAnswer>> answersForSession(String sessionId) =>
@@ -120,8 +124,12 @@ class _BuggyLevelReadRepository implements SessionRepository {
   }) => inner.recordSession(session: session, answers: answers, levelUpdates: levelUpdates);
 
   @override
-  Future<List<PersistedSession>> recentSessions({int limit = 20}) =>
-      inner.recentSessions(limit: limit);
+  Future<List<PersistedSession>> recentSessions(String playerId, {int limit = 20}) =>
+      inner.recentSessions(playerId, limit: limit);
+
+  @override
+  Future<void> transferPlayerData({required String fromPlayerId, required String toPlayerId}) =>
+      inner.transferPlayerData(fromPlayerId: fromPlayerId, toPlayerId: toPlayerId);
 
   @override
   Future<List<PersistedAnswer>> answersForSession(String sessionId) =>
@@ -242,7 +250,7 @@ void main() {
       // dérouler avant de vérifier le repository.
       await Future<void>.delayed(Duration.zero);
 
-      final sessions = await repository.recentSessions();
+      final sessions = await repository.recentSessions('test-player');
       expect(sessions, hasLength(1));
       expect(sessions.single.playerId, 'test-player');
       expect(sessions.single.totalScore, controller.state.score);
@@ -321,7 +329,7 @@ void main() {
 
       // La session et ses réponses (non reconstructibles) sont là malgré
       // l'échec de lecture du cache.
-      final sessions = await repository.inner.recentSessions();
+      final sessions = await repository.inner.recentSessions('test-player');
       expect(sessions, hasLength(1));
       final answers = await repository.inner.answersForSession(sessions.single.id);
       expect(answers, hasLength(8));
@@ -369,7 +377,7 @@ void main() {
       // L'Error propage avant d'atteindre recordSession (règle 13 : ne pas
       // continuer après un invariant cassé) — contrairement au cas d'une
       // Exception (test précédent), où recordSession s'exécute quand même.
-      final sessions = await repository.inner.recentSessions();
+      final sessions = await repository.inner.recentSessions('test-player');
       expect(sessions, isEmpty);
     });
 
@@ -493,7 +501,7 @@ void main() {
         spy.latest.fire();
         await Future<void>.delayed(Duration.zero);
 
-        final sessions = await repository.recentSessions();
+        final sessions = await repository.recentSessions('test-player');
         expect(sessions, hasLength(1));
         // exerciseCount reste le compte prévu (10), pas le nombre de réponses
         // réellement données (3) : c'est cet écart qui distingue une session
@@ -525,7 +533,7 @@ void main() {
 
         await controller.pendingPersistence;
 
-        final sessions = await repository.recentSessions();
+        final sessions = await repository.recentSessions('test-player');
         expect(sessions, hasLength(1));
       },
     );
@@ -585,7 +593,7 @@ void main() {
       expect(controller.state.currentExercise, isNull);
 
       await controller.pendingPersistence;
-      final sessions = await repository.recentSessions();
+      final sessions = await repository.recentSessions('test-player');
       expect(sessions, hasLength(1));
       expect(sessions.single.exerciseCount, 10);
       final answers = await repository.answersForSession(sessions.single.id);
@@ -615,7 +623,7 @@ void main() {
       await controller.pendingPersistence;
 
       expect(controller.state.status, SessionStatus.interrupted);
-      expect(await repository.recentSessions(), isEmpty);
+      expect(await repository.recentSessions('test-player'), isEmpty);
     });
 
     test('annule le timer en cours', () {
@@ -814,7 +822,7 @@ void persistenceRobustnessTests() {
 
         await controller.pendingPersistence;
 
-        expect(await repository.recentSessions(), hasLength(1));
+        expect(await repository.recentSessions('test-player'), hasLength(1));
         expect(await repository.currentLevels('test-player'), isNotEmpty);
       },
     );

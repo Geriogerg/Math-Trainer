@@ -17,7 +17,11 @@ abstract class SessionRepository {
     required Map<ExerciseType, LevelCacheEntry> levelUpdates,
   });
 
-  Future<List<PersistedSession>> recentSessions({int limit = 20});
+  /// Sessions de [playerId], de la plus récente à la plus ancienne.
+  Future<List<PersistedSession>> recentSessions(
+    String playerId, {
+    int limit = 20,
+  });
 
   Future<List<PersistedAnswer>> answersForSession(String sessionId);
 
@@ -42,4 +46,16 @@ abstract class SessionRepository {
   /// instant donné — mais la lecture reste bornée, jamais un historique
   /// complet.
   Future<List<PersistedSession>> sessionsSince(String playerId, DateTime since);
+
+  /// Rattache à [toPlayerId] tout ce qui a été joué sous [fromPlayerId]
+  /// (sessions, et donc leurs réponses, et cache de niveaux), en une seule
+  /// opération atomique. Sert à la connexion : les parties jouées sous l'id
+  /// local de l'appareil, d'avant le passage aux comptes, reviennent au
+  /// premier compte qui s'y connecte (`doc/online.md`). Ne fait rien si
+  /// [toPlayerId] a déjà des données ici — jamais de fusion de deux
+  /// historiques, dont les caches de niveaux se contrediraient.
+  Future<void> transferPlayerData({
+    required String fromPlayerId,
+    required String toPlayerId,
+  });
 }

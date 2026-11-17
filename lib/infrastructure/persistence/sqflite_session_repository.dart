@@ -35,8 +35,17 @@ class SqfliteSessionRepository implements SessionRepository {
   }
 
   @override
-  Future<List<PersistedSession>> recentSessions({int limit = 20}) async {
-    final rows = await _database.query('sessions', orderBy: 'created_at DESC', limit: limit);
+  Future<List<PersistedSession>> recentSessions(
+    String playerId, {
+    int limit = 20,
+  }) async {
+    final rows = await _database.query(
+      'sessions',
+      where: 'player_id = ?',
+      whereArgs: [playerId],
+      orderBy: 'created_at DESC',
+      limit: limit,
+    );
     return rows.map(_sessionFromRow).toList();
   }
 
@@ -100,6 +109,35 @@ class SqfliteSessionRepository implements SessionRepository {
       orderBy: 'created_at ASC',
     );
     return rows.map(_sessionFromRow).toList();
+  }
+
+  @override
+  Future<void> transferPlayerData({
+    required String fromPlayerId,
+    required String toPlayerId,
+  }) async {
+    await _database.transaction((txn) async {
+      // `answers` n'a pas de `player_id` : rattachées par `session_id`, elles
+      // suivent leur session sans rien réécrire.
+      final targetRows = await txn.rawQuery(
+        '''
+        SELECT 1 FROM sessions WHERE player_id = ?
+        UNION ALL
+        SELECT 1 FROM player_levels WHERE player_id = ?
+        LIMIT 1
+        ''',
+        [toPlayerId, toPlayerId],
+      );
+      if (targetRows.isNotEmpty) return;
+      for (final table in ['sessions', 'player_levels']) {
+        await txn.update(
+          table,
+          {'player_id': toPlayerId},
+          where: 'player_id = ?',
+          whereArgs: [fromPlayerId],
+        );
+      }
+    });
   }
 
   Map<String, Object?> _sessionToRow(PersistedSession session) {

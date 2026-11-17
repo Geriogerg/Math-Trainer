@@ -39,10 +39,10 @@ class PersistedSession {
   final DateTime createdAt;
   final DateTime? syncedAt;
 
-  PersistedSession copyWith({Object? syncedAt = _unset}) {
+  PersistedSession copyWith({String? playerId, Object? syncedAt = _unset}) {
     return PersistedSession(
       id: id,
-      playerId: playerId,
+      playerId: playerId ?? this.playerId,
       seed: seed,
       enabledTypes: enabledTypes,
       exerciseCount: exerciseCount,

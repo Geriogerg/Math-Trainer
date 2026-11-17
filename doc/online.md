@@ -96,12 +96,21 @@ qui doit guider ce choix.
 
 ## Identité : compte vs `playerId` local
 
-`playerId` existe déjà (`LocalPlayerIdProvider`, UUID généré localement) et peut précéder tout
-compte — un joueur peut avoir joué des semaines en solo avant de créer un compte. Approche
-retenue par défaut, à confirmer dans le plan concret : **le `playerId` local ne change pas** à la
-création du compte ; le compte s'associe au `playerId` existant côté serveur plutôt que de
-réécrire l'historique local. Réécrire `playerId` à travers toutes les tables locales serait
-risqué pour un bénéfice nul.
+**Le `playerId` est l'id du compte Supabase** (décision du 17/11/2026, qui remplace l'approche
+initiale). L'approche initiale gardait l'UUID local de l'appareil (`LocalPlayerIdProvider`) comme
+`playerId` et associait le compte à cet id côté serveur — pensée pour un joueur qui jouerait des
+semaines en solo avant de créer un compte. La connexion obligatoire (tranche 2) a retiré ce cas,
+et l'approche avait un défaut réel : deux comptes sur le même navigateur partageaient niveaux et
+historique.
+
+- Dès la connexion, `AuthGate` remplace l'id de l'appareil par l'id du compte
+  (`environmentForAccount`) : les écrans ne lisent et n'écrivent jamais que sous le compte.
+- Les parties jouées sous l'id de l'appareil (avant ce changement) reviennent au premier compte
+  qui s'y connecte (`SessionRepository.transferPlayerData`) : une seule transaction qui réécrit
+  `player_id` dans `sessions` et `player_levels` — `answers` suit par `session_id`. Jamais de
+  fusion : si le compte a déjà des données sur l'appareil, rien n'est repris.
+- Pour la synchro (tranche 3), une ligne locale porte donc directement l'id que vérifiera la RLS
+  (`auth.uid()`), sans table d'association.
 
 ## Étape 7 (anticipé, pas implémenté)
 
@@ -132,6 +141,8 @@ arrivera.
 - Connexion obligatoire pour utiliser l'app, session persistée localement — pas de réseau requis
   à chaque lancement pour un joueur déjà connecté (tranche 2, voir plus haut).
 - Nom de joueur via une table `profiles` dédiée, pas `user_metadata` (tranche 2, voir plus haut).
+- `playerId` = id du compte ; parties de l'appareil reprises par le premier compte connecté (voir
+  « Identité » plus haut).
 
 ## Points ouverts (à trancher dans le plan concret de la tranche 3)
 

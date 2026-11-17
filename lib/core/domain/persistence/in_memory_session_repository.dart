@@ -24,8 +24,12 @@ class InMemorySessionRepository implements SessionRepository {
   }
 
   @override
-  Future<List<PersistedSession>> recentSessions({int limit = 20}) async {
-    final sorted = [..._sessions]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  Future<List<PersistedSession>> recentSessions(
+    String playerId, {
+    int limit = 20,
+  }) async {
+    final sorted = _sessions.where((session) => session.playerId == playerId).toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return sorted.take(limit).toList();
   }
 
@@ -65,5 +69,23 @@ class InMemorySessionRepository implements SessionRepository {
       (session) => session.playerId == playerId && !session.createdAt.isBefore(since),
     );
     return matching.toList()..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+  }
+
+  @override
+  Future<void> transferPlayerData({
+    required String fromPlayerId,
+    required String toPlayerId,
+  }) async {
+    final targetHasData =
+        _levelsByPlayer.containsKey(toPlayerId) ||
+        _sessions.any((session) => session.playerId == toPlayerId);
+    if (targetHasData) return;
+    for (var i = 0; i < _sessions.length; i++) {
+      if (_sessions[i].playerId == fromPlayerId) {
+        _sessions[i] = _sessions[i].copyWith(playerId: toPlayerId);
+      }
+    }
+    final levels = _levelsByPlayer.remove(fromPlayerId);
+    if (levels != null) _levelsByPlayer[toPlayerId] = levels;
   }
 }

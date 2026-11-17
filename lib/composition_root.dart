@@ -3,6 +3,7 @@ import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart' show getDatabasesPath;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'core/domain/account/account.dart';
 import 'core/domain/account/account_repository.dart';
 import 'core/domain/account/profile_repository.dart';
 import 'core/domain/generation/composite_exercise_generator.dart';
@@ -49,6 +50,12 @@ class AppEnvironment {
   });
 
   final SessionRepository repository;
+
+  /// Joueur dont les données sont lues et écrites. Au démarrage : l'id local
+  /// de l'appareil (`LocalPlayerIdProvider`), qui ne sert plus qu'à
+  /// retrouver les parties jouées avant le passage aux comptes. Dès la
+  /// connexion, `AuthGate` le remplace par l'id du compte
+  /// ([environmentForAccount]) : les écrans ne voient jamais que celui-là.
   final String playerId;
 
   /// Requis, pas de défaut concret : contrairement à `typeSelectionStore`/
@@ -73,6 +80,38 @@ class AppEnvironment {
   /// casser la construction dans les tests qui ne s'intéressent pas à la
   /// bascule de thème.
   final ThemeModeStore themeModeStore;
+
+  AppEnvironment forPlayer(String playerId) => AppEnvironment(
+    repository: repository,
+    playerId: playerId,
+    accountRepository: accountRepository,
+    profileRepository: profileRepository,
+    typeSelectionStore: typeSelectionStore,
+    themeModeStore: themeModeStore,
+  );
+}
+
+/// Environnement du joueur connecté : niveaux et historique rattachés au
+/// compte, pas à l'appareil — deux comptes sur le même navigateur ne
+/// partagent plus rien. Reprend d'abord les parties jouées sous l'id local
+/// de l'appareil (`SessionRepository.transferPlayerData` : seulement si le
+/// compte n'a encore rien ici, donc en pratique le premier compte connecté).
+/// Un échec de cette reprise n'empêche pas de jouer : les anciennes parties
+/// restent sous l'id de l'appareil, et la reprise est retentée à la
+/// connexion suivante.
+Future<AppEnvironment> environmentForAccount(
+  AppEnvironment environment,
+  Account account,
+) async {
+  try {
+    await environment.repository.transferPlayerData(
+      fromPlayerId: environment.playerId,
+      toPlayerId: account.id,
+    );
+  } on Exception catch (_) {
+    // Voir ci-dessus : sans conséquence pour la partie en cours.
+  }
+  return environment.forPlayer(account.id);
 }
 
 /// URL et clé publique lues à la compilation (`--dart-define`), jamais en

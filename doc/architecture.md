@@ -136,7 +136,7 @@ progression viendra s'ajouter ; si le fichier grossit, le scinder par vue.
 | `test ^1.25.0` (dev) | permet `dart test` sur le cœur métier pur |
 | `sqflite` | SQLite local (règle 3), schéma écrit à la main |
 | `path` | jointure de chemin cross-platform pour localiser le `.db` |
-| `shared_preferences` | stockage du scalaire `player_id` |
+| `shared_preferences` | id local de l'appareil (reprise des parties d'avant les comptes) |
 | `sqflite_common_ffi` (dev) | tests du repository sur la Dart VM, sans émulateur |
 | `supabase_flutter` | Auth + Postgres pour le mode en ligne (étape 6, `doc/online.md`) — seul import hors de `infrastructure/backend/` |
 

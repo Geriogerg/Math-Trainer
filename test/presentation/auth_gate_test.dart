@@ -2,11 +2,15 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:math_trainer/composition_root.dart';
 import 'package:math_trainer/core/domain/account/account.dart';
 import 'package:math_trainer/core/domain/account/account_repository.dart';
+import 'package:math_trainer/core/domain/models/exercise_type.dart';
 import 'package:math_trainer/core/domain/persistence/in_memory_session_repository.dart';
+import 'package:math_trainer/core/domain/persistence/level_cache_entry.dart';
+import 'package:math_trainer/core/domain/persistence/persisted_session.dart';
 import 'package:math_trainer/presentation/screens/auth_gate.dart';
 import 'package:math_trainer/presentation/theme/app_theme.dart';
 
@@ -163,4 +167,82 @@ void main() {
       expect(navigationBar.selectedIndex, 2);
     },
   );
+
+  group('données rattachées au compte', () {
+    // `PlayTab` lit la sélection mémorisée avec le niveau global : sans
+    // préférences simulées, cette lecture échoue et l'écran reste sur
+    // l'accueil, quel que soit l'historique.
+    setUp(() => SharedPreferences.setMockInitialValues({}));
+
+    const accountA = Account(id: 'compte-a', email: 'a@test.com');
+    const accountB = Account(id: 'compte-b', email: 'b@test.com');
+    const welcome = "La difficulté s'ajuste à tes réponses.";
+
+    /// Partie jouée sous l'id local de l'appareil (`test-player`, celui de
+    /// `pumpGate`), comme avant le passage aux comptes. Addition au niveau
+    /// 43, les six autres types au plancher : niveau global (43 + 6) / 7 = 7.
+    Future<void> playOnDevice(AppEnvironment environment) =>
+        environment.repository.recordSession(
+          session: PersistedSession(
+            id: 'session-appareil',
+            playerId: environment.playerId,
+            seed: 1,
+            enabledTypes: const {ExerciseType.addition},
+            exerciseCount: 4,
+            totalScore: 100,
+            levels: const {ExerciseType.addition: 40},
+            createdAt: DateTime.utc(2026, 11, 1),
+          ),
+          answers: const [],
+          levelUpdates: {
+            ExerciseType.addition: LevelCacheEntry(
+              level: 43,
+              sessionsPlayed: 1,
+              updatedAt: DateTime.utc(2026, 11, 1),
+            ),
+          },
+        );
+
+    testWidgets(
+      "les parties de l'appareil reviennent au premier compte connecté, pas au suivant",
+      (tester) async {
+        final accountRepository = _ControllableAccountRepository();
+        final environment = await pumpGate(tester, accountRepository);
+        await playOnDevice(environment);
+
+        accountRepository.resolveSession(accountA);
+        await tester.pumpAndSettle();
+        expect(find.text('Niveau global : 7'), findsOneWidget);
+
+        accountRepository.resolveSession(null);
+        await tester.pumpAndSettle();
+        accountRepository.resolveSession(accountB);
+        await tester.pumpAndSettle();
+        expect(find.text(welcome), findsOneWidget);
+
+        accountRepository.resolveSession(null);
+        await tester.pumpAndSettle();
+        accountRepository.resolveSession(accountA);
+        await tester.pumpAndSettle();
+        expect(find.text('Niveau global : 7'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'changer de compte sans passer par la déconnexion repart à neuf',
+      (tester) async {
+        final accountRepository = _ControllableAccountRepository();
+        final environment = await pumpGate(tester, accountRepository);
+        await playOnDevice(environment);
+        accountRepository.resolveSession(accountA);
+        await tester.pumpAndSettle();
+        expect(find.text('Niveau global : 7'), findsOneWidget);
+
+        accountRepository.resolveSession(accountB);
+        await tester.pumpAndSettle();
+
+        expect(find.text(welcome), findsOneWidget);
+      },
+    );
+  });
 }

@@ -1,9 +1,9 @@
 class Account {
   const Account({required this.id, required this.email});
 
-  /// Identifiant utilisateur côté Supabase Auth — distinct du `playerId`
-  /// local (`LocalPlayerIdProvider`), qui ne change pas à la création du
-  /// compte (`doc/online.md`).
+  /// Identifiant utilisateur côté Supabase Auth — c'est aussi le `playerId`
+  /// sous lequel niveaux et historique sont enregistrés une fois connecté
+  /// (`environmentForAccount`, `doc/online.md`).
   final String id;
 
   final String email;

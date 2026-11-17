@@ -1,9 +1,9 @@
 # Math Trainer
 
 Jeu Flutter de calcul mental compétitif (ados et adultes). Rapide, ludique, orienté compétition.
-État : 46 commits, 7 types d'exercices, persistance locale, direction visuelle « nuit
-électrique » livrée (étape 5), comptes Supabase (étape 6, tranches 1-2). 167 tests domaine /
-306 au total.
+État : 47 commits, 7 types d'exercices, persistance locale, direction visuelle « nuit
+électrique » livrée (étape 5), comptes Supabase (étape 6, tranches 1-2), données rattachées au compte. 170 tests domaine /
+314 au total.
 
 Détails non nécessaires à chaque session : `doc/architecture.md` (structure, gestion d'état,
 modèle d'exercice, dépendances), `doc/decisions.md` (arbitrages passés et leurs raisons),

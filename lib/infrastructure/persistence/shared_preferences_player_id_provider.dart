@@ -3,9 +3,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/domain/persistence/local_player_id_provider.dart';
 import '../../core/domain/persistence/uuid.dart';
 
-/// Un seul profil implicite par appareil aujourd'hui : l'id est généré une
-/// fois au premier appel puis relu ensuite. Les vrais comptes utilisateurs
-/// remplaceront ce mécanisme, pas avant.
+/// Id généré une fois au premier appel puis relu ensuite. Depuis les comptes,
+/// ce n'est plus le `playerId` des écrans — voir [LocalPlayerIdProvider].
 class SharedPreferencesPlayerIdProvider implements LocalPlayerIdProvider {
   static const _key = 'local_player_id';
 

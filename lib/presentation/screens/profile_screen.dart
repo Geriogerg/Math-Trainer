@@ -53,7 +53,7 @@ class _ProfileData {
   /// `sessionsSince(playerId, now - 30 jours)`, triées ancien → récent.
   final List<PersistedSession> windowSessions;
 
-  /// `recentSessions(limit: 10)`, triées récent → ancien.
+  /// `recentSessions(playerId, limit: 10)`, triées récent → ancien.
   final List<PersistedSession> recentSessions;
 }
 
@@ -124,7 +124,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           repository.currentLevels(playerId),
           repository.averageElapsedMsByType(playerId),
           repository.sessionsSince(playerId, since),
-          repository.recentSessions(limit: _recentSessionsLimit),
+          repository.recentSessions(playerId, limit: _recentSessionsLimit),
         ]).then(
           (results) => _ProfileData(
             now: now,

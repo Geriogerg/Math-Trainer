@@ -66,7 +66,7 @@ void main() {
 
       await repository.recordSession(session: s, answers: answers, levelUpdates: const {});
 
-      final sessions = await repository.recentSessions();
+      final sessions = await repository.recentSessions('player-1');
       final storedAnswers = await repository.answersForSession('session-1');
 
       expect(sessions, equals([s]));
@@ -107,9 +107,66 @@ void main() {
         levelUpdates: const {},
       );
 
-      final result = await repository.recentSessions(limit: 2);
+      final result = await repository.recentSessions('player-1', limit: 2);
 
       expect(result.map((s) => s.id), equals(['newest', 'middle']));
+    });
+
+    test('recentSessions ne retourne que les sessions du joueur demandé', () async {
+      await repository.recordSession(
+        session: session('a-1', createdAt: DateTime.utc(2026, 8, 1), playerId: 'player-a'),
+        answers: const [],
+        levelUpdates: const {},
+      );
+      await repository.recordSession(
+        session: session('b-1', createdAt: DateTime.utc(2026, 8, 2), playerId: 'player-b'),
+        answers: const [],
+        levelUpdates: const {},
+      );
+
+      final result = await repository.recentSessions('player-a');
+
+      expect(result.map((s) => s.id), equals(['a-1']));
+    });
+
+    test('transferPlayerData rattache sessions, réponses et niveaux au nouveau joueur', () async {
+      final entry = LevelCacheEntry(level: 42, sessionsPlayed: 1, updatedAt: DateTime.utc(2026, 8, 8));
+      await repository.recordSession(
+        session: session('session-1', createdAt: DateTime.utc(2026, 8, 8), playerId: 'device'),
+        answers: [answer('answer-1', 'session-1', elapsedMs: 900)],
+        levelUpdates: {ExerciseType.addition: entry},
+      );
+
+      await repository.transferPlayerData(fromPlayerId: 'device', toPlayerId: 'account');
+
+      expect((await repository.recentSessions('account')).map((s) => (s.id, s.playerId)), [
+        ('session-1', 'account'),
+      ]);
+      expect((await repository.currentLevels('account'))[ExerciseType.addition]?.level, 42);
+      expect(await repository.averageElapsedMsByType('account'), {ExerciseType.addition: 900});
+      expect(await repository.recentSessions('device'), isEmpty);
+      expect(await repository.currentLevels('device'), isEmpty);
+    });
+
+    test('transferPlayerData ne fusionne jamais avec un joueur qui a déjà des données', () async {
+      final deviceLevel = LevelCacheEntry(level: 10, sessionsPlayed: 1, updatedAt: DateTime.utc(2026, 8, 8));
+      final accountLevel = LevelCacheEntry(level: 80, sessionsPlayed: 3, updatedAt: DateTime.utc(2026, 8, 9));
+      await repository.recordSession(
+        session: session('device-1', createdAt: DateTime.utc(2026, 8, 8), playerId: 'device'),
+        answers: const [],
+        levelUpdates: {ExerciseType.addition: deviceLevel},
+      );
+      await repository.recordSession(
+        session: session('account-1', createdAt: DateTime.utc(2026, 8, 9), playerId: 'account'),
+        answers: const [],
+        levelUpdates: {ExerciseType.addition: accountLevel},
+      );
+
+      await repository.transferPlayerData(fromPlayerId: 'device', toPlayerId: 'account');
+
+      expect((await repository.recentSessions('account')).map((s) => s.id), ['account-1']);
+      expect((await repository.currentLevels('account'))[ExerciseType.addition]?.level, 80);
+      expect((await repository.recentSessions('device')).map((s) => s.id), ['device-1']);
     });
 
     test('recordSession écrit session, réponses et niveaux dans une seule transaction', () async {

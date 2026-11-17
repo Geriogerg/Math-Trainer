@@ -110,8 +110,16 @@ class _FixedLevelsRepository implements SessionRepository {
   ) async => _windowSessions;
 
   @override
-  Future<List<PersistedSession>> recentSessions({int limit = 20}) async =>
-      _recentSessions;
+  Future<List<PersistedSession>> recentSessions(
+    String playerId, {
+    int limit = 20,
+  }) async => _recentSessions;
+
+  @override
+  Future<void> transferPlayerData({
+    required String fromPlayerId,
+    required String toPlayerId,
+  }) async {}
 
   @override
   Future<void> recordSession({

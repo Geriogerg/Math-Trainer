@@ -43,10 +43,19 @@ class _FlakySessionRepository implements SessionRepository {
   }) => throw UnimplementedError();
 
   @override
-  Future<List<PersistedSession>> recentSessions({int limit = 20}) async {
+  Future<List<PersistedSession>> recentSessions(
+    String playerId, {
+    int limit = 20,
+  }) async {
     if (shouldFail) throw Exception('échec simulé');
     return [];
   }
+
+  @override
+  Future<void> transferPlayerData({
+    required String fromPlayerId,
+    required String toPlayerId,
+  }) async {}
 
   @override
   Future<List<PersistedAnswer>> answersForSession(String sessionId) =>

@@ -24,8 +24,16 @@ class _ThrowingSessionRepository implements SessionRepository {
   }) => throw Exception('échec simulé');
 
   @override
-  Future<List<PersistedSession>> recentSessions({int limit = 20}) =>
-      throw Exception('échec simulé');
+  Future<List<PersistedSession>> recentSessions(
+    String playerId, {
+    int limit = 20,
+  }) => throw Exception('échec simulé');
+
+  @override
+  Future<void> transferPlayerData({
+    required String fromPlayerId,
+    required String toPlayerId,
+  }) => throw Exception('échec simulé');
 
   @override
   Future<List<PersistedAnswer>> answersForSession(String sessionId) =>
