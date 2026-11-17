@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import '../domain/generation/exercise_source.dart';
 import '../domain/leveling/level_cache_orchestrator.dart';
+import '../domain/leveling/overall_level.dart';
 import '../domain/models/answer_result.dart';
 import '../domain/models/exercise.dart';
 import '../domain/models/exercise_type.dart';
@@ -17,6 +18,14 @@ import '../domain/persistence/session_repository.dart';
 import '../domain/persistence/uuid.dart';
 import '../domain/scoring/scorer.dart';
 import 'session_state.dart';
+
+/// Écriture de fin de session, gardée telle quelle si elle échoue pour que
+/// [SessionController.retryPersistence] la rejoue à l'identique.
+typedef _SessionWrite = ({
+  PersistedSession session,
+  List<PersistedAnswer> answers,
+  Map<ExerciseType, LevelCacheEntry> levelUpdates,
+});
 
 /// Orchestration de la session : source d'exercices + scoring + persistance
 /// à la fin de la session. Dépend d'interfaces (`ExerciseSource`,
@@ -70,12 +79,34 @@ class SessionController extends ChangeNotifier {
   Future<void>? _pendingPersistence;
   Map<ExerciseType, LevelCacheEntry>? _lastLevelUpdates;
   bool _persistenceFailed = false;
+  _SessionWrite? _failedWrite;
+  bool _isRetryingPersistence = false;
   bool _isDisposed = false;
 
   /// L'enregistrement de fin de session a échoué : la partie n'est pas dans
   /// l'historique et les niveaux n'ont pas bougé. Affiché sur l'écran de
   /// résultat — sans ça, le joueur croirait sa progression comptée.
   bool get persistenceFailed => _persistenceFailed;
+
+  /// Un nouvel essai ([retryPersistence]) est en cours.
+  bool get isRetryingPersistence => _isRetryingPersistence;
+
+  /// Rejoue l'écriture qui a échoué, à l'identique (mêmes ids) :
+  /// `recordSession` est atomique, un échec n'a rien laissé derrière lui,
+  /// donc rien ne peut être écrit deux fois. Remplace [pendingPersistence]
+  /// pour que la sortie de l'écran de résultat attende aussi cet essai avant
+  /// de relire les niveaux. Sans effet s'il n'y a rien à rejouer.
+  Future<void> retryPersistence() async {
+    final write = _failedWrite;
+    if (write == null || _isRetryingPersistence) return;
+    _isRetryingPersistence = true;
+    _notifyIfAlive();
+    final attempt = _record(write);
+    _pendingPersistence = attempt;
+    await attempt;
+    _isRetryingPersistence = false;
+    _notifyIfAlive();
+  }
 
   /// L'écriture de fin de session continue après la fermeture de l'écran
   /// (« Nouvelle sélection » juste après la dernière réponse dispose le
@@ -248,6 +279,8 @@ class SessionController extends ChangeNotifier {
     _questionStartedAt = null;
     _lastLevelUpdates = null;
     _persistenceFailed = false;
+    _failedWrite = null;
+    _isRetryingPersistence = false;
     notifyListeners();
   }
 
@@ -283,17 +316,6 @@ class SessionController extends ChangeNotifier {
       );
     }).toList();
 
-    final session = PersistedSession(
-      id: sessionId,
-      playerId: playerId,
-      seed: config.seed,
-      enabledTypes: config.enabledTypes,
-      exerciseCount: config.exerciseCount,
-      totalScore: _state.score,
-      levels: config.levels,
-      createdAt: createdAt,
-    );
-
     var levelUpdates = const <ExerciseType, LevelCacheEntry>{};
     if (countsForLevels) {
       try {
@@ -325,16 +347,52 @@ class SessionController extends ChangeNotifier {
       _notifyIfAlive();
     }
 
+    // Cache complet (7 types) après cette session, pas seulement les types
+    // joués : voir `PersistedSession.overallLevelAfter`.
+    double? overallLevelAfter;
+    try {
+      final cacheBefore = await repository.currentLevels(playerId);
+      overallLevelAfter = overallLevel({...cacheBefore, ...levelUpdates});
+    } on Exception catch (_) {
+      // Un point en moins sur la courbe du Profil, rien de plus — ne bloque
+      // pas l'écriture de la session elle-même.
+    }
+
+    final session = PersistedSession(
+      id: sessionId,
+      playerId: playerId,
+      seed: config.seed,
+      enabledTypes: config.enabledTypes,
+      exerciseCount: config.exerciseCount,
+      totalScore: _state.score,
+      levels: config.levels,
+      createdAt: createdAt,
+      overallLevelAfter: overallLevelAfter,
+    );
+
+    await _record((session: session, answers: answers, levelUpdates: levelUpdates));
+  }
+
+  /// La persistance ne doit jamais casser la partie en cours : un échec est
+  /// signalé ([persistenceFailed]) et l'écriture gardée pour
+  /// [retryPersistence] — en mémoire seulement, perdue à la fermeture de
+  /// l'app (la synchro serveur de la tranche 3 aura sa propre reprise).
+  Future<void> _record(_SessionWrite write) async {
     try {
       await repository.recordSession(
-        session: session,
-        answers: answers,
-        levelUpdates: levelUpdates,
+        session: write.session,
+        answers: write.answers,
+        levelUpdates: write.levelUpdates,
       );
     } on Exception catch (_) {
-      // La persistance ne doit jamais casser la partie en cours ; pas de
-      // file d'attente/retry (hors périmètre), mais l'échec est signalé.
+      _failedWrite = write;
       _persistenceFailed = true;
+      _notifyIfAlive();
+      return;
+    }
+    if (_persistenceFailed) {
+      _failedWrite = null;
+      _persistenceFailed = false;
       _notifyIfAlive();
     }
   }

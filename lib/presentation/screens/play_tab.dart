@@ -5,7 +5,7 @@ import '../../core/domain/models/exercise_type.dart';
 import '../../core/domain/persistence/level_cache_entry.dart';
 import '../../core/state/session_controller.dart';
 import '../exercise_type_labels.dart';
-import '../level_summary.dart';
+import '../../core/domain/leveling/overall_level.dart';
 import '../theme/app_theme.dart';
 import 'session_flow_screen.dart';
 

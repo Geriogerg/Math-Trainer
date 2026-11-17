@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 /// Version courante du schéma. Toute évolution incrémente cette valeur et
 /// ajoute une branche dans [_onUpgrade] — jamais destructive, jamais
 /// rétroactive.
-const schemaVersion = 2;
+const schemaVersion = 3;
 
 /// Ouvre (et crée/migre si besoin) la base SQLite du stockage local.
 /// [path] est fourni par l'appelant : un chemin réel en production
@@ -23,6 +23,7 @@ Future<Database> openMathTrainerDatabase(String path) {
           exercise_count INTEGER NOT NULL,
           total_score INTEGER NOT NULL,
           levels_json TEXT NOT NULL DEFAULT '{}',
+          overall_level_after REAL,
           created_at TEXT NOT NULL,
           synced_at TEXT
         )
@@ -70,5 +71,11 @@ Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
         PRIMARY KEY (player_id, exercise_type)
       )
     ''');
+  }
+  if (oldVersion < 3) {
+    // Nullable, pas de valeur reconstituée : le niveau global d'après une
+    // ancienne session dépend de tout le cache à cet instant, que
+    // l'historique ne permet pas de retrouver fidèlement.
+    await db.execute('ALTER TABLE sessions ADD COLUMN overall_level_after REAL');
   }
 }

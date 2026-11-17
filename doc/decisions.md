@@ -411,7 +411,8 @@ remplacer une fois actionné.
 
 `averageLevel` faisait la moyenne des seuls types déjà joués — un joueur qui n'a joué qu'à 2
 types sur 7 affichait un niveau global gonflé par l'absence des 5 autres. Corrigé avec
-`overallLevel` (`presentation/level_summary.dart`) : moyenne sur les 7 types, plancher 1 pour un
+`overallLevel` (`presentation/level_summary.dart`, depuis déplacé dans
+`core/domain/leveling/overall_level.dart`, voir plus bas) : moyenne sur les 7 types, plancher 1 pour un
 type jamais joué (pas 0, hors du domaine valide `[1, 100]` de `LevelCacheEntry`).
 
 Effet de bord direct : la « Variation (30 j) » de l'écran de progression comparait ce chiffre
@@ -421,3 +422,34 @@ mais devenue trompeuse avec lui. Corrigé en comparant deux instantanés de sess
 échelle (la plus récente et la plus ancienne de la fenêtre de 30 jours) plutôt que le cache live
 à un instantané — `averageLevel` (non modifiée) reste l'outil pour ce genre de comparaison
 session-à-session ; `overallLevel` est réservé au chiffre affiché comme « niveau global ».
+
+## Courbe du Profil : niveau global enregistré après chaque session (schéma v3)
+
+Remplace la comparaison « instantané contre instantané » de la section précédente, qui gardait
+deux défauts : chaque point de la courbe était le niveau *d'entrée* de la session (la dernière
+partie jouée n'apparaissait donc jamais), et il ne portait que sur les types joués ce jour-là
+(passer de l'addition à la multiplication ressemblait à une chute de niveau).
+
+Chaque session enregistre désormais `overall_level_after` : le niveau global (`overallLevel`, 7
+types, plancher 1) juste après elle, cache de niveaux mis à jour compris. La courbe trace cette
+valeur ; la variation sur 30 jours est l'écart entre son premier et son dernier point ; la
+variation d'une session dans la liste est l'écart avec la session précédente — exactement
+l'effet de la session, rien d'autre ne modifiant le cache entre deux parties.
+
+- `overallLevel` passe de `presentation/` à `core/domain/leveling/` : c'est maintenant une règle
+  de données (une valeur enregistrée), plus seulement d'affichage. `averageLevel`, qui ne
+  servait qu'à l'ancienne comparaison, est supprimée.
+- Colonne nullable, sans reconstitution pour les sessions déjà enregistrées : le niveau global
+  d'après dépend de tout le cache à cet instant, que l'historique ne permet pas de retrouver
+  fidèlement. Ces sessions sont simplement absentes de la courbe.
+- Cache illisible au moment de l'enregistrement : la session est écrite sans cette valeur,
+  plutôt que perdue.
+
+## Enregistrement raté : « Réessayer l'enregistrement »
+
+L'écran de résultat signalait déjà une partie non enregistrée ; il propose maintenant de rejouer
+l'écriture (`SessionController.retryPersistence`). Même session, mêmes ids : `recordSession` est
+atomique, un échec n'a rien laissé, donc rien ne peut être écrit deux fois. Pas de file d'attente
+en arrière-plan : l'échec est local (stockage plein ou bloqué), une file en mémoire disparaîtrait
+au rechargement sans rien garantir de plus. La reprise côté serveur (tranche 3) s'appuiera sur
+`synced_at`, déjà présent sur chaque ligne.

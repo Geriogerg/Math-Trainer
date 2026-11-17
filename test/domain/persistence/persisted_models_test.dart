@@ -70,7 +70,7 @@ void main() {
   });
 
   group('PersistedSession', () {
-    PersistedSession buildSession({DateTime? syncedAt}) {
+    PersistedSession buildSession({DateTime? syncedAt, double? overallLevelAfter}) {
       return PersistedSession(
         id: 'session-1',
         playerId: 'player-1',
@@ -80,6 +80,7 @@ void main() {
         totalScore: 150,
         levels: const {ExerciseType.addition: 42, ExerciseType.division: 17},
         createdAt: DateTime.utc(2026, 8, 8),
+        overallLevelAfter: overallLevelAfter,
         syncedAt: syncedAt,
       );
     }
@@ -170,6 +171,22 @@ void main() {
         ),
         throwsArgumentError,
       );
+    });
+
+    test("un niveau global d'après différent rend deux sessions inégales", () {
+      expect(buildSession(overallLevelAfter: 12.5), isNot(equals(buildSession(overallLevelAfter: 13))));
+      expect(buildSession(overallLevelAfter: 12.5), isNot(equals(buildSession(overallLevelAfter: null))));
+    });
+
+    test("copyWith conserve le niveau global d'après", () {
+      expect(buildSession(overallLevelAfter: 12.5).copyWith(playerId: 'compte').overallLevelAfter, 12.5);
+    });
+
+    test('refuse un niveau global hors de [1, 100]', () {
+      expect(() => buildSession(overallLevelAfter: 0.5), throwsArgumentError);
+      expect(() => buildSession(overallLevelAfter: 100.5), throwsArgumentError);
+      expect(buildSession(overallLevelAfter: 1).overallLevelAfter, 1);
+      expect(buildSession(overallLevelAfter: 100).overallLevelAfter, 100);
     });
   });
 }

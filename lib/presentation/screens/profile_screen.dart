@@ -7,7 +7,7 @@ import '../../core/domain/persistence/level_cache_entry.dart';
 import '../../core/domain/models/exercise_type.dart';
 import '../../core/domain/persistence/persisted_session.dart';
 import '../exercise_type_labels.dart';
-import '../level_summary.dart';
+import '../../core/domain/leveling/overall_level.dart';
 import '../theme/app_theme.dart';
 import 'empty_state.dart';
 
@@ -190,21 +190,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final globalLevel = data.levels.isEmpty
             ? null
             : overallLevel(data.levels);
-        // Comparaison entre deux instantanés de session de même échelle
-        // (types touchés ce jour-là), pas entre le cache live (7 types,
-        // `globalLevel` ci-dessus) et un instantané de session (1-2 types) —
-        // ce dernier ferait sauter la variation sans rapport avec un vrai
-        // progrès dès qu'un joueur ne couvre pas tous les types.
-        final windowStart = averageLevel(
-          (data.windowSessions.isEmpty
-              ? const <int>[]
-              : data.windowSessions.first.levels.values),
-        );
-        final windowEnd = averageLevel(
-          (data.windowSessions.isEmpty
-              ? const <int>[]
-              : data.windowSessions.last.levels.values),
-        );
+        // Mêmes points que la courbe : la variation est l'écart entre son
+        // premier et son dernier point, jamais un calcul à part.
+        final windowLevels = [
+          for (final session in data.windowSessions) ?session.overallLevelAfter,
+        ];
+        final windowStart = windowLevels.firstOrNull;
+        final windowEnd = windowLevels.lastOrNull;
 
         return ListView(
           padding: theme.extension<AppMetrics>()!.rootPadding,
@@ -455,13 +447,14 @@ class _RecentSessionRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final currentAvg = averageLevel(session.levels.values);
-    final previousAvg = previous == null
-        ? null
-        : averageLevel(previous!.levels.values);
-    final variation = currentAvg == null || previousAvg == null
+    // Rien d'autre ne modifie le cache de niveaux entre deux sessions :
+    // l'écart entre les deux niveaux globaux « après » est exactement
+    // l'effet de cette session-ci.
+    final after = session.overallLevelAfter;
+    final previousAfter = previous?.overallLevelAfter;
+    final variation = after == null || previousAfter == null
         ? '—'
-        : _formatDelta(currentAvg - previousAvg);
+        : _formatDelta(after - previousAfter);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -494,9 +487,12 @@ class _RecentSessionRow extends StatelessWidget {
 }
 
 /// Trace simple (pas d'axe, pas de légende) reliant un point par session de
-/// la fenêtre — X proportionnel à la date, Y la moyenne des niveaux figés de
-/// cette session (`doc/design.md` : courbe d'évolution, rien de plus précis
-/// n'est demandé). `CustomPainter` maison plutôt qu'une dépendance de
+/// la fenêtre — X proportionnel à la date, Y le niveau global juste après
+/// cette session (`PersistedSession.overallLevelAfter` : même échelle d'une
+/// session à l'autre, quels que soient les types joués, et la dernière
+/// partie apparaît). Sessions sans cette valeur (antérieures au schéma v3)
+/// ignorées. `doc/design.md` : courbe d'évolution, rien de plus précis
+/// n'est demandé. `CustomPainter` maison plutôt qu'une dépendance de
 /// graphiques : un simple tracé ne le justifie pas (même logique que
 /// `doc/decisions.md` pour `uuid`/`sqflite`).
 class _LevelCurve extends StatelessWidget {
@@ -516,13 +512,13 @@ class _LevelCurve extends StatelessWidget {
 
     final points = <Offset>[];
     for (final session in sessions) {
-      final avg = averageLevel(session.levels.values);
-      if (avg == null) continue;
+      final level = session.overallLevelAfter;
+      if (level == null) continue;
       final xFrac = spanMs == 0
           ? 1.0
           : (session.createdAt.difference(windowStart).inMilliseconds / spanMs)
                 .clamp(0.0, 1.0);
-      points.add(Offset(xFrac, avg));
+      points.add(Offset(xFrac, level));
     }
 
     if (points.length < 2) {

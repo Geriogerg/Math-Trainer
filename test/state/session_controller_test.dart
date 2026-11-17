@@ -783,6 +783,27 @@ class _RecordFailureRepository extends InMemorySessionRepository {
   }) async => throw Exception('disque plein (simulé)');
 }
 
+/// Échoue tant que [failuresLeft] > 0, puis écrit normalement — un stockage
+/// momentanément indisponible.
+class _FlakyRecordRepository extends InMemorySessionRepository {
+  _FlakyRecordRepository(this.failuresLeft);
+
+  int failuresLeft;
+
+  @override
+  Future<void> recordSession({
+    required PersistedSession session,
+    required List<PersistedAnswer> answers,
+    required Map<ExerciseType, LevelCacheEntry> levelUpdates,
+  }) async {
+    if (failuresLeft > 0) {
+      failuresLeft--;
+      throw Exception('stockage indisponible (simulé)');
+    }
+    await super.recordSession(session: session, answers: answers, levelUpdates: levelUpdates);
+  }
+}
+
 void persistenceRobustnessTests() {
   SessionController finishedSoon(SessionRepository repository) =>
       SessionController(
@@ -837,6 +858,93 @@ void persistenceRobustnessTests() {
       await controller.pendingPersistence;
 
       expect(controller.persistenceFailed, isTrue);
+    });
+
+    test("réessayer après un échec enregistre la partie et lève l'avertissement", () async {
+      final repository = _FlakyRecordRepository(1);
+      final controller = finishedSoon(repository)..start();
+      for (var i = 0; i < 4; i++) {
+        controller.submitAnswer(i);
+      }
+      await controller.pendingPersistence;
+      expect(controller.persistenceFailed, isTrue);
+
+      await controller.retryPersistence();
+
+      expect(controller.persistenceFailed, isFalse);
+      expect(await repository.recentSessions('test-player'), hasLength(1));
+      expect(await repository.currentLevels('test-player'), isNotEmpty);
+    });
+
+    test("un nouvel échec garde l'avertissement ; pendingPersistence attend l'essai suivant", () async {
+      final repository = _FlakyRecordRepository(2);
+      final controller = finishedSoon(repository)..start();
+      for (var i = 0; i < 4; i++) {
+        controller.submitAnswer(i);
+      }
+      await controller.pendingPersistence;
+
+      await controller.retryPersistence();
+      expect(controller.persistenceFailed, isTrue);
+      expect(controller.isRetryingPersistence, isFalse);
+
+      // Non attendu ici : c'est `pendingPersistence` (ce qu'attend la sortie
+      // de l'écran de résultat) qui doit couvrir ce nouvel essai.
+      unawaited(controller.retryPersistence());
+      expect(controller.isRetryingPersistence, isTrue);
+      await controller.pendingPersistence;
+
+      expect(controller.persistenceFailed, isFalse);
+      expect(await repository.recentSessions('test-player'), hasLength(1));
+    });
+  });
+
+  group('niveau global après la session (overallLevelAfter)', () {
+    test('calculé sur tout le cache, types non joués cette fois compris', () async {
+      final repository = InMemorySessionRepository();
+      // Multiplication jouée lors d'une partie précédente, pas cette fois-ci.
+      await repository.recordSession(
+        session: PersistedSession(
+          id: 'partie-precedente',
+          playerId: 'test-player',
+          seed: 1,
+          enabledTypes: const {ExerciseType.multiplication},
+          exerciseCount: 4,
+          totalScore: 40,
+          levels: const {ExerciseType.multiplication: 50},
+          createdAt: DateTime.utc(2023),
+        ),
+        answers: const [],
+        levelUpdates: {
+          ExerciseType.multiplication: LevelCacheEntry(
+            level: 50,
+            sessionsPlayed: 1,
+            updatedAt: DateTime.utc(2023),
+          ),
+        },
+      );
+      final controller = finishedSoon(repository)..start();
+      for (var i = 0; i < 4; i++) {
+        controller.submitAnswer(i);
+      }
+      await controller.pendingPersistence;
+
+      final additionAfter = (await repository.currentLevels('test-player'))[ExerciseType.addition]!.level;
+      final session = (await repository.recentSessions('test-player')).first;
+      // Addition à jour + multiplication 50 + 5 types au plancher, sur 7.
+      expect(session.overallLevelAfter, closeTo((additionAfter + 50 + 5) / 7, 1e-9));
+    });
+
+    test('cache illisible : session enregistrée quand même, sans cette valeur', () async {
+      final repository = _LevelReadFailureRepository();
+      final controller = finishedSoon(repository)..start();
+      for (var i = 0; i < 4; i++) {
+        controller.submitAnswer(i);
+      }
+      await controller.pendingPersistence;
+
+      final sessions = await repository.inner.recentSessions('test-player');
+      expect(sessions.single.overallLevelAfter, isNull);
     });
   });
 }

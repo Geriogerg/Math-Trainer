@@ -80,6 +80,9 @@ class _FixedLevelsRepository implements SessionRepository {
     totalScore: score,
     levels: {ExerciseType.addition: level},
     createdAt: createdAt,
+    // Même valeur que le niveau d'entrée : garde la courbe et les écarts
+    // de l'image de référence d'avant `overallLevelAfter` (20 → 30 → 42).
+    overallLevelAfter: level.toDouble(),
   );
 
   @override

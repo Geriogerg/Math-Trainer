@@ -149,6 +149,7 @@ class SqfliteSessionRepository implements SessionRepository {
       'exercise_count': session.exerciseCount,
       'total_score': session.totalScore,
       'levels_json': jsonEncode(session.levels.map((type, level) => MapEntry(type.name, level))),
+      'overall_level_after': session.overallLevelAfter,
       'created_at': session.createdAt.toIso8601String(),
       'synced_at': session.syncedAt?.toIso8601String(),
     };
@@ -167,6 +168,7 @@ class SqfliteSessionRepository implements SessionRepository {
       totalScore: row['total_score'] as int,
       levels: levelsJson.map((name, level) => MapEntry(ExerciseType.values.byName(name), level as int)),
       createdAt: DateTime.parse(row['created_at'] as String),
+      overallLevelAfter: (row['overall_level_after'] as num?)?.toDouble(),
       syncedAt: syncedAt == null ? null : DateTime.parse(syncedAt),
     );
   }

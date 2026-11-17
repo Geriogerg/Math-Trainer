@@ -22,7 +22,8 @@ lib/
                            # DebtAwareTypeSelectionStrategy, session_length.dart
       difficulty/          # interpolation de niveau par type (arithmetic/power/square_root/percentage)
       leveling/            # LevelUpdater, LevelCacheOrchestrator, LevelingRules, Confidence,
-                           # AnswerOutcome — recalcule les niveaux à partir de l'historique
+                           # AnswerOutcome — recalcule les niveaux à partir de l'historique ;
+                           # overall_level.dart (niveau global, aussi enregistré par session)
       scoring/              # Scorer, ScoringRules
       persistence/         # SessionRepository, LocalPlayerIdProvider, TypeSelectionStore,
                            # ThemeModeStore (interfaces), PersistedSession/PersistedAnswer,
@@ -42,7 +43,7 @@ lib/
                            # SessionFlowScreen/SessionScreen (session plein écran), ResultScreen,
                            # ProfileScreen (identité + progression, recharge à l'activation de
                            # l'onglet), ComingSoonScreen, EmptyState, ConfigErrorApp
-    exercise_prompt.dart, exercise_type_labels.dart, level_summary.dart
+    exercise_prompt.dart, exercise_type_labels.dart
 supabase/
   profiles.sql             # table `profiles` + RLS, à exécuter dans l'éditeur SQL du projet
 test/

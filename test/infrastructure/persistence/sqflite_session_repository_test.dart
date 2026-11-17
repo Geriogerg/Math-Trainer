@@ -36,6 +36,7 @@ void main() {
       totalScore: 150,
       levels: const {ExerciseType.addition: 42, ExerciseType.division: 17},
       createdAt: createdAt,
+      overallLevelAfter: 9.5,
     );
   }
 
@@ -167,6 +168,23 @@ void main() {
       expect((await repository.recentSessions('account')).map((s) => s.id), ['account-1']);
       expect((await repository.currentLevels('account'))[ExerciseType.addition]?.level, 80);
       expect((await repository.recentSessions('device')).map((s) => s.id), ['device-1']);
+    });
+
+    test("une session sans niveau global d'après (antérieure au schéma v3) se relit telle quelle", () async {
+      final legacy = PersistedSession(
+        id: 'legacy',
+        playerId: 'player-1',
+        seed: 1,
+        enabledTypes: const {ExerciseType.addition},
+        exerciseCount: 4,
+        totalScore: 10,
+        levels: const {},
+        createdAt: DateTime.utc(2026, 8, 8),
+      );
+
+      await repository.recordSession(session: legacy, answers: const [], levelUpdates: const {});
+
+      expect(await repository.recentSessions('player-1'), equals([legacy]));
     });
 
     test('recordSession écrit session, réponses et niveaux dans une seule transaction', () async {

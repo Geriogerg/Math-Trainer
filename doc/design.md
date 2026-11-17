@@ -181,7 +181,9 @@ les puces de types directement sur cet écran — changer un seul type coûte au
 
 Quatre blocs, du général au détail : niveau global avec sa variation récente ; courbe d'évolution
 du niveau sur 30 jours ; ventilation par opération (barre de niveau + **temps moyen**, qui dit au
-joueur où il est lent) ; sessions récentes avec score et variation de niveau.
+joueur où il est lent) ; sessions récentes avec score et variation de niveau. Courbe et variations
+portent toutes sur le niveau global après chaque session (`doc/decisions.md`) : la même échelle
+partout, quels que soient les types joués.
 
 Les opérations jamais jouées apparaissent en état « non joué » plutôt que masquées — c'est ce qui
 rend visible ce que la sélection par défaut laisse de côté.

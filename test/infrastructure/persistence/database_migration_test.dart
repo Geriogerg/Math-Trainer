@@ -79,4 +79,53 @@ void main() {
     await v2db.close();
     await databaseFactory.deleteDatabase(path);
   });
+
+  test("une base v2 existante migre vers v3 : sessions conservées, sans niveau global d'après", () async {
+    const path = 'migration_v2_test.db';
+    await databaseFactory.deleteDatabase(path);
+
+    // Schéma v2 tel qu'il existait avant `overall_level_after`.
+    final v2db = await databaseFactory.openDatabase(
+      path,
+      options: OpenDatabaseOptions(
+        version: 2,
+        onCreate: (db, version) async {
+          await db.execute('''
+            CREATE TABLE sessions (
+              id TEXT PRIMARY KEY,
+              player_id TEXT NOT NULL,
+              seed INTEGER NOT NULL,
+              operation_types TEXT NOT NULL,
+              exercise_count INTEGER NOT NULL,
+              total_score INTEGER NOT NULL,
+              levels_json TEXT NOT NULL DEFAULT '{}',
+              created_at TEXT NOT NULL,
+              synced_at TEXT
+            )
+          ''');
+        },
+      ),
+    );
+    await v2db.insert('sessions', {
+      'id': 'v2-session',
+      'player_id': 'player',
+      'seed': 1,
+      'operation_types': '["addition"]',
+      'exercise_count': 4,
+      'total_score': 40,
+      'levels_json': '{"addition":12}',
+      'created_at': DateTime.utc(2026, 10, 1).toIso8601String(),
+    });
+    await v2db.close();
+
+    final v3db = await openMathTrainerDatabase(path);
+    final rows = await v3db.query('sessions');
+
+    expect(rows.single['levels_json'], '{"addition":12}');
+    expect(rows.single.containsKey('overall_level_after'), isTrue);
+    expect(rows.single['overall_level_after'], isNull);
+
+    await v3db.close();
+    await databaseFactory.deleteDatabase(path);
+  });
 }

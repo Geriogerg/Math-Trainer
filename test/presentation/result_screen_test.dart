@@ -31,12 +31,18 @@ class _FixedExerciseSource implements ExerciseSource {
 }
 
 class _RecordFailureRepository extends InMemorySessionRepository {
+  /// Repasser à `false` simule un stockage revenu.
+  bool failing = true;
+
   @override
   Future<void> recordSession({
     required PersistedSession session,
     required List<PersistedAnswer> answers,
     required Map<ExerciseType, LevelCacheEntry> levelUpdates,
-  }) async => throw Exception('stockage indisponible (simulé)');
+  }) async {
+    if (failing) throw Exception('stockage indisponible (simulé)');
+    await super.recordSession(session: session, answers: answers, levelUpdates: levelUpdates);
+  }
 }
 
 void main() {
@@ -249,6 +255,45 @@ void main() {
     await pumpResultScreen(tester, controller);
 
     expect(find.textContaining('Partie non enregistrée'), findsNothing);
+    expect(find.text("Réessayer l'enregistrement"), findsNothing);
+  });
+
+  testWidgets("« Réessayer l'enregistrement » enregistre la partie et retire l'avertissement", (
+    tester,
+  ) async {
+    final repository = _RecordFailureRepository();
+    final controller = finishedController(repository: repository);
+    addTearDown(controller.dispose);
+    await controller.pendingPersistence;
+    // Comme `SessionFlowScreen` : c'est son `ListenableBuilder` qui
+    // reconstruit l'écran de résultat quand le contrôleur notifie.
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildLightTheme(),
+        home: Scaffold(
+          body: ListenableBuilder(
+            listenable: controller,
+            builder: (context, _) => ResultScreen(
+              controller: controller,
+              onPlayAgain: () {},
+              onExitToSelection: () {},
+              isRestarting: false,
+              restartError: null,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    repository.failing = false;
+    await tester.tap(find.text("Réessayer l'enregistrement"));
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.textContaining('Partie non enregistrée'), findsNothing);
+    expect(find.text("Réessayer l'enregistrement"), findsNothing);
+    expect(await repository.recentSessions('test-player'), hasLength(1));
   });
 }
 

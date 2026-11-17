@@ -13,8 +13,13 @@ class PersistedSession {
     required this.totalScore,
     required this.levels,
     required this.createdAt,
+    this.overallLevelAfter,
     this.syncedAt,
   }) {
+    final overall = overallLevelAfter;
+    if (overall != null && (overall < 1 || overall > 100)) {
+      throw ArgumentError.value(overall, 'overallLevelAfter', 'doit être dans [1, 100].');
+    }
     if (!createdAt.isUtc) {
       throw ArgumentError.value(createdAt, 'createdAt', 'doit être en UTC (DateTime.toUtc()).');
     }
@@ -37,6 +42,16 @@ class PersistedSession {
   final Map<ExerciseType, int> levels;
 
   final DateTime createdAt;
+
+  /// Niveau global du joueur (`overallLevel`, 7 types) juste après cette
+  /// session, cache de niveaux mis à jour compris — ce que trace la courbe
+  /// du Profil. Contrairement à [levels] (niveaux d'entrée, seulement les
+  /// types de la session), deux valeurs successives sont toujours
+  /// comparables, et leur écart est exactement l'effet de la session.
+  /// `null` pour les sessions antérieures au schéma v3, ou si le cache n'a
+  /// pas pu être relu à l'enregistrement.
+  final double? overallLevelAfter;
+
   final DateTime? syncedAt;
 
   PersistedSession copyWith({String? playerId, Object? syncedAt = _unset}) {
@@ -49,6 +64,7 @@ class PersistedSession {
       totalScore: totalScore,
       levels: levels,
       createdAt: createdAt,
+      overallLevelAfter: overallLevelAfter,
       syncedAt: identical(syncedAt, _unset) ? this.syncedAt : syncedAt as DateTime?,
     );
   }
@@ -82,6 +98,7 @@ class PersistedSession {
       other.totalScore == totalScore &&
       other._levelsEqual(levels) &&
       other.createdAt == createdAt &&
+      other.overallLevelAfter == overallLevelAfter &&
       other.syncedAt == syncedAt;
 
   @override
@@ -96,6 +113,7 @@ class PersistedSession {
     totalScore,
     Object.hashAllUnordered(levels.entries.map((e) => Object.hash(e.key, e.value))),
     createdAt,
+    overallLevelAfter,
     syncedAt,
   );
 }

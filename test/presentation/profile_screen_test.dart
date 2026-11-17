@@ -307,6 +307,9 @@ void main() {
           totalScore: score,
           levels: {ExerciseType.addition: level},
           createdAt: createdAt,
+          // Ce qu'enregistre le contrôleur : niveau global (7 types, six au
+          // plancher) une fois l'addition passée à [level].
+          overallLevelAfter: (level + 6) / 7,
         ),
         answers: answers,
         levelUpdates: {
@@ -378,7 +381,12 @@ void main() {
       expect(find.text('Profil'), findsOneWidget);
       // (50 + 6 × 1 plancher pour les 6 types non joués) / 7 = 8.
       expect(find.textContaining('Niveau global : 8'), findsOneWidget);
-      expect(find.textContaining('Variation (30 j) : +20'), findsOneWidget);
+      // Niveau global après la première session de la fenêtre (36/7) puis
+      // après la dernière (56/7) : 20/7 ≈ +3 — la dernière partie compte.
+      expect(find.textContaining('Variation (30 j) : +3'), findsOneWidget);
+      // Effet de chacune des deux dernières sessions : 10/7 ≈ +1 ; la plus
+      // ancienne n'a pas de session précédente à laquelle se comparer.
+      expect(find.text('+1'), findsNWidgets(2));
       expect(
         find.text('Pas assez de données sur les 30 derniers jours.'),
         findsNothing,

@@ -136,6 +136,16 @@ class ResultScreen extends StatelessWidget {
                       color: theme.colorScheme.error,
                     ),
                   ),
+                  const SizedBox(height: 8),
+                  // Rejoue la même écriture (`retryPersistence`) : utile
+                  // quand l'échec était passager (stockage momentanément
+                  // indisponible). Désactivé pendant l'essai en cours.
+                  TextButton(
+                    onPressed: controller.isRetryingPersistence
+                        ? null
+                        : controller.retryPersistence,
+                    child: const Text("Réessayer l'enregistrement"),
+                  ),
                 ],
                 const SizedBox(height: 32),
                 // Centrés (`doc/design.md`) — Rejouer reste visuellement
