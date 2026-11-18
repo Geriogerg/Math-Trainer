@@ -83,7 +83,9 @@ avant d'abandonner.
 ## Composition root
 
 `lib/composition_root.dart` est le seul fichier qui choisit les implémentations concrètes
-(générateur, repository sqflite ou en mémoire selon la plateforme). Les écrans ne construisent
+(générateur, repository, backend). La base locale s'ouvre via `openAppDatabase()`
+(`infrastructure/persistence/database.dart`), qui choisit l'emplacement et, sur web, le moteur
+SQLite WebAssembly. Les écrans ne construisent
 plus aucun objet de domaine : ils observent le contrôleur qui en résulte.
 
 ## Modèle d'exercice
@@ -138,6 +140,7 @@ progression viendra s'ajouter ; si le fichier grossit, le scinder par vue.
 | `sqflite` | SQLite local (règle 3), schéma écrit à la main |
 | `path` | jointure de chemin cross-platform pour localiser le `.db` |
 | `shared_preferences` | id local de l'appareil (reprise des parties d'avant les comptes) |
+| `sqflite_common_ffi_web` | même SQLite sur web (WebAssembly + IndexedDB), voir `doc/decisions.md` |
 | `sqflite_common_ffi` (dev) | tests du repository sur la Dart VM, sans émulateur |
 | `supabase_flutter` | Auth + Postgres pour le mode en ligne (étape 6, `doc/online.md`) — seul import hors de `infrastructure/backend/` |
 

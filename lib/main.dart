@@ -12,7 +12,10 @@ Future<void> main() async {
   try {
     environment = await buildAppEnvironment();
   } on MissingBackendConfigException catch (e) {
-    runApp(ConfigErrorApp(missingKeys: e.missingKeys));
+    runApp(ConfigErrorApp.missingBackendConfig(e.missingKeys));
+    return;
+  } on WebStorageUnavailableException catch (e) {
+    runApp(ConfigErrorApp.webStorageUnavailable(e.cause));
     return;
   }
   runApp(MathTrainerApp(environment: environment));

@@ -1,9 +1,34 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart'
+    show databaseFactoryFfiWeb;
 
 /// Version courante du schéma. Toute évolution incrémente cette valeur et
 /// ajoute une branche dans [_onUpgrade] — jamais destructive, jamais
 /// rétroactive.
 const schemaVersion = 3;
+
+/// Base de l'app, à l'emplacement attendu par chaque plateforme. Sur web :
+/// même schéma et même code SQL qu'ailleurs, SQLite compilé en WebAssembly
+/// (`sqflite_common_ffi_web`, fichiers `web/sqlite3.wasm` et
+/// `web/sqflite_sw.js`), stocké dans l'IndexedDB du navigateur — un chemin
+/// n'y est qu'un nom.
+///
+/// Délai sur web : un `sqflite_sw.js` introuvable ne remonte pas toujours
+/// d'erreur (constaté sous Edge — 404 sur le worker, puis l'ouverture
+/// n'aboutit jamais) ; sans borne, l'app resterait sur une page blanche.
+Future<Database> openAppDatabase() async {
+  if (kIsWeb) {
+    databaseFactory = databaseFactoryFfiWeb;
+    return openMathTrainerDatabase(
+      'math_trainer.db',
+    ).timeout(const Duration(seconds: 20));
+  }
+  return openMathTrainerDatabase(
+    p.join(await getDatabasesPath(), 'math_trainer.db'),
+  );
+}
 
 /// Ouvre (et crée/migre si besoin) la base SQLite du stockage local.
 /// [path] est fourni par l'appelant : un chemin réel en production

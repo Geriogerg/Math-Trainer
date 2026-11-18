@@ -5,8 +5,8 @@ import 'persisted_session.dart';
 import 'session_repository.dart';
 
 /// Implémentation de référence, Dart pur, sans I/O : sert de double de test
-/// pour tout code qui dépend de [SessionRepository], et de repli sur web où
-/// sqflite n'a pas d'implémentation native.
+/// pour tout code qui dépend de [SessionRepository]. Plus utilisée par l'app
+/// elle-même — le web a désormais sa base SQLite (`composition_root.dart`).
 class InMemorySessionRepository implements SessionRepository {
   final List<PersistedSession> _sessions = [];
   final List<PersistedAnswer> _answers = [];

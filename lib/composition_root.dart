@@ -1,6 +1,4 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:path/path.dart' as p;
-import 'package:sqflite/sqflite.dart' show getDatabasesPath;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/domain/account/account.dart';
@@ -13,7 +11,6 @@ import 'core/domain/generation/session_length.dart';
 import 'core/domain/leveling/leveling_rules.dart';
 import 'core/domain/models/exercise_type.dart';
 import 'core/domain/models/session_config.dart';
-import 'core/domain/persistence/in_memory_session_repository.dart';
 import 'core/domain/persistence/local_player_id_provider.dart';
 import 'core/domain/persistence/session_repository.dart';
 import 'core/domain/persistence/theme_mode_store.dart';
@@ -138,6 +135,20 @@ class MissingBackendConfigException implements Exception {
       'MissingBackendConfigException: ${missingKeys.join(', ')} absent(s)';
 }
 
+/// Sur web, la base SQLite tourne en WebAssembly dans un worker
+/// (`sqflite_common_ffi_web`) chargé depuis `web/sqlite3.wasm` et
+/// `web/sqflite_sw.js`. Absents (setup jamais lancé), l'ouverture échoue :
+/// sans ce contrôle l'app planterait au démarrage sans explication — et
+/// retomber sur un stockage en mémoire perdrait les parties en silence.
+class WebStorageUnavailableException implements Exception {
+  const WebStorageUnavailableException(this.cause);
+
+  final Object cause;
+
+  @override
+  String toString() => 'WebStorageUnavailableException: $cause';
+}
+
 Future<AppEnvironment> buildAppEnvironment() async {
   final missingKeys = [
     if (_supabaseUrl.isEmpty) 'SUPABASE_URL',
@@ -152,15 +163,11 @@ Future<AppEnvironment> buildAppEnvironment() async {
   final playerId = await playerIdProvider.currentPlayerId();
 
   final SessionRepository repository;
-  if (kIsWeb) {
-    // sqflite n'a pas d'implémentation web ; le web n'est utilisé que pour
-    // itérer (CLAUDE.md), donc un repository en mémoire suffit ici.
-    repository = InMemorySessionRepository();
-  } else {
-    final databasePath = p.join(await getDatabasesPath(), 'math_trainer.db');
-    repository = SqfliteSessionRepository(
-      await openMathTrainerDatabase(databasePath),
-    );
+  try {
+    repository = SqfliteSessionRepository(await openAppDatabase());
+  } catch (e) {
+    if (kIsWeb) throw WebStorageUnavailableException(e);
+    rethrow;
   }
 
   await Supabase.initialize(

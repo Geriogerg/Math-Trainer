@@ -1,9 +1,9 @@
 # Math Trainer
 
 Jeu Flutter de calcul mental compétitif (ados et adultes). Rapide, ludique, orienté compétition.
-État : 48 commits, 7 types d'exercices, persistance locale, direction visuelle « nuit
-électrique » livrée (étape 5), comptes Supabase (étape 6, tranches 1-2), données rattachées au
-compte, courbe du Profil sur le niveau global d'après session. 176 tests domaine / 327 au total.
+État : 49 commits, 7 types d'exercices, persistance locale (web compris), direction visuelle
+« nuit électrique » livrée (étape 5), comptes Supabase (étape 6, tranches 1-2), données rattachées
+au compte, courbe du Profil sur le niveau global d'après session. 176 tests domaine / 328 au total.
 
 Détails non nécessaires à chaque session : `doc/architecture.md` (structure, gestion d'état,
 modèle d'exercice, dépendances), `doc/decisions.md` (arbitrages passés et leurs raisons),
@@ -66,7 +66,8 @@ Non négociables sans discussion explicite.
 
 ## Stratégie de données
 
-Tout est local aujourd'hui : `shared_preferences` pour les scalaires, SQLite pour l'historique.
+Tout est local aujourd'hui : `shared_preferences` pour les scalaires, SQLite pour l'historique
+(y compris sur web, via WebAssembly + IndexedDB).
 
 **Granularité obligatoire :** stocker chaque réponse individuelle (type, opérandes, réponse
 donnée, temps, correct/incorrect, niveau au moment du jeu), jamais des agrégats — le moteur
@@ -212,8 +213,10 @@ publique Supabase. Sans lui, l'app démarre sur un écran « Configuration manqu
 - `kotlin.incremental=false` dans `android/gradle.properties` contourne un bug Windows
   (compilateur Kotlin qui plante quand projet et caches Gradle sont sur des lettres de lecteur
   différentes). À revérifier sur machine propre ou en CI avant le premier `flutter build appbundle`.
-- **Rien n'est persisté sur web** : `InMemorySessionRepository` sert de repli, un rechargement
-  efface tout. À traiter avant tout déploiement web public.
+- **Persistance web : `web/sqlite3.wasm` et `web/sqflite_sw.js`** sont générés par
+  `dart run sqflite_common_ffi_web:setup` (versionnés). Après une mise à jour de
+  `sqflite_common_ffi_web`/`sqlite3`, relancer avec `--force`. Absents : écran « Stockage web
+  indisponible ».
 - **Sur web, toujours le même port** (`--web-port=8080`). Session Supabase, `playerId`, thème et
   sélection de types vivent dans le `localStorage`, propre à l'origine (port compris) : un port
   aléatoire à chaque `flutter run` repart d'un joueur inconnu et déconnecté.

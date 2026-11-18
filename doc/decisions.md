@@ -351,12 +351,25 @@ Le volume de requêtes ne justifie pas le coût d'outillage de `drift`.
 Un générateur UUID v4 pure Dart (`core/domain/persistence/uuid.dart`, ~15 lignes,
 `Random.secure()`) suffit.
 
-## Pas de persistance web
+## Persistance web : SQLite en WebAssembly (`sqflite_common_ffi_web`)
 
-`InMemorySessionRepository` sert de repli sur web ; un rechargement efface tout. Décision
-assumée tant que le web n'est qu'une cible d'itération, pas de distribution.
-**Rouvrir avant** tout déploiement web accessible à des joueurs réels, et de toute façon à
-l'arrivée de la synchronisation serveur, qui exigera un cache local côté navigateur.
+Jusqu'au 2026-11-17, `InMemorySessionRepository` servait de repli sur web : un rechargement
+effaçait tout. Rouvert quand le web est devenu la seule plateforme de développement (émulateur
+inutilisable). Retenu : `sqflite_common_ffi_web` — SQLite compilé en WebAssembly, exécuté dans
+un worker partagé, base stockée dans l'IndexedDB du navigateur. **Même `SqfliteSessionRepository`,
+même schéma, mêmes migrations** que sur mobile : une seule implémentation à maintenir, déjà
+couverte par les tests du repository.
+
+Écartés : un repository web écrit à la main sur `localStorage` (quota ~5 Mo, vite atteint avec
+une ligne par réponse — granularité obligatoire) ou sur IndexedDB directement (seconde
+implémentation de toutes les requêtes, dont les agrégations SQL) ; `drift` (réécriture de la
+couche, voir plus haut).
+
+Coût : deux fichiers générés dans `web/` (`sqlite3.wasm`, `sqflite_sw.js`, versionnés) par
+`dart run sqflite_common_ffi_web:setup` — à relancer avec `--force` après une mise à jour du
+paquet. Absents, l'app s'arrête sur un écran « Stockage web indisponible » plutôt que de
+retomber en silence sur un stockage en mémoire. Paquet encore déclaré expérimental par son
+auteur ; acceptable tant que le web reste une cible de développement.
 
 ## Pas de comptes utilisateurs pour l'instant
 
