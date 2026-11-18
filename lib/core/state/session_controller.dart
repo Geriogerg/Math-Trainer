@@ -164,6 +164,7 @@ class SessionController extends ChangeNotifier {
       submittedValue: timeoutSubmittedValue,
       isCorrect: false,
       elapsedMs: questionTimeout.inMilliseconds,
+      answeredAt: clock().toUtc(),
     );
 
     if (hadActivity) {
@@ -186,11 +187,13 @@ class SessionController extends ChangeNotifier {
 
     final isCorrect = exercise.isCorrectAnswer(submittedValue);
     _consecutiveTimeoutsWithoutActivity = 0;
+    final now = clock();
     _recordOutcome(
       exercise: exercise,
       submittedValue: submittedValue,
       isCorrect: isCorrect,
-      elapsedMs: clock().difference(_questionStartedAt!).inMilliseconds,
+      elapsedMs: now.difference(_questionStartedAt!).inMilliseconds,
+      answeredAt: now.toUtc(),
     );
   }
 
@@ -203,6 +206,7 @@ class SessionController extends ChangeNotifier {
     required int submittedValue,
     required bool isCorrect,
     required int elapsedMs,
+    required DateTime answeredAt,
   }) {
     final nextStreak = isCorrect ? _state.currentStreak + 1 : 0;
 
@@ -211,6 +215,7 @@ class SessionController extends ChangeNotifier {
       submittedValue: submittedValue,
       isCorrect: isCorrect,
       elapsedMs: elapsedMs,
+      answeredAt: answeredAt,
     );
     final points = scorer.pointsFor(
       outcome,
@@ -308,7 +313,7 @@ class SessionController extends ChangeNotifier {
         submittedValue: outcome.submittedValue,
         isCorrect: outcome.isCorrect,
         elapsedMs: outcome.elapsedMs,
-        createdAt: createdAt,
+        createdAt: outcome.answeredAt,
       );
     }).toList();
 

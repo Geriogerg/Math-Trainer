@@ -127,9 +127,14 @@ stored discriminant is the `ExerciseType` value name.
 | `answers` | id, session_id, exercise_type, operation_type, operands_json, submitted_value, is_correct, elapsed_ms, created_at, synced_at |
 | `player_levels` | (player_id, exercise_type), level, sessions_played, updated_at — the level cache |
 
-Known gaps: every answer of a session shares the session's `created_at` (Phase 0, commit 4);
-`submitted_value` is declared `REAL` although every answer is an `int` (stored as a float, read
-back with `toInt()`; worth aligning with the commit 4 migration).
+`answers.created_at` is the moment of that answer (`AnswerResult.answeredAt`; for a timeout, when
+the time ran out) since Phase 0 commit 4; `sessions.created_at` is the end of the session. Answers
+stored before that commit carry their session's end time instead — not rebuilt, the true times
+are unknown.
+
+Known gap: `submitted_value` is declared `REAL` although every answer is an `int` (stored as a
+float, read back with `toInt()`). Harmless; changing a column type in SQLite means rebuilding the
+table, so it waits for a migration that is needed for another reason.
 
 ## Dependencies
 

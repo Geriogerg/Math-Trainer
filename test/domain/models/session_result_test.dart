@@ -16,18 +16,20 @@ void main() {
     test('computes accuracy and average time from the answers', () {
       final result = SessionResult(
         totalScore: 150,
-        outcomes: const [
+        outcomes: [
           AnswerResult(
             exercise: exercise,
             submittedValue: 7,
             isCorrect: true,
             elapsedMs: 1000,
+            answeredAt: DateTime.utc(2024),
           ),
           AnswerResult(
             exercise: exercise,
             submittedValue: 8,
             isCorrect: false,
             elapsedMs: 2000,
+            answeredAt: DateTime.utc(2024),
           ),
         ],
       );
@@ -45,15 +47,27 @@ void main() {
       expect(result.averageElapsedMs, 0);
     });
 
-    AnswerResult correct({int elapsedMs = 1000}) =>
-        AnswerResult(exercise: exercise, submittedValue: 7, isCorrect: true, elapsedMs: elapsedMs);
-    AnswerResult wrong() =>
-        const AnswerResult(exercise: exercise, submittedValue: 0, isCorrect: false, elapsedMs: 1000);
-    AnswerResult timeout() => const AnswerResult(
+    final answeredAt = DateTime.utc(2024);
+    AnswerResult correct({int elapsedMs = 1000}) => AnswerResult(
+      exercise: exercise,
+      submittedValue: 7,
+      isCorrect: true,
+      elapsedMs: elapsedMs,
+      answeredAt: answeredAt,
+    );
+    AnswerResult wrong() => AnswerResult(
+      exercise: exercise,
+      submittedValue: 0,
+      isCorrect: false,
+      elapsedMs: 1000,
+      answeredAt: answeredAt,
+    );
+    AnswerResult timeout() => AnswerResult(
       exercise: exercise,
       submittedValue: timeoutSubmittedValue,
       isCorrect: false,
       elapsedMs: 15000,
+      answeredAt: answeredAt,
     );
 
     test('timeoutCount and wrongCount tell timed out from simply wrong', () {

@@ -17,7 +17,13 @@ void main() {
         : ArithmeticExercise(operandA: 1, operandB: 1, operationType: OperationType.subtraction);
     return List.generate(
       count,
-      (_) => AnswerResult(exercise: typedExercise, submittedValue: 2, isCorrect: true, elapsedMs: 0),
+      (_) => AnswerResult(
+        exercise: typedExercise,
+        submittedValue: 2,
+        isCorrect: true,
+        elapsedMs: 0,
+        answeredAt: DateTime.utc(2024),
+      ),
     );
   }
 

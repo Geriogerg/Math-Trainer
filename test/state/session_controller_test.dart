@@ -263,6 +263,70 @@ void main() {
       expect(await repository.currentLevels('test-player'), isEmpty);
     });
 
+    test('each stored answer carries its own time, a timeout the time it ran out', () async {
+      final repository = InMemorySessionRepository();
+      final spy = _TimerSpy();
+      var now = DateTime.utc(2024, 3, 1, 9);
+      final controller = SessionController(
+        config: SessionConfig(
+          seed: 1,
+          enabledTypes: {ExerciseType.addition},
+          exerciseCount: exercises.length,
+          levels: {ExerciseType.addition: 1},
+        ),
+        exerciseSource: _FixedExerciseSource(exercises),
+        repository: repository,
+        playerId: 'test-player',
+        clock: () => now,
+        createTimer: spy.create,
+      );
+      controller.start();
+
+      now = now.add(const Duration(seconds: 2));
+      controller.submitAnswer(4);
+      now = now.add(const Duration(seconds: 3));
+      controller.submitAnswer(0);
+      now = now.add(const Duration(seconds: 15));
+      spy.latest.fire();
+      await controller.pendingPersistence;
+
+      final session = (await repository.recentSessions('test-player')).single;
+      final answers = await repository.answersForSession(session.id);
+      expect(answers.map((a) => a.createdAt), [
+        DateTime.utc(2024, 3, 1, 9, 0, 2),
+        DateTime.utc(2024, 3, 1, 9, 0, 5),
+        DateTime.utc(2024, 3, 1, 9, 0, 20),
+      ]);
+      expect(answers.map((a) => a.createdAt.isUtc), everyElement(isTrue));
+      expect(controller.state.outcomes.map((o) => o.answeredAt), answers.map((a) => a.createdAt));
+    });
+
+    test('a local clock is stored as UTC', () async {
+      final repository = InMemorySessionRepository();
+      final local = DateTime(2024, 3, 1, 9, 30);
+      final controller = SessionController(
+        config: SessionConfig(
+          seed: 1,
+          enabledTypes: {ExerciseType.addition},
+          exerciseCount: 1,
+          levels: {ExerciseType.addition: 1},
+        ),
+        exerciseSource: _FixedExerciseSource(exercises),
+        repository: repository,
+        playerId: 'test-player',
+        clock: () => local,
+        createTimer: (duration, callback) => _FakeTimer(callback),
+      );
+      controller.start();
+      controller.submitAnswer(4);
+      await controller.pendingPersistence;
+
+      final session = (await repository.recentSessions('test-player')).single;
+      final answer = (await repository.answersForSession(session.id)).single;
+      expect(answer.createdAt, local.toUtc());
+      expect(answer.createdAt.isUtc, isTrue);
+    });
+
     test('a session with at least n_min right and fast answers updates the level '
         'cache (calibration, first time on this operation)', () async {
       final repository = InMemorySessionRepository();

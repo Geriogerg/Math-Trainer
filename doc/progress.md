@@ -85,6 +85,10 @@ State at the plan: 49 commits, 176 core tests / 328 in total.
   public, free plan). Sub-path build checked locally in a real browser: database opens, sign-in
   shows.
 - **Commit 3** — *parked*: needs the owner's yes on the new `material_ui` dependency.
+- **Commit 4** *(A)* — One timestamp per answer, **no schema migration**: `answers.created_at`
+  already existed and was filled with the session's end time. `AnswerResult` gains `answeredAt`
+  (UTC, refused otherwise), set when the answer is submitted or the time runs out, stored as the
+  answer's `created_at`. Older rows keep their session time. `submitted_value REAL` left as is.
 
 ### Remaining contradictions after commit 0
 

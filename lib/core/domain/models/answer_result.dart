@@ -9,17 +9,31 @@ import 'exercise.dart';
 const timeoutSubmittedValue = -1;
 
 class AnswerResult {
-  const AnswerResult({
+  AnswerResult({
     required this.exercise,
     required this.submittedValue,
     required this.isCorrect,
     required this.elapsedMs,
-  });
+    required this.answeredAt,
+  }) {
+    if (!answeredAt.isUtc) {
+      throw ArgumentError.value(
+        answeredAt,
+        'answeredAt',
+        'must be UTC (DateTime.toUtc()).',
+      );
+    }
+  }
 
   final Exercise exercise;
   final int submittedValue;
   final bool isCorrect;
   final int elapsedMs;
+
+  /// When this answer was given — for a timeout, when the time ran out.
+  /// Stored as the answer's own timestamp: spaced repetition and fatigue
+  /// analysis need the time of each answer, not of its session.
+  final DateTime answeredAt;
 
   bool get isTimeout => submittedValue == timeoutSubmittedValue;
 
@@ -29,9 +43,10 @@ class AnswerResult {
       other.exercise == exercise &&
       other.submittedValue == submittedValue &&
       other.isCorrect == isCorrect &&
-      other.elapsedMs == elapsedMs;
+      other.elapsedMs == elapsedMs &&
+      other.answeredAt == answeredAt;
 
   @override
   int get hashCode =>
-      Object.hash(exercise, submittedValue, isCorrect, elapsedMs);
+      Object.hash(exercise, submittedValue, isCorrect, elapsedMs, answeredAt);
 }

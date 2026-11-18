@@ -18,6 +18,7 @@ void main() {
       submittedValue: 7,
       isCorrect: isCorrect,
       elapsedMs: elapsedMs,
+      answeredAt: DateTime.utc(2024),
     );
   }
 
