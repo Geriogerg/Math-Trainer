@@ -246,10 +246,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Text('Recent sessions', style: theme.textTheme.bodyMedium),
             const SizedBox(height: 8),
             if (data.recentSessions.isEmpty)
-              Text(
-                'No session played yet.',
-                style: theme.textTheme.bodyMedium,
-              )
+              Text('No session played yet.', style: theme.textTheme.bodyMedium)
             else
               for (var i = 0; i < data.recentSessions.length; i++)
                 _RecentSessionRow(
@@ -352,9 +349,7 @@ class _IdentityBlock extends StatelessWidget {
       children: [
         Row(
           children: [
-            Expanded(
-              child: Text(nameLine, style: theme.textTheme.titleMedium),
-            ),
+            Expanded(child: Text(nameLine, style: theme.textTheme.titleMedium)),
             if (profileFailed)
               IconButton(
                 icon: const Icon(Icons.refresh),

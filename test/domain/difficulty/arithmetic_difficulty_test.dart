@@ -26,7 +26,8 @@ void main() {
 
         test('monotonic over the anchor points (1, 25, 50, 75, 100)', () {
           final maxValues = [
-            for (final level in [1, 25, 50, 75, 100]) difficulty.operandRangeFor(level).max,
+            for (final level in [1, 25, 50, 75, 100])
+              difficulty.operandRangeFor(level).max,
           ];
 
           for (var i = 1; i < maxValues.length; i++) {
@@ -37,7 +38,9 @@ void main() {
         test('no brutal jump: each step follows the expected proportion', () {
           final anchors = [1, 25, 50, 75, 100];
           final totalSpan = difficulty.maxAtLevel100 - difficulty.maxAtLevel1;
-          final maxValues = [for (final level in anchors) difficulty.operandRangeFor(level).max];
+          final maxValues = [
+            for (final level in anchors) difficulty.operandRangeFor(level).max,
+          ];
 
           for (var i = 1; i < maxValues.length; i++) {
             final levelGap = anchors[i] - anchors[i - 1];

@@ -70,7 +70,10 @@ void main() {
   });
 
   group('PersistedSession', () {
-    PersistedSession buildSession({DateTime? syncedAt, double? overallLevelAfter}) {
+    PersistedSession buildSession({
+      DateTime? syncedAt,
+      double? overallLevelAfter,
+    }) {
       return PersistedSession(
         id: 'session-1',
         playerId: 'player-1',
@@ -95,7 +98,11 @@ void main() {
         id: 'session-1',
         playerId: 'player-1',
         seed: 42,
-        enabledTypes: {ExerciseType.power, ExerciseType.division, ExerciseType.addition},
+        enabledTypes: {
+          ExerciseType.power,
+          ExerciseType.division,
+          ExerciseType.addition,
+        },
         exerciseCount: 10,
         totalScore: 150,
         levels: const {},
@@ -105,7 +112,11 @@ void main() {
         id: 'session-1',
         playerId: 'player-1',
         seed: 42,
-        enabledTypes: {ExerciseType.addition, ExerciseType.division, ExerciseType.power},
+        enabledTypes: {
+          ExerciseType.addition,
+          ExerciseType.division,
+          ExerciseType.power,
+        },
         exerciseCount: 10,
         totalScore: 150,
         levels: const {},
@@ -150,7 +161,9 @@ void main() {
     });
 
     test('copyWith can set then reset syncedAt to null', () {
-      final synced = buildSession().copyWith(syncedAt: DateTime.utc(2026, 8, 9));
+      final synced = buildSession().copyWith(
+        syncedAt: DateTime.utc(2026, 8, 9),
+      );
       expect(synced.syncedAt, isNotNull);
 
       final reverted = synced.copyWith(syncedAt: null);
@@ -174,12 +187,23 @@ void main() {
     });
 
     test('a different overall level after makes two sessions unequal', () {
-      expect(buildSession(overallLevelAfter: 12.5), isNot(equals(buildSession(overallLevelAfter: 13))));
-      expect(buildSession(overallLevelAfter: 12.5), isNot(equals(buildSession(overallLevelAfter: null))));
+      expect(
+        buildSession(overallLevelAfter: 12.5),
+        isNot(equals(buildSession(overallLevelAfter: 13))),
+      );
+      expect(
+        buildSession(overallLevelAfter: 12.5),
+        isNot(equals(buildSession(overallLevelAfter: null))),
+      );
     });
 
     test('copyWith keeps the overall level after', () {
-      expect(buildSession(overallLevelAfter: 12.5).copyWith(playerId: 'compte').overallLevelAfter, 12.5);
+      expect(
+        buildSession(
+          overallLevelAfter: 12.5,
+        ).copyWith(playerId: 'compte').overallLevelAfter,
+        12.5,
+      );
     });
 
     test('rejects an overall level outside [1, 100]', () {

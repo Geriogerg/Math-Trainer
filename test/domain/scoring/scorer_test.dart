@@ -71,17 +71,20 @@ void main() {
       expect(pointsAtStreak50, rules.basePoints + rules.maxStreakBonus);
     });
 
-    test('a negative elapsed time (clock going back) does not exceed the max speed bonus', () {
-      final rules = scorer.rules;
+    test(
+      'a negative elapsed time (clock going back) does not exceed the max speed bonus',
+      () {
+        final rules = scorer.rules;
 
-      final points = scorer.pointsFor(
-        answer(isCorrect: true, elapsedMs: -1000),
-        currentStreak: 1,
-        level: 1,
-      );
+        final points = scorer.pointsFor(
+          answer(isCorrect: true, elapsedMs: -1000),
+          currentStreak: 1,
+          level: 1,
+        );
 
-      expect(points, rules.basePoints + rules.maxSpeedBonus);
-    });
+        expect(points, rules.basePoints + rules.maxSpeedBonus);
+      },
+    );
 
     test('level 1 does not change the points (no difficulty bonus)', () {
       final rules = scorer.rules;
@@ -95,17 +98,20 @@ void main() {
       expect(points, rules.basePoints);
     });
 
-    test('level 100 doubles the points with the default difficultyBonusMax (1.0)', () {
-      final rules = scorer.rules;
+    test(
+      'level 100 doubles the points with the default difficultyBonusMax (1.0)',
+      () {
+        final rules = scorer.rules;
 
-      final points = scorer.pointsFor(
-        answer(isCorrect: true, elapsedMs: 5000),
-        currentStreak: 1,
-        level: 100,
-      );
+        final points = scorer.pointsFor(
+          answer(isCorrect: true, elapsedMs: 5000),
+          currentStreak: 1,
+          level: 100,
+        );
 
-      expect(points, rules.basePoints * 2);
-    });
+        expect(points, rules.basePoints * 2);
+      },
+    );
 
     test('an intermediate level applies a proportional difficulty bonus', () {
       const rules = ScoringRules(difficultyBonusMax: 1.0);
@@ -122,32 +128,54 @@ void main() {
     });
 
     test('rawPointsFor breaks a wrong answer down into zeros', () {
-      final raw = scorer.rawPointsFor(answer(isCorrect: false, elapsedMs: 0), currentStreak: 5);
+      final raw = scorer.rawPointsFor(
+        answer(isCorrect: false, elapsedMs: 0),
+        currentStreak: 5,
+      );
 
       expect(raw, (base: 0, speedBonus: 0, streakBonus: 0));
     });
 
-    test('rawPointsFor breaks a right answer down (base, speed, streak apart)', () {
-      final rules = scorer.rules;
+    test(
+      'rawPointsFor breaks a right answer down (base, speed, streak apart)',
+      () {
+        final rules = scorer.rules;
 
-      final raw = scorer.rawPointsFor(answer(isCorrect: true, elapsedMs: 0), currentStreak: 5);
+        final raw = scorer.rawPointsFor(
+          answer(isCorrect: true, elapsedMs: 0),
+          currentStreak: 5,
+        );
 
-      expect(raw.base, rules.basePoints);
-      expect(raw.speedBonus, rules.maxSpeedBonus);
-      expect(raw.streakBonus, 4 * rules.streakBonusPerStep);
-    });
+        expect(raw.base, rules.basePoints);
+        expect(raw.speedBonus, rules.maxSpeedBonus);
+        expect(raw.streakBonus, 4 * rules.streakBonusPerStep);
+      },
+    );
 
-    test('pointsFor applies the difficulty multiplier to the sum of rawPointsFor', () {
-      const scorerWithRules = Scorer(rules: ScoringRules(difficultyBonusMax: 1.0));
-      final theAnswer = answer(isCorrect: true, elapsedMs: 5000);
+    test(
+      'pointsFor applies the difficulty multiplier to the sum of rawPointsFor',
+      () {
+        const scorerWithRules = Scorer(
+          rules: ScoringRules(difficultyBonusMax: 1.0),
+        );
+        final theAnswer = answer(isCorrect: true, elapsedMs: 5000);
 
-      final raw = scorerWithRules.rawPointsFor(theAnswer, currentStreak: 1);
-      final points = scorerWithRules.pointsFor(theAnswer, currentStreak: 1, level: 50);
+        final raw = scorerWithRules.rawPointsFor(theAnswer, currentStreak: 1);
+        final points = scorerWithRules.pointsFor(
+          theAnswer,
+          currentStreak: 1,
+          level: 50,
+        );
 
-      // Niveau 50 : multiplicateur = 1 + 49/99 * 1.0.
-      final expectedMultiplier = 1 + 49 / 99;
-      expect(points, ((raw.base + raw.speedBonus + raw.streakBonus) * expectedMultiplier).round());
-    });
+        // Niveau 50 : multiplicateur = 1 + 49/99 * 1.0.
+        final expectedMultiplier = 1 + 49 / 99;
+        expect(
+          points,
+          ((raw.base + raw.speedBonus + raw.streakBonus) * expectedMultiplier)
+              .round(),
+        );
+      },
+    );
 
     test('rejects a level outside [1, 100], even for a wrong answer', () {
       expect(

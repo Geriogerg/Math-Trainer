@@ -48,7 +48,9 @@ class _PowerPrompt extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final exponentStyle = style?.copyWith(fontSize: (style!.fontSize ?? 48) * 0.55);
+    final exponentStyle = style?.copyWith(
+      fontSize: (style!.fontSize ?? 48) * 0.55,
+    );
     return Text.rich(
       TextSpan(
         style: style,

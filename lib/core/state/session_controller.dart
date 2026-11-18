@@ -48,7 +48,8 @@ class SessionController extends ChangeNotifier {
     this.createTimer = Timer.new,
     this.questionTimeout = defaultQuestionTimeout,
     LevelCacheOrchestrator? levelCacheOrchestrator,
-  }) : levelCacheOrchestrator = levelCacheOrchestrator ?? LevelCacheOrchestrator();
+  }) : levelCacheOrchestrator =
+           levelCacheOrchestrator ?? LevelCacheOrchestrator();
 
   final SessionConfig config;
   final ExerciseSource exerciseSource;
@@ -134,7 +135,8 @@ class SessionController extends ChangeNotifier {
   /// the levels — `_persistCompletedSession` runs in the background, without
   /// this `buildSessionController` could read the levels from *before* the
   /// session that just ended.
-  Future<void> get pendingPersistence => _pendingPersistence ?? Future<void>.value();
+  Future<void> get pendingPersistence =>
+      _pendingPersistence ?? Future<void>.value();
 
   void start() {
     _state = SessionState(
@@ -164,7 +166,9 @@ class SessionController extends ChangeNotifier {
   void _onTimeout() {
     final exercise = _state.currentExercise;
     final timeout = questionTimeout;
-    if (_state.status != SessionStatus.inProgress || exercise == null || timeout == null) {
+    if (_state.status != SessionStatus.inProgress ||
+        exercise == null ||
+        timeout == null) {
       return;
     }
 
@@ -236,7 +240,9 @@ class SessionController extends ChangeNotifier {
     final isSessionComplete = outcomes.length >= config.exerciseCount;
 
     _state = SessionState(
-      status: isSessionComplete ? SessionStatus.finished : SessionStatus.inProgress,
+      status: isSessionComplete
+          ? SessionStatus.finished
+          : SessionStatus.inProgress,
       currentExercise: isSessionComplete ? null : exerciseSource.next(),
       outcomes: outcomes,
       score: _state.score + points,
@@ -281,8 +287,11 @@ class SessionController extends ChangeNotifier {
     _interruptSession();
   }
 
-  SessionResult get result =>
-      SessionResult(outcomes: _state.outcomes, totalScore: _state.score, scorer: scorer);
+  SessionResult get result => SessionResult(
+    outcomes: _state.outcomes,
+    totalScore: _state.score,
+    scorer: scorer,
+  );
 
   void restart() {
     _timeoutTimer?.cancel();
@@ -381,7 +390,11 @@ class SessionController extends ChangeNotifier {
       overallLevelAfter: overallLevelAfter,
     );
 
-    await _record((session: session, answers: answers, levelUpdates: levelUpdates));
+    await _record((
+      session: session,
+      answers: answers,
+      levelUpdates: levelUpdates,
+    ));
   }
 
   /// Persistence must never break the running game: a failure is reported

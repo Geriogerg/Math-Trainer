@@ -35,7 +35,11 @@ class Scorer {
   /// operation's frozen level for this session (`SessionConfig.levels`),
   /// never the cache's current level — the difficulty that actually
   /// produced this question.
-  int pointsFor(AnswerResult answer, {required int currentStreak, required int level}) {
+  int pointsFor(
+    AnswerResult answer, {
+    required int currentStreak,
+    required int level,
+  }) {
     // `level` is validated even for a wrong answer (compatible with the
     // original behaviour, tested explicitly): `_difficultyMultiplier` must
     // run before `rawPointsFor` short-circuits.

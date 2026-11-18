@@ -30,13 +30,18 @@ class CompositeExerciseGenerator implements ExerciseGenerator {
     required Set<ExerciseType> enabledTypes,
     Map<ExerciseType, int>? levels,
     TypeSelectionStrategy? strategy,
-  }) : _sortedTypes = enabledTypes.toList()..sort((a, b) => a.index.compareTo(b.index)),
+  }) : _sortedTypes = enabledTypes.toList()
+         ..sort((a, b) => a.index.compareTo(b.index)),
        _generators = {
          for (final type in enabledTypes)
            type: _buildGenerator(type, levels?[type] ?? _defaultLevel),
        } {
     if (enabledTypes.isEmpty) {
-      throw ArgumentError.value(enabledTypes, 'enabledTypes', 'must not be empty.');
+      throw ArgumentError.value(
+        enabledTypes,
+        'enabledTypes',
+        'must not be empty.',
+      );
     }
     _sequence = strategy?.sequenceFor(_sortedTypes);
   }
@@ -68,31 +73,32 @@ class CompositeExerciseGenerator implements ExerciseGenerator {
     return _generators[type]!.next(random);
   }
 
-  static ExerciseGenerator _buildGenerator(ExerciseType type, int level) => switch (type) {
-    ExerciseType.addition => ArithmeticExerciseGenerator(
-      operationTypes: [type.operationType!],
-      operandRange: additionDifficulty.operandRangeFor(level),
-    ),
-    ExerciseType.subtraction => ArithmeticExerciseGenerator(
-      operationTypes: [type.operationType!],
-      operandRange: subtractionDifficulty.operandRangeFor(level),
-    ),
-    ExerciseType.multiplication => ArithmeticExerciseGenerator(
-      operationTypes: [type.operationType!],
-      operandRange: multiplicationDifficulty.operandRangeFor(level),
-    ),
-    ExerciseType.division => ArithmeticExerciseGenerator(
-      operationTypes: [type.operationType!],
-      operandRange: divisionDifficulty.operandRangeFor(level),
-    ),
-    ExerciseType.power => PowerExerciseGenerator(
-      exponentRange: powerDifficulty.exponentRangeFor(level),
-    ),
-    ExerciseType.squareRoot => SquareRootExerciseGenerator(
-      rootRange: squareRootDifficulty.rootRangeFor(level),
-    ),
-    ExerciseType.percentage => PercentageExerciseGenerator(
-      percentRange: percentageDifficulty.percentRangeFor(level),
-    ),
-  };
+  static ExerciseGenerator _buildGenerator(ExerciseType type, int level) =>
+      switch (type) {
+        ExerciseType.addition => ArithmeticExerciseGenerator(
+          operationTypes: [type.operationType!],
+          operandRange: additionDifficulty.operandRangeFor(level),
+        ),
+        ExerciseType.subtraction => ArithmeticExerciseGenerator(
+          operationTypes: [type.operationType!],
+          operandRange: subtractionDifficulty.operandRangeFor(level),
+        ),
+        ExerciseType.multiplication => ArithmeticExerciseGenerator(
+          operationTypes: [type.operationType!],
+          operandRange: multiplicationDifficulty.operandRangeFor(level),
+        ),
+        ExerciseType.division => ArithmeticExerciseGenerator(
+          operationTypes: [type.operationType!],
+          operandRange: divisionDifficulty.operandRangeFor(level),
+        ),
+        ExerciseType.power => PowerExerciseGenerator(
+          exponentRange: powerDifficulty.exponentRangeFor(level),
+        ),
+        ExerciseType.squareRoot => SquareRootExerciseGenerator(
+          rootRange: squareRootDifficulty.rootRangeFor(level),
+        ),
+        ExerciseType.percentage => PercentageExerciseGenerator(
+          percentRange: percentageDifficulty.percentRangeFor(level),
+        ),
+      };
 }

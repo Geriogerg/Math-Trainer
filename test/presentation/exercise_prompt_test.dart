@@ -6,14 +6,21 @@ import 'package:math_trainer/core/domain/models/operation_type.dart';
 import 'package:math_trainer/presentation/exercise_prompt.dart';
 
 void main() {
-  Future<void> pump(WidgetTester tester, Exercise exercise) => tester.pumpWidget(
-    MaterialApp(home: Scaffold(body: ExercisePrompt(exercise: exercise))),
-  );
+  Future<void> pump(WidgetTester tester, Exercise exercise) =>
+      tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: ExercisePrompt(exercise: exercise)),
+        ),
+      );
 
   testWidgets('addition shows a + b', (tester) async {
     await pump(
       tester,
-      const ArithmeticExercise(operandA: 4, operandB: 3, operationType: OperationType.addition),
+      const ArithmeticExercise(
+        operandA: 4,
+        operandB: 3,
+        operationType: OperationType.addition,
+      ),
     );
     expect(find.text('4 + 3'), findsOneWidget);
   });
@@ -48,7 +55,11 @@ void main() {
   testWidgets('division shows ÷', (tester) async {
     await pump(
       tester,
-      const ArithmeticExercise(operandA: 8, operandB: 4, operationType: OperationType.division),
+      const ArithmeticExercise(
+        operandA: 8,
+        operandB: 4,
+        operationType: OperationType.division,
+      ),
     );
     expect(find.text('8 ÷ 4'), findsOneWidget);
   });
@@ -66,7 +77,9 @@ void main() {
     // The base lives in the TextSpan of a Text.rich (not a separate Text.data):
     // check its text content rather than its presence through find.text.
     final richText = tester.widget<Text>(
-      find.byWidgetPredicate((widget) => widget is Text && widget.textSpan != null),
+      find.byWidgetPredicate(
+        (widget) => widget is Text && widget.textSpan != null,
+      ),
     );
     expect(richText.textSpan!.toPlainText(includePlaceholders: false), '3');
 

@@ -4,8 +4,14 @@ import 'package:test/test.dart';
 void main() {
   group('LevelingRules', () {
     test('rejects tRapideMs >= tLentMs', () {
-      expect(() => LevelingRules(tRapideMs: 8000, tLentMs: 2000), throwsArgumentError);
-      expect(() => LevelingRules(tRapideMs: 5000, tLentMs: 5000), throwsArgumentError);
+      expect(
+        () => LevelingRules(tRapideMs: 8000, tLentMs: 2000),
+        throwsArgumentError,
+      );
+      expect(
+        () => LevelingRules(tRapideMs: 5000, tLentMs: 5000),
+        throwsArgumentError,
+      );
     });
 
     test('accepts the default values', () {
@@ -14,7 +20,10 @@ void main() {
 
     test('rejects an absenceDaysThreshold <= 0', () {
       expect(() => LevelingRules(absenceDaysThreshold: 0), throwsArgumentError);
-      expect(() => LevelingRules(absenceDaysThreshold: -1), throwsArgumentError);
+      expect(
+        () => LevelingRules(absenceDaysThreshold: -1),
+        throwsArgumentError,
+      );
     });
 
     test('rejects an nMin <= 0', () {

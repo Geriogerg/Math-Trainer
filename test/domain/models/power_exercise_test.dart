@@ -11,11 +11,17 @@ void main() {
     });
 
     test('type is ExerciseType.power', () {
-      expect(const PowerExercise(base: 3, exponent: 2).type, ExerciseType.power);
+      expect(
+        const PowerExercise(base: 3, exponent: 2).type,
+        ExerciseType.power,
+      );
     });
 
     test('isCorrectAnswer rejects a wrong answer', () {
-      expect(const PowerExercise(base: 3, exponent: 2).isCorrectAnswer(8), isFalse);
+      expect(
+        const PowerExercise(base: 3, exponent: 2).isCorrectAnswer(8),
+        isFalse,
+      );
     });
   });
 }

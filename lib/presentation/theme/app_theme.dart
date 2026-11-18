@@ -47,7 +47,10 @@ ThemeData buildDarkTheme() => _buildTheme(
 const _motion = AppMotion(
   feedback: AnimationSpec(Duration(milliseconds: 120), Curves.easeOut),
   keyPress: AnimationSpec(Duration(milliseconds: 60), Curves.easeOut),
-  questionTransition: AnimationSpec(Duration(milliseconds: 150), Curves.easeOut),
+  questionTransition: AnimationSpec(
+    Duration(milliseconds: 150),
+    Curves.easeOut,
+  ),
   tabChange: AnimationSpec(Duration(milliseconds: 200), Curves.easeInOut),
   levelUp: AnimationSpec(Duration(milliseconds: 600), Curves.easeOutCubic),
 );
@@ -59,7 +62,10 @@ const _motion = AppMotion(
 /// earlier rendering (`0.38 × ~800 dp` on a common phone).
 const _metrics = AppMetrics(rootPadding: EdgeInsets.all(24), keypadHeight: 300);
 
-ThemeData _buildTheme({required ColorScheme colorScheme, required AppPalette palette}) {
+ThemeData _buildTheme({
+  required ColorScheme colorScheme,
+  required AppPalette palette,
+}) {
   final base = ThemeData(
     useMaterial3: true,
     colorScheme: colorScheme,
@@ -79,7 +85,11 @@ ThemeData _buildTheme({required ColorScheme colorScheme, required AppPalette pal
 /// the weight cap and tabular figures: "never 600/700" and "tabular figures
 /// everywhere" apply to the whole `TextTheme`, not just the 5 named sizes.
 TextTheme _textThemeFor(TextTheme base) {
-  TextStyle? finalize(TextStyle? style, {double? fontSize, FontWeight? fontWeight}) {
+  TextStyle? finalize(
+    TextStyle? style, {
+    double? fontSize,
+    FontWeight? fontWeight,
+  }) {
     if (style == null) return null;
     final cappedWeight = fontWeight ?? _capWeight(style.fontWeight);
     return style.copyWith(
@@ -91,20 +101,40 @@ TextTheme _textThemeFor(TextTheme base) {
 
   return base.copyWith(
     displayLarge: finalize(base.displayLarge),
-    displayMedium: finalize(base.displayMedium, fontSize: 48, fontWeight: FontWeight.w500),
+    displayMedium: finalize(
+      base.displayMedium,
+      fontSize: 48,
+      fontWeight: FontWeight.w500,
+    ),
     displaySmall: finalize(base.displaySmall),
     headlineLarge: finalize(base.headlineLarge),
-    headlineMedium: finalize(base.headlineMedium, fontSize: 32, fontWeight: FontWeight.w500),
+    headlineMedium: finalize(
+      base.headlineMedium,
+      fontSize: 32,
+      fontWeight: FontWeight.w500,
+    ),
     headlineSmall: finalize(base.headlineSmall),
     titleLarge: finalize(base.titleLarge),
-    titleMedium: finalize(base.titleMedium, fontSize: 17, fontWeight: FontWeight.w500),
+    titleMedium: finalize(
+      base.titleMedium,
+      fontSize: 17,
+      fontWeight: FontWeight.w500,
+    ),
     titleSmall: finalize(base.titleSmall),
     bodyLarge: finalize(base.bodyLarge),
-    bodyMedium: finalize(base.bodyMedium, fontSize: 13, fontWeight: FontWeight.w400),
+    bodyMedium: finalize(
+      base.bodyMedium,
+      fontSize: 13,
+      fontWeight: FontWeight.w400,
+    ),
     bodySmall: finalize(base.bodySmall),
     labelLarge: finalize(base.labelLarge),
     labelMedium: finalize(base.labelMedium),
-    labelSmall: finalize(base.labelSmall, fontSize: 11, fontWeight: FontWeight.w400),
+    labelSmall: finalize(
+      base.labelSmall,
+      fontSize: 11,
+      fontWeight: FontWeight.w400,
+    ),
   );
 }
 
@@ -126,12 +156,15 @@ class AppPalette extends ThemeExtension<AppPalette> {
   final Color textMuted;
 
   @override
-  AppPalette copyWith({Color? textMuted}) => AppPalette(textMuted: textMuted ?? this.textMuted);
+  AppPalette copyWith({Color? textMuted}) =>
+      AppPalette(textMuted: textMuted ?? this.textMuted);
 
   @override
   AppPalette lerp(ThemeExtension<AppPalette>? other, double t) {
     if (other is! AppPalette) return this;
-    return AppPalette(textMuted: Color.lerp(textMuted, other.textMuted, t) ?? textMuted);
+    return AppPalette(
+      textMuted: Color.lerp(textMuted, other.textMuted, t) ?? textMuted,
+    );
   }
 }
 
@@ -147,17 +180,20 @@ class AppMetrics extends ThemeExtension<AppMetrics> {
   final double keypadHeight;
 
   @override
-  AppMetrics copyWith({EdgeInsets? rootPadding, double? keypadHeight}) => AppMetrics(
-    rootPadding: rootPadding ?? this.rootPadding,
-    keypadHeight: keypadHeight ?? this.keypadHeight,
-  );
+  AppMetrics copyWith({EdgeInsets? rootPadding, double? keypadHeight}) =>
+      AppMetrics(
+        rootPadding: rootPadding ?? this.rootPadding,
+        keypadHeight: keypadHeight ?? this.keypadHeight,
+      );
 
   @override
   AppMetrics lerp(ThemeExtension<AppMetrics>? other, double t) {
     if (other is! AppMetrics) return this;
     return AppMetrics(
-      rootPadding: EdgeInsets.lerp(rootPadding, other.rootPadding, t) ?? rootPadding,
-      keypadHeight: lerpDouble(keypadHeight, other.keypadHeight, t) ?? keypadHeight,
+      rootPadding:
+          EdgeInsets.lerp(rootPadding, other.rootPadding, t) ?? rootPadding,
+      keypadHeight:
+          lerpDouble(keypadHeight, other.keypadHeight, t) ?? keypadHeight,
     );
   }
 }

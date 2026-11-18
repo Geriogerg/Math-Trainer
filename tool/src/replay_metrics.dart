@@ -36,16 +36,26 @@ const convergenceWindow = 5;
 /// and absence for `confidenceFor` are rebuilt from the replay itself — not
 /// from `player_levels`, which only reflects the current state, not the
 /// full history.
-List<int> replay(Trajectory trajectory, LevelingRules rules, DateTime baseTime) {
+List<int> replay(
+  Trajectory trajectory,
+  LevelingRules rules,
+  DateTime baseTime,
+) {
   final updater = LevelUpdater(rules: rules);
   var level = 1;
   LevelCacheEntry? prior;
   final levels = <int>[];
 
   for (var i = 0; i < trajectory.length; i++) {
-    final now = baseTime.add(Duration(days: i)); // no real timestamps replayed here
+    final now = baseTime.add(
+      Duration(days: i),
+    ); // no real timestamps replayed here
     final confidence = confidenceFor(entry: prior, now: now, rules: rules);
-    level = updater.update(currentLevel: level, answers: trajectory[i], confidence: confidence);
+    level = updater.update(
+      currentLevel: level,
+      answers: trajectory[i],
+      confidence: confidence,
+    );
     levels.add(level);
     prior = LevelCacheEntry(
       level: level,
@@ -67,7 +77,9 @@ int? convergenceIndex(List<int> levels) {
         : levels.length;
     final window = levels.sublist(i, windowEnd);
     if (window.length < 2) continue;
-    final amplitude = window.reduce((a, b) => a > b ? a : b) - window.reduce((a, b) => a < b ? a : b);
+    final amplitude =
+        window.reduce((a, b) => a > b ? a : b) -
+        window.reduce((a, b) => a < b ? a : b);
     if (amplitude <= oscillationTarget) return i;
   }
   return null;
@@ -80,7 +92,11 @@ double? mean(List<double> values) =>
 /// Oscillation and bias are measured over the whole rest of the trajectory
 /// from the convergence point (see [convergenceWindow] for why the
 /// detection itself is more tolerant).
-Metrics averageMetrics(List<Trajectory> trajectories, LevelingRules rules, DateTime baseTime) {
+Metrics averageMetrics(
+  List<Trajectory> trajectories,
+  LevelingRules rules,
+  DateTime baseTime,
+) {
   final convergences = <double>[];
   final oscillations = <double>[];
   final biases = <double>[];
@@ -93,10 +109,14 @@ Metrics averageMetrics(List<Trajectory> trajectories, LevelingRules rules, DateT
     convergences.add(convergedAt.toDouble());
     final tail = levels.sublist(convergedAt);
     oscillations.add(
-      (tail.reduce((a, b) => a > b ? a : b) - tail.reduce((a, b) => a < b ? a : b)).toDouble(),
+      (tail.reduce((a, b) => a > b ? a : b) -
+              tail.reduce((a, b) => a < b ? a : b))
+          .toDouble(),
     );
     if (tail.length >= 2) {
-      final diffs = [for (var i = 1; i < tail.length; i++) tail[i] - tail[i - 1]];
+      final diffs = [
+        for (var i = 1; i < tail.length; i++) tail[i] - tail[i - 1],
+      ];
       biases.add(diffs.reduce((a, b) => a + b) / diffs.length);
     }
   }

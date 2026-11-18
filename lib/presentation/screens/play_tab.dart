@@ -115,16 +115,15 @@ class _PlayTabState extends State<PlayTab> {
     // The route returns the end-of-session write still running
     // (`SessionFlowScreen._exitToSelection`): re-reading the levels before it
     // completes would show the overall level from before the game.
-    final pendingPersistence = await Navigator.of(context)
-        .push<Future<void>>(
-          MaterialPageRoute(
-            fullscreenDialog: true,
-            builder: (_) => SessionFlowScreen(
-              controller: controller,
-              environment: widget.environment,
-            ),
-          ),
-        );
+    final pendingPersistence = await Navigator.of(context).push<Future<void>>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => SessionFlowScreen(
+          controller: controller,
+          environment: widget.environment,
+        ),
+      ),
+    );
     await pendingPersistence;
     if (mounted) await _loadStartupState();
   }
@@ -228,10 +227,7 @@ class _TypeSelectionView extends StatelessWidget {
                 ),
                 if (selectedTypes.isEmpty) ...[
                   const SizedBox(height: 8),
-                  Text(
-                    'No type selected.',
-                    style: theme.textTheme.bodyMedium,
-                  ),
+                  Text('No type selected.', style: theme.textTheme.bodyMedium),
                 ] else if (startError != null) ...[
                   const SizedBox(height: 8),
                   Text(

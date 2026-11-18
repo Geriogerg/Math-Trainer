@@ -12,7 +12,8 @@ class _FixedSequenceStrategy implements TypeSelectionStrategy {
   final List<ExerciseType> _sequence;
 
   @override
-  List<ExerciseType> sequenceFor(List<ExerciseType> sortedEnabledTypes) => _sequence;
+  List<ExerciseType> sequenceFor(List<ExerciseType> sortedEnabledTypes) =>
+      _sequence;
 }
 
 void main() {
@@ -21,10 +22,18 @@ void main() {
       final randomA = Random(7);
       final randomB = Random(7);
       final generatorA = CompositeExerciseGenerator(
-        enabledTypes: {ExerciseType.addition, ExerciseType.power, ExerciseType.squareRoot},
+        enabledTypes: {
+          ExerciseType.addition,
+          ExerciseType.power,
+          ExerciseType.squareRoot,
+        },
       );
       final generatorB = CompositeExerciseGenerator(
-        enabledTypes: {ExerciseType.addition, ExerciseType.power, ExerciseType.squareRoot},
+        enabledTypes: {
+          ExerciseType.addition,
+          ExerciseType.power,
+          ExerciseType.squareRoot,
+        },
       );
 
       final sequenceA = List.generate(30, (_) => generatorA.next(randomA));
@@ -38,10 +47,18 @@ void main() {
       final randomA = Random(3);
       final randomB = Random(3);
       final generatorInsertedOneOrder = CompositeExerciseGenerator(
-        enabledTypes: {ExerciseType.division, ExerciseType.percentage, ExerciseType.power},
+        enabledTypes: {
+          ExerciseType.division,
+          ExerciseType.percentage,
+          ExerciseType.power,
+        },
       );
       final generatorInsertedOtherOrder = CompositeExerciseGenerator(
-        enabledTypes: {ExerciseType.power, ExerciseType.division, ExerciseType.percentage},
+        enabledTypes: {
+          ExerciseType.power,
+          ExerciseType.division,
+          ExerciseType.percentage,
+        },
       );
 
       final sequenceA = List.generate(
@@ -64,12 +81,17 @@ void main() {
 
       for (var i = 0; i < 50; i++) {
         final exercise = generator.next(random);
-        expect(exercise.type, anyOf(ExerciseType.subtraction, ExerciseType.squareRoot));
+        expect(
+          exercise.type,
+          anyOf(ExerciseType.subtraction, ExerciseType.squareRoot),
+        );
       }
     });
 
     test('a single enabled type produces a single-type session', () {
-      final generator = CompositeExerciseGenerator(enabledTypes: {ExerciseType.percentage});
+      final generator = CompositeExerciseGenerator(
+        enabledTypes: {ExerciseType.percentage},
+      );
       final random = Random(9);
 
       for (var i = 0; i < 20; i++) {
@@ -78,7 +100,10 @@ void main() {
     });
 
     test('rejects an empty set of types', () {
-      expect(() => CompositeExerciseGenerator(enabledTypes: {}), throwsArgumentError);
+      expect(
+        () => CompositeExerciseGenerator(enabledTypes: {}),
+        throwsArgumentError,
+      );
     });
 
     test('a higher level produces larger operands', () {
@@ -92,20 +117,24 @@ void main() {
         levels: {ExerciseType.addition: 100},
       );
 
-      final lowLevelMax = List.generate(30, (_) => lowLevelGenerator.next(random))
-          .cast<ArithmeticExercise>()
-          .map((exercise) => exercise.operandA)
-          .reduce((a, b) => a > b ? a : b);
-      final highLevelMax = List.generate(30, (_) => highLevelGenerator.next(random))
-          .cast<ArithmeticExercise>()
-          .map((exercise) => exercise.operandA)
-          .reduce((a, b) => a > b ? a : b);
+      final lowLevelMax =
+          List.generate(30, (_) => lowLevelGenerator.next(random))
+              .cast<ArithmeticExercise>()
+              .map((exercise) => exercise.operandA)
+              .reduce((a, b) => a > b ? a : b);
+      final highLevelMax =
+          List.generate(30, (_) => highLevelGenerator.next(random))
+              .cast<ArithmeticExercise>()
+              .map((exercise) => exercise.operandA)
+              .reduce((a, b) => a > b ? a : b);
 
       expect(highLevelMax, greaterThan(lowLevelMax));
     });
 
     test('an enabled type missing from levels uses the level 50 fallback', () {
-      final withoutLevel = CompositeExerciseGenerator(enabledTypes: {ExerciseType.addition});
+      final withoutLevel = CompositeExerciseGenerator(
+        enabledTypes: {ExerciseType.addition},
+      );
       final withLevel50 = CompositeExerciseGenerator(
         enabledTypes: {ExerciseType.addition},
         levels: {ExerciseType.addition: 50},
@@ -119,22 +148,29 @@ void main() {
       expect(sequenceA, equals(sequenceB));
     });
 
-    test('with a strategy, the type sequence follows exactly what it returns', () {
-      final strategy = _FixedSequenceStrategy([
-        ExerciseType.subtraction,
-        ExerciseType.addition,
-        ExerciseType.subtraction,
-      ]);
-      final generator = CompositeExerciseGenerator(
-        enabledTypes: {ExerciseType.addition, ExerciseType.subtraction},
-        strategy: strategy,
-      );
-      final random = Random(1);
+    test(
+      'with a strategy, the type sequence follows exactly what it returns',
+      () {
+        final strategy = _FixedSequenceStrategy([
+          ExerciseType.subtraction,
+          ExerciseType.addition,
+          ExerciseType.subtraction,
+        ]);
+        final generator = CompositeExerciseGenerator(
+          enabledTypes: {ExerciseType.addition, ExerciseType.subtraction},
+          strategy: strategy,
+        );
+        final random = Random(1);
 
-      final types = List.generate(3, (_) => generator.next(random).type);
+        final types = List.generate(3, (_) => generator.next(random).type);
 
-      expect(types, [ExerciseType.subtraction, ExerciseType.addition, ExerciseType.subtraction]);
-    });
+        expect(types, [
+          ExerciseType.subtraction,
+          ExerciseType.addition,
+          ExerciseType.subtraction,
+        ]);
+      },
+    );
 
     test('with a strategy, a call beyond the sequence throws', () {
       final strategy = _FixedSequenceStrategy([ExerciseType.addition]);
@@ -149,38 +185,41 @@ void main() {
       expect(() => generator.next(random), throwsStateError);
     });
 
-    test('with DebtAwareTypeSelectionStrategy, the same seed and debt produce the same '
-        'full sequence (values included)', () {
-      Map<ExerciseType, int> sessionsPlayedByType() => {
-        ExerciseType.addition: 3,
-        ExerciseType.subtraction: 0,
-      };
+    test(
+      'with DebtAwareTypeSelectionStrategy, the same seed and debt produce the same '
+      'full sequence (values included)',
+      () {
+        Map<ExerciseType, int> sessionsPlayedByType() => {
+          ExerciseType.addition: 3,
+          ExerciseType.subtraction: 0,
+        };
 
-      final generatorA = CompositeExerciseGenerator(
-        enabledTypes: {ExerciseType.addition, ExerciseType.subtraction},
-        levels: {ExerciseType.addition: 40, ExerciseType.subtraction: 60},
-        strategy: DebtAwareTypeSelectionStrategy(
-          exerciseCount: 16,
-          nMin: 8,
-          sessionsPlayedByType: sessionsPlayedByType(),
-        ),
-      );
-      final generatorB = CompositeExerciseGenerator(
-        enabledTypes: {ExerciseType.addition, ExerciseType.subtraction},
-        levels: {ExerciseType.addition: 40, ExerciseType.subtraction: 60},
-        strategy: DebtAwareTypeSelectionStrategy(
-          exerciseCount: 16,
-          nMin: 8,
-          sessionsPlayedByType: sessionsPlayedByType(),
-        ),
-      );
+        final generatorA = CompositeExerciseGenerator(
+          enabledTypes: {ExerciseType.addition, ExerciseType.subtraction},
+          levels: {ExerciseType.addition: 40, ExerciseType.subtraction: 60},
+          strategy: DebtAwareTypeSelectionStrategy(
+            exerciseCount: 16,
+            nMin: 8,
+            sessionsPlayedByType: sessionsPlayedByType(),
+          ),
+        );
+        final generatorB = CompositeExerciseGenerator(
+          enabledTypes: {ExerciseType.addition, ExerciseType.subtraction},
+          levels: {ExerciseType.addition: 40, ExerciseType.subtraction: 60},
+          strategy: DebtAwareTypeSelectionStrategy(
+            exerciseCount: 16,
+            nMin: 8,
+            sessionsPlayedByType: sessionsPlayedByType(),
+          ),
+        );
 
-      final randomA = Random(21);
-      final randomB = Random(21);
-      final sequenceA = List.generate(16, (_) => generatorA.next(randomA));
-      final sequenceB = List.generate(16, (_) => generatorB.next(randomB));
+        final randomA = Random(21);
+        final randomB = Random(21);
+        final sequenceA = List.generate(16, (_) => generatorA.next(randomA));
+        final sequenceB = List.generate(16, (_) => generatorB.next(randomB));
 
-      expect(sequenceA, equals(sequenceB));
-    });
+        expect(sequenceA, equals(sequenceB));
+      },
+    );
   });
 }

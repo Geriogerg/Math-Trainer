@@ -20,10 +20,13 @@ class DebtAwareTypeSelectionStrategy implements TypeSelectionStrategy {
     // `List.sort` is not guaranteed stable in Dart: equal debt is broken
     // explicitly by `.index` (that of `sortedEnabledTypes`), never left to
     // the sort algorithm.
-    final priority = [...sortedEnabledTypes]..sort((a, b) {
-      final byDebt = (sessionsPlayedByType[a] ?? 0).compareTo(sessionsPlayedByType[b] ?? 0);
-      return byDebt != 0 ? byDebt : a.index.compareTo(b.index);
-    });
+    final priority = [...sortedEnabledTypes]
+      ..sort((a, b) {
+        final byDebt = (sessionsPlayedByType[a] ?? 0).compareTo(
+          sessionsPlayedByType[b] ?? 0,
+        );
+        return byDebt != 0 ? byDebt : a.index.compareTo(b.index);
+      });
 
     final fullBlockCount = _min(exerciseCount ~/ nMin, priority.length);
     final quotas = <ExerciseType, int>{
@@ -37,7 +40,9 @@ class DebtAwareTypeSelectionStrategy implements TypeSelectionStrategy {
     // get the surplus as a bonus rather than leaving `remaining`
     // undistributed (which would block the interleaving below).
     final remainderCandidates = priority.skip(fullBlockCount).toList();
-    final remainderPool = remainderCandidates.isNotEmpty ? remainderCandidates : priority;
+    final remainderPool = remainderCandidates.isNotEmpty
+        ? remainderCandidates
+        : priority;
     var i = 0;
     while (remaining > 0) {
       final type = remainderPool[i % remainderPool.length];

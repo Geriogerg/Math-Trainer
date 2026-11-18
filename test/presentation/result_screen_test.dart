@@ -40,14 +40,22 @@ class _RecordFailureRepository extends InMemorySessionRepository {
     required Map<ExerciseType, LevelCacheEntry> levelUpdates,
   }) async {
     if (failing) throw Exception('storage unavailable (simulated)');
-    await super.recordSession(session: session, answers: answers, levelUpdates: levelUpdates);
+    await super.recordSession(
+      session: session,
+      answers: answers,
+      levelUpdates: levelUpdates,
+    );
   }
 }
 
 void main() {
   List<Exercise> additionExercises(int count) => List.generate(
     count,
-    (i) => ArithmeticExercise(operandA: i, operandB: 0, operationType: OperationType.addition),
+    (i) => ArithmeticExercise(
+      operandA: i,
+      operandB: 0,
+      operationType: OperationType.addition,
+    ),
   );
 
   SessionController finishedController({SessionRepository? repository}) {
@@ -109,7 +117,10 @@ void main() {
     expect(find.textContaining('Speed bonus: '), findsOneWidget);
     expect(find.textContaining('Streak bonus: '), findsOneWidget);
     expect(find.textContaining('Difficulty bonus: '), findsOneWidget);
-    expect(find.textContaining('4 right · 0 wrong · 0 timed out'), findsOneWidget);
+    expect(
+      find.textContaining('4 right · 0 wrong · 0 timed out'),
+      findsOneWidget,
+    );
     expect(find.textContaining('Average time: '), findsOneWidget);
     expect(find.textContaining('Best streak: 4'), findsOneWidget);
     expect(find.textContaining('Types played: Addition'), findsOneWidget);
@@ -117,34 +128,33 @@ void main() {
     expect(find.textContaining('%'), findsNothing);
   });
 
-  testWidgets(
-    'Difficulty bonus hidden when it is 0 (level 1, no multiplier)',
-    (tester) async {
-      final controller = SessionController(
-        config: SessionConfig(
-          seed: 1,
-          enabledTypes: const {ExerciseType.addition},
-          exerciseCount: 4,
-          levels: const {ExerciseType.addition: 1},
-        ),
-        exerciseSource: _FixedExerciseSource(additionExercises(4)),
-        repository: InMemorySessionRepository(),
-        playerId: 'test-player',
-        clock: () => DateTime(2024),
-        createTimer: (duration, callback) => _InertTimer(),
-      );
-      addTearDown(controller.dispose);
-      controller.start();
-      for (var i = 0; i < 4; i++) {
-        controller.submitAnswer(i);
-      }
-      await controller.pendingPersistence;
+  testWidgets('Difficulty bonus hidden when it is 0 (level 1, no multiplier)', (
+    tester,
+  ) async {
+    final controller = SessionController(
+      config: SessionConfig(
+        seed: 1,
+        enabledTypes: const {ExerciseType.addition},
+        exerciseCount: 4,
+        levels: const {ExerciseType.addition: 1},
+      ),
+      exerciseSource: _FixedExerciseSource(additionExercises(4)),
+      repository: InMemorySessionRepository(),
+      playerId: 'test-player',
+      clock: () => DateTime(2024),
+      createTimer: (duration, callback) => _InertTimer(),
+    );
+    addTearDown(controller.dispose);
+    controller.start();
+    for (var i = 0; i < 4; i++) {
+      controller.submitAnswer(i);
+    }
+    await controller.pendingPersistence;
 
-      await pumpResultScreen(tester, controller);
+    await pumpResultScreen(tester, controller);
 
-      expect(find.textContaining('Difficulty bonus'), findsNothing);
-    },
-  );
+    expect(find.textContaining('Difficulty bonus'), findsNothing);
+  });
 
   testWidgets(
     'a type left under n_min this session is told apart from an unchanged level',
@@ -157,7 +167,10 @@ void main() {
           seed: 1,
           enabledTypes: const {ExerciseType.addition, ExerciseType.subtraction},
           exerciseCount: 4,
-          levels: const {ExerciseType.addition: 50, ExerciseType.subtraction: 50},
+          levels: const {
+            ExerciseType.addition: 50,
+            ExerciseType.subtraction: 50,
+          },
         ),
         exerciseSource: _FixedExerciseSource(additionExercises(4)),
         repository: InMemorySessionRepository(),
@@ -179,7 +192,10 @@ void main() {
         findsOneWidget,
       );
       // Addition was evaluated: not that text for it.
-      expect(find.textContaining('Addition — level 50 (not enough'), findsNothing);
+      expect(
+        find.textContaining('Addition — level 50 (not enough'),
+        findsNothing,
+      );
     },
   );
 

@@ -240,10 +240,7 @@ void main() {
       );
       await tester.pumpWidget(MathTrainerApp(environment: environment));
       await tester.pump();
-      expect(
-        find.text('Difficulty adapts to your answers.'),
-        findsOneWidget,
-      );
+      expect(find.text('Difficulty adapts to your answers.'), findsOneWidget);
 
       await tester.tap(find.text('Start'));
       await settlePageTransition(tester);
@@ -349,45 +346,46 @@ void main() {
     },
   );
 
-  testWidgets('the day/night button toggles the theme and persists the choice', (
-    WidgetTester tester,
-  ) async {
-    await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
-    // `AuthGate` resolves the local session asynchronously (even offline):
-    // one more frame is needed before the real content (here `AppShell`)
-    // replaces the initial spinner.
-    await tester.pump();
-    await tester.pumpAndSettle();
+  testWidgets(
+    'the day/night button toggles the theme and persists the choice',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
+      // `AuthGate` resolves the local session asynchronously (even offline):
+      // one more frame is needed before the real content (here `AppShell`)
+      // replaces the initial spinner.
+      await tester.pump();
+      await tester.pumpAndSettle();
 
-    final initialBrightness = Theme.of(
-      tester.element(find.text('Math Trainer')),
-    ).brightness;
+      final initialBrightness = Theme.of(
+        tester.element(find.text('Math Trainer')),
+      ).brightness;
 
-    await tester.tap(
-      find.byIcon(
-        initialBrightness == Brightness.dark
-            ? Icons.light_mode_outlined
-            : Icons.dark_mode_outlined,
-      ),
-    );
-    await tester.pumpAndSettle();
+      await tester.tap(
+        find.byIcon(
+          initialBrightness == Brightness.dark
+              ? Icons.light_mode_outlined
+              : Icons.dark_mode_outlined,
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    final toggledBrightness = Theme.of(
-      tester.element(find.text('Math Trainer')),
-    ).brightness;
-    expect(toggledBrightness, isNot(initialBrightness));
+      final toggledBrightness = Theme.of(
+        tester.element(find.text('Math Trainer')),
+      ).brightness;
+      expect(toggledBrightness, isNot(initialBrightness));
 
-    // A new instance pointing at the same environment finds the choice.
-    await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
-    // `AuthGate` resolves the local session asynchronously (even offline):
-    // one more frame is needed before the real content (here `AppShell`)
-    // replaces the initial spinner.
-    await tester.pump();
-    await tester.pumpAndSettle();
+      // A new instance pointing at the same environment finds the choice.
+      await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
+      // `AuthGate` resolves the local session asynchronously (even offline):
+      // one more frame is needed before the real content (here `AppShell`)
+      // replaces the initial spinner.
+      await tester.pump();
+      await tester.pumpAndSettle();
 
-    final reloadedBrightness = Theme.of(
-      tester.element(find.text('Math Trainer')),
-    ).brightness;
-    expect(reloadedBrightness, toggledBrightness);
-  });
+      final reloadedBrightness = Theme.of(
+        tester.element(find.text('Math Trainer')),
+      ).brightness;
+      expect(reloadedBrightness, toggledBrightness);
+    },
+  );
 }

@@ -15,7 +15,11 @@ import 'session_screen.dart';
 /// parameter): an immediate replay (step 4.2, commit C) builds a new one and
 /// swaps it for the old one without popping the route.
 class SessionFlowScreen extends StatefulWidget {
-  const SessionFlowScreen({super.key, required this.controller, required this.environment});
+  const SessionFlowScreen({
+    super.key,
+    required this.controller,
+    required this.environment,
+  });
 
   final SessionController controller;
   final AppEnvironment environment;
@@ -127,7 +131,9 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
                   actionLabel: 'Quit',
                   onAction: () => Navigator.of(context).maybePop(),
                 ),
-                SessionStatus.inProgress => SessionScreen(controller: _controller),
+                SessionStatus.inProgress => SessionScreen(
+                  controller: _controller,
+                ),
                 SessionStatus.finished ||
                 SessionStatus.interrupted => ResultScreen(
                   controller: _controller,

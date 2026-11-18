@@ -11,11 +11,17 @@ void main() {
     });
 
     test('type is ExerciseType.percentage', () {
-      expect(const PercentageExercise(percent: 10, base: 50).type, ExerciseType.percentage);
+      expect(
+        const PercentageExercise(percent: 10, base: 50).type,
+        ExerciseType.percentage,
+      );
     });
 
     test('isCorrectAnswer rejects a wrong answer', () {
-      expect(const PercentageExercise(percent: 10, base: 50).isCorrectAnswer(4), isFalse);
+      expect(
+        const PercentageExercise(percent: 10, base: 50).isCorrectAnswer(4),
+        isFalse,
+      );
     });
   });
 }

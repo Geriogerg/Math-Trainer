@@ -23,8 +23,16 @@ class PercentageDifficulty {
   final int percentMaxAtLevel100;
 
   OperandRange percentRangeFor(int level) => OperandRange(
-    min: interpolateLevel(level: level, atLevel1: percentMinAtLevel1, atLevel100: percentMinAtLevel100),
-    max: interpolateLevel(level: level, atLevel1: percentMaxAtLevel1, atLevel100: percentMaxAtLevel100),
+    min: interpolateLevel(
+      level: level,
+      atLevel1: percentMinAtLevel1,
+      atLevel100: percentMinAtLevel100,
+    ),
+    max: interpolateLevel(
+      level: level,
+      atLevel1: percentMaxAtLevel1,
+      atLevel100: percentMaxAtLevel100,
+    ),
   );
 }
 

@@ -64,20 +64,19 @@ void main() {
     await tester.pump();
   }
 
-  testWidgets(
-    'a server refusal shows our own message, not the raw one',
-    (tester) async {
-      final repository = _RecordingAccountRepository(
-        failure: AccountFailure.invalidCredentials,
-      );
-      await pumpForm(tester, repository);
+  testWidgets('a server refusal shows our own message, not the raw one', (
+    tester,
+  ) async {
+    final repository = _RecordingAccountRepository(
+      failure: AccountFailure.invalidCredentials,
+    );
+    await pumpForm(tester, repository);
 
-      await submit(tester, email: 'player@test.com', password: 'faux');
+    await submit(tester, email: 'player@test.com', password: 'faux');
 
-      expect(find.text('Incorrect email or password.'), findsOneWidget);
-      expect(find.textContaining('Raw server message'), findsNothing);
-    },
-  );
+    expect(find.text('Incorrect email or password.'), findsOneWidget);
+    expect(find.textContaining('Raw server message'), findsNothing);
+  });
 
   testWidgets('server unreachable: asks to check the connection', (
     tester,
@@ -103,9 +102,7 @@ void main() {
     expect(repository.signInCalls, ['player@test.com']);
   });
 
-  testWidgets('empty field: local message, no server call', (
-    tester,
-  ) async {
+  testWidgets('empty field: local message, no server call', (tester) async {
     final repository = _RecordingAccountRepository();
     await pumpForm(tester, repository);
 

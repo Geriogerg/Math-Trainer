@@ -11,6 +11,8 @@ import '../persistence/level_cache_entry.dart';
 /// each session (`PersistedSession.overallLevelAfter`), hence a data rule —
 /// changing it would make the Profile curve's points incomparable.
 double overallLevel(Map<ExerciseType, LevelCacheEntry> levels) {
-  final allLevels = [for (final type in ExerciseType.values) levels[type]?.level ?? 1];
+  final allLevels = [
+    for (final type in ExerciseType.values) levels[type]?.level ?? 1,
+  ];
   return allLevels.reduce((a, b) => a + b) / allLevels.length;
 }

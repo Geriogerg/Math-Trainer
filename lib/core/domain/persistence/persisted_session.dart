@@ -18,13 +18,25 @@ class PersistedSession {
   }) {
     final overall = overallLevelAfter;
     if (overall != null && (overall < 1 || overall > 100)) {
-      throw ArgumentError.value(overall, 'overallLevelAfter', 'must be in [1, 100].');
+      throw ArgumentError.value(
+        overall,
+        'overallLevelAfter',
+        'must be in [1, 100].',
+      );
     }
     if (!createdAt.isUtc) {
-      throw ArgumentError.value(createdAt, 'createdAt', 'must be UTC (DateTime.toUtc()).');
+      throw ArgumentError.value(
+        createdAt,
+        'createdAt',
+        'must be UTC (DateTime.toUtc()).',
+      );
     }
     if (syncedAt != null && !syncedAt!.isUtc) {
-      throw ArgumentError.value(syncedAt, 'syncedAt', 'must be UTC (DateTime.toUtc()).');
+      throw ArgumentError.value(
+        syncedAt,
+        'syncedAt',
+        'must be UTC (DateTime.toUtc()).',
+      );
     }
   }
 
@@ -63,7 +75,9 @@ class PersistedSession {
       levels: levels,
       createdAt: createdAt,
       overallLevelAfter: overallLevelAfter,
-      syncedAt: identical(syncedAt, _unset) ? this.syncedAt : syncedAt as DateTime?,
+      syncedAt: identical(syncedAt, _unset)
+          ? this.syncedAt
+          : syncedAt as DateTime?,
     );
   }
 
@@ -109,7 +123,9 @@ class PersistedSession {
     Object.hashAllUnordered(enabledTypes),
     exerciseCount,
     totalScore,
-    Object.hashAllUnordered(levels.entries.map((e) => Object.hash(e.key, e.value))),
+    Object.hashAllUnordered(
+      levels.entries.map((e) => Object.hash(e.key, e.value)),
+    ),
     createdAt,
     overallLevelAfter,
     syncedAt,

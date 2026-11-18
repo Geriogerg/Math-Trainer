@@ -48,7 +48,8 @@ class SessionScreen extends StatefulWidget {
   State<SessionScreen> createState() => _SessionScreenState();
 }
 
-class _SessionScreenState extends State<SessionScreen> with TickerProviderStateMixin {
+class _SessionScreenState extends State<SessionScreen>
+    with TickerProviderStateMixin {
   String _typedDigits = '';
   bool? _feedbackCorrect;
 
@@ -60,11 +61,17 @@ class _SessionScreenState extends State<SessionScreen> with TickerProviderStateM
     super.initState();
     // No timeout (debug switch): the bar stays full.
     final timeout = widget.controller.questionTimeout;
-    _chronoController = AnimationController(vsync: this, duration: timeout ?? Duration.zero);
+    _chronoController = AnimationController(
+      vsync: this,
+      duration: timeout ?? Duration.zero,
+    );
     if (timeout != null) _chronoController.forward();
     // Actual duration set just before each .forward() (AppMotion.feedback,
     // read from the theme — unavailable here, before the first frame).
-    _feedbackController = AnimationController(vsync: this, duration: Duration.zero);
+    _feedbackController = AnimationController(
+      vsync: this,
+      duration: Duration.zero,
+    );
   }
 
   @override
@@ -74,7 +81,9 @@ class _SessionScreenState extends State<SessionScreen> with TickerProviderStateM
     // the next (only its internal state changes), so this is the only
     // reliable signal — comparing exercises by value could miss a restart if
     // the same operation comes up twice in a row.
-    if (widget.controller.questionTimeout != null) _chronoController.forward(from: 0);
+    if (widget.controller.questionTimeout != null) {
+      _chronoController.forward(from: 0);
+    }
 
     // A timeout advances the session without going through _submit() (no
     // "submit" key pressed): without this check there would be no
@@ -116,7 +125,8 @@ class _SessionScreenState extends State<SessionScreen> with TickerProviderStateM
       _backspace();
       return KeyEventResult.handled;
     }
-    if (key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.numpadEnter) {
+    if (key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter) {
       // No repeat: holding Enter must not submit the next question before it
       // is even read.
       if (event is KeyDownEvent) _submit();
@@ -128,7 +138,9 @@ class _SessionScreenState extends State<SessionScreen> with TickerProviderStateM
   void _backspace() {
     widget.controller.registerActivity();
     if (_typedDigits.isEmpty) return;
-    setState(() => _typedDigits = _typedDigits.substring(0, _typedDigits.length - 1));
+    setState(
+      () => _typedDigits = _typedDigits.substring(0, _typedDigits.length - 1),
+    );
   }
 
   void _submit() {
@@ -211,10 +223,22 @@ class _SessionScreenState extends State<SessionScreen> with TickerProviderStateM
                   ),
                   const SizedBox(height: 16),
                   AnimatedSwitcher(
-                    duration: theme.extension<AppMotion>()!.questionTransition.duration,
-                    switchInCurve: theme.extension<AppMotion>()!.questionTransition.curve,
-                    switchOutCurve: theme.extension<AppMotion>()!.questionTransition.curve,
-                    child: ExercisePrompt(key: ValueKey(exercise), exercise: exercise),
+                    duration: theme
+                        .extension<AppMotion>()!
+                        .questionTransition
+                        .duration,
+                    switchInCurve: theme
+                        .extension<AppMotion>()!
+                        .questionTransition
+                        .curve,
+                    switchOutCurve: theme
+                        .extension<AppMotion>()!
+                        .questionTransition
+                        .curve,
+                    child: ExercisePrompt(
+                      key: ValueKey(exercise),
+                      exercise: exercise,
+                    ),
                   ),
                   const SizedBox(height: 24),
                   _AnswerDisplay(
@@ -231,7 +255,11 @@ class _SessionScreenState extends State<SessionScreen> with TickerProviderStateM
             // (`Expanded`) — nothing moves between questions (`doc/design.md`:
             // never a ratio of the screen, see `AppMetrics`).
             height: metrics.keypadHeight,
-            child: _NumericKeypad(onDigit: _appendDigit, onBackspace: _backspace, onValidate: _submit),
+            child: _NumericKeypad(
+              onDigit: _appendDigit,
+              onBackspace: _backspace,
+              onValidate: _submit,
+            ),
           ),
         ],
       ),
@@ -240,7 +268,11 @@ class _SessionScreenState extends State<SessionScreen> with TickerProviderStateM
 }
 
 class _TopBar extends StatelessWidget {
-  const _TopBar({required this.questionIndex, required this.totalQuestions, required this.chrono});
+  const _TopBar({
+    required this.questionIndex,
+    required this.totalQuestions,
+    required this.chrono,
+  });
 
   final int questionIndex;
   final int totalQuestions;
@@ -303,7 +335,9 @@ class _AnswerDisplay extends StatelessWidget {
         if (correct == null) return child!;
 
         final t = feedback.value;
-        final flashColor = correct ? theme.colorScheme.onSurface : theme.colorScheme.error;
+        final flashColor = correct
+            ? theme.colorScheme.onSurface
+            : theme.colorScheme.error;
         final opacity = (1 - t).clamp(0.0, 1.0);
         // Scale 1.0 → 1.06 → 1.0 (doc/design.md): a sine bump peaks in the
         // middle of the animation.
@@ -320,7 +354,10 @@ class _AnswerDisplay extends StatelessWidget {
                 color: flashColor.withValues(alpha: opacity * 0.35),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: child),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: child,
+              ),
             ),
           ),
         );
@@ -331,7 +368,11 @@ class _AnswerDisplay extends StatelessWidget {
 }
 
 class _NumericKeypad extends StatelessWidget {
-  const _NumericKeypad({required this.onDigit, required this.onBackspace, required this.onValidate});
+  const _NumericKeypad({
+    required this.onDigit,
+    required this.onBackspace,
+    required this.onValidate,
+  });
 
   final ValueChanged<String> onDigit;
   final VoidCallback onBackspace;
@@ -352,7 +393,12 @@ class _NumericKeypad extends StatelessWidget {
             child: Row(
               children: [
                 for (final digit in row)
-                  Expanded(child: _KeypadKey(label: digit, onTap: () => onDigit(digit))),
+                  Expanded(
+                    child: _KeypadKey(
+                      label: digit,
+                      onTap: () => onDigit(digit),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -360,11 +406,22 @@ class _NumericKeypad extends StatelessWidget {
           child: Row(
             children: [
               Expanded(
-                child: _KeypadKey(icon: Icons.backspace_outlined, semanticLabel: 'Backspace', onTap: onBackspace),
+                child: _KeypadKey(
+                  icon: Icons.backspace_outlined,
+                  semanticLabel: 'Backspace',
+                  onTap: onBackspace,
+                ),
               ),
-              Expanded(child: _KeypadKey(label: '0', onTap: () => onDigit('0'))),
               Expanded(
-                child: _KeypadKey(icon: Icons.check, semanticLabel: 'Submit', onTap: onValidate, isPrimary: true),
+                child: _KeypadKey(label: '0', onTap: () => onDigit('0')),
+              ),
+              Expanded(
+                child: _KeypadKey(
+                  icon: Icons.check,
+                  semanticLabel: 'Submit',
+                  onTap: onValidate,
+                  isPrimary: true,
+                ),
               ),
             ],
           ),
@@ -378,7 +435,13 @@ class _NumericKeypad extends StatelessWidget {
 /// doc/design.md). 60 ms easeOut press animation (`AppMotion.keyPress`, set
 /// up in commit A, first consumer here).
 class _KeypadKey extends StatefulWidget {
-  const _KeypadKey({this.label, this.icon, this.semanticLabel, required this.onTap, this.isPrimary = false});
+  const _KeypadKey({
+    this.label,
+    this.icon,
+    this.semanticLabel,
+    required this.onTap,
+    this.isPrimary = false,
+  });
 
   final String? label;
   final IconData? icon;
@@ -402,8 +465,12 @@ class _KeypadKeyState extends State<_KeypadKey> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final motion = theme.extension<AppMotion>()!.keyPress;
-    final background = widget.isPrimary ? colorScheme.primary : colorScheme.surfaceContainerHigh;
-    final foreground = widget.isPrimary ? colorScheme.onPrimary : colorScheme.onSurface;
+    final background = widget.isPrimary
+        ? colorScheme.primary
+        : colorScheme.surfaceContainerHigh;
+    final foreground = widget.isPrimary
+        ? colorScheme.onPrimary
+        : colorScheme.onSurface;
 
     return GestureDetector(
       onTapDown: (_) => _setPressed(true),
@@ -416,11 +483,23 @@ class _KeypadKeyState extends State<_KeypadKey> {
         curve: motion.curve,
         child: Container(
           margin: const EdgeInsets.all(4),
-          decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(16)),
+          decoration: BoxDecoration(
+            color: background,
+            borderRadius: BorderRadius.circular(16),
+          ),
           alignment: Alignment.center,
           child: widget.icon != null
-              ? Icon(widget.icon, color: foreground, semanticLabel: widget.semanticLabel)
-              : Text(widget.label!, style: theme.textTheme.displaySmall?.copyWith(color: foreground)),
+              ? Icon(
+                  widget.icon,
+                  color: foreground,
+                  semanticLabel: widget.semanticLabel,
+                )
+              : Text(
+                  widget.label!,
+                  style: theme.textTheme.displaySmall?.copyWith(
+                    color: foreground,
+                  ),
+                ),
         ),
       ),
     );

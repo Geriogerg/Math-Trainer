@@ -6,8 +6,10 @@ import 'exercise_generator.dart';
 import 'operand_range.dart';
 
 class ArithmeticExerciseGenerator implements ExerciseGenerator {
-  ArithmeticExerciseGenerator({required this.operationTypes, OperandRange? operandRange})
-    : operandRange = operandRange ?? OperandRange(min: 1, max: 10) {
+  ArithmeticExerciseGenerator({
+    required this.operationTypes,
+    OperandRange? operandRange,
+  }) : operandRange = operandRange ?? OperandRange(min: 1, max: 10) {
     // Rule 13: an `assert` disappears in release — an empty list would
     // crash further on in a `nextInt(0)` with no explanation.
     if (operationTypes.isEmpty) {
@@ -17,7 +19,8 @@ class ArithmeticExerciseGenerator implements ExerciseGenerator {
         'must contain at least one operation type.',
       );
     }
-    if (operationTypes.contains(OperationType.division) && this.operandRange.min < 1) {
+    if (operationTypes.contains(OperationType.division) &&
+        this.operandRange.min < 1) {
       throw ArgumentError.value(
         this.operandRange,
         'operandRange',
@@ -41,9 +44,13 @@ class ArithmeticExerciseGenerator implements ExerciseGenerator {
   }
 
   int _randomOperand(Random random) =>
-      operandRange.min + random.nextInt(operandRange.max - operandRange.min + 1);
+      operandRange.min +
+      random.nextInt(operandRange.max - operandRange.min + 1);
 
-  ArithmeticExercise _twoRandomOperands(Random random, OperationType operationType) {
+  ArithmeticExercise _twoRandomOperands(
+    Random random,
+    OperationType operationType,
+  ) {
     return ArithmeticExercise(
       operandA: _randomOperand(random),
       operandB: _randomOperand(random),

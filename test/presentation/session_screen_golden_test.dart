@@ -46,7 +46,11 @@ void main() {
 
   SessionController buildController() {
     const exercises = [
-      ArithmeticExercise(operandA: 47, operandB: 18, operationType: OperationType.addition),
+      ArithmeticExercise(
+        operandA: 47,
+        operandB: 18,
+        operationType: OperationType.addition,
+      ),
     ];
     return SessionController(
       config: SessionConfig(

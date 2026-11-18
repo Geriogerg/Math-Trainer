@@ -51,7 +51,10 @@ void main() {
 
     test('only generates the configured operation types', () {
       final generator = ArithmeticExerciseGenerator(
-        operationTypes: const [OperationType.addition, OperationType.multiplication],
+        operationTypes: const [
+          OperationType.addition,
+          OperationType.multiplication,
+        ],
       );
       final random = Random(3);
 
@@ -69,7 +72,9 @@ void main() {
       // guarantee: two distinct seeds could in theory produce the same
       // sequence by coincidence.
       List<ArithmeticExercise> sequenceFor(int seed) {
-        final generator = ArithmeticExerciseGenerator(operationTypes: OperationType.values);
+        final generator = ArithmeticExerciseGenerator(
+          operationTypes: OperationType.values,
+        );
         final random = Random(seed);
         return List.generate(20, (_) => generator.next(random));
       }
@@ -109,14 +114,17 @@ void main() {
       );
     });
 
-    test('rejects a range allowing a zero divisor when division is enabled', () {
-      expect(
-        () => ArithmeticExerciseGenerator(
-          operationTypes: const [OperationType.division],
-          operandRange: OperandRange(min: 0, max: 5),
-        ),
-        throwsArgumentError,
-      );
-    });
+    test(
+      'rejects a range allowing a zero divisor when division is enabled',
+      () {
+        expect(
+          () => ArithmeticExerciseGenerator(
+            operationTypes: const [OperationType.division],
+            operandRange: OperandRange(min: 0, max: 5),
+          ),
+          throwsArgumentError,
+        );
+      },
+    );
   });
 }

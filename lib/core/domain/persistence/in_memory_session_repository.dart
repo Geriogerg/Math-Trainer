@@ -20,7 +20,9 @@ class InMemorySessionRepository implements SessionRepository {
   }) async {
     _sessions.add(session);
     _answers.addAll(answers);
-    _levelsByPlayer.putIfAbsent(session.playerId, () => {}).addAll(levelUpdates);
+    _levelsByPlayer
+        .putIfAbsent(session.playerId, () => {})
+        .addAll(levelUpdates);
   }
 
   @override
@@ -28,8 +30,9 @@ class InMemorySessionRepository implements SessionRepository {
     String playerId, {
     int limit = 20,
   }) async {
-    final sorted = _sessions.where((session) => session.playerId == playerId).toList()
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final sorted =
+        _sessions.where((session) => session.playerId == playerId).toList()
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return sorted.take(limit).toList();
   }
 
@@ -39,12 +42,16 @@ class InMemorySessionRepository implements SessionRepository {
   }
 
   @override
-  Future<Map<ExerciseType, LevelCacheEntry>> currentLevels(String playerId) async {
+  Future<Map<ExerciseType, LevelCacheEntry>> currentLevels(
+    String playerId,
+  ) async {
     return Map.of(_levelsByPlayer[playerId] ?? {});
   }
 
   @override
-  Future<Map<ExerciseType, double>> averageElapsedMsByType(String playerId) async {
+  Future<Map<ExerciseType, double>> averageElapsedMsByType(
+    String playerId,
+  ) async {
     final sessionIds = _sessions
         .where((session) => session.playerId == playerId)
         .map((session) => session.id)
@@ -64,11 +71,16 @@ class InMemorySessionRepository implements SessionRepository {
   }
 
   @override
-  Future<List<PersistedSession>> sessionsSince(String playerId, DateTime since) async {
+  Future<List<PersistedSession>> sessionsSince(
+    String playerId,
+    DateTime since,
+  ) async {
     final matching = _sessions.where(
-      (session) => session.playerId == playerId && !session.createdAt.isBefore(since),
+      (session) =>
+          session.playerId == playerId && !session.createdAt.isBefore(since),
     );
-    return matching.toList()..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    return matching.toList()
+      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
   }
 
   @override

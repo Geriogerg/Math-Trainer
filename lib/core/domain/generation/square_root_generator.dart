@@ -14,7 +14,8 @@ class SquareRootExerciseGenerator implements ExerciseGenerator {
 
   @override
   SquareRootExercise next(Random random) {
-    final root = rootRange.min + random.nextInt(rootRange.max - rootRange.min + 1);
+    final root =
+        rootRange.min + random.nextInt(rootRange.max - rootRange.min + 1);
     return SquareRootExercise(radicand: root * root);
   }
 }

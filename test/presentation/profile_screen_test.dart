@@ -225,60 +225,58 @@ void main() {
     },
   );
 
-  testWidgets(
-    'a failing repository shows a message and a Retry button',
-    (WidgetTester tester) async {
-      await setTallSurface(tester);
-      final repository = _FlakySessionRepository();
-      final environment = AppEnvironment(
-        repository: repository,
-        playerId: 'test-player',
-        accountRepository: FakeAccountRepository(),
-        profileRepository: FakeProfileRepository(),
-      );
+  testWidgets('a failing repository shows a message and a Retry button', (
+    WidgetTester tester,
+  ) async {
+    await setTallSurface(tester);
+    final repository = _FlakySessionRepository();
+    final environment = AppEnvironment(
+      repository: repository,
+      playerId: 'test-player',
+      accountRepository: FakeAccountRepository(),
+      profileRepository: FakeProfileRepository(),
+    );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: buildLightTheme(),
-          home: Scaffold(body: ProfileScreen(environment: environment)),
-        ),
-      );
-      await tester.pumpAndSettle();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildLightTheme(),
+        home: Scaffold(body: ProfileScreen(environment: environment)),
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      expect(find.text('Could not load the profile.'), findsOneWidget);
-      expect(find.widgetWithText(FilledButton, 'Retry'), findsOneWidget);
-    },
-  );
+    expect(find.text('Could not load the profile.'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Retry'), findsOneWidget);
+  });
 
-  testWidgets(
-    'Retry reloads and shows the profile if it succeeds',
-    (WidgetTester tester) async {
-      await setTallSurface(tester);
-      final repository = _FlakySessionRepository();
-      final environment = AppEnvironment(
-        repository: repository,
-        playerId: 'test-player',
-        accountRepository: FakeAccountRepository(),
-        profileRepository: FakeProfileRepository(),
-      );
+  testWidgets('Retry reloads and shows the profile if it succeeds', (
+    WidgetTester tester,
+  ) async {
+    await setTallSurface(tester);
+    final repository = _FlakySessionRepository();
+    final environment = AppEnvironment(
+      repository: repository,
+      playerId: 'test-player',
+      accountRepository: FakeAccountRepository(),
+      profileRepository: FakeProfileRepository(),
+    );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: buildLightTheme(),
-          home: Scaffold(body: ProfileScreen(environment: environment)),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(find.text('Could not load the profile.'), findsOneWidget);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildLightTheme(),
+        home: Scaffold(body: ProfileScreen(environment: environment)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Could not load the profile.'), findsOneWidget);
 
-      repository.shouldFail = false;
-      await tester.tap(find.widgetWithText(FilledButton, 'Retry'));
-      await tester.pumpAndSettle();
+    repository.shouldFail = false;
+    await tester.tap(find.widgetWithText(FilledButton, 'Retry'));
+    await tester.pumpAndSettle();
 
-      expect(find.text('Could not load the profile.'), findsNothing);
-      expect(find.text('Level 7'), findsOneWidget);
-    },
-  );
+    expect(find.text('Could not load the profile.'), findsNothing);
+    expect(find.text('Level 7'), findsOneWidget);
+  });
 
   testWidgets(
     'overall level, change, curve and recent sessions reflect the history (commit E)',
@@ -386,10 +384,7 @@ void main() {
       // Effect of each of the two latest sessions: 10/7 ≈ +1; the oldest has
       // no previous session to compare with.
       expect(find.text('+1'), findsNWidgets(2));
-      expect(
-        find.text('Not enough data for the last 30 days.'),
-        findsNothing,
-      );
+      expect(find.text('Not enough data for the last 30 days.'), findsNothing);
       expect(find.textContaining('Level 50 · 1500 ms'), findsOneWidget);
       expect(find.textContaining('Score 70'), findsOneWidget);
       expect(find.textContaining('Score 60'), findsOneWidget);
@@ -423,42 +418,41 @@ void main() {
   // Regression: the name (network) and the statistics (local) were read in
   // the same `Future.wait` — offline, the whole screen fell to "Could not
   // load the profile.", local statistics included.
-  testWidgets(
-    'player name unreachable: the local statistics stay shown',
-    (WidgetTester tester) async {
-      await setTallSurface(tester);
-      final profileRepository = FakeProfileRepository()..shouldFail = true;
-      final environment = AppEnvironment(
-        repository: InMemorySessionRepository(),
-        playerId: 'test-player',
-        accountRepository: FakeAccountRepository(),
-        profileRepository: profileRepository,
-      );
+  testWidgets('player name unreachable: the local statistics stay shown', (
+    WidgetTester tester,
+  ) async {
+    await setTallSurface(tester);
+    final profileRepository = FakeProfileRepository()..shouldFail = true;
+    final environment = AppEnvironment(
+      repository: InMemorySessionRepository(),
+      playerId: 'test-player',
+      accountRepository: FakeAccountRepository(),
+      profileRepository: profileRepository,
+    );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: buildLightTheme(),
-          home: Scaffold(body: ProfileScreen(environment: environment)),
-        ),
-      );
-      await tester.pumpAndSettle();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildLightTheme(),
+        home: Scaffold(body: ProfileScreen(environment: environment)),
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      expect(find.text('Could not load the profile.'), findsNothing);
-      expect(find.text('By operation'), findsOneWidget);
-      expect(find.text('player@test.com'), findsOneWidget);
-      expect(find.text('Player name unavailable'), findsOneWidget);
-      expect(find.byIcon(Icons.edit_outlined), findsNothing);
+    expect(find.text('Could not load the profile.'), findsNothing);
+    expect(find.text('By operation'), findsOneWidget);
+    expect(find.text('player@test.com'), findsOneWidget);
+    expect(find.text('Player name unavailable'), findsOneWidget);
+    expect(find.byIcon(Icons.edit_outlined), findsNothing);
 
-      profileRepository
-        ..shouldFail = false
-        ..displayName = 'Alex';
-      await tester.tap(find.byIcon(Icons.refresh));
-      await tester.pumpAndSettle();
+    profileRepository
+      ..shouldFail = false
+      ..displayName = 'Alex';
+    await tester.tap(find.byIcon(Icons.refresh));
+    await tester.pumpAndSettle();
 
-      expect(find.text('Alex'), findsOneWidget);
-      expect(find.byIcon(Icons.edit_outlined), findsOneWidget);
-    },
-  );
+    expect(find.text('Alex'), findsOneWidget);
+    expect(find.byIcon(Icons.edit_outlined), findsOneWidget);
+  });
 
   testWidgets('shows the player name already saved', (
     WidgetTester tester,
@@ -514,38 +508,37 @@ void main() {
     },
   );
 
-  testWidgets(
-    'an unsaved name is reported, the old name stays shown',
-    (WidgetTester tester) async {
-      await setTallSurface(tester);
-      final profileRepository = FakeProfileRepository()
-        ..displayName = 'Alex'
-        ..updateShouldFail = true;
-      final environment = AppEnvironment(
-        repository: InMemorySessionRepository(),
-        playerId: 'test-player',
-        accountRepository: FakeAccountRepository(),
-        profileRepository: profileRepository,
-      );
+  testWidgets('an unsaved name is reported, the old name stays shown', (
+    WidgetTester tester,
+  ) async {
+    await setTallSurface(tester);
+    final profileRepository = FakeProfileRepository()
+      ..displayName = 'Alex'
+      ..updateShouldFail = true;
+    final environment = AppEnvironment(
+      repository: InMemorySessionRepository(),
+      playerId: 'test-player',
+      accountRepository: FakeAccountRepository(),
+      profileRepository: profileRepository,
+    );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: buildLightTheme(),
-          home: Scaffold(body: ProfileScreen(environment: environment)),
-        ),
-      );
-      await tester.pumpAndSettle();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildLightTheme(),
+        home: Scaffold(body: ProfileScreen(environment: environment)),
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      await tester.tap(find.byIcon(Icons.edit_outlined));
-      await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField), 'Nouveau nom');
-      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.edit_outlined));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'Nouveau nom');
+    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+    await tester.pumpAndSettle();
 
-      expect(find.textContaining('Name not saved'), findsOneWidget);
-      expect(find.text('Alex'), findsOneWidget);
-    },
-  );
+    expect(find.textContaining('Name not saved'), findsOneWidget);
+    expect(find.text('Alex'), findsOneWidget);
+  });
 
   testWidgets('Sign out calls signOut', (WidgetTester tester) async {
     await setTallSurface(tester);

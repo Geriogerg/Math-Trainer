@@ -73,7 +73,9 @@ final class PowerExercise extends Exercise {
 
   @override
   bool operator ==(Object other) =>
-      other is PowerExercise && other.base == base && other.exponent == exponent;
+      other is PowerExercise &&
+      other.base == base &&
+      other.exponent == exponent;
 
   @override
   int get hashCode => Object.hash(base, exponent);
@@ -101,7 +103,8 @@ final class SquareRootExercise extends Exercise {
   }
 
   @override
-  bool operator ==(Object other) => other is SquareRootExercise && other.radicand == radicand;
+  bool operator ==(Object other) =>
+      other is SquareRootExercise && other.radicand == radicand;
 
   @override
   int get hashCode => radicand.hashCode;
@@ -121,7 +124,9 @@ final class PercentageExercise extends Exercise {
 
   @override
   bool operator ==(Object other) =>
-      other is PercentageExercise && other.percent == percent && other.base == base;
+      other is PercentageExercise &&
+      other.percent == percent &&
+      other.base == base;
 
   @override
   int get hashCode => Object.hash(percent, base);

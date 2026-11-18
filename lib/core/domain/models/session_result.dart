@@ -18,8 +18,7 @@ class SessionResult {
 
   int get correctCount => outcomes.where((outcome) => outcome.isCorrect).length;
 
-  double get accuracy =>
-      outcomes.isEmpty ? 0 : correctCount / outcomes.length;
+  double get accuracy => outcomes.isEmpty ? 0 : correctCount / outcomes.length;
 
   double get averageElapsedMs => outcomes.isEmpty
       ? 0
@@ -52,7 +51,8 @@ class SessionResult {
   /// single multiplier: several types (hence several frozen levels) can
   /// coexist in one session, and `doc/decisions.md` rules out a unified
   /// level.
-  ({int base, int speedBonus, int streakBonus, int difficultyBonus}) get scoreBreakdown {
+  ({int base, int speedBonus, int streakBonus, int difficultyBonus})
+  get scoreBreakdown {
     var current = 0;
     var base = 0;
     var speedBonus = 0;

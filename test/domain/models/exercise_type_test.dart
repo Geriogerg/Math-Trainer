@@ -9,8 +9,16 @@ import 'package:test/test.dart';
 (Exercise, Exercise) _samplePair(ExerciseType type) {
   return switch (type) {
     ExerciseType.addition => (
-      const ArithmeticExercise(operandA: 4, operandB: 3, operationType: OperationType.addition),
-      const ArithmeticExercise(operandA: 4, operandB: 3, operationType: OperationType.addition),
+      const ArithmeticExercise(
+        operandA: 4,
+        operandB: 3,
+        operationType: OperationType.addition,
+      ),
+      const ArithmeticExercise(
+        operandA: 4,
+        operandB: 3,
+        operationType: OperationType.addition,
+      ),
     ),
     ExerciseType.subtraction => (
       const ArithmeticExercise(
@@ -37,8 +45,16 @@ import 'package:test/test.dart';
       ),
     ),
     ExerciseType.division => (
-      const ArithmeticExercise(operandA: 12, operandB: 3, operationType: OperationType.division),
-      const ArithmeticExercise(operandA: 12, operandB: 3, operationType: OperationType.division),
+      const ArithmeticExercise(
+        operandA: 12,
+        operandB: 3,
+        operationType: OperationType.division,
+      ),
+      const ArithmeticExercise(
+        operandA: 12,
+        operandB: 3,
+        operationType: OperationType.division,
+      ),
     ),
     ExerciseType.power => (
       const PowerExercise(base: 3, exponent: 2),
@@ -57,19 +73,25 @@ import 'package:test/test.dart';
 
 void main() {
   for (final type in ExerciseType.values) {
-    test('${type.name}: two identical instances are == and have the same hashCode', () {
-      final (a, b) = _samplePair(type);
+    test(
+      '${type.name}: two identical instances are == and have the same hashCode',
+      () {
+        final (a, b) = _samplePair(type);
 
-      expect(a, equals(b));
-      expect(a.hashCode, equals(b.hashCode));
-      expect(a.type, type);
-    });
+        expect(a, equals(b));
+        expect(a.hashCode, equals(b.hashCode));
+        expect(a.type, type);
+      },
+    );
   }
 
   test('only the arithmetic values carry an OperationType', () {
     expect(ExerciseType.addition.operationType, OperationType.addition);
     expect(ExerciseType.subtraction.operationType, OperationType.subtraction);
-    expect(ExerciseType.multiplication.operationType, OperationType.multiplication);
+    expect(
+      ExerciseType.multiplication.operationType,
+      OperationType.multiplication,
+    );
     expect(ExerciseType.division.operationType, OperationType.division);
     expect(ExerciseType.power.operationType, isNull);
     expect(ExerciseType.squareRoot.operationType, isNull);

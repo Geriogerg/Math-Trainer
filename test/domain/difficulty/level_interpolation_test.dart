@@ -3,10 +3,13 @@ import 'package:test/test.dart';
 
 void main() {
   group('interpolateLevel', () {
-    test('returns the start value at level 1 and the end value at level 100', () {
-      expect(interpolateLevel(level: 1, atLevel1: 5, atLevel100: 50), 5);
-      expect(interpolateLevel(level: 100, atLevel1: 5, atLevel100: 50), 50);
-    });
+    test(
+      'returns the start value at level 1 and the end value at level 100',
+      () {
+        expect(interpolateLevel(level: 1, atLevel1: 5, atLevel100: 50), 5);
+        expect(interpolateLevel(level: 100, atLevel1: 5, atLevel100: 50), 50);
+      },
+    );
 
     test('interpolates monotonically between the two bounds', () {
       final values = [
@@ -31,8 +34,14 @@ void main() {
     });
 
     test('rejects a level outside [1, 100]', () {
-      expect(() => interpolateLevel(level: 0, atLevel1: 1, atLevel100: 10), throwsArgumentError);
-      expect(() => interpolateLevel(level: 101, atLevel1: 1, atLevel100: 10), throwsArgumentError);
+      expect(
+        () => interpolateLevel(level: 0, atLevel1: 1, atLevel100: 10),
+        throwsArgumentError,
+      );
+      expect(
+        () => interpolateLevel(level: 101, atLevel1: 1, atLevel100: 10),
+        throwsArgumentError,
+      );
     });
   });
 }

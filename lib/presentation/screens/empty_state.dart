@@ -7,7 +7,12 @@ import 'package:flutter/material.dart';
 /// `currentExercise` while `status == inProgress`), but what shows if they
 /// were reached anyway must stay usable.
 class EmptyState extends StatelessWidget {
-  const EmptyState({super.key, required this.message, required this.actionLabel, required this.onAction});
+  const EmptyState({
+    super.key,
+    required this.message,
+    required this.actionLabel,
+    required this.onAction,
+  });
 
   final String message;
   final String actionLabel;

@@ -31,7 +31,12 @@ class LevelCacheOrchestrator {
     for (final outcome in outcomes) {
       outcomesByType
           .putIfAbsent(outcome.exercise.type, () => [])
-          .add(AnswerOutcome(isCorrect: outcome.isCorrect, elapsedMs: outcome.elapsedMs));
+          .add(
+            AnswerOutcome(
+              isCorrect: outcome.isCorrect,
+              elapsedMs: outcome.elapsedMs,
+            ),
+          );
     }
 
     final priorLevels = await repository.currentLevels(playerId);
@@ -44,7 +49,11 @@ class LevelCacheOrchestrator {
 
       final prior = priorLevels[type];
       final currentLevel = frozenLevels[type] ?? 1;
-      final confidence = confidenceFor(entry: prior, now: now, rules: levelUpdater.rules);
+      final confidence = confidenceFor(
+        entry: prior,
+        now: now,
+        rules: levelUpdater.rules,
+      );
       final newLevel = levelUpdater.update(
         currentLevel: currentLevel,
         answers: answers,

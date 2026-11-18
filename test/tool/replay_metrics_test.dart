@@ -26,17 +26,20 @@ void main() {
       expect(convergenceIndex(levels), isNull);
     });
 
-    test('a single late deviation no longer prevents detection (bounded window)', () {
-      // 19 stable values at 50, then an isolated deviation at the very end.
-      final levels = [...List.generate(19, (_) => 50), 90];
+    test(
+      'a single late deviation no longer prevents detection (bounded window)',
+      () {
+        // 19 stable values at 50, then an isolated deviation at the very end.
+        final levels = [...List.generate(19, (_) => 50), 90];
 
-      // With the old definition (amplitude over the whole rest of the
-      // trajectory), no index would have converged: the final deviation
-      // shows in the tail of every index tested. With the bounded window
-      // (5), convergence is detected from index 0: its first 5 values (all
-      // 50) do not include the final deviation.
-      expect(convergenceIndex(levels), 0);
-    });
+        // With the old definition (amplitude over the whole rest of the
+        // trajectory), no index would have converged: the final deviation
+        // shows in the tail of every index tested. With the bounded window
+        // (5), convergence is detected from index 0: its first 5 values (all
+        // 50) do not include the final deviation.
+        expect(convergenceIndex(levels), 0);
+      },
+    );
 
     test('detects the stable window even after an unstable phase', () {
       final levels = [10, 90, 10, 90, 50, 51, 50, 51, 50, 51];
@@ -58,10 +61,17 @@ void main() {
     test('8 right and instant answers, starting level always 1 (cold replay, '
         "not a real session's frozen level)", () {
       final trajectory = [
-        List.generate(8, (_) => const AnswerOutcome(isCorrect: true, elapsedMs: 0)),
+        List.generate(
+          8,
+          (_) => const AnswerOutcome(isCorrect: true, elapsedMs: 0),
+        ),
       ];
 
-      final levels = replay(trajectory, LevelingRules(), DateTime.utc(2026, 1, 1));
+      final levels = replay(
+        trajectory,
+        LevelingRules(),
+        DateTime.utc(2026, 1, 1),
+      );
 
       // From 1, calibration confidence (never played): deadbandRemoved=0.23,
       // k=kHaut=3.0, confidenceFactor=kCalib=4.0, volume weighting √(8/4) —
@@ -71,11 +81,21 @@ void main() {
 
     test('replays several sessions in order, each level feeding the next', () {
       final trajectory = [
-        List.generate(8, (_) => const AnswerOutcome(isCorrect: true, elapsedMs: 0)),
-        List.generate(8, (_) => const AnswerOutcome(isCorrect: true, elapsedMs: 0)),
+        List.generate(
+          8,
+          (_) => const AnswerOutcome(isCorrect: true, elapsedMs: 0),
+        ),
+        List.generate(
+          8,
+          (_) => const AnswerOutcome(isCorrect: true, elapsedMs: 0),
+        ),
       ];
 
-      final levels = replay(trajectory, LevelingRules(), DateTime.utc(2026, 1, 1));
+      final levels = replay(
+        trajectory,
+        LevelingRules(),
+        DateTime.utc(2026, 1, 1),
+      );
 
       // Session 1: level 1 → calibration confidence (never played); bounded
       // by deltaMax (3) both ways, so 1 + 3 = 4.
@@ -98,7 +118,11 @@ void main() {
         [allFalseSession, allFalseSession],
       ];
 
-      final metrics = averageMetrics(trajectories, LevelingRules(), DateTime.utc(2026, 1, 1));
+      final metrics = averageMetrics(
+        trajectories,
+        LevelingRules(),
+        DateTime.utc(2026, 1, 1),
+      );
 
       expect(metrics.convergence, 0.0);
       expect(metrics.oscillation, 0.0);
@@ -109,10 +133,19 @@ void main() {
       // A single session can never "converge" in the window sense (at least
       // 2 values needed): excluded from the computation, no crash.
       final trajectories = [
-        [List.generate(8, (_) => const AnswerOutcome(isCorrect: true, elapsedMs: 0))],
+        [
+          List.generate(
+            8,
+            (_) => const AnswerOutcome(isCorrect: true, elapsedMs: 0),
+          ),
+        ],
       ];
 
-      final metrics = averageMetrics(trajectories, LevelingRules(), DateTime.utc(2026, 1, 1));
+      final metrics = averageMetrics(
+        trajectories,
+        LevelingRules(),
+        DateTime.utc(2026, 1, 1),
+      );
 
       expect(metrics.convergence, isNull);
       expect(metrics.oscillation, isNull);

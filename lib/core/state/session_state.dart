@@ -16,7 +16,8 @@ class SessionState {
     this.currentStreak = 0,
   });
 
-  factory SessionState.initial() => const SessionState(status: SessionStatus.notStarted);
+  factory SessionState.initial() =>
+      const SessionState(status: SessionStatus.notStarted);
 
   final SessionStatus status;
   final Exercise? currentExercise;

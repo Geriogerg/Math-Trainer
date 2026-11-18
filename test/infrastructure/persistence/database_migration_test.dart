@@ -62,7 +62,11 @@ void main() {
 
     final v2db = await openMathTrainerDatabase(path);
 
-    final sessionRows = await v2db.query('sessions', where: 'id = ?', whereArgs: ['legacy-session']);
+    final sessionRows = await v2db.query(
+      'sessions',
+      where: 'id = ?',
+      whereArgs: ['legacy-session'],
+    );
     expect(sessionRows.single['levels_json'], '{}');
 
     // player_levels exists and is usable after migration.
@@ -80,17 +84,19 @@ void main() {
     await databaseFactory.deleteDatabase(path);
   });
 
-  test('an existing v2 database migrates to v3: sessions kept, without an overall level after', () async {
-    const path = 'migration_v2_test.db';
-    await databaseFactory.deleteDatabase(path);
+  test(
+    'an existing v2 database migrates to v3: sessions kept, without an overall level after',
+    () async {
+      const path = 'migration_v2_test.db';
+      await databaseFactory.deleteDatabase(path);
 
-    // v2 schema as it existed before `overall_level_after`.
-    final v2db = await databaseFactory.openDatabase(
-      path,
-      options: OpenDatabaseOptions(
-        version: 2,
-        onCreate: (db, version) async {
-          await db.execute('''
+      // v2 schema as it existed before `overall_level_after`.
+      final v2db = await databaseFactory.openDatabase(
+        path,
+        options: OpenDatabaseOptions(
+          version: 2,
+          onCreate: (db, version) async {
+            await db.execute('''
             CREATE TABLE sessions (
               id TEXT PRIMARY KEY,
               player_id TEXT NOT NULL,
@@ -103,29 +109,30 @@ void main() {
               synced_at TEXT
             )
           ''');
-        },
-      ),
-    );
-    await v2db.insert('sessions', {
-      'id': 'v2-session',
-      'player_id': 'player',
-      'seed': 1,
-      'operation_types': '["addition"]',
-      'exercise_count': 4,
-      'total_score': 40,
-      'levels_json': '{"addition":12}',
-      'created_at': DateTime.utc(2026, 10, 1).toIso8601String(),
-    });
-    await v2db.close();
+          },
+        ),
+      );
+      await v2db.insert('sessions', {
+        'id': 'v2-session',
+        'player_id': 'player',
+        'seed': 1,
+        'operation_types': '["addition"]',
+        'exercise_count': 4,
+        'total_score': 40,
+        'levels_json': '{"addition":12}',
+        'created_at': DateTime.utc(2026, 10, 1).toIso8601String(),
+      });
+      await v2db.close();
 
-    final v3db = await openMathTrainerDatabase(path);
-    final rows = await v3db.query('sessions');
+      final v3db = await openMathTrainerDatabase(path);
+      final rows = await v3db.query('sessions');
 
-    expect(rows.single['levels_json'], '{"addition":12}');
-    expect(rows.single.containsKey('overall_level_after'), isTrue);
-    expect(rows.single['overall_level_after'], isNull);
+      expect(rows.single['levels_json'], '{"addition":12}');
+      expect(rows.single.containsKey('overall_level_after'), isTrue);
+      expect(rows.single['overall_level_after'], isNull);
 
-    await v3db.close();
-    await databaseFactory.deleteDatabase(path);
-  });
+      await v3db.close();
+      await databaseFactory.deleteDatabase(path);
+    },
+  );
 }

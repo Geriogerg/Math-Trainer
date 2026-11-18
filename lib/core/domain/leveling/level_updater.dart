@@ -23,7 +23,11 @@ class LevelUpdater {
     ConfidenceMultiplier confidence = ConfidenceMultiplier.normal,
   }) {
     if (currentLevel < 1 || currentLevel > 100) {
-      throw ArgumentError.value(currentLevel, 'currentLevel', 'must be between 1 and 100.');
+      throw ArgumentError.value(
+        currentLevel,
+        'currentLevel',
+        'must be between 1 and 100.',
+      );
     }
 
     if (answers.length < rules.nMin) return currentLevel;
@@ -32,7 +36,9 @@ class LevelUpdater {
     final rawDelta = meanP - rules.pCible;
     if (rawDelta.abs() < rules.delta) return currentLevel;
 
-    final deadbandRemoved = rawDelta.isNegative ? rawDelta + rules.delta : rawDelta - rules.delta;
+    final deadbandRemoved = rawDelta.isNegative
+        ? rawDelta + rules.delta
+        : rawDelta - rules.delta;
     final k = rawDelta.isNegative ? rules.kBas : rules.kHaut;
     final confidenceFactor = switch (confidence) {
       ConfidenceMultiplier.normal => 1.0,
@@ -47,10 +53,8 @@ class LevelUpdater {
     // doc/decisions.md).
     final volumeWeight = math.sqrt(answers.length / rules.nMin);
 
-    final change = (deadbandRemoved * k * confidenceFactor * volumeWeight).clamp(
-      -rules.deltaMax.toDouble(),
-      rules.deltaMax.toDouble(),
-    );
+    final change = (deadbandRemoved * k * confidenceFactor * volumeWeight)
+        .clamp(-rules.deltaMax.toDouble(), rules.deltaMax.toDouble());
 
     return (currentLevel + change).round().clamp(1, 100);
   }

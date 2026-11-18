@@ -15,8 +15,14 @@ void main() {
     });
 
     test('rejects a non-positive number of active types', () {
-      expect(() => sessionLengthFor(activeTypeCount: 0, nMin: 8, cap: 24), throwsArgumentError);
-      expect(() => sessionLengthFor(activeTypeCount: -1, nMin: 8, cap: 24), throwsArgumentError);
+      expect(
+        () => sessionLengthFor(activeTypeCount: 0, nMin: 8, cap: 24),
+        throwsArgumentError,
+      );
+      expect(
+        () => sessionLengthFor(activeTypeCount: -1, nMin: 8, cap: 24),
+        throwsArgumentError,
+      );
     });
   });
 }

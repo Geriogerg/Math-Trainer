@@ -92,33 +92,54 @@ void main() {
     });
 
     test('bestStreak is 0 if no answer is right', () {
-      final result = SessionResult(totalScore: 0, outcomes: [wrong(), timeout()]);
+      final result = SessionResult(
+        totalScore: 0,
+        outcomes: [wrong(), timeout()],
+      );
 
       expect(result.bestStreak, 0);
     });
 
-    test('scoreBreakdown rebuilds base/speed/streak from the replayed streak', () {
-      const scorer = Scorer();
-      final outcomes = [correct(elapsedMs: 0), correct(elapsedMs: 0), wrong()];
-      // Replayed: streak 1 then 2 for the two right answers.
-      final raw1 = scorer.rawPointsFor(outcomes[0], currentStreak: 1);
-      final raw2 = scorer.rawPointsFor(outcomes[1], currentStreak: 2);
-      final expectedBase = raw1.base + raw2.base;
-      final expectedSpeed = raw1.speedBonus + raw2.speedBonus;
-      final expectedStreak = raw1.streakBonus + raw2.streakBonus;
-      final totalScore = expectedBase + expectedSpeed + expectedStreak + 7; // +7 : bonus arbitraire
+    test(
+      'scoreBreakdown rebuilds base/speed/streak from the replayed streak',
+      () {
+        const scorer = Scorer();
+        final outcomes = [
+          correct(elapsedMs: 0),
+          correct(elapsedMs: 0),
+          wrong(),
+        ];
+        // Replayed: streak 1 then 2 for the two right answers.
+        final raw1 = scorer.rawPointsFor(outcomes[0], currentStreak: 1);
+        final raw2 = scorer.rawPointsFor(outcomes[1], currentStreak: 2);
+        final expectedBase = raw1.base + raw2.base;
+        final expectedSpeed = raw1.speedBonus + raw2.speedBonus;
+        final expectedStreak = raw1.streakBonus + raw2.streakBonus;
+        final totalScore =
+            expectedBase +
+            expectedSpeed +
+            expectedStreak +
+            7; // +7 : bonus arbitraire
 
-      final result = SessionResult(totalScore: totalScore, outcomes: outcomes, scorer: scorer);
-      final breakdown = result.scoreBreakdown;
+        final result = SessionResult(
+          totalScore: totalScore,
+          outcomes: outcomes,
+          scorer: scorer,
+        );
+        final breakdown = result.scoreBreakdown;
 
-      expect(breakdown.base, expectedBase);
-      expect(breakdown.speedBonus, expectedSpeed);
-      expect(breakdown.streakBonus, expectedStreak);
-      // The four components must always sum exactly to the total score.
-      expect(
-        breakdown.base + breakdown.speedBonus + breakdown.streakBonus + breakdown.difficultyBonus,
-        totalScore,
-      );
-    });
+        expect(breakdown.base, expectedBase);
+        expect(breakdown.speedBonus, expectedSpeed);
+        expect(breakdown.streakBonus, expectedStreak);
+        // The four components must always sum exactly to the total score.
+        expect(
+          breakdown.base +
+              breakdown.speedBonus +
+              breakdown.streakBonus +
+              breakdown.difficultyBonus,
+          totalScore,
+        );
+      },
+    );
   });
 }

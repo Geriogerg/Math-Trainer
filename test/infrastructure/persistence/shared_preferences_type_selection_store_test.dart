@@ -26,18 +26,23 @@ void main() {
       expect(result, {ExerciseType.multiplication, ExerciseType.division});
     });
 
-    test('an empty selection saved explicitly is distinct from "never saved"', () async {
-      final store = SharedPreferencesTypeSelectionStore();
+    test(
+      'an empty selection saved explicitly is distinct from "never saved"',
+      () async {
+        final store = SharedPreferencesTypeSelectionStore();
 
-      await store.save(const {});
-      final result = await store.load();
+        await store.save(const {});
+        final result = await store.load();
 
-      expect(result, isNotNull);
-      expect(result, isEmpty);
-    });
+        expect(result, isNotNull);
+        expect(result, isEmpty);
+      },
+    );
 
     test('persists beyond the store instance', () async {
-      await SharedPreferencesTypeSelectionStore().save({ExerciseType.percentage});
+      await SharedPreferencesTypeSelectionStore().save({
+        ExerciseType.percentage,
+      });
 
       final result = await SharedPreferencesTypeSelectionStore().load();
 

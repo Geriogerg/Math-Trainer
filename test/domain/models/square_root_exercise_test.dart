@@ -11,11 +11,17 @@ void main() {
     });
 
     test('type is ExerciseType.squareRoot', () {
-      expect(const SquareRootExercise(radicand: 16).type, ExerciseType.squareRoot);
+      expect(
+        const SquareRootExercise(radicand: 16).type,
+        ExerciseType.squareRoot,
+      );
     });
 
     test('isCorrectAnswer rejects a wrong answer', () {
-      expect(const SquareRootExercise(radicand: 16).isCorrectAnswer(5), isFalse);
+      expect(
+        const SquareRootExercise(radicand: 16).isCorrectAnswer(5),
+        isFalse,
+      );
     });
   });
 }

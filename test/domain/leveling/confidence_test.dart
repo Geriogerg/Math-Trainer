@@ -17,7 +17,11 @@ void main() {
 
     test("calibration during an operation's first 3 sessions", () {
       for (final sessionsPlayed in [0, 1, 2]) {
-        final entry = LevelCacheEntry(level: 50, sessionsPlayed: sessionsPlayed, updatedAt: now);
+        final entry = LevelCacheEntry(
+          level: 50,
+          sessionsPlayed: sessionsPlayed,
+          updatedAt: now,
+        );
         expect(
           confidenceFor(entry: entry, now: now, rules: rules),
           ConfidenceMultiplier.calibration,
@@ -26,23 +30,48 @@ void main() {
     });
 
     test('normal after 3 sessions and no long absence', () {
-      final entry = LevelCacheEntry(level: 50, sessionsPlayed: 5, updatedAt: now);
+      final entry = LevelCacheEntry(
+        level: 50,
+        sessionsPlayed: 5,
+        updatedAt: now,
+      );
 
-      expect(confidenceFor(entry: entry, now: now, rules: rules), ConfidenceMultiplier.normal);
+      expect(
+        confidenceFor(entry: entry, now: now, rules: rules),
+        ConfidenceMultiplier.normal,
+      );
     });
 
     test('returning after an absence of absenceDaysThreshold days or more', () {
-      final lastPlayed = now.subtract(Duration(days: rules.absenceDaysThreshold));
-      final entry = LevelCacheEntry(level: 50, sessionsPlayed: 5, updatedAt: lastPlayed);
+      final lastPlayed = now.subtract(
+        Duration(days: rules.absenceDaysThreshold),
+      );
+      final entry = LevelCacheEntry(
+        level: 50,
+        sessionsPlayed: 5,
+        updatedAt: lastPlayed,
+      );
 
-      expect(confidenceFor(entry: entry, now: now, rules: rules), ConfidenceMultiplier.returning);
+      expect(
+        confidenceFor(entry: entry, now: now, rules: rules),
+        ConfidenceMultiplier.returning,
+      );
     });
 
     test('normal just under the absence threshold', () {
-      final lastPlayed = now.subtract(Duration(days: rules.absenceDaysThreshold - 1));
-      final entry = LevelCacheEntry(level: 50, sessionsPlayed: 5, updatedAt: lastPlayed);
+      final lastPlayed = now.subtract(
+        Duration(days: rules.absenceDaysThreshold - 1),
+      );
+      final entry = LevelCacheEntry(
+        level: 50,
+        sessionsPlayed: 5,
+        updatedAt: lastPlayed,
+      );
 
-      expect(confidenceFor(entry: entry, now: now, rules: rules), ConfidenceMultiplier.normal);
+      expect(
+        confidenceFor(entry: entry, now: now, rules: rules),
+        ConfidenceMultiplier.normal,
+      );
     });
   });
 }

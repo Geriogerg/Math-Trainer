@@ -29,7 +29,9 @@ import 'src/replay_metrics.dart';
 Future<void> main(List<String> args) async {
   final dbPath = _argValue(args, '--db');
   if (dbPath == null) {
-    stderr.writeln('Usage: dart run tool/recalibrate.dart --db <path to math_trainer.db>');
+    stderr.writeln(
+      'Usage: dart run tool/recalibrate.dart --db <path to math_trainer.db>',
+    );
     exit(64);
   }
 
@@ -37,7 +39,10 @@ Future<void> main(List<String> args) async {
   final database = await databaseFactoryFfi.openDatabase(dbPath);
 
   final defaultRules = LevelingRules();
-  final trajectories = await _loadTrajectories(database, nMin: defaultRules.nMin);
+  final trajectories = await _loadTrajectories(
+    database,
+    nMin: defaultRules.nMin,
+  );
   await database.close();
 
   if (trajectories.isEmpty) {
@@ -53,7 +58,9 @@ Future<void> main(List<String> args) async {
   final baseTime = DateTime.utc(2026, 1, 1);
   for (final sweep in _sweeps) {
     print('== ${sweep.name} (default: ${sweep.defaultValue}) ==');
-    print('value\tconvergence (sessions)\toscillation (±levels)\tbias (levels/session)');
+    print(
+      'value\tconvergence (sessions)\toscillation (±levels)\tbias (levels/session)',
+    );
     for (final candidate in sweep.candidates) {
       final rules = sweep.apply(defaultRules, candidate);
       final metrics = averageMetrics(trajectories, rules, baseTime);
@@ -71,7 +78,8 @@ Future<void> main(List<String> args) async {
   );
 }
 
-String _fmt(double? value, int decimals) => value == null ? '—' : value.toStringAsFixed(decimals);
+String _fmt(double? value, int decimals) =>
+    value == null ? '—' : value.toStringAsFixed(decimals);
 
 String? _argValue(List<String> args, String name) {
   final index = args.indexOf(name);
@@ -81,7 +89,10 @@ String? _argValue(List<String> args, String name) {
 
 /// Sessions under `n_min` are already excluded here (this filter does not
 /// vary from one sweep to the next, unlike the rest of `LevelingRules`).
-Future<List<Trajectory>> _loadTrajectories(Database database, {required int nMin}) async {
+Future<List<Trajectory>> _loadTrajectories(
+  Database database, {
+  required int nMin,
+}) async {
   final sessionRows = await database.query(
     'sessions',
     columns: ['id', 'player_id'],
@@ -108,7 +119,9 @@ Future<List<Trajectory>> _loadTrajectories(Database database, {required int nMin
       // carries the exact name.
       final storedType = row['exercise_type'] as String;
       final type = ExerciseType.values.byName(
-        storedType == 'arithmetic' ? row['operation_type'] as String : storedType,
+        storedType == 'arithmetic'
+            ? row['operation_type'] as String
+            : storedType,
       );
       byType
           .putIfAbsent(type, () => [])

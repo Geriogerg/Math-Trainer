@@ -18,10 +18,18 @@ class PersistedAnswer {
     this.syncedAt,
   }) {
     if (!createdAt.isUtc) {
-      throw ArgumentError.value(createdAt, 'createdAt', 'must be UTC (DateTime.toUtc()).');
+      throw ArgumentError.value(
+        createdAt,
+        'createdAt',
+        'must be UTC (DateTime.toUtc()).',
+      );
     }
     if (syncedAt != null && !syncedAt!.isUtc) {
-      throw ArgumentError.value(syncedAt, 'syncedAt', 'must be UTC (DateTime.toUtc()).');
+      throw ArgumentError.value(
+        syncedAt,
+        'syncedAt',
+        'must be UTC (DateTime.toUtc()).',
+      );
     }
   }
 
@@ -47,7 +55,9 @@ class PersistedAnswer {
       isCorrect: isCorrect,
       elapsedMs: elapsedMs,
       createdAt: createdAt,
-      syncedAt: identical(syncedAt, _unset) ? this.syncedAt : syncedAt as DateTime?,
+      syncedAt: identical(syncedAt, _unset)
+          ? this.syncedAt
+          : syncedAt as DateTime?,
     );
   }
 

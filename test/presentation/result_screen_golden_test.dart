@@ -44,7 +44,11 @@ void main() {
   Future<SessionController> buildFinishedController() async {
     final exercises = List.generate(
       4,
-      (i) => ArithmeticExercise(operandA: i, operandB: 0, operationType: OperationType.addition),
+      (i) => ArithmeticExercise(
+        operandA: i,
+        operandB: 0,
+        operationType: OperationType.addition,
+      ),
     );
     final controller = SessionController(
       config: SessionConfig(

@@ -15,7 +15,8 @@ void main() {
 
     test('the range widens on both sides as the level rises', () {
       final ranges = [
-        for (final level in [1, 25, 50, 75, 100]) percentageDifficulty.percentRangeFor(level),
+        for (final level in [1, 25, 50, 75, 100])
+          percentageDifficulty.percentRangeFor(level),
       ];
 
       for (var i = 1; i < ranges.length; i++) {
@@ -25,8 +26,14 @@ void main() {
     });
 
     test('rejects a level outside [1, 100]', () {
-      expect(() => percentageDifficulty.percentRangeFor(0), throwsArgumentError);
-      expect(() => percentageDifficulty.percentRangeFor(101), throwsArgumentError);
+      expect(
+        () => percentageDifficulty.percentRangeFor(0),
+        throwsArgumentError,
+      );
+      expect(
+        () => percentageDifficulty.percentRangeFor(101),
+        throwsArgumentError,
+      );
     });
   });
 }

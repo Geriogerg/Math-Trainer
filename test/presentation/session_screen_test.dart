@@ -42,9 +42,21 @@ void main() {
     'the streak only appears from the first right answer (commit F)',
     (tester) async {
       const exercises = [
-        ArithmeticExercise(operandA: 1, operandB: 1, operationType: OperationType.addition),
-        ArithmeticExercise(operandA: 2, operandB: 2, operationType: OperationType.addition),
-        ArithmeticExercise(operandA: 3, operandB: 3, operationType: OperationType.addition),
+        ArithmeticExercise(
+          operandA: 1,
+          operandB: 1,
+          operationType: OperationType.addition,
+        ),
+        ArithmeticExercise(
+          operandA: 2,
+          operandB: 2,
+          operationType: OperationType.addition,
+        ),
+        ArithmeticExercise(
+          operandA: 3,
+          operandB: 3,
+          operationType: OperationType.addition,
+        ),
       ];
       final controller = SessionController(
         config: SessionConfig(
@@ -103,8 +115,16 @@ void main() {
   group('physical keyboard', () {
     Future<SessionController> pumpSession(WidgetTester tester) async {
       const exercises = [
-        ArithmeticExercise(operandA: 6, operandB: 6, operationType: OperationType.addition),
-        ArithmeticExercise(operandA: 1, operandB: 1, operationType: OperationType.addition),
+        ArithmeticExercise(
+          operandA: 6,
+          operandB: 6,
+          operationType: OperationType.addition,
+        ),
+        ArithmeticExercise(
+          operandA: 1,
+          operandB: 1,
+          operationType: OperationType.addition,
+        ),
       ];
       final controller = SessionController(
         config: SessionConfig(
@@ -175,7 +195,9 @@ void main() {
     });
   });
 
-  testWidgets('no timeout (debug switch): the timer bar stays full', (tester) async {
+  testWidgets('no timeout (debug switch): the timer bar stays full', (
+    tester,
+  ) async {
     final controller = SessionController(
       config: SessionConfig(
         seed: 1,
@@ -184,8 +206,16 @@ void main() {
         levels: const {ExerciseType.addition: 12},
       ),
       exerciseSource: _FixedExerciseSource(const [
-        ArithmeticExercise(operandA: 1, operandB: 1, operationType: OperationType.addition),
-        ArithmeticExercise(operandA: 2, operandB: 2, operationType: OperationType.addition),
+        ArithmeticExercise(
+          operandA: 1,
+          operandB: 1,
+          operationType: OperationType.addition,
+        ),
+        ArithmeticExercise(
+          operandA: 2,
+          operandB: 2,
+          operationType: OperationType.addition,
+        ),
       ]),
       repository: InMemorySessionRepository(),
       playerId: 'test-player',
@@ -207,7 +237,9 @@ void main() {
     );
     await tester.pump(const Duration(seconds: 20));
 
-    final bar = tester.widget<LinearProgressIndicator>(find.byType(LinearProgressIndicator));
+    final bar = tester.widget<LinearProgressIndicator>(
+      find.byType(LinearProgressIndicator),
+    );
     expect(bar.value, 1);
     expect(controller.state.outcomes, isEmpty);
   });

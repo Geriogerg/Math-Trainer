@@ -14,8 +14,11 @@ class PowerExerciseGenerator implements ExerciseGenerator {
 
   @override
   PowerExercise next(Random random) {
-    final base = baseRange.min + random.nextInt(baseRange.max - baseRange.min + 1);
-    final exponent = exponentRange.min + random.nextInt(exponentRange.max - exponentRange.min + 1);
+    final base =
+        baseRange.min + random.nextInt(baseRange.max - baseRange.min + 1);
+    final exponent =
+        exponentRange.min +
+        random.nextInt(exponentRange.max - exponentRange.min + 1);
     return PowerExercise(base: base, exponent: exponent);
   }
 }

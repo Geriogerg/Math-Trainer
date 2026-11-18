@@ -82,15 +82,26 @@ class _LevelReadFailureRepository implements SessionRepository {
     required PersistedSession session,
     required List<PersistedAnswer> answers,
     required Map<ExerciseType, LevelCacheEntry> levelUpdates,
-  }) => inner.recordSession(session: session, answers: answers, levelUpdates: levelUpdates);
+  }) => inner.recordSession(
+    session: session,
+    answers: answers,
+    levelUpdates: levelUpdates,
+  );
 
   @override
-  Future<List<PersistedSession>> recentSessions(String playerId, {int limit = 20}) =>
-      inner.recentSessions(playerId, limit: limit);
+  Future<List<PersistedSession>> recentSessions(
+    String playerId, {
+    int limit = 20,
+  }) => inner.recentSessions(playerId, limit: limit);
 
   @override
-  Future<void> transferPlayerData({required String fromPlayerId, required String toPlayerId}) =>
-      inner.transferPlayerData(fromPlayerId: fromPlayerId, toPlayerId: toPlayerId);
+  Future<void> transferPlayerData({
+    required String fromPlayerId,
+    required String toPlayerId,
+  }) => inner.transferPlayerData(
+    fromPlayerId: fromPlayerId,
+    toPlayerId: toPlayerId,
+  );
 
   @override
   Future<List<PersistedAnswer>> answersForSession(String sessionId) =>
@@ -101,8 +112,10 @@ class _LevelReadFailureRepository implements SessionRepository {
       inner.averageElapsedMsByType(playerId);
 
   @override
-  Future<List<PersistedSession>> sessionsSince(String playerId, DateTime since) =>
-      inner.sessionsSince(playerId, since);
+  Future<List<PersistedSession>> sessionsSince(
+    String playerId,
+    DateTime since,
+  ) => inner.sessionsSince(playerId, since);
 }
 
 /// `currentLevels` throws an `Error` (not an `Exception`): simulates a bug —
@@ -120,15 +133,26 @@ class _BuggyLevelReadRepository implements SessionRepository {
     required PersistedSession session,
     required List<PersistedAnswer> answers,
     required Map<ExerciseType, LevelCacheEntry> levelUpdates,
-  }) => inner.recordSession(session: session, answers: answers, levelUpdates: levelUpdates);
+  }) => inner.recordSession(
+    session: session,
+    answers: answers,
+    levelUpdates: levelUpdates,
+  );
 
   @override
-  Future<List<PersistedSession>> recentSessions(String playerId, {int limit = 20}) =>
-      inner.recentSessions(playerId, limit: limit);
+  Future<List<PersistedSession>> recentSessions(
+    String playerId, {
+    int limit = 20,
+  }) => inner.recentSessions(playerId, limit: limit);
 
   @override
-  Future<void> transferPlayerData({required String fromPlayerId, required String toPlayerId}) =>
-      inner.transferPlayerData(fromPlayerId: fromPlayerId, toPlayerId: toPlayerId);
+  Future<void> transferPlayerData({
+    required String fromPlayerId,
+    required String toPlayerId,
+  }) => inner.transferPlayerData(
+    fromPlayerId: fromPlayerId,
+    toPlayerId: toPlayerId,
+  );
 
   @override
   Future<List<PersistedAnswer>> answersForSession(String sessionId) =>
@@ -139,16 +163,30 @@ class _BuggyLevelReadRepository implements SessionRepository {
       inner.averageElapsedMsByType(playerId);
 
   @override
-  Future<List<PersistedSession>> sessionsSince(String playerId, DateTime since) =>
-      inner.sessionsSince(playerId, since);
+  Future<List<PersistedSession>> sessionsSince(
+    String playerId,
+    DateTime since,
+  ) => inner.sessionsSince(playerId, since);
 }
 
 void main() {
   persistenceRobustnessTests();
   const exercises = [
-    ArithmeticExercise(operandA: 2, operandB: 2, operationType: OperationType.addition),
-    ArithmeticExercise(operandA: 5, operandB: 3, operationType: OperationType.addition),
-    ArithmeticExercise(operandA: 9, operandB: 1, operationType: OperationType.addition),
+    ArithmeticExercise(
+      operandA: 2,
+      operandB: 2,
+      operationType: OperationType.addition,
+    ),
+    ArithmeticExercise(
+      operandA: 5,
+      operandB: 3,
+      operationType: OperationType.addition,
+    ),
+    ArithmeticExercise(
+      operandA: 9,
+      operandB: 1,
+      operationType: OperationType.addition,
+    ),
   ];
 
   SessionController buildController({InMemorySessionRepository? repository}) {
@@ -196,7 +234,10 @@ void main() {
 
       controller.submitAnswer(4); // correct, exercises[0] : 2+2
       expect(controller.state.currentStreak, 1);
-      expect(controller.state.score, 20); // base 10 + max speed bonus 10 (zero elapsed)
+      expect(
+        controller.state.score,
+        20,
+      ); // base 10 + max speed bonus 10 (zero elapsed)
       expect(controller.state.currentExercise, exercises[1]);
 
       controller.submitAnswer(0); // incorrect, exercises[1] : 5+3=8
@@ -263,43 +304,49 @@ void main() {
       expect(await repository.currentLevels('test-player'), isEmpty);
     });
 
-    test('each stored answer carries its own time, a timeout the time it ran out', () async {
-      final repository = InMemorySessionRepository();
-      final spy = _TimerSpy();
-      var now = DateTime.utc(2024, 3, 1, 9);
-      final controller = SessionController(
-        config: SessionConfig(
-          seed: 1,
-          enabledTypes: {ExerciseType.addition},
-          exerciseCount: exercises.length,
-          levels: {ExerciseType.addition: 1},
-        ),
-        exerciseSource: _FixedExerciseSource(exercises),
-        repository: repository,
-        playerId: 'test-player',
-        clock: () => now,
-        createTimer: spy.create,
-      );
-      controller.start();
+    test(
+      'each stored answer carries its own time, a timeout the time it ran out',
+      () async {
+        final repository = InMemorySessionRepository();
+        final spy = _TimerSpy();
+        var now = DateTime.utc(2024, 3, 1, 9);
+        final controller = SessionController(
+          config: SessionConfig(
+            seed: 1,
+            enabledTypes: {ExerciseType.addition},
+            exerciseCount: exercises.length,
+            levels: {ExerciseType.addition: 1},
+          ),
+          exerciseSource: _FixedExerciseSource(exercises),
+          repository: repository,
+          playerId: 'test-player',
+          clock: () => now,
+          createTimer: spy.create,
+        );
+        controller.start();
 
-      now = now.add(const Duration(seconds: 2));
-      controller.submitAnswer(4);
-      now = now.add(const Duration(seconds: 3));
-      controller.submitAnswer(0);
-      now = now.add(const Duration(seconds: 15));
-      spy.latest.fire();
-      await controller.pendingPersistence;
+        now = now.add(const Duration(seconds: 2));
+        controller.submitAnswer(4);
+        now = now.add(const Duration(seconds: 3));
+        controller.submitAnswer(0);
+        now = now.add(const Duration(seconds: 15));
+        spy.latest.fire();
+        await controller.pendingPersistence;
 
-      final session = (await repository.recentSessions('test-player')).single;
-      final answers = await repository.answersForSession(session.id);
-      expect(answers.map((a) => a.createdAt), [
-        DateTime.utc(2024, 3, 1, 9, 0, 2),
-        DateTime.utc(2024, 3, 1, 9, 0, 5),
-        DateTime.utc(2024, 3, 1, 9, 0, 20),
-      ]);
-      expect(answers.map((a) => a.createdAt.isUtc), everyElement(isTrue));
-      expect(controller.state.outcomes.map((o) => o.answeredAt), answers.map((a) => a.createdAt));
-    });
+        final session = (await repository.recentSessions('test-player')).single;
+        final answers = await repository.answersForSession(session.id);
+        expect(answers.map((a) => a.createdAt), [
+          DateTime.utc(2024, 3, 1, 9, 0, 2),
+          DateTime.utc(2024, 3, 1, 9, 0, 5),
+          DateTime.utc(2024, 3, 1, 9, 0, 20),
+        ]);
+        expect(answers.map((a) => a.createdAt.isUtc), everyElement(isTrue));
+        expect(
+          controller.state.outcomes.map((o) => o.answeredAt),
+          answers.map((a) => a.createdAt),
+        );
+      },
+    );
 
     test('a local clock is stored as UTC', () async {
       final repository = InMemorySessionRepository();
@@ -327,48 +374,59 @@ void main() {
       expect(answer.createdAt.isUtc, isTrue);
     });
 
-    test('a session with at least n_min right and fast answers updates the level '
-        'cache (calibration, first time on this operation)', () async {
-      final repository = InMemorySessionRepository();
-      final eightExercises = List.generate(
-        8,
-        (i) => ArithmeticExercise(operandA: i, operandB: 0, operationType: OperationType.addition),
-      );
-      final controller = SessionController(
-        config: SessionConfig(
-          seed: 1,
-          enabledTypes: {ExerciseType.addition},
-          exerciseCount: 8,
-          levels: {ExerciseType.addition: 50},
-        ),
-        exerciseSource: _FixedExerciseSource(eightExercises),
-        repository: repository,
-        playerId: 'test-player',
-        clock: () => DateTime(2024),
-        createTimer: (duration, callback) => _FakeTimer(callback),
-      );
+    test(
+      'a session with at least n_min right and fast answers updates the level '
+      'cache (calibration, first time on this operation)',
+      () async {
+        final repository = InMemorySessionRepository();
+        final eightExercises = List.generate(
+          8,
+          (i) => ArithmeticExercise(
+            operandA: i,
+            operandB: 0,
+            operationType: OperationType.addition,
+          ),
+        );
+        final controller = SessionController(
+          config: SessionConfig(
+            seed: 1,
+            enabledTypes: {ExerciseType.addition},
+            exerciseCount: 8,
+            levels: {ExerciseType.addition: 50},
+          ),
+          exerciseSource: _FixedExerciseSource(eightExercises),
+          repository: repository,
+          playerId: 'test-player',
+          clock: () => DateTime(2024),
+          createTimer: (duration, callback) => _FakeTimer(callback),
+        );
 
-      controller.start();
-      for (var i = 0; i < 8; i++) {
-        controller.submitAnswer(i); // i + 0 = i: always right
-      }
-      await Future<void>.delayed(Duration.zero);
+        controller.start();
+        for (var i = 0; i < 8; i++) {
+          controller.submitAnswer(i); // i + 0 = i: always right
+        }
+        await Future<void>.delayed(Duration.zero);
 
-      final levels = await repository.currentLevels('test-player');
-      // From level 50, 8 right and instant answers (n_min = 4, weighting
-      // √(8/4) — see doc/decisions.md), "calibration" confidence (first
-      // session on this operation): the unclamped change exceeds deltaMax,
-      // capped at 3 → 53.
-      expect(levels[ExerciseType.addition]?.level, 53);
-      expect(levels[ExerciseType.addition]?.sessionsPlayed, 1);
-    });
+        final levels = await repository.currentLevels('test-player');
+        // From level 50, 8 right and instant answers (n_min = 4, weighting
+        // √(8/4) — see doc/decisions.md), "calibration" confidence (first
+        // session on this operation): the unclamped change exceeds deltaMax,
+        // capped at 3 → 53.
+        expect(levels[ExerciseType.addition]?.level, 53);
+        expect(levels[ExerciseType.addition]?.sessionsPlayed, 1);
+      },
+    );
 
     test('a failed level cache read does not prevent the session from being '
         'stored', () async {
       final repository = _LevelReadFailureRepository();
       final eightExercises = List.generate(
         8,
-        (i) => ArithmeticExercise(operandA: i, operandB: 0, operationType: OperationType.addition),
+        (i) => ArithmeticExercise(
+          operandA: i,
+          operandB: 0,
+          operationType: OperationType.addition,
+        ),
       );
       final controller = SessionController(
         config: SessionConfig(
@@ -394,7 +452,9 @@ void main() {
       // failed cache read.
       final sessions = await repository.inner.recentSessions('test-player');
       expect(sessions, hasLength(1));
-      final answers = await repository.inner.answersForSession(sessions.single.id);
+      final answers = await repository.inner.answersForSession(
+        sessions.single.id,
+      );
       expect(answers, hasLength(8));
 
       // The level cache (recomputable) could not be updated this time — no
@@ -402,46 +462,53 @@ void main() {
       expect(await repository.inner.currentLevels('test-player'), isEmpty);
     });
 
-    test('an Error (bug) while computing the cache is not silently swallowed', () async {
-      final repository = _BuggyLevelReadRepository();
-      final eightExercises = List.generate(
-        8,
-        (i) => ArithmeticExercise(operandA: i, operandB: 0, operationType: OperationType.addition),
-      );
-      final controller = SessionController(
-        config: SessionConfig(
-          seed: 1,
-          enabledTypes: {ExerciseType.addition},
-          exerciseCount: 8,
-          levels: {ExerciseType.addition: 50},
-        ),
-        exerciseSource: _FixedExerciseSource(eightExercises),
-        repository: repository,
-        playerId: 'test-player',
-        clock: () => DateTime(2024),
-        createTimer: (duration, callback) => _FakeTimer(callback),
-      );
+    test(
+      'an Error (bug) while computing the cache is not silently swallowed',
+      () async {
+        final repository = _BuggyLevelReadRepository();
+        final eightExercises = List.generate(
+          8,
+          (i) => ArithmeticExercise(
+            operandA: i,
+            operandB: 0,
+            operationType: OperationType.addition,
+          ),
+        );
+        final controller = SessionController(
+          config: SessionConfig(
+            seed: 1,
+            enabledTypes: {ExerciseType.addition},
+            exerciseCount: 8,
+            levels: {ExerciseType.addition: 50},
+          ),
+          exerciseSource: _FixedExerciseSource(eightExercises),
+          repository: repository,
+          playerId: 'test-player',
+          clock: () => DateTime(2024),
+          createTimer: (duration, callback) => _FakeTimer(callback),
+        );
 
-      final uncaughtErrors = <Object>[];
-      await runZonedGuarded(() async {
-        controller.start();
-        for (var i = 0; i < 8; i++) {
-          controller.submitAnswer(i);
-        }
-        // _persistCompletedSession runs in the background (unawaited): let
-        // the unhandled error reach the zone before checking.
-        await Future<void>.delayed(Duration.zero);
-      }, (error, stack) => uncaughtErrors.add(error));
+        final uncaughtErrors = <Object>[];
+        await runZonedGuarded(() async {
+          controller.start();
+          for (var i = 0; i < 8; i++) {
+            controller.submitAnswer(i);
+          }
+          // _persistCompletedSession runs in the background (unawaited): let
+          // the unhandled error reach the zone before checking.
+          await Future<void>.delayed(Duration.zero);
+        }, (error, stack) => uncaughtErrors.add(error));
 
-      expect(uncaughtErrors, hasLength(1));
-      expect(uncaughtErrors.single, isA<ArgumentError>());
+        expect(uncaughtErrors, hasLength(1));
+        expect(uncaughtErrors.single, isA<ArgumentError>());
 
-      // The Error propagates before reaching recordSession (rule 13: do not
-      // carry on after a broken invariant) — unlike the Exception case
-      // (previous test), where recordSession still runs.
-      final sessions = await repository.inner.recentSessions('test-player');
-      expect(sessions, isEmpty);
-    });
+        // The Error propagates before reaching recordSession (rule 13: do not
+        // carry on after a broken invariant) — unlike the Exception case
+        // (previous test), where recordSession still runs.
+        final sessions = await repository.inner.recentSessions('test-player');
+        expect(sessions, isEmpty);
+      },
+    );
 
     test('restart() fully resets the session', () {
       final controller = buildController();
@@ -460,7 +527,11 @@ void main() {
   group('Per-question timeout (step 4.2, commit B)', () {
     List<ArithmeticExercise> manyExercises(int count) => List.generate(
       count,
-      (i) => ArithmeticExercise(operandA: i, operandB: 0, operationType: OperationType.addition),
+      (i) => ArithmeticExercise(
+        operandA: i,
+        operandB: 0,
+        operationType: OperationType.addition,
+      ),
     );
 
     SessionController buildTimeoutController({
@@ -483,19 +554,22 @@ void main() {
       );
     }
 
-    test('a timeout without activity counts as wrong and moves to the next question', () {
-      final spy = _TimerSpy();
-      final controller = buildTimeoutController(spy: spy, exerciseCount: 5);
+    test(
+      'a timeout without activity counts as wrong and moves to the next question',
+      () {
+        final spy = _TimerSpy();
+        final controller = buildTimeoutController(spy: spy, exerciseCount: 5);
 
-      controller.start();
-      spy.latest.fire();
+        controller.start();
+        spy.latest.fire();
 
-      expect(controller.state.status, SessionStatus.inProgress);
-      expect(controller.state.outcomes, hasLength(1));
-      expect(controller.state.outcomes.single.isCorrect, isFalse);
-      expect(controller.state.outcomes.single.isTimeout, isTrue);
-      expect(controller.state.currentExercise, manyExercises(5)[1]);
-    });
+        expect(controller.state.status, SessionStatus.inProgress);
+        expect(controller.state.outcomes, hasLength(1));
+        expect(controller.state.outcomes.single.isCorrect, isFalse);
+        expect(controller.state.outcomes.single.isTimeout, isTrue);
+        expect(controller.state.currentExercise, manyExercises(5)[1]);
+      },
+    );
 
     test(
       'a timeout after activity (input never submitted) does not count towards abandonment',
@@ -542,35 +616,41 @@ void main() {
       expect(controller.state.outcomes.single.isTimeout, isFalse);
     });
 
-    test('three consecutive timeouts without any activity interrupt the session', () {
-      final spy = _TimerSpy();
-      final controller = buildTimeoutController(spy: spy, exerciseCount: 10);
+    test(
+      'three consecutive timeouts without any activity interrupt the session',
+      () {
+        final spy = _TimerSpy();
+        final controller = buildTimeoutController(spy: spy, exerciseCount: 10);
 
-      controller.start();
-      spy.latest.fire();
-      spy.latest.fire();
-      spy.latest.fire();
+        controller.start();
+        spy.latest.fire();
+        spy.latest.fire();
+        spy.latest.fire();
 
-      expect(controller.state.status, SessionStatus.interrupted);
-      expect(controller.state.outcomes, hasLength(3));
-      expect(controller.state.currentExercise, isNull);
-    });
+        expect(controller.state.status, SessionStatus.interrupted);
+        expect(controller.state.outcomes, hasLength(3));
+        expect(controller.state.currentExercise, isNull);
+      },
+    );
 
-    test('a real answer between two timeouts resets the abandonment counter', () {
-      final spy = _TimerSpy();
-      final controller = buildTimeoutController(spy: spy, exerciseCount: 10);
+    test(
+      'a real answer between two timeouts resets the abandonment counter',
+      () {
+        final spy = _TimerSpy();
+        final controller = buildTimeoutController(spy: spy, exerciseCount: 10);
 
-      controller.start();
-      spy.latest.fire(); // timeout 1, no activity
-      spy.latest.fire(); // timeout 2, no activity
-      controller.submitAnswer(0); // real answer: resets the counter to 0
-      spy.latest.fire(); // timeout 1 (nouveau compte)
-      spy.latest.fire(); // timeout 2
+        controller.start();
+        spy.latest.fire(); // timeout 1, no activity
+        spy.latest.fire(); // timeout 2, no activity
+        controller.submitAnswer(0); // real answer: resets the counter to 0
+        spy.latest.fire(); // timeout 1 (nouveau compte)
+        spy.latest.fire(); // timeout 2
 
-      // 4 timeouts + 1 real answer, but never 3 consecutive timeouts without
-      // activity: still in progress.
-      expect(controller.state.status, SessionStatus.inProgress);
-    });
+        // 4 timeouts + 1 real answer, but never 3 consecutive timeouts without
+        // activity: still in progress.
+        expect(controller.state.status, SessionStatus.inProgress);
+      },
+    );
 
     test(
       'an interrupted session stores the answers already given but not the level',
@@ -626,13 +706,19 @@ void main() {
       },
     );
 
-    test('pendingPersistence is already resolved while no session has ended', () async {
-      final controller = buildTimeoutController(spy: _TimerSpy(), exerciseCount: 5);
-      controller.start();
+    test(
+      'pendingPersistence is already resolved while no session has ended',
+      () async {
+        final controller = buildTimeoutController(
+          spy: _TimerSpy(),
+          exerciseCount: 5,
+        );
+        controller.start();
 
-      // Must not block: no persistence running.
-      await controller.pendingPersistence;
-    });
+        // Must not block: no persistence running.
+        await controller.pendingPersistence;
+      },
+    );
 
     test('restart() cancels the running session timer', () {
       final spy = _TimerSpy();
@@ -652,7 +738,11 @@ void main() {
   group('abandon() (step 5, commit A)', () {
     List<ArithmeticExercise> manyExercises(int count) => List.generate(
       count,
-      (i) => ArithmeticExercise(operandA: i, operandB: 0, operationType: OperationType.addition),
+      (i) => ArithmeticExercise(
+        operandA: i,
+        operandB: 0,
+        operationType: OperationType.addition,
+      ),
     );
 
     test('interrupts a running session, answers already given kept', () async {
@@ -771,7 +861,11 @@ void main() {
       final repository = InMemorySessionRepository();
       final eightExercises = List.generate(
         8,
-        (i) => ArithmeticExercise(operandA: i, operandB: 0, operationType: OperationType.addition),
+        (i) => ArithmeticExercise(
+          operandA: i,
+          operandB: 0,
+          operationType: OperationType.addition,
+        ),
       );
       final controller = SessionController(
         config: SessionConfig(
@@ -798,34 +892,41 @@ void main() {
       expect(controller.lastLevelUpdates?[ExerciseType.addition]?.level, 53);
     });
 
-    test('stays null after an interrupted session (countsForLevels: false)', () async {
-      final repository = InMemorySessionRepository();
-      final controller = SessionController(
-        config: SessionConfig(
-          seed: 1,
-          enabledTypes: {ExerciseType.addition},
-          exerciseCount: 8,
-          levels: {ExerciseType.addition: 50},
-        ),
-        exerciseSource: _FixedExerciseSource(
-          List.generate(
-            8,
-            (i) => ArithmeticExercise(operandA: i, operandB: 0, operationType: OperationType.addition),
+    test(
+      'stays null after an interrupted session (countsForLevels: false)',
+      () async {
+        final repository = InMemorySessionRepository();
+        final controller = SessionController(
+          config: SessionConfig(
+            seed: 1,
+            enabledTypes: {ExerciseType.addition},
+            exerciseCount: 8,
+            levels: {ExerciseType.addition: 50},
           ),
-        ),
-        repository: repository,
-        playerId: 'test-player',
-        clock: () => DateTime(2024),
-        createTimer: (duration, callback) => _FakeTimer(callback),
-      );
+          exerciseSource: _FixedExerciseSource(
+            List.generate(
+              8,
+              (i) => ArithmeticExercise(
+                operandA: i,
+                operandB: 0,
+                operationType: OperationType.addition,
+              ),
+            ),
+          ),
+          repository: repository,
+          playerId: 'test-player',
+          clock: () => DateTime(2024),
+          createTimer: (duration, callback) => _FakeTimer(callback),
+        );
 
-      controller.start();
-      controller.submitAnswer(0);
-      controller.abandon();
-      await controller.pendingPersistence;
+        controller.start();
+        controller.submitAnswer(0);
+        controller.abandon();
+        await controller.pendingPersistence;
 
-      expect(controller.lastLevelUpdates, isNull);
-    });
+        expect(controller.lastLevelUpdates, isNull);
+      },
+    );
 
     test('restart() clears the previous value', () async {
       final repository = InMemorySessionRepository();
@@ -839,7 +940,11 @@ void main() {
         exerciseSource: _FixedExerciseSource(
           List.generate(
             4,
-            (i) => ArithmeticExercise(operandA: i, operandB: 0, operationType: OperationType.addition),
+            (i) => ArithmeticExercise(
+              operandA: i,
+              operandB: 0,
+              operationType: OperationType.addition,
+            ),
           ),
         ),
         repository: repository,
@@ -888,7 +993,11 @@ class _FlakyRecordRepository extends InMemorySessionRepository {
       failuresLeft--;
       throw Exception('storage unavailable (simulated)');
     }
-    await super.recordSession(session: session, answers: answers, levelUpdates: levelUpdates);
+    await super.recordSession(
+      session: session,
+      answers: answers,
+      levelUpdates: levelUpdates,
+    );
   }
 }
 
@@ -948,91 +1057,108 @@ void persistenceRobustnessTests() {
       expect(controller.persistenceFailed, isTrue);
     });
 
-    test('retrying after a failure stores the game and clears the warning', () async {
-      final repository = _FlakyRecordRepository(1);
-      final controller = finishedSoon(repository)..start();
-      for (var i = 0; i < 4; i++) {
-        controller.submitAnswer(i);
-      }
-      await controller.pendingPersistence;
-      expect(controller.persistenceFailed, isTrue);
+    test(
+      'retrying after a failure stores the game and clears the warning',
+      () async {
+        final repository = _FlakyRecordRepository(1);
+        final controller = finishedSoon(repository)..start();
+        for (var i = 0; i < 4; i++) {
+          controller.submitAnswer(i);
+        }
+        await controller.pendingPersistence;
+        expect(controller.persistenceFailed, isTrue);
 
-      await controller.retryPersistence();
+        await controller.retryPersistence();
 
-      expect(controller.persistenceFailed, isFalse);
-      expect(await repository.recentSessions('test-player'), hasLength(1));
-      expect(await repository.currentLevels('test-player'), isNotEmpty);
-    });
+        expect(controller.persistenceFailed, isFalse);
+        expect(await repository.recentSessions('test-player'), hasLength(1));
+        expect(await repository.currentLevels('test-player'), isNotEmpty);
+      },
+    );
 
-    test('a new failure keeps the warning; pendingPersistence waits for the next attempt', () async {
-      final repository = _FlakyRecordRepository(2);
-      final controller = finishedSoon(repository)..start();
-      for (var i = 0; i < 4; i++) {
-        controller.submitAnswer(i);
-      }
-      await controller.pendingPersistence;
+    test(
+      'a new failure keeps the warning; pendingPersistence waits for the next attempt',
+      () async {
+        final repository = _FlakyRecordRepository(2);
+        final controller = finishedSoon(repository)..start();
+        for (var i = 0; i < 4; i++) {
+          controller.submitAnswer(i);
+        }
+        await controller.pendingPersistence;
 
-      await controller.retryPersistence();
-      expect(controller.persistenceFailed, isTrue);
-      expect(controller.isRetryingPersistence, isFalse);
+        await controller.retryPersistence();
+        expect(controller.persistenceFailed, isTrue);
+        expect(controller.isRetryingPersistence, isFalse);
 
-      // Not awaited here: `pendingPersistence` (what leaving the result
-      // screen waits for) must cover this new attempt.
-      unawaited(controller.retryPersistence());
-      expect(controller.isRetryingPersistence, isTrue);
-      await controller.pendingPersistence;
+        // Not awaited here: `pendingPersistence` (what leaving the result
+        // screen waits for) must cover this new attempt.
+        unawaited(controller.retryPersistence());
+        expect(controller.isRetryingPersistence, isTrue);
+        await controller.pendingPersistence;
 
-      expect(controller.persistenceFailed, isFalse);
-      expect(await repository.recentSessions('test-player'), hasLength(1));
-    });
+        expect(controller.persistenceFailed, isFalse);
+        expect(await repository.recentSessions('test-player'), hasLength(1));
+      },
+    );
   });
 
   group('overall level after the session (overallLevelAfter)', () {
-    test('computed over the whole cache, types not played this time included', () async {
-      final repository = InMemorySessionRepository();
-      // Multiplication played in an earlier game, not this time.
-      await repository.recordSession(
-        session: PersistedSession(
-          id: 'partie-precedente',
-          playerId: 'test-player',
-          seed: 1,
-          enabledTypes: const {ExerciseType.multiplication},
-          exerciseCount: 4,
-          totalScore: 40,
-          levels: const {ExerciseType.multiplication: 50},
-          createdAt: DateTime.utc(2023),
-        ),
-        answers: const [],
-        levelUpdates: {
-          ExerciseType.multiplication: LevelCacheEntry(
-            level: 50,
-            sessionsPlayed: 1,
-            updatedAt: DateTime.utc(2023),
+    test(
+      'computed over the whole cache, types not played this time included',
+      () async {
+        final repository = InMemorySessionRepository();
+        // Multiplication played in an earlier game, not this time.
+        await repository.recordSession(
+          session: PersistedSession(
+            id: 'partie-precedente',
+            playerId: 'test-player',
+            seed: 1,
+            enabledTypes: const {ExerciseType.multiplication},
+            exerciseCount: 4,
+            totalScore: 40,
+            levels: const {ExerciseType.multiplication: 50},
+            createdAt: DateTime.utc(2023),
           ),
-        },
-      );
-      final controller = finishedSoon(repository)..start();
-      for (var i = 0; i < 4; i++) {
-        controller.submitAnswer(i);
-      }
-      await controller.pendingPersistence;
+          answers: const [],
+          levelUpdates: {
+            ExerciseType.multiplication: LevelCacheEntry(
+              level: 50,
+              sessionsPlayed: 1,
+              updatedAt: DateTime.utc(2023),
+            ),
+          },
+        );
+        final controller = finishedSoon(repository)..start();
+        for (var i = 0; i < 4; i++) {
+          controller.submitAnswer(i);
+        }
+        await controller.pendingPersistence;
 
-      final additionAfter = (await repository.currentLevels('test-player'))[ExerciseType.addition]!.level;
-      final session = (await repository.recentSessions('test-player')).first;
-      // Addition updated + multiplication 50 + 5 types at the floor, over 7.
-      expect(session.overallLevelAfter, closeTo((additionAfter + 50 + 5) / 7, 1e-9));
-    });
+        final additionAfter = (await repository.currentLevels(
+          'test-player',
+        ))[ExerciseType.addition]!.level;
+        final session = (await repository.recentSessions('test-player')).first;
+        // Addition updated + multiplication 50 + 5 types at the floor, over 7.
+        expect(
+          session.overallLevelAfter,
+          closeTo((additionAfter + 50 + 5) / 7, 1e-9),
+        );
+      },
+    );
 
-    test('unreadable cache: session stored anyway, without this value', () async {
-      final repository = _LevelReadFailureRepository();
-      final controller = finishedSoon(repository)..start();
-      for (var i = 0; i < 4; i++) {
-        controller.submitAnswer(i);
-      }
-      await controller.pendingPersistence;
+    test(
+      'unreadable cache: session stored anyway, without this value',
+      () async {
+        final repository = _LevelReadFailureRepository();
+        final controller = finishedSoon(repository)..start();
+        for (var i = 0; i < 4; i++) {
+          controller.submitAnswer(i);
+        }
+        await controller.pendingPersistence;
 
-      final sessions = await repository.inner.recentSessions('test-player');
-      expect(sessions.single.overallLevelAfter, isNull);
-    });
+        final sessions = await repository.inner.recentSessions('test-player');
+        expect(sessions.single.overallLevelAfter, isNull);
+      },
+    );
   });
 }

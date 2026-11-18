@@ -67,7 +67,10 @@ void main() {
       final request = supabase.restRequests.single;
       expect(request.method, 'POST');
       expect(request.url.path, '/rest/v1/profiles');
-      expect(request.headers['Prefer'], contains('resolution=merge-duplicates'));
+      expect(
+        request.headers['Prefer'],
+        contains('resolution=merge-duplicates'),
+      );
       expect(jsonDecode(request.body), {
         'id': testUserId,
         'display_name': 'Alex',

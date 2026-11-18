@@ -66,7 +66,9 @@ Future<Database> openMathTrainerDatabase(String path) {
           synced_at TEXT
         )
       ''');
-      await db.execute('CREATE INDEX idx_answers_session_id ON answers(session_id)');
+      await db.execute(
+        'CREATE INDEX idx_answers_session_id ON answers(session_id)',
+      );
       await db.execute('''
         CREATE TABLE player_levels (
           player_id TEXT NOT NULL,
@@ -84,7 +86,9 @@ Future<Database> openMathTrainerDatabase(String path) {
 
 Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
   if (oldVersion < 2) {
-    await db.execute("ALTER TABLE sessions ADD COLUMN levels_json TEXT NOT NULL DEFAULT '{}'");
+    await db.execute(
+      "ALTER TABLE sessions ADD COLUMN levels_json TEXT NOT NULL DEFAULT '{}'",
+    );
     await db.execute('''
       CREATE TABLE player_levels (
         player_id TEXT NOT NULL,
@@ -100,6 +104,8 @@ Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     // Nullable, no rebuilt value: the overall level after an old session
     // depends on the whole cache at that time, which history cannot
     // faithfully recover.
-    await db.execute('ALTER TABLE sessions ADD COLUMN overall_level_after REAL');
+    await db.execute(
+      'ALTER TABLE sessions ADD COLUMN overall_level_after REAL',
+    );
   }
 }

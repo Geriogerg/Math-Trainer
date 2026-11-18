@@ -21,7 +21,8 @@ void main() {
 
     test('the id persists beyond the provider instance', () async {
       final first = await SharedPreferencesPlayerIdProvider().currentPlayerId();
-      final second = await SharedPreferencesPlayerIdProvider().currentPlayerId();
+      final second = await SharedPreferencesPlayerIdProvider()
+          .currentPlayerId();
 
       expect(first, second);
     });

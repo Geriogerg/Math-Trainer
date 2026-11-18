@@ -18,20 +18,25 @@ void main() {
       expect(sequenceA, equals(sequenceB));
     });
 
-    test('the radicand is always a perfect square within the default bounds', () {
-      final random = Random(1);
+    test(
+      'the radicand is always a perfect square within the default bounds',
+      () {
+        final random = Random(1);
 
-      for (var i = 0; i < 50; i++) {
-        final exercise = generator.next(random);
-        final root = exercise.correctAnswer;
+        for (var i = 0; i < 50; i++) {
+          final exercise = generator.next(random);
+          final root = exercise.correctAnswer;
 
-        expect(root, inInclusiveRange(2, 12));
-        expect(root * root, exercise.radicand);
-      }
-    });
+          expect(root, inInclusiveRange(2, 12));
+          expect(root * root, exercise.radicand);
+        }
+      },
+    );
 
     test('a custom rootRange restricts the draw', () {
-      final narrowGenerator = SquareRootExerciseGenerator(rootRange: OperandRange(min: 7, max: 7));
+      final narrowGenerator = SquareRootExerciseGenerator(
+        rootRange: OperandRange(min: 7, max: 7),
+      );
       final random = Random(2);
 
       for (var i = 0; i < 20; i++) {
