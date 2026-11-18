@@ -17,9 +17,9 @@ phase). Where another doc disagrees with `doc/plan.md`, the plan wins — report
 ## Current phase
 
 **Phase 0 — Stabilise and build the web pipeline.** Commit list and exit test: `doc/plan.md`,
-section 7. Commit 0 (docs alignment) done, waiting for the owner's read; the owner-requested
-switch to English (interface, comments, tests) done. Next: commit 1 (CI) — blocked until the repo
-is on GitHub. Update this block at every commit.
+section 7. Repo: `github.com/Geriogerg/Math-Trainer` (public), branch `main`. Done: 0 (docs),
+1 (CI). Parked: 3 (`material_ui` needs the owner's yes on a new dependency). Next: 2 (preview
+deployment). Update this block at every commit.
 
 ## Who you work with
 
@@ -120,8 +120,11 @@ touched; simplicity first, no abstraction for a single use case; report gaps wit
 **Before every commit**: `dart test test/domain`, `flutter test`, `flutter analyze` clean; CI green
 after push. Checkpoint commits are played by the owner on a phone browser (a docs-only checkpoint
 is read instead). *Until Phase 0 commit 3, `flutter analyze` shows the Flutter 3.50
-`material_ui` deprecation infos and nothing else; until the repo is on GitHub (owner) and commit
-1 lands, there is no CI to check.*
+`material_ui` deprecation infos and nothing else, and CI runs it with `--no-fatal-infos`.*
+
+CI: `.github/workflows/ci.yml` — tests and analyzer on `windows-latest` (golden images are
+recorded on Windows), web build on `ubuntu-latest`; Supabase settings from the repository secrets
+`SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`.
 
 ## Commands
 

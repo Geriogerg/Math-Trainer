@@ -1,0 +1,64 @@
+# CI: core tests, all tests, analyzer and web build on every push.
+# Android is not built until Phase 8 (doc/plan.md, section 5).
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: 3.50.0
+
+jobs:
+  test:
+    # Windows: the golden images are recorded on Windows with the real Inter
+    # font, and text antialiasing differs between operating systems.
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - run: flutter pub get
+      - name: Core tests
+        run: dart test test/domain
+      - name: All tests
+        run: flutter test
+      - name: Analyzer
+        # --no-fatal-infos until Phase 0 commit 3 (material_ui migration)
+        # removes the 28 deprecation infos.
+        run: flutter analyze --no-fatal-infos
+
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - run: flutter pub get
+      - name: Supabase configuration from secrets
+        # Empty secrets still compile: the app then shows "Missing
+        # configuration" instead of starting.
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          jq -n --arg url "$SUPABASE_URL" --arg key "$SUPABASE_PUBLISHABLE_KEY" \
+            '{SUPABASE_URL: $url, SUPABASE_PUBLISHABLE_KEY: $key}' > dart_defines.json
+      - name: Web build
+        run: flutter build web --release --dart-define-from-file=dart_defines.json

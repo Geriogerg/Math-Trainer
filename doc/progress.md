@@ -75,6 +75,12 @@ State at the plan: 49 commits, 176 core tests / 328 in total.
   Android out of CI until Phase 8, `δ` = 0.07 recorded as unapproved, commit 0 read rather than
   played, no GitHub remote yet.
 
+- **Commit 1** *(A)* — CI on GitHub Actions (`.github/workflows/ci.yml`): core tests, all tests,
+  analyzer (`--no-fatal-infos` until commit 3) on Windows, where the golden images are recorded;
+  web build on Linux with the Supabase settings from repository secrets. No Android build (plan
+  v1.1).
+- **Commit 3** — *parked*: needs the owner's yes on the new `material_ui` dependency.
+
 ### Remaining contradictions after commit 0
 
 The five plan/reality contradictions found at commit 0 (language, `δ`, branch and remote, commit 0
