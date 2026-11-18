@@ -1,6 +1,6 @@
 import '../models/exercise_type.dart';
 
-/// Voir [PersistedAnswer] pour la raison d'être de ce sentinel.
+/// See [PersistedAnswer] for why this sentinel exists.
 const _unset = Object();
 
 class PersistedSession {
@@ -18,13 +18,13 @@ class PersistedSession {
   }) {
     final overall = overallLevelAfter;
     if (overall != null && (overall < 1 || overall > 100)) {
-      throw ArgumentError.value(overall, 'overallLevelAfter', 'doit être dans [1, 100].');
+      throw ArgumentError.value(overall, 'overallLevelAfter', 'must be in [1, 100].');
     }
     if (!createdAt.isUtc) {
-      throw ArgumentError.value(createdAt, 'createdAt', 'doit être en UTC (DateTime.toUtc()).');
+      throw ArgumentError.value(createdAt, 'createdAt', 'must be UTC (DateTime.toUtc()).');
     }
     if (syncedAt != null && !syncedAt!.isUtc) {
-      throw ArgumentError.value(syncedAt, 'syncedAt', 'doit être en UTC (DateTime.toUtc()).');
+      throw ArgumentError.value(syncedAt, 'syncedAt', 'must be UTC (DateTime.toUtc()).');
     }
   }
 
@@ -35,21 +35,19 @@ class PersistedSession {
   final int exerciseCount;
   final int totalScore;
 
-  /// Niveaux par opération figés au moment où cette session a été générée —
-  /// jamais recalculés après coup. Peut ne couvrir qu'un sous-ensemble
-  /// d'`ExerciseType` (les types activés cette session-là) ; vide pour les
-  /// sessions antérieures à l'étape 4.
+  /// Per-operation levels frozen when this session was generated — never
+  /// recomputed afterwards. May cover only a subset of `ExerciseType` (the
+  /// types enabled that session); empty for sessions older than step 4.
   final Map<ExerciseType, int> levels;
 
   final DateTime createdAt;
 
-  /// Niveau global du joueur (`overallLevel`, 7 types) juste après cette
-  /// session, cache de niveaux mis à jour compris — ce que trace la courbe
-  /// du Profil. Contrairement à [levels] (niveaux d'entrée, seulement les
-  /// types de la session), deux valeurs successives sont toujours
-  /// comparables, et leur écart est exactement l'effet de la session.
-  /// `null` pour les sessions antérieures au schéma v3, ou si le cache n'a
-  /// pas pu être relu à l'enregistrement.
+  /// The player's overall level (`overallLevel`, 7 types) right after this
+  /// session, updated level cache included — what the Profile curve plots.
+  /// Unlike [levels] (entry levels, only the session's types), two
+  /// successive values are always comparable, and their gap is exactly the
+  /// session's effect. `null` for sessions older than schema v3, or if the
+  /// cache could not be read when recording.
   final double? overallLevelAfter;
 
   final DateTime? syncedAt;
@@ -69,16 +67,16 @@ class PersistedSession {
     );
   }
 
-  /// Un `Set` n'a pas d'ordre stable à comparer positionnellement — deux
-  /// ensembles construits par insertion différente doivent rester égaux
-  /// (même piège que `CompositeExerciseGenerator`, ici sur la persistance).
+  /// A `Set` has no stable order to compare positionally — two sets built
+  /// by different insertion orders must stay equal (same pitfall as
+  /// `CompositeExerciseGenerator`, here on persistence).
   bool _enabledTypesEqual(Set<ExerciseType> other) {
     if (other.length != enabledTypes.length) return false;
     return enabledTypes.every(other.contains);
   }
 
-  /// Même piège qu'`enabledTypes`, pour une `Map` : l'ordre d'itération ne
-  /// doit pas influer sur l'égalité.
+  /// Same pitfall as `enabledTypes`, for a `Map`: iteration order must not
+  /// affect equality.
   bool _levelsEqual(Map<ExerciseType, int> other) {
     if (other.length != levels.length) return false;
     for (final entry in levels.entries) {
@@ -106,8 +104,8 @@ class PersistedSession {
     id,
     playerId,
     seed,
-    // Object.hashAllUnordered : le hash ne doit pas dépendre de l'ordre
-    // d'itération du Set/de la Map, pour rester cohérent avec les égalités.
+    // Object.hashAllUnordered: the hash must not depend on the Set/Map
+    // iteration order, to stay consistent with equality.
     Object.hashAllUnordered(enabledTypes),
     exerciseCount,
     totalScore,

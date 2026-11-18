@@ -10,7 +10,7 @@ class SupabaseProfileRepository implements ProfileRepository {
 
   String get _requireUserId {
     final id = _client.auth.currentUser?.id;
-    if (id == null) throw Exception('Personne n\'est connecté.');
+    if (id == null) throw Exception('Nobody is signed in.');
     return id;
   }
 
@@ -18,10 +18,10 @@ class SupabaseProfileRepository implements ProfileRepository {
   Future<PlayerProfile> currentProfile() async {
     final userId = _requireUserId;
     try {
-      // `maybeSingle` et non `single` : aucune ligne n'existe tant que le
-      // joueur n'a jamais choisi de nom (pas de trigger à l'inscription,
-      // `supabase/profiles.sql`) — `single` lèverait alors une erreur au lieu
-      // d'un profil sans nom.
+      // `maybeSingle`, not `single`: no row exists until the player has
+      // chosen a name (no sign-up trigger, `supabase/profiles.sql`) —
+      // `single` would then throw instead of returning a profile without a
+      // name.
       final row = await _client
           .from('profiles')
           .select()
@@ -40,8 +40,8 @@ class SupabaseProfileRepository implements ProfileRepository {
   Future<void> updateDisplayName(String displayName) async {
     final userId = _requireUserId;
     try {
-      // `upsert` et non `update` : le premier nom choisi crée la ligne — un
-      // `update` sur une ligne absente ne modifie rien, sans erreur.
+      // `upsert`, not `update`: the first chosen name creates the row — an
+      // `update` on a missing row changes nothing, without an error.
       await _client.from('profiles').upsert({
         'id': userId,
         'display_name': displayName,

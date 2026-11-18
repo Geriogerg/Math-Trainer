@@ -1,13 +1,13 @@
-/// Deux valeurs seulement : le mode système n'est pas un choix mémorisé,
-/// c'est l'état par défaut tant que rien n'a été enregistré (`load() ==
-/// null`, même convention que `TypeSelectionStore`).
+/// Two values only: the system mode is not a remembered choice, it is the
+/// default as long as nothing has been stored (`load() == null`, same
+/// convention as `TypeSelectionStore`).
 enum ThemeModePreference { light, dark }
 
-/// Mémorise la bascule manuelle nuit/jour entre deux lancements de l'app —
-/// implémentation concrète (shared_preferences) dans `infrastructure/`,
-/// jamais dans le domaine (règle 3).
+/// Remembers the manual day/night toggle between app launches — concrete
+/// implementation (shared_preferences) in `infrastructure/`, never in the
+/// domain (rule 3).
 abstract class ThemeModeStore {
-  /// `null` : jamais choisi explicitement, l'appelant retombe sur le thème système.
+  /// `null`: never chosen explicitly, the caller falls back to the system theme.
   Future<ThemeModePreference?> load();
 
   Future<void> save(ThemeModePreference preference);

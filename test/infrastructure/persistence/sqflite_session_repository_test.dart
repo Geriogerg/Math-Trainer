@@ -8,9 +8,9 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:test/test.dart';
 
 void main() {
-  // sqflite n'a pas de plateforme (pas de device/émulateur) sous `flutter
-  // test` sur la Dart VM : sqflite_common_ffi fournit une implémentation
-  // basée sur sqlite3 natif qui tourne directement sur la VM.
+  // sqflite has no platform (no device/emulator) under `flutter test` on the
+  // Dart VM: sqflite_common_ffi provides an implementation based on native
+  // sqlite3 that runs directly on the VM.
   setUpAll(() {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
@@ -61,7 +61,7 @@ void main() {
   }
 
   group('SqfliteSessionRepository', () {
-    test('recordSession persiste session et réponses, relisibles ensuite', () async {
+    test('recordSession persists the session and answers, readable afterwards', () async {
       final s = session('session-1', createdAt: DateTime.utc(2026, 8, 8));
       final answers = [answer('answer-1', 'session-1'), answer('answer-2', 'session-1')];
 
@@ -74,7 +74,7 @@ void main() {
       expect(storedAnswers, equals(answers));
     });
 
-    test('answersForSession ne retourne que les réponses de la session demandée', () async {
+    test('answersForSession only returns the answers of the requested session', () async {
       await repository.recordSession(
         session: session('session-1', createdAt: DateTime.utc(2026, 8, 8)),
         answers: [answer('answer-1', 'session-1')],
@@ -91,7 +91,7 @@ void main() {
       expect(result.map((a) => a.id), equals(['answer-1']));
     });
 
-    test('recentSessions trie du plus récent au plus ancien et respecte la limite', () async {
+    test('recentSessions sorts most recent first and respects the limit', () async {
       await repository.recordSession(
         session: session('oldest', createdAt: DateTime.utc(2026, 8, 1)),
         answers: const [],
@@ -113,7 +113,7 @@ void main() {
       expect(result.map((s) => s.id), equals(['newest', 'middle']));
     });
 
-    test('recentSessions ne retourne que les sessions du joueur demandé', () async {
+    test("recentSessions only returns the requested player's sessions", () async {
       await repository.recordSession(
         session: session('a-1', createdAt: DateTime.utc(2026, 8, 1), playerId: 'player-a'),
         answers: const [],
@@ -130,7 +130,7 @@ void main() {
       expect(result.map((s) => s.id), equals(['a-1']));
     });
 
-    test('transferPlayerData rattache sessions, réponses et niveaux au nouveau joueur', () async {
+    test('transferPlayerData hands sessions, answers and levels to the new player', () async {
       final entry = LevelCacheEntry(level: 42, sessionsPlayed: 1, updatedAt: DateTime.utc(2026, 8, 8));
       await repository.recordSession(
         session: session('session-1', createdAt: DateTime.utc(2026, 8, 8), playerId: 'device'),
@@ -149,7 +149,7 @@ void main() {
       expect(await repository.currentLevels('device'), isEmpty);
     });
 
-    test('transferPlayerData ne fusionne jamais avec un joueur qui a déjà des données', () async {
+    test('transferPlayerData never merges with a player who already has data', () async {
       final deviceLevel = LevelCacheEntry(level: 10, sessionsPlayed: 1, updatedAt: DateTime.utc(2026, 8, 8));
       final accountLevel = LevelCacheEntry(level: 80, sessionsPlayed: 3, updatedAt: DateTime.utc(2026, 8, 9));
       await repository.recordSession(
@@ -170,7 +170,7 @@ void main() {
       expect((await repository.recentSessions('device')).map((s) => s.id), ['device-1']);
     });
 
-    test("une session sans niveau global d'après (antérieure au schéma v3) se relit telle quelle", () async {
+    test('a session without an overall level after (older than schema v3) reads back as is', () async {
       final legacy = PersistedSession(
         id: 'legacy',
         playerId: 'player-1',
@@ -187,7 +187,7 @@ void main() {
       expect(await repository.recentSessions('player-1'), equals([legacy]));
     });
 
-    test('recordSession écrit session, réponses et niveaux dans une seule transaction', () async {
+    test('recordSession writes session, answers and levels in a single transaction', () async {
       final s = session('session-1', createdAt: DateTime.utc(2026, 8, 8));
       final entry = LevelCacheEntry(level: 42, sessionsPlayed: 1, updatedAt: DateTime.utc(2026, 8, 8));
 
@@ -204,11 +204,11 @@ void main() {
       expect(levels[ExerciseType.addition]?.level, 42);
     });
 
-    test('currentLevels est vide pour un joueur jamais joué', () async {
+    test('currentLevels is empty for a player who never played', () async {
       expect(await repository.currentLevels('unknown-player'), isEmpty);
     });
 
-    test('currentLevels remplace la valeur précédente pour une opération déjà en cache', () async {
+    test('currentLevels replaces the previous value for an operation already cached', () async {
       final firstEntry = LevelCacheEntry(
         level: 40,
         sessionsPlayed: 1,
@@ -236,7 +236,7 @@ void main() {
       expect(levels[ExerciseType.addition]?.sessionsPlayed, 2);
     });
 
-    test('averageElapsedMsByType moyenne par opération, réponses d\'un seul joueur', () async {
+    test("averageElapsedMsByType averages per operation, one player's answers only", () async {
       await repository.recordSession(
         session: session('session-1', createdAt: DateTime.utc(2026, 8, 8)),
         answers: [
@@ -246,7 +246,7 @@ void main() {
         ],
         levelUpdates: const {},
       );
-      // Réponse d'un autre joueur — ne doit pas entrer dans la moyenne.
+      // Another player's answer — must not enter the mean.
       await repository.recordSession(
         session: session('session-2', createdAt: DateTime.utc(2026, 8, 8), playerId: 'player-b'),
         answers: [answer('a4', 'session-2', operationType: 'addition', elapsedMs: 9999)],
@@ -260,7 +260,7 @@ void main() {
       expect(result.containsKey(ExerciseType.multiplication), isFalse);
     });
 
-    test('sessionsSince ne retourne que les sessions du joueur à partir de la date, triées', () async {
+    test("sessionsSince only returns the player's sessions from the date, sorted", () async {
       await repository.recordSession(
         session: session('too-old', createdAt: DateTime.utc(2026, 7, 1)),
         answers: const [],

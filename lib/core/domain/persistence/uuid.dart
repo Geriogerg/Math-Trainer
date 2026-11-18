@@ -2,9 +2,9 @@ import 'dart:math';
 
 final Random _random = Random.secure();
 
-/// Génère un identifiant UUID v4 (RFC 4122) sans dépendance externe :
-/// 16 octets aléatoires cryptographiquement sûrs, avec les bits de version
-/// et de variant forcés à la bonne valeur.
+/// Generates a UUID v4 (RFC 4122) with no external dependency: 16
+/// cryptographically secure random bytes, with the version and variant bits
+/// forced to the right values.
 String generateUuidV4() {
   final bytes = List<int>.generate(16, (_) => _random.nextInt(256));
   bytes[6] = (bytes[6] & 0x0f) | 0x40; // version 4

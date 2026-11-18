@@ -1,23 +1,22 @@
 import '../models/exercise.dart';
 import '../models/exercise_type.dart';
 
-/// Représentation générique d'un [Exercise] pour le stockage : le schéma
-/// n'a besoin d'aucune migration quand une nouvelle famille (fraction,
-/// puissance, racine...) apparaît, seul ce mapping change.
+/// Generic representation of an [Exercise] for storage: the schema needs
+/// no migration when a new family appears, only this mapping changes.
 typedef ExerciseStorageDescription = ({
   String exerciseType,
   String operationType,
   Map<String, Object?> operands,
 });
 
-/// `switch` exhaustif sur la sealed class [Exercise] : le compilateur
-/// signalera cet endroit dès qu'une nouvelle sous-classe sera ajoutée.
+/// Exhaustive `switch` on the sealed class [Exercise]: the compiler flags
+/// this place as soon as a new subclass is added.
 ///
-/// Le cas [ArithmeticExercise] est inchangé depuis l'étape 2 (déjà des
-/// lignes réelles en base) : `exerciseType` reste `'arithmetic'` et
-/// `operationType` porte le nom de l'opération. Les trois nouvelles
-/// variantes n'ont pas de sous-opération : `exerciseType` et
-/// `operationType` portent tous deux le nom de leur [ExerciseType].
+/// The [ArithmeticExercise] case is unchanged since step 2 (real rows
+/// already stored): `exerciseType` stays `'arithmetic'` and `operationType`
+/// carries the operation's name. The three newer variants have no
+/// sub-operation: `exerciseType` and `operationType` both carry their
+/// [ExerciseType]'s name.
 ExerciseStorageDescription describeExerciseForStorage(Exercise exercise) {
   return switch (exercise) {
     ArithmeticExercise() => (

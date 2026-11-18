@@ -16,7 +16,7 @@ http.Response _json(Object body, [int status = 200]) => http.Response(
 
 void main() {
   test(
-    'currentProfile sans ligne en base renvoie un profil sans nom, pas une erreur',
+    'currentProfile without a stored row returns a profile without a name, not an error',
     () async {
       final supabase = SupabaseTestClient(restHandler: (_) async => _json([]));
       addTearDown(supabase.client.dispose);
@@ -30,7 +30,7 @@ void main() {
     },
   );
 
-  test('currentProfile lit le nom enregistré', () async {
+  test('currentProfile reads the stored name', () async {
     final supabase = SupabaseTestClient(
       restHandler: (_) async => _json([
         {'id': testUserId, 'display_name': 'Alex'},
@@ -49,10 +49,10 @@ void main() {
     );
   });
 
-  // Régression : un `update` sur une ligne absente ne modifiait rien, sans
-  // erreur — le premier nom choisi était perdu en silence.
+  // Regression: an `update` on a missing row changed nothing, without an
+  // error — the first chosen name was silently lost.
   test(
-    'updateDisplayName crée ou remplace la ligne (upsert sur la clé id)',
+    'updateDisplayName creates or replaces the row (upsert on the id key)',
     () async {
       final supabase = SupabaseTestClient(
         restHandler: (_) async => http.Response('', 201),
@@ -75,7 +75,7 @@ void main() {
     },
   );
 
-  test('currentProfile lève une Exception si personne n\'est connecté', () {
+  test('currentProfile throws an Exception if nobody is signed in', () {
     final supabase = SupabaseTestClient(restHandler: (_) async => _json([]));
     addTearDown(supabase.client.dispose);
 

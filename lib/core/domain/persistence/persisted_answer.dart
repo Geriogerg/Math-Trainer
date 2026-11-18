@@ -1,7 +1,7 @@
-/// Sentinel distinct de `null`, utilisé par [PersistedAnswer.copyWith] pour
-/// distinguer « paramètre non fourni » de « paramètre explicitement mis à
-/// `null` » — un simple `champ ?? this.champ` ne peut jamais remettre un
-/// champ nullable à `null` volontairement.
+/// Sentinel distinct from `null`, used by [PersistedAnswer.copyWith] to tell
+/// "parameter not given" from "parameter explicitly set to `null`" — a plain
+/// `field ?? this.field` can never set a nullable field back to `null` on
+/// purpose.
 const _unset = Object();
 
 class PersistedAnswer {
@@ -18,10 +18,10 @@ class PersistedAnswer {
     this.syncedAt,
   }) {
     if (!createdAt.isUtc) {
-      throw ArgumentError.value(createdAt, 'createdAt', 'doit être en UTC (DateTime.toUtc()).');
+      throw ArgumentError.value(createdAt, 'createdAt', 'must be UTC (DateTime.toUtc()).');
     }
     if (syncedAt != null && !syncedAt!.isUtc) {
-      throw ArgumentError.value(syncedAt, 'syncedAt', 'doit être en UTC (DateTime.toUtc()).');
+      throw ArgumentError.value(syncedAt, 'syncedAt', 'must be UTC (DateTime.toUtc()).');
     }
   }
 

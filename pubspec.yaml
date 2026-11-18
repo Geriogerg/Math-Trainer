@@ -51,12 +51,12 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
 
-  # Permet de tester le cœur métier (lib/core/domain) via `dart test`, sans
-  # binding Flutter — flutter_test seul ne s'exécute pas hors tooling Flutter.
+  # Lets the core (lib/core/domain) be tested with `dart test`, without a
+  # Flutter binding — flutter_test alone does not run outside Flutter tooling.
   test: ^1.25.0
   sqflite_common_ffi: ^2.4.2
-  # `MockClient` : un vrai `SupabaseClient` dans les tests d'infrastructure,
-  # seul le transport HTTP est simulé (`test/infrastructure/backend/`).
+  # `MockClient`: a real `SupabaseClient` in infrastructure tests, only the
+  # HTTP transport is simulated (`test/infrastructure/backend/`).
   http: ^1.6.0
 
 # For information on the generic Dart part of this file, see the
@@ -81,10 +81,10 @@ flutter:
   # For details regarding adding assets from package dependencies, see
   # https://flutter.dev/to/asset-from-package
 
-  # Police variable (axes opsz+wght), récupérée depuis le dépôt officiel
-  # google/fonts (licence SIL OFL) — voir docs/decisions.md. Un seul fichier
-  # couvre tous les poids ; `TextStyle.fontWeight` pilote l'axe `wght`
-  # directement, pas besoin de déclarer plusieurs entrées `weight:`.
+  # Variable font (opsz+wght axes), from the official google/fonts repository
+  # (SIL OFL licence) — see doc/decisions.md. One file covers every weight;
+  # `TextStyle.fontWeight` drives the `wght` axis directly, no need to declare
+  # several `weight:` entries.
   fonts:
     - family: Inter
       fonts:

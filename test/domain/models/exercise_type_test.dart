@@ -3,9 +3,9 @@ import 'package:math_trainer/core/domain/models/exercise_type.dart';
 import 'package:math_trainer/core/domain/models/operation_type.dart';
 import 'package:test/test.dart';
 
-/// `switch` exhaustif : si une valeur d'[ExerciseType] est ajoutée sans
-/// entrée ici, ce fichier cesse de compiler — c'est le garde-fou voulu,
-/// pas une inadvertance à corriger en ajoutant un `default`.
+/// Exhaustive `switch`: if an [ExerciseType] value is added without an
+/// entry here, this file stops compiling — the intended guard, not an
+/// oversight to fix by adding a `default`.
 (Exercise, Exercise) _samplePair(ExerciseType type) {
   return switch (type) {
     ExerciseType.addition => (
@@ -57,7 +57,7 @@ import 'package:test/test.dart';
 
 void main() {
   for (final type in ExerciseType.values) {
-    test('${type.name} : deux instances identiques sont == et ont le même hashCode', () {
+    test('${type.name}: two identical instances are == and have the same hashCode', () {
       final (a, b) = _samplePair(type);
 
       expect(a, equals(b));
@@ -66,7 +66,7 @@ void main() {
     });
   }
 
-  test('seules les valeurs arithmétiques portent un OperationType', () {
+  test('only the arithmetic values carry an OperationType', () {
     expect(ExerciseType.addition.operationType, OperationType.addition);
     expect(ExerciseType.subtraction.operationType, OperationType.subtraction);
     expect(ExerciseType.multiplication.operationType, OperationType.multiplication);

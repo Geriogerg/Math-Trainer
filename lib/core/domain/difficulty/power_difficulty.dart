@@ -1,8 +1,8 @@
 import '../generation/operand_range.dart';
 import 'level_interpolation.dart';
 
-/// Seul l'exposant varie avec le niveau (un seul axe à la fois) ; la base
-/// reste à la plage par défaut du générateur, inchangée depuis l'étape 3.
+/// Only the exponent varies with the level (one axis at a time); the base
+/// stays at the generator's default range, unchanged since step 3.
 class PowerDifficulty {
   const PowerDifficulty({required this.exponentMaxAtLevel1, required this.exponentMaxAtLevel100});
 
@@ -17,5 +17,5 @@ class PowerDifficulty {
   );
 }
 
-/// Valeurs de départ non calibrées — voir `doc/decisions.md`.
+/// Uncalibrated starting values — see `doc/decisions.md`.
 const powerDifficulty = PowerDifficulty(exponentMaxAtLevel1: 2, exponentMaxAtLevel100: 5);

@@ -3,16 +3,16 @@ import 'dart:ui' show Size;
 import 'package:flutter/services.dart' show FontLoader, rootBundle;
 import 'package:flutter_test/flutter_test.dart';
 
-/// Charge Inter et les icônes Material dans le binding de test. Sans ça,
-/// `flutter test` rend avec des polices de repli (glyphes génériques pour le
-/// texte, carrés vides pour les icônes — `Icons.check`/`backspace_outlined`
-/// du pavé, constaté en générant les premiers golden) : les golden ne
-/// représenteraient pas le rendu réel.
+/// Loads Inter and the Material icons into the test binding. Without it,
+/// `flutter test` renders with fallback fonts (generic glyphs for text,
+/// empty squares for icons — the keypad's `Icons.check`/`backspace_outlined`,
+/// seen when generating the first goldens): the goldens would not show the
+/// real rendering.
 Future<void> loadInterFontForGoldens() async {
   await _loadFont('Inter', 'assets/fonts/Inter.ttf');
-  // Clé sans « packages/flutter/ » : `uses-material-design: true` l'injecte
-  // sous cette forme précise dans le manifest d'assets (flutter_tools,
-  // asset.dart, kMaterialFonts), pas comme un asset de package classique.
+  // Key without "packages/flutter/": `uses-material-design: true` injects it
+  // in this exact form into the asset manifest (flutter_tools, asset.dart,
+  // kMaterialFonts), not as a regular package asset.
   await _loadFont('MaterialIcons', 'fonts/MaterialIcons-Regular.otf');
 }
 
@@ -22,9 +22,9 @@ Future<void> _loadFont(String family, String assetKey) async {
   await loader.load();
 }
 
-/// Taille d'écran fixe pour des golden reproductibles — sans ça, la taille
-/// par défaut du banc de test (souvent liée à la machine) ferait varier la
-/// mise en page capturée.
+/// Fixed screen size for reproducible goldens — without it, the test
+/// harness's default size (often tied to the machine) would vary the
+/// captured layout.
 Future<void> setGoldenSurfaceSize(WidgetTester tester) async {
   const size = Size(412, 915);
   tester.view.physicalSize = size;

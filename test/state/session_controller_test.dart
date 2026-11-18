@@ -24,11 +24,10 @@ class _FixedExerciseSource implements ExerciseSource {
   Exercise next() => _exercises[_index++];
 }
 
-/// Timer factice : ne se déclenche jamais tout seul (pas de vraie horloge),
-/// seulement quand le test appelle [fire] explicitement. Le défaut de
-/// [buildController] en construit un par question sans jamais appeler
-/// [fire] — inerte, donc aucun timer réel ne reste en attente à la fin d'un
-/// test qui ne teste pas le timeout lui-même.
+/// Fake timer: never fires on its own (no real clock), only when the test
+/// calls [fire] explicitly. The default of [buildController] builds one per
+/// question without ever calling [fire] — inert, so no real timer stays
+/// pending at the end of a test that does not test the timeout itself.
 class _FakeTimer implements Timer {
   _FakeTimer(this._callback);
 
@@ -52,9 +51,9 @@ class _FakeTimer implements Timer {
   int get tick => 0;
 }
 
-/// Capture chaque `_FakeTimer` créé par `SessionController` (un par
-/// question armée), dans l'ordre — `latest` est celui de la question
-/// actuellement affichée.
+/// Captures every `_FakeTimer` created by `SessionController` (one per armed
+/// question), in order — `latest` is the one of the question currently
+/// shown.
 class _TimerSpy {
   final List<_FakeTimer> created = [];
 
@@ -67,16 +66,16 @@ class _TimerSpy {
   _FakeTimer get latest => created.last;
 }
 
-/// `currentLevels` échoue (simule une lecture de cache ratée), mais
-/// `recordSession` délègue à un `InMemorySessionRepository` interne
-/// fonctionnel — pour vérifier que la session et ses réponses sont bien
-/// enregistrées malgré l'échec de lecture du cache.
+/// `currentLevels` fails (simulates a failed cache read), but
+/// `recordSession` delegates to a working internal
+/// `InMemorySessionRepository` — to check that the session and its answers
+/// are stored despite the failed cache read.
 class _LevelReadFailureRepository implements SessionRepository {
   final inner = InMemorySessionRepository();
 
   @override
   Future<Map<ExerciseType, LevelCacheEntry>> currentLevels(String playerId) =>
-      throw Exception('échec simulé de lecture du cache');
+      throw Exception('simulated cache read failure');
 
   @override
   Future<void> recordSession({
@@ -106,15 +105,15 @@ class _LevelReadFailureRepository implements SessionRepository {
       inner.sessionsSince(playerId, since);
 }
 
-/// `currentLevels` lève un `Error` (pas une `Exception`) : simule un bug —
-/// un invariant qui casse quelque part dans la chaîne — plutôt qu'un échec
-/// d'E/S attendu.
+/// `currentLevels` throws an `Error` (not an `Exception`): simulates a bug —
+/// an invariant breaking somewhere in the chain — rather than an expected
+/// I/O failure.
 class _BuggyLevelReadRepository implements SessionRepository {
   final inner = InMemorySessionRepository();
 
   @override
   Future<Map<ExerciseType, LevelCacheEntry>> currentLevels(String playerId) =>
-      throw ArgumentError('bug simulé, pas un échec réseau/disque');
+      throw ArgumentError('simulated bug, not a network/disk failure');
 
   @override
   Future<void> recordSession({
@@ -164,15 +163,15 @@ void main() {
       repository: repository ?? InMemorySessionRepository(),
       playerId: 'test-player',
       clock: () => DateTime(2024),
-      // Inerte par défaut : ces tests ne portent pas sur le timeout, un vrai
-      // Timer(Duration(seconds: 15), ...) resterait en attente à la fin du
+      // Inert by default: these tests are not about the timeout, a real
+      // Timer(Duration(seconds: 15), ...) would stay pending at the end of the
       // test.
       createTimer: (duration, callback) => _FakeTimer(callback),
     );
   }
 
   group('SessionController', () {
-    test('start() passe en cours et affiche le premier exercice', () {
+    test('start() goes in progress and shows the first exercise', () {
       final controller = buildController();
 
       controller.start();
@@ -182,7 +181,7 @@ void main() {
       expect(controller.state.score, 0);
     });
 
-    test('submitAnswer ignoré avant start()', () {
+    test('submitAnswer ignored before start()', () {
       final controller = buildController();
 
       controller.submitAnswer(4);
@@ -191,13 +190,13 @@ void main() {
       expect(controller.state.outcomes, isEmpty);
     });
 
-    test('enchaîne les exercices et calcule score/streak/résultat final', () {
+    test('chains exercises and computes score/streak/final result', () {
       final controller = buildController();
       controller.start();
 
       controller.submitAnswer(4); // correct, exercises[0] : 2+2
       expect(controller.state.currentStreak, 1);
-      expect(controller.state.score, 20); // base 10 + bonus vitesse max 10 (élapsé nul)
+      expect(controller.state.score, 20); // base 10 + max speed bonus 10 (zero elapsed)
       expect(controller.state.currentExercise, exercises[1]);
 
       controller.submitAnswer(0); // incorrect, exercises[1] : 5+3=8
@@ -215,7 +214,7 @@ void main() {
       expect(result.totalScore, controller.state.score);
     });
 
-    test('le score est pondéré par le niveau figé de l\'opération', () {
+    test("the score is weighted by the operation's frozen level", () {
       final controller = SessionController(
         config: SessionConfig(
           seed: 1,
@@ -232,12 +231,12 @@ void main() {
 
       controller.submitAnswer(4); // correct, exercises[0] : 2+2
 
-      // base 10 + bonus vitesse max 10 = 20 bruts ; niveau 100, bonusMax par
-      // défaut 1.0 → multiplicateur 2 → 40.
+      // base 10 + max speed bonus 10 = 20 raw; level 100, default bonusMax
+      // 1.0 → multiplier 2 → 40.
       expect(controller.state.score, 40);
     });
 
-    test('persiste la session dans le repository une fois terminée', () async {
+    test('persists the session in the repository once finished', () async {
       final repository = InMemorySessionRepository();
       final controller = buildController(repository: repository);
       controller.start();
@@ -246,8 +245,8 @@ void main() {
       controller.submitAnswer(0);
       controller.submitAnswer(10);
 
-      // Laisse la persistance asynchrone (non attendue par submitAnswer) se
-      // dérouler avant de vérifier le repository.
+      // Lets the asynchronous persistence (not awaited by submitAnswer) run
+      // before checking the repository.
       await Future<void>.delayed(Duration.zero);
 
       final sessions = await repository.recentSessions('test-player');
@@ -260,12 +259,12 @@ void main() {
       expect(answers, hasLength(3));
       expect(answers.map((a) => a.isCorrect), [true, false, true]);
 
-      // 3 réponses < n_min (4, étape 4.2) : le cache de niveau n'est pas touché.
+      // 3 answers < n_min (4, step 4.2): the level cache is left untouched.
       expect(await repository.currentLevels('test-player'), isEmpty);
     });
 
-    test('une session avec au moins n_min réponses justes et rapides met à jour le cache de '
-        'niveau (calibration, première fois sur cette opération)', () async {
+    test('a session with at least n_min right and fast answers updates the level '
+        'cache (calibration, first time on this operation)', () async {
       final repository = InMemorySessionRepository();
       final eightExercises = List.generate(
         8,
@@ -287,21 +286,21 @@ void main() {
 
       controller.start();
       for (var i = 0; i < 8; i++) {
-        controller.submitAnswer(i); // i + 0 = i : toujours correct
+        controller.submitAnswer(i); // i + 0 = i: always right
       }
       await Future<void>.delayed(Duration.zero);
 
       final levels = await repository.currentLevels('test-player');
-      // Depuis niveau 50, 8 réponses justes et instantanées (n_min = 4,
-      // pondération √(8/4) — voir doc/decisions.md), confiance « calibration »
-      // (première session sur cette opération) : le changement non clampé
-      // dépasse deltaMax, borné à 3 → 53.
+      // From level 50, 8 right and instant answers (n_min = 4, weighting
+      // √(8/4) — see doc/decisions.md), "calibration" confidence (first
+      // session on this operation): the unclamped change exceeds deltaMax,
+      // capped at 3 → 53.
       expect(levels[ExerciseType.addition]?.level, 53);
       expect(levels[ExerciseType.addition]?.sessionsPlayed, 1);
     });
 
-    test('une lecture ratée du cache de niveaux n\'empêche pas la session d\'être '
-        'enregistrée', () async {
+    test('a failed level cache read does not prevent the session from being '
+        'stored', () async {
       final repository = _LevelReadFailureRepository();
       final eightExercises = List.generate(
         8,
@@ -327,19 +326,19 @@ void main() {
       }
       await Future<void>.delayed(Duration.zero);
 
-      // La session et ses réponses (non reconstructibles) sont là malgré
-      // l'échec de lecture du cache.
+      // The session and its answers (not rebuildable) are there despite the
+      // failed cache read.
       final sessions = await repository.inner.recentSessions('test-player');
       expect(sessions, hasLength(1));
       final answers = await repository.inner.answersForSession(sessions.single.id);
       expect(answers, hasLength(8));
 
-      // Le cache de niveaux (recalculable), lui, n'a pas pu être mis à jour
-      // cette fois — pas d'entrée, mais pas de session perdue non plus.
+      // The level cache (recomputable) could not be updated this time — no
+      // entry, but no lost session either.
       expect(await repository.inner.currentLevels('test-player'), isEmpty);
     });
 
-    test('un Error (bug) lors du calcul du cache n\'est pas avalé silencieusement', () async {
+    test('an Error (bug) while computing the cache is not silently swallowed', () async {
       final repository = _BuggyLevelReadRepository();
       final eightExercises = List.generate(
         8,
@@ -365,23 +364,22 @@ void main() {
         for (var i = 0; i < 8; i++) {
           controller.submitAnswer(i);
         }
-        // _persistCompletedSession est déclenché en tâche de fond
-        // (unawaited) : laisse l'erreur non gérée remonter à la zone avant
-        // de vérifier.
+        // _persistCompletedSession runs in the background (unawaited): let
+        // the unhandled error reach the zone before checking.
         await Future<void>.delayed(Duration.zero);
       }, (error, stack) => uncaughtErrors.add(error));
 
       expect(uncaughtErrors, hasLength(1));
       expect(uncaughtErrors.single, isA<ArgumentError>());
 
-      // L'Error propage avant d'atteindre recordSession (règle 13 : ne pas
-      // continuer après un invariant cassé) — contrairement au cas d'une
-      // Exception (test précédent), où recordSession s'exécute quand même.
+      // The Error propagates before reaching recordSession (rule 13: do not
+      // carry on after a broken invariant) — unlike the Exception case
+      // (previous test), where recordSession still runs.
       final sessions = await repository.inner.recentSessions('test-player');
       expect(sessions, isEmpty);
     });
 
-    test('restart() réinitialise complètement la session', () {
+    test('restart() fully resets the session', () {
       final controller = buildController();
       controller.start();
       controller.submitAnswer(4);
@@ -395,7 +393,7 @@ void main() {
     });
   });
 
-  group('Timeout par question (étape 4.2, commit B)', () {
+  group('Per-question timeout (step 4.2, commit B)', () {
     List<ArithmeticExercise> manyExercises(int count) => List.generate(
       count,
       (i) => ArithmeticExercise(operandA: i, operandB: 0, operationType: OperationType.addition),
@@ -421,7 +419,7 @@ void main() {
       );
     }
 
-    test('un timeout sans activité compte comme faux et avance à la question suivante', () {
+    test('a timeout without activity counts as wrong and moves to the next question', () {
       final spy = _TimerSpy();
       final controller = buildTimeoutController(spy: spy, exerciseCount: 5);
 
@@ -436,14 +434,14 @@ void main() {
     });
 
     test(
-      'un timeout après une activité (saisie jamais validée) ne compte pas pour l\'abandon',
+      'a timeout after activity (input never submitted) does not count towards abandonment',
       () {
         final spy = _TimerSpy();
         final controller = buildTimeoutController(spy: spy, exerciseCount: 10);
 
         controller.start();
-        // 3 timeouts, mais avec une activité à chaque fois : ne doit jamais
-        // interrompre.
+        // 3 timeouts, but with activity each time: must never
+        // interrupt.
         for (var i = 0; i < 3; i++) {
           controller.registerActivity();
           spy.latest.fire();
@@ -454,7 +452,7 @@ void main() {
       },
     );
 
-    test('trois timeouts consécutifs sans aucune activité interrompent la session', () {
+    test('three consecutive timeouts without any activity interrupt the session', () {
       final spy = _TimerSpy();
       final controller = buildTimeoutController(spy: spy, exerciseCount: 10);
 
@@ -468,24 +466,24 @@ void main() {
       expect(controller.state.currentExercise, isNull);
     });
 
-    test('une vraie réponse entre deux timeouts remet le compteur d\'abandon à zéro', () {
+    test('a real answer between two timeouts resets the abandonment counter', () {
       final spy = _TimerSpy();
       final controller = buildTimeoutController(spy: spy, exerciseCount: 10);
 
       controller.start();
-      spy.latest.fire(); // timeout 1, pas d'activité
-      spy.latest.fire(); // timeout 2, pas d'activité
-      controller.submitAnswer(0); // réponse réelle : remet le compteur à 0
+      spy.latest.fire(); // timeout 1, no activity
+      spy.latest.fire(); // timeout 2, no activity
+      controller.submitAnswer(0); // real answer: resets the counter to 0
       spy.latest.fire(); // timeout 1 (nouveau compte)
       spy.latest.fire(); // timeout 2
 
-      // 4 timeouts + 1 vraie réponse, mais jamais 3 timeouts consécutifs sans
-      // activité : toujours en cours.
+      // 4 timeouts + 1 real answer, but never 3 consecutive timeouts without
+      // activity: still in progress.
       expect(controller.state.status, SessionStatus.inProgress);
     });
 
     test(
-      'une session interrompue enregistre les réponses déjà données mais pas le niveau',
+      'an interrupted session stores the answers already given but not the level',
       () async {
         final repository = InMemorySessionRepository();
         final spy = _TimerSpy();
@@ -503,21 +501,21 @@ void main() {
 
         final sessions = await repository.recentSessions('test-player');
         expect(sessions, hasLength(1));
-        // exerciseCount reste le compte prévu (10), pas le nombre de réponses
-        // réellement données (3) : c'est cet écart qui distingue une session
-        // interrompue d'une session terminée, sans champ dédié.
+        // exerciseCount stays the planned count (10), not the number of
+        // answers actually given (3): this gap tells an interrupted session
+        // from a finished one, without a dedicated field.
         expect(sessions.single.exerciseCount, 10);
         final answers = await repository.answersForSession(sessions.single.id);
         expect(answers, hasLength(3));
 
-        // Pas comptabilisée pour les niveaux.
+        // Does not count for levels.
         expect(await repository.currentLevels('test-player'), isEmpty);
       },
     );
 
     test(
-      'pendingPersistence ne se résout qu\'une fois la session écrite (relance immédiate, '
-      'étape 4.2 commit C)',
+      'pendingPersistence only resolves once the session is written (immediate replay, '
+      'step 4.2 commit C)',
       () async {
         final repository = InMemorySessionRepository();
         final controller = buildTimeoutController(
@@ -538,15 +536,15 @@ void main() {
       },
     );
 
-    test('pendingPersistence est déjà résolue tant qu\'aucune session ne s\'est terminée', () async {
+    test('pendingPersistence is already resolved while no session has ended', () async {
       final controller = buildTimeoutController(spy: _TimerSpy(), exerciseCount: 5);
       controller.start();
 
-      // Ne doit pas se bloquer : aucune persistance en cours.
+      // Must not block: no persistence running.
       await controller.pendingPersistence;
     });
 
-    test('restart() annule le timer de la session en cours', () {
+    test('restart() cancels the running session timer', () {
       final spy = _TimerSpy();
       final controller = buildTimeoutController(spy: spy, exerciseCount: 5);
 
@@ -561,13 +559,13 @@ void main() {
     });
   });
 
-  group('abandon() (étape 5, commit A)', () {
+  group('abandon() (step 5, commit A)', () {
     List<ArithmeticExercise> manyExercises(int count) => List.generate(
       count,
       (i) => ArithmeticExercise(operandA: i, operandB: 0, operationType: OperationType.addition),
     );
 
-    test('interrompt une session en cours, réponses déjà données conservées', () async {
+    test('interrupts a running session, answers already given kept', () async {
       final repository = InMemorySessionRepository();
       final controller = SessionController(
         config: SessionConfig(
@@ -598,11 +596,11 @@ void main() {
       expect(sessions.single.exerciseCount, 10);
       final answers = await repository.answersForSession(sessions.single.id);
       expect(answers, hasLength(2));
-      // Pas comptabilisée pour les niveaux, comme une interruption automatique.
+      // Does not count for levels, like an automatic interruption.
       expect(await repository.currentLevels('test-player'), isEmpty);
     });
 
-    test("avant toute réponse : rien n'est enregistré", () async {
+    test('before any answer: nothing is stored', () async {
       final repository = InMemorySessionRepository();
       final controller = SessionController(
         config: SessionConfig(
@@ -626,7 +624,7 @@ void main() {
       expect(await repository.recentSessions('test-player'), isEmpty);
     });
 
-    test('annule le timer en cours', () {
+    test('cancels the running timer', () {
       final spy = _TimerSpy();
       final controller = SessionController(
         config: SessionConfig(
@@ -651,7 +649,7 @@ void main() {
       expect(timer.isActive, isFalse);
     });
 
-    test('ne fait rien avant start() ou après la fin de la session', () {
+    test('does nothing before start() or after the session ended', () {
       final controller = SessionController(
         config: SessionConfig(
           seed: 1,
@@ -670,7 +668,7 @@ void main() {
       expect(controller.state.status, SessionStatus.notStarted);
 
       controller.start();
-      controller.submitAnswer(0); // seule question : session déjà finished
+      controller.submitAnswer(0); // only question: session already finished
       expect(controller.state.status, SessionStatus.finished);
 
       controller.abandon();
@@ -678,8 +676,8 @@ void main() {
     });
   });
 
-  group('lastLevelUpdates (étape 5, commit D)', () {
-    test('se peuple une fois la session terminée normalement', () async {
+  group('lastLevelUpdates (step 5, commit D)', () {
+    test('is set once the session ends normally', () async {
       final repository = InMemorySessionRepository();
       final eightExercises = List.generate(
         8,
@@ -703,14 +701,14 @@ void main() {
 
       controller.start();
       for (var i = 0; i < 8; i++) {
-        controller.submitAnswer(i); // i + 0 = i : toujours correct
+        controller.submitAnswer(i); // i + 0 = i: always right
       }
       await controller.pendingPersistence;
 
       expect(controller.lastLevelUpdates?[ExerciseType.addition]?.level, 53);
     });
 
-    test('reste null après une session interrompue (countsForLevels: false)', () async {
+    test('stays null after an interrupted session (countsForLevels: false)', () async {
       final repository = InMemorySessionRepository();
       final controller = SessionController(
         config: SessionConfig(
@@ -739,7 +737,7 @@ void main() {
       expect(controller.lastLevelUpdates, isNull);
     });
 
-    test('restart() efface la valeur précédente', () async {
+    test('restart() clears the previous value', () async {
       final repository = InMemorySessionRepository();
       final controller = SessionController(
         config: SessionConfig(
@@ -780,11 +778,11 @@ class _RecordFailureRepository extends InMemorySessionRepository {
     required PersistedSession session,
     required List<PersistedAnswer> answers,
     required Map<ExerciseType, LevelCacheEntry> levelUpdates,
-  }) async => throw Exception('disque plein (simulé)');
+  }) async => throw Exception('disk full (simulated)');
 }
 
-/// Échoue tant que [failuresLeft] > 0, puis écrit normalement — un stockage
-/// momentanément indisponible.
+/// Fails while [failuresLeft] > 0, then writes normally — storage briefly
+/// unavailable.
 class _FlakyRecordRepository extends InMemorySessionRepository {
   _FlakyRecordRepository(this.failuresLeft);
 
@@ -798,7 +796,7 @@ class _FlakyRecordRepository extends InMemorySessionRepository {
   }) async {
     if (failuresLeft > 0) {
       failuresLeft--;
-      throw Exception('stockage indisponible (simulé)');
+      throw Exception('storage unavailable (simulated)');
     }
     await super.recordSession(session: session, answers: answers, levelUpdates: levelUpdates);
   }
@@ -829,16 +827,16 @@ void persistenceRobustnessTests() {
         createTimer: (duration, callback) => _FakeTimer(callback),
       );
 
-  group('robustesse de l\'enregistrement de fin de session', () {
+  group('robustness of the end-of-session write', () {
     test(
-      'contrôleur disposé juste après la dernière réponse : la partie est quand même enregistrée',
+      'controller disposed right after the last answer: the game is still stored',
       () async {
         final repository = InMemorySessionRepository();
         final controller = finishedSoon(repository)..start();
         for (var i = 0; i < 4; i++) {
           controller.submitAnswer(i);
         }
-        // « Nouvelle sélection » tapé avant la fin de l'écriture.
+        // "New selection" tapped before the write finished.
         controller.dispose();
 
         await controller.pendingPersistence;
@@ -848,7 +846,7 @@ void persistenceRobustnessTests() {
       },
     );
 
-    test('un échec d\'enregistrement est exposé, pas avalé en silence', () async {
+    test('a save failure is exposed, not silently swallowed', () async {
       final controller = finishedSoon(_RecordFailureRepository())..start();
       expect(controller.persistenceFailed, isFalse);
       for (var i = 0; i < 4; i++) {
@@ -860,7 +858,7 @@ void persistenceRobustnessTests() {
       expect(controller.persistenceFailed, isTrue);
     });
 
-    test("réessayer après un échec enregistre la partie et lève l'avertissement", () async {
+    test('retrying after a failure stores the game and clears the warning', () async {
       final repository = _FlakyRecordRepository(1);
       final controller = finishedSoon(repository)..start();
       for (var i = 0; i < 4; i++) {
@@ -876,7 +874,7 @@ void persistenceRobustnessTests() {
       expect(await repository.currentLevels('test-player'), isNotEmpty);
     });
 
-    test("un nouvel échec garde l'avertissement ; pendingPersistence attend l'essai suivant", () async {
+    test('a new failure keeps the warning; pendingPersistence waits for the next attempt', () async {
       final repository = _FlakyRecordRepository(2);
       final controller = finishedSoon(repository)..start();
       for (var i = 0; i < 4; i++) {
@@ -888,8 +886,8 @@ void persistenceRobustnessTests() {
       expect(controller.persistenceFailed, isTrue);
       expect(controller.isRetryingPersistence, isFalse);
 
-      // Non attendu ici : c'est `pendingPersistence` (ce qu'attend la sortie
-      // de l'écran de résultat) qui doit couvrir ce nouvel essai.
+      // Not awaited here: `pendingPersistence` (what leaving the result
+      // screen waits for) must cover this new attempt.
       unawaited(controller.retryPersistence());
       expect(controller.isRetryingPersistence, isTrue);
       await controller.pendingPersistence;
@@ -899,10 +897,10 @@ void persistenceRobustnessTests() {
     });
   });
 
-  group('niveau global après la session (overallLevelAfter)', () {
-    test('calculé sur tout le cache, types non joués cette fois compris', () async {
+  group('overall level after the session (overallLevelAfter)', () {
+    test('computed over the whole cache, types not played this time included', () async {
       final repository = InMemorySessionRepository();
-      // Multiplication jouée lors d'une partie précédente, pas cette fois-ci.
+      // Multiplication played in an earlier game, not this time.
       await repository.recordSession(
         session: PersistedSession(
           id: 'partie-precedente',
@@ -931,11 +929,11 @@ void persistenceRobustnessTests() {
 
       final additionAfter = (await repository.currentLevels('test-player'))[ExerciseType.addition]!.level;
       final session = (await repository.recentSessions('test-player')).first;
-      // Addition à jour + multiplication 50 + 5 types au plancher, sur 7.
+      // Addition updated + multiplication 50 + 5 types at the floor, over 7.
       expect(session.overallLevelAfter, closeTo((additionAfter + 50 + 5) / 7, 1e-9));
     });
 
-    test('cache illisible : session enregistrée quand même, sans cette valeur', () async {
+    test('unreadable cache: session stored anyway, without this value', () async {
       final repository = _LevelReadFailureRepository();
       final controller = finishedSoon(repository)..start();
       for (var i = 0; i < 4; i++) {

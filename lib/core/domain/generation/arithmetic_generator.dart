@@ -8,20 +8,20 @@ import 'operand_range.dart';
 class ArithmeticExerciseGenerator implements ExerciseGenerator {
   ArithmeticExerciseGenerator({required this.operationTypes, OperandRange? operandRange})
     : operandRange = operandRange ?? OperandRange(min: 1, max: 10) {
-    // Règle 13 : un `assert` disparaît en release — une liste vide y
-    // planterait plus loin sur un `nextInt(0)` sans explication.
+    // Rule 13: an `assert` disappears in release — an empty list would
+    // crash further on in a `nextInt(0)` with no explanation.
     if (operationTypes.isEmpty) {
       throw ArgumentError.value(
         operationTypes,
         'operationTypes',
-        "doit contenir au moins un type d'opération.",
+        'must contain at least one operation type.',
       );
     }
     if (operationTypes.contains(OperationType.division) && this.operandRange.min < 1) {
       throw ArgumentError.value(
         this.operandRange,
         'operandRange',
-        'La division nécessite un diviseur non nul (operandRange.min >= 1).',
+        'Division needs a non-zero divisor (operandRange.min >= 1).',
       );
     }
   }

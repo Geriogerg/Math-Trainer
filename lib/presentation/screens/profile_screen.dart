@@ -14,7 +14,7 @@ import 'empty_state.dart';
 const _windowDuration = Duration(days: 30);
 const _recentSessionsLimit = 10;
 
-/// `+3`/`−3`/`0` — vrai signe moins U+2212 (`doc/design.md`), jamais `-`.
+/// `+3`/`−3`/`0` — true minus sign U+2212 (`doc/design.md`), never `-`.
 String _formatDelta(double delta) {
   final rounded = delta.round();
   if (rounded > 0) return '+$rounded';
@@ -39,35 +39,32 @@ class _ProfileData {
     required this.recentSessions,
   });
 
-  /// Figé une seule fois par chargement — `_LevelCurve` positionne ses
-  /// points par rapport à cette valeur plutôt que d'appeler `DateTime.now()`
-  /// dans son propre `build()` : deux appels séparés dériveraient de
-  /// quelques millisecondes l'un de l'autre, assez pour décaler la courbe
-  /// d'un sous-pixel et rendre les tests de golden non reproductibles.
+  /// Frozen once per load — `_LevelCurve` positions its points relative to
+  /// this value rather than calling `DateTime.now()` in its own `build()`:
+  /// two separate calls would drift a few milliseconds apart, enough to
+  /// shift the curve by a sub-pixel and make golden tests non-reproducible.
   final DateTime now;
 
   final Account account;
   final Map<ExerciseType, LevelCacheEntry> levels;
   final Map<ExerciseType, double> avgElapsedMs;
 
-  /// `sessionsSince(playerId, now - 30 jours)`, triées ancien → récent.
+  /// `sessionsSince(playerId, now - 30 days)`, sorted old → recent.
   final List<PersistedSession> windowSessions;
 
-  /// `recentSessions(playerId, limit: 10)`, triées récent → ancien.
+  /// `recentSessions(playerId, limit: 10)`, sorted recent → old.
   final List<PersistedSession> recentSessions;
 }
 
-/// Anciennement « Progression » (étape 5). Renommé Profil à l'étape 6,
-/// tranche 2 : porte désormais l'identité (nom de joueur, email,
-/// déconnexion) en plus des statistiques déjà existantes — décision
-/// explicite de l'utilisateur, qui révise la règle « profil en icône de
-/// coin, pas de 5ᵉ onglet » de `doc/design.md`.
+/// Formerly "Progress" (step 5). Renamed Profile in step 6, slice 2: it
+/// now carries the identity (player name, email, sign-out) on top of the
+/// existing statistics — an explicit owner decision revising the "profile
+/// as a corner icon, no 5th tab" rule of `doc/design.md`.
 ///
-/// Cinq blocs, du général au détail : identité, niveau global et variation
-/// récente, courbe d'évolution du niveau sur 30 jours, ventilation par
-/// opération (niveau + temps moyen), sessions récentes. Jamais un taux de
-/// réussite ni un score comme mesure de progrès (`doc/decisions.md`) — ce
-/// qui progresse, c'est le niveau.
+/// Five blocks, from general to detailed: identity, overall level and its
+/// recent change, 30-day level curve, breakdown per operation (level +
+/// average time), recent sessions. Never an accuracy rate nor a score as a
+/// measure of progress (`doc/decisions.md`) — what progresses is the level.
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({
     super.key,
@@ -77,10 +74,10 @@ class ProfileScreen extends StatefulWidget {
 
   final AppEnvironment environment;
 
-  /// Vrai quand cet onglet est celui affiché par `AppShell`. `IndexedStack`
-  /// garde ce widget monté après sa première visite (`app_shell.dart`), donc
-  /// sans ce signal `_load()` ne serait jamais rejouée après une nouvelle
-  /// session : `initState` ne se déclenche qu'une fois par cycle de vie.
+  /// True when this tab is the one shown by `AppShell`. `IndexedStack`
+  /// keeps this widget mounted after its first visit (`app_shell.dart`), so
+  /// without this signal `_load()` would never run again after a new
+  /// session: `initState` only fires once per lifecycle.
   final bool isActive;
 
   @override
@@ -88,13 +85,13 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  /// Tout ce qui est local (compte en session, niveaux, historique) : jamais
-  /// de réseau, donc disponible hors ligne.
+  /// Everything local (account in session, levels, history): never the
+  /// network, so available offline.
   late Future<_ProfileData> _data;
 
-  /// Le nom de joueur, seule lecture réseau de l'écran — chargé à part pour
-  /// qu'un échec (hors ligne, Supabase indisponible) n'affecte que la ligne
-  /// du nom, pas les statistiques locales.
+  /// The player name, the screen's only network read — loaded separately so
+  /// that a failure (offline, Supabase unavailable) only affects the name
+  /// line, not the local statistics.
   late Future<PlayerProfile> _profile;
 
   @override
@@ -117,9 +114,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final since = now.subtract(_windowDuration);
     _data =
         Future.wait([
-          // `AuthGate` garantit un compte connecté avant d'atteindre cet écran,
-          // et `authState` émet d'abord l'état courant (`account_repository.dart`)
-          // — `.first` le lit sans appel réseau.
+          // `AuthGate` guarantees a signed-in account before reaching this
+          // screen, and `authState` emits the current state first
+          // (`account_repository.dart`) — `.first` reads it with no network call.
           environment.accountRepository.authState.first,
           repository.currentLevels(playerId),
           repository.averageElapsedMsByType(playerId),
@@ -139,10 +136,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _loadProfile() {
-    // `ignore()` : le `FutureBuilder` qui lit `_profile` n'existe qu'une fois
-    // `_data` résolu. Si le nom échoue avant, l'erreur n'a encore aucun
-    // écouteur et remonte comme erreur asynchrone non gérée. Marquée gérée
-    // ici, elle reste transmise au `FutureBuilder` quand il s'abonne.
+    // `ignore()`: the `FutureBuilder` reading `_profile` only exists once
+    // `_data` has resolved. If the name fails before that, the error has no
+    // listener yet and surfaces as an unhandled asynchronous error. Marked
+    // handled here, it is still delivered to the `FutureBuilder` when it
+    // subscribes.
     _profile = widget.environment.profileRepository.currentProfile()..ignore();
   }
 
@@ -157,8 +155,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await widget.environment.profileRepository.updateDisplayName(newName);
       if (mounted) setState(_loadProfile);
     } catch (_) {
-      // L'ancien nom reste affiché ; sans ce message, le joueur croirait
-      // son nouveau nom enregistré (réseau coupé, table `profiles` absente).
+      // The old name stays shown; without this message, the player would
+      // think the new name was saved (network down, `profiles` table missing).
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -190,8 +188,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final globalLevel = data.levels.isEmpty
             ? null
             : overallLevel(data.levels);
-        // Mêmes points que la courbe : la variation est l'écart entre son
-        // premier et son dernier point, jamais un calcul à part.
+        // Same points as the curve: the change is the gap between its first
+        // and last points, never a separate computation.
         final windowLevels = [
           for (final session in data.windowSessions) ?session.overallLevelAfter,
         ];
@@ -267,10 +265,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-/// `TextEditingController` propre au widget (dispose() dans son propre
-/// `State`, pas juste après `await showDialog(...)`) : le disposer aussitôt
-/// la valeur reçue lève « used after being disposed », le `TextField` restant
-/// référencé pendant l'animation de fermeture du dialogue.
+/// The widget's own `TextEditingController` (dispose() in its own `State`,
+/// not right after `await showDialog(...)`): disposing it as soon as the
+/// value arrives throws "used after being disposed", the `TextField` still
+/// being referenced during the dialog's closing animation.
 class _DisplayNameDialog extends StatefulWidget {
   const _DisplayNameDialog({required this.initialValue});
 
@@ -293,8 +291,9 @@ class _DisplayNameDialogState extends State<_DisplayNameDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: const Text('Player name'),
-      // 30 : même borne que la contrainte `check` de `supabase/profiles.sql`,
-      // sinon un nom plus long serait refusé par la base sans retour visible.
+      // 30: same bound as the `check` constraint in `supabase/profiles.sql`,
+      // otherwise a longer name would be refused by the database with no
+      // visible feedback.
       content: TextField(
         controller: _controller,
         autofocus: true,
@@ -327,11 +326,11 @@ class _IdentityBlock extends StatelessWidget {
 
   final Account account;
 
-  /// `null` tant que le nom est en cours de chargement ou en échec.
+  /// `null` while the name is loading or has failed.
   final PlayerProfile? profile;
   final bool profileFailed;
 
-  /// `null` (bouton désactivé) tant que le profil n'est pas chargé.
+  /// `null` (button disabled) until the profile is loaded.
   final VoidCallback? onEditName;
   final VoidCallback onRetryProfile;
   final VoidCallback onSignOut;
@@ -447,9 +446,9 @@ class _RecentSessionRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    // Rien d'autre ne modifie le cache de niveaux entre deux sessions :
-    // l'écart entre les deux niveaux globaux « après » est exactement
-    // l'effet de cette session-ci.
+    // Nothing else changes the level cache between two sessions: the gap
+    // between the two "after" overall levels is exactly the effect of this
+    // session.
     final after = session.overallLevelAfter;
     final previousAfter = previous?.overallLevelAfter;
     final variation = after == null || previousAfter == null
@@ -486,22 +485,22 @@ class _RecentSessionRow extends StatelessWidget {
   }
 }
 
-/// Trace simple (pas d'axe, pas de légende) reliant un point par session de
-/// la fenêtre — X proportionnel à la date, Y le niveau global juste après
-/// cette session (`PersistedSession.overallLevelAfter` : même échelle d'une
-/// session à l'autre, quels que soient les types joués, et la dernière
-/// partie apparaît). Sessions sans cette valeur (antérieures au schéma v3)
-/// ignorées. `doc/design.md` : courbe d'évolution, rien de plus précis
-/// n'est demandé. `CustomPainter` maison plutôt qu'une dépendance de
-/// graphiques : un simple tracé ne le justifie pas (même logique que
-/// `doc/decisions.md` pour `uuid`/`sqflite`).
+/// A plain trace (no axis, no legend) linking one point per session of the
+/// window — X proportional to the date, Y the overall level right after
+/// that session (`PersistedSession.overallLevelAfter`: the same scale from
+/// one session to the next, whatever types were played, and the last game
+/// appears). Sessions without that value (older than schema v3) are
+/// skipped. `doc/design.md` asks for a level curve, nothing more precise.
+/// A home-made `CustomPainter` rather than a charting dependency: a simple
+/// trace does not justify one (same logic as `doc/decisions.md` for
+/// `uuid`/`sqflite`).
 class _LevelCurve extends StatelessWidget {
   const _LevelCurve({required this.sessions, required this.now});
 
   final List<PersistedSession> sessions;
 
-  /// Figé par l'appelant (`_ProfileData.now`), jamais recalculé ici — voir
-  /// le commentaire sur `_ProfileData.now`.
+  /// Frozen by the caller (`_ProfileData.now`), never recomputed here — see
+  /// the comment on `_ProfileData.now`.
   final DateTime now;
 
   @override

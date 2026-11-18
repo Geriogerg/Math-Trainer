@@ -3,9 +3,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/domain/models/exercise_type.dart';
 import '../../core/domain/persistence/type_selection_store.dart';
 
-/// `getStringList`/`setStringList` distinguent déjà nativement une clé
-/// absente (`null`, jamais enregistré) d'une liste vide enregistrée — pas
-/// besoin d'une sentinelle séparée pour porter cette différence.
+/// `getStringList`/`setStringList` already tell a missing key (`null`,
+/// never stored) from a stored empty list — no separate sentinel needed to
+/// carry that difference.
 class SharedPreferencesTypeSelectionStore implements TypeSelectionStore {
   const SharedPreferencesTypeSelectionStore();
 

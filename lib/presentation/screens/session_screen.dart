@@ -9,13 +9,13 @@ import '../exercise_type_labels.dart';
 import '../theme/app_theme.dart';
 import 'empty_state.dart';
 
-/// Plus longue réponse possible : 10⁵ (puissances) ; 7 laisse une marge sans
-/// laisser une saisie folle déborder de l'écran.
+/// Longest possible answer: 10⁵ (powers); 7 leaves a margin without letting
+/// wild input overflow the screen.
 const _maxTypedDigits = 7;
 
-/// Rangée des chiffres *physique*, pas logique : sur un clavier AZERTY, ces
-/// touches produisent « & é " ' ( - è _ ç à » sans Maj — le joueur doit
-/// pouvoir taper les chiffres sans Maj, comme sur un pavé numérique.
+/// The *physical* digit row, not the logical one: on an AZERTY keyboard,
+/// these keys produce "& é " ' ( - è _ ç à" without Shift — the player must
+/// be able to type digits without Shift, as on a numeric keypad.
 final _digitKeys = {
   PhysicalKeyboardKey.digit0: '0',
   PhysicalKeyboardKey.digit1: '1',
@@ -62,24 +62,24 @@ class _SessionScreenState extends State<SessionScreen> with TickerProviderStateM
       vsync: this,
       duration: widget.controller.questionTimeout,
     )..forward();
-    // Durée réelle posée juste avant chaque .forward() (AppMotion.feedback,
-    // lu depuis le thème — indisponible ici, avant le premier frame).
+    // Actual duration set just before each .forward() (AppMotion.feedback,
+    // read from the theme — unavailable here, before the first frame).
     _feedbackController = AnimationController(vsync: this, duration: Duration.zero);
   }
 
   @override
   void didUpdateWidget(covariant SessionScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Nouvelle question : le contrôleur est le même objet d'une question à
-    // l'autre (seul son état interne change), donc c'est le seul signal
-    // fiable — comparer les exercices par valeur risquerait de rater un
-    // redémarrage si la même opération revient deux fois d'affilée.
+    // New question: the controller is the same object from one question to
+    // the next (only its internal state changes), so this is the only
+    // reliable signal — comparing exercises by value could miss a restart if
+    // the same operation comes up twice in a row.
     _chronoController.forward(from: 0);
 
-    // Un timeout fait avancer la session sans passer par _submit() (aucune
-    // touche « valider » pressée) : sans ce contrôle, il n'y aurait aucun
-    // flash/haptique, alors qu'un timeout compte comme une réponse fausse et
-    // doit se voir au même titre (règle 14).
+    // A timeout advances the session without going through _submit() (no
+    // "submit" key pressed): without this check there would be no
+    // flash/haptic, while a timeout counts as a wrong answer and must show
+    // the same way (rule 14).
     final outcomes = widget.controller.state.outcomes;
     final lastOutcome = outcomes.isEmpty ? null : outcomes.last;
     if (lastOutcome != null && lastOutcome.isTimeout) {
@@ -100,10 +100,10 @@ class _SessionScreenState extends State<SessionScreen> with TickerProviderStateM
     setState(() => _typedDigits += digit);
   }
 
-  /// Clavier physique (web, ordinateur, tablette avec clavier) : sans lui,
-  /// chaque chiffre se clique à la souris sur le pavé — le jeu se vend sur la
-  /// vitesse. Mêmes chemins que le pavé tactile, donc même chronométrage et
-  /// même détection d'activité.
+  /// Physical keyboard (web, desktop, tablet with keyboard): without it,
+  /// every digit is clicked on the keypad with the mouse — the game sells
+  /// on speed. Same paths as the touch keypad, hence the same timing and the
+  /// same activity detection.
   KeyEventResult _handleKey(FocusNode node, KeyEvent event) {
     if (event is KeyUpEvent) return KeyEventResult.ignored;
     final digit = _digitKeys[event.physicalKey];
@@ -117,8 +117,8 @@ class _SessionScreenState extends State<SessionScreen> with TickerProviderStateM
       return KeyEventResult.handled;
     }
     if (key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.numpadEnter) {
-      // Pas de répétition : garder Entrée enfoncé ne doit pas valider la
-      // question suivante avant même qu'elle soit lue.
+      // No repeat: holding Enter must not submit the next question before it
+      // is even read.
       if (event is KeyDownEvent) _submit();
       return KeyEventResult.handled;
     }
@@ -137,18 +137,18 @@ class _SessionScreenState extends State<SessionScreen> with TickerProviderStateM
     final value = int.tryParse(_typedDigits);
     if (value == null) return;
 
-    // Calculé avant `submitAnswer` : le domaine expose déjà `isCorrectAnswer`,
-    // pas besoin d'attendre le contrôleur pour savoir quel flash déclencher.
-    // `submitAnswer` est appelé tout de suite après, sans délai — le
-    // chronométrage interne du contrôleur (qui sert au score) reste exact.
+    // Computed before `submitAnswer`: the domain already exposes
+    // `isCorrectAnswer`, no need to wait for the controller to know which
+    // flash to trigger. `submitAnswer` is called right after, with no delay —
+    // the controller's internal timing (used for the score) stays exact.
     final isCorrect = exercise.isCorrectAnswer(value);
     widget.controller.submitAnswer(value);
     _playFeedback(isCorrect);
   }
 
-  /// Partagé entre une validation explicite et un timeout (`didUpdateWidget`)
-  /// — dans les deux cas la réponse à la question qui vient de se terminer
-  /// est connue, seule la source du déclenchement diffère.
+  /// Shared by an explicit submit and a timeout (`didUpdateWidget`) — in
+  /// both cases the answer to the question that just ended is known, only
+  /// the trigger differs.
   void _playFeedback(bool isCorrect) {
     HapticFeedback.lightImpact();
     if (!isCorrect) HapticFeedback.heavyImpact();
@@ -199,9 +199,9 @@ class _SessionScreenState extends State<SessionScreen> with TickerProviderStateM
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    // Série visible seulement si > 0 : pas de bruit « série 0 »
-                    // à chaque première question (`doc/decisions.md` —
-                    // currentStreak affiché pendant la session).
+                    // Streak shown only if > 0: no "streak 0" noise on every
+                    // first question (`doc/decisions.md` — currentStreak shown
+                    // during the session).
                     state.currentStreak > 0
                         ? '${exerciseTypeLabel(exercise.type)} · level $level · streak ${state.currentStreak}'
                         : '${exerciseTypeLabel(exercise.type)} · level $level',
@@ -227,9 +227,9 @@ class _SessionScreenState extends State<SessionScreen> with TickerProviderStateM
             ),
           ),
           SizedBox(
-            // Hauteur fixe en premier, l'opération prend ce qu'il reste
-            // au-dessus (`Expanded`) — rien ne bouge entre deux questions
-            // (`doc/design.md` : jamais un ratio d'écran, voir `AppMetrics`).
+            // Fixed height first, the operation takes what remains above
+            // (`Expanded`) — nothing moves between questions (`doc/design.md`:
+            // never a ratio of the screen, see `AppMetrics`).
             height: metrics.keypadHeight,
             child: _NumericKeypad(onDigit: _appendDigit, onBackspace: _backspace, onValidate: _submit),
           ),
@@ -276,9 +276,9 @@ class _TopBar extends StatelessWidget {
   }
 }
 
-/// Réponse en cours de saisie. Le flash/mouvement de feedback (règle 14 :
-/// jamais la couleur seule) s'applique ici, pas à l'écran entier
-/// (`doc/design.md` : « flash [...] sur le champ de saisie »).
+/// The answer being typed. The feedback flash/motion (rule 14: never colour
+/// alone) applies here, not to the whole screen (`doc/design.md`: "flash
+/// [...] on the input field").
 class _AnswerDisplay extends StatelessWidget {
   const _AnswerDisplay({
     required this.typedDigits,
@@ -305,10 +305,10 @@ class _AnswerDisplay extends StatelessWidget {
         final t = feedback.value;
         final flashColor = correct ? theme.colorScheme.onSurface : theme.colorScheme.error;
         final opacity = (1 - t).clamp(0.0, 1.0);
-        // Mise à l'échelle 1,0 → 1,06 → 1,0 (doc/design.md) : une bosse en
-        // sinus atteint son maximum au milieu de l'animation.
+        // Scale 1.0 → 1.06 → 1.0 (doc/design.md): a sine bump peaks in the
+        // middle of the animation.
         final scale = correct ? 1.0 + 0.06 * math.sin(t * math.pi) : 1.0;
-        // Secousse horizontale amortie : oscille puis se stabilise.
+        // Damped horizontal shake: oscillates then settles.
         final shakeDx = correct ? 0.0 : 8 * math.sin(t * math.pi * 4) * (1 - t);
 
         return Transform.translate(
@@ -374,16 +374,16 @@ class _NumericKeypad extends StatelessWidget {
   }
 }
 
-/// Touche/valider en `Surface`, valider en `Accent` (« action principale »,
-/// doc/design.md). Animation d'enfoncement 60 ms easeOut (`AppMotion.
-/// keyPress`, posée au commit A, premier consommateur ici).
+/// Key/backspace on `Surface`, submit on `Accent` ("primary action",
+/// doc/design.md). 60 ms easeOut press animation (`AppMotion.keyPress`, set
+/// up in commit A, first consumer here).
 class _KeypadKey extends StatefulWidget {
   const _KeypadKey({this.label, this.icon, this.semanticLabel, required this.onTap, this.isPrimary = false});
 
   final String? label;
   final IconData? icon;
 
-  /// Lu par les lecteurs d'écran pour les touches sans texte (icônes).
+  /// Read by screen readers for keys without text (icons).
   final String? semanticLabel;
   final VoidCallback onTap;
   final bool isPrimary;

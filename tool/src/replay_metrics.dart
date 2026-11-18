@@ -4,13 +4,13 @@ import 'package:math_trainer/core/domain/leveling/leveling_rules.dart';
 import 'package:math_trainer/core/domain/leveling/level_updater.dart';
 import 'package:math_trainer/core/domain/persistence/level_cache_entry.dart';
 
-/// Logique pure de rejeu et de mesure de `tool/recalibrate.dart`, séparée du
-/// script pour rester testable (le script lui-même ne l'est pas facilement :
-/// son point d'entrée lit une vraie base SQLite). Public — contrairement au
-/// reste du script — précisément pour ça.
+/// Pure replay and measurement logic of `tool/recalibrate.dart`, kept apart
+/// from the script to stay testable (the script itself is not, easily: its
+/// entry point reads a real SQLite database). Public — unlike the rest of
+/// the script — precisely for that.
 
-/// Une trajectoire = les lots de réponses d'une opération pour un joueur,
-/// triés chronologiquement par session, sessions sous `n_min` déjà exclues.
+/// A trajectory = the answer batches of one operation for one player,
+/// sorted chronologically by session, sessions under `n_min` excluded.
 typedef Trajectory = List<List<AnswerOutcome>>;
 
 class Metrics {
@@ -20,22 +20,22 @@ class Metrics {
   final double? bias;
 }
 
-/// Cible d'amplitude à l'équilibre (doc/decisions.md : oscillation ≤ 2).
+/// Amplitude target at equilibrium (doc/decisions.md: oscillation ≤ 2).
 const oscillationTarget = 2;
 
-/// Fenêtre glissante utilisée pour détecter la convergence : n'exige pas que
-/// *tout* le reste de la trajectoire respecte la cible (un seul écart tardif
-/// invaliderait alors une convergence par ailleurs réelle), seulement que
-/// les [convergenceWindow] sessions suivantes la respectent. L'oscillation
-/// et le biais, une fois la convergence détectée, restent eux mesurés sur
-/// tout le reste de la trajectoire — c'est la détection qui doit être
-/// tolérante à un accident isolé, pas la caractérisation de l'équilibre.
+/// Sliding window used to detect convergence: it does not require *all* the
+/// rest of the trajectory to meet the target (a single late deviation would
+/// then invalidate an otherwise real convergence), only the next
+/// [convergenceWindow] sessions. Oscillation and bias, once convergence is
+/// detected, are still measured over the whole rest of the trajectory — the
+/// detection must tolerate an isolated accident, not the characterisation
+/// of the equilibrium.
 const convergenceWindow = 5;
 
-/// Rejoue une trajectoire avec [rules], niveau de départ 1. `sessionsPlayed`
-/// et l'absence pour `confidenceFor` sont reconstruits depuis le rejeu
-/// lui-même — pas depuis `player_levels`, qui ne reflète que l'état courant,
-/// pas l'historique complet.
+/// Replays a trajectory with [rules], starting level 1. `sessionsPlayed`
+/// and absence for `confidenceFor` are rebuilt from the replay itself — not
+/// from `player_levels`, which only reflects the current state, not the
+/// full history.
 List<int> replay(Trajectory trajectory, LevelingRules rules, DateTime baseTime) {
   final updater = LevelUpdater(rules: rules);
   var level = 1;
@@ -43,7 +43,7 @@ List<int> replay(Trajectory trajectory, LevelingRules rules, DateTime baseTime) 
   final levels = <int>[];
 
   for (var i = 0; i < trajectory.length; i++) {
-    final now = baseTime.add(Duration(days: i)); // pas de vrais timestamps rejoués ici
+    final now = baseTime.add(Duration(days: i)); // no real timestamps replayed here
     final confidence = confidenceFor(entry: prior, now: now, rules: rules);
     level = updater.update(currentLevel: level, answers: trajectory[i], confidence: confidence);
     levels.add(level);
@@ -56,11 +56,10 @@ List<int> replay(Trajectory trajectory, LevelingRules rules, DateTime baseTime) 
   return levels;
 }
 
-/// Premier indice à partir duquel une fenêtre de [convergenceWindow]
-/// sessions (ou moins, en fin de trajectoire) a une amplitude (max−min)
-/// sous [oscillationTarget] — `null` si jamais atteint. Une fenêtre de
-/// longueur 1 ne permet rien de conclure (amplitude nulle par construction)
-/// et est ignorée.
+/// First index from which a window of [convergenceWindow] sessions (or
+/// fewer, at the end of the trajectory) has an amplitude (max−min) under
+/// [oscillationTarget] — `null` if never reached. A window of length 1
+/// allows no conclusion (zero amplitude by construction) and is ignored.
 int? convergenceIndex(List<int> levels) {
   for (var i = 0; i < levels.length; i++) {
     final windowEnd = (i + convergenceWindow < levels.length)
@@ -77,10 +76,10 @@ int? convergenceIndex(List<int> levels) {
 double? mean(List<double> values) =>
     values.isEmpty ? null : values.reduce((a, b) => a + b) / values.length;
 
-/// Rejoue toutes les [trajectories] avec [rules] et moyenne les métriques.
-/// Oscillation et biais sont mesurés sur tout le reste de la trajectoire à
-/// partir du point de convergence (voir [convergenceWindow] pour pourquoi
-/// la détection elle-même est plus tolérante).
+/// Replays all [trajectories] with [rules] and averages the metrics.
+/// Oscillation and bias are measured over the whole rest of the trajectory
+/// from the convergence point (see [convergenceWindow] for why the
+/// detection itself is more tolerant).
 Metrics averageMetrics(List<Trajectory> trajectories, LevelingRules rules, DateTime baseTime) {
   final convergences = <double>[];
   final oscillations = <double>[];

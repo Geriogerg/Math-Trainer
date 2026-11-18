@@ -7,13 +7,13 @@ void main() {
   );
 
   group('generateUuidV4', () {
-    test('produit un identifiant au format UUID v4 (RFC 4122)', () {
+    test('produces an id in UUID v4 format (RFC 4122)', () {
       for (var i = 0; i < 100; i++) {
         expect(generateUuidV4(), matches(uuidV4Pattern));
       }
     });
 
-    test('ne produit pas de collision sur un échantillon', () {
+    test('produces no collision over a sample', () {
       final ids = List.generate(1000, (_) => generateUuidV4());
 
       expect(ids.toSet(), hasLength(1000));

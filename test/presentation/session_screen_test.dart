@@ -14,8 +14,8 @@ import 'package:math_trainer/core/state/session_controller.dart';
 import 'package:math_trainer/presentation/screens/session_screen.dart';
 import 'package:math_trainer/presentation/theme/app_theme.dart';
 
-/// Même double que `session_screen_golden_test.dart` — pas d'infrastructure
-/// de test partagée pour une seule classe de quelques lignes.
+/// Same double as `session_screen_golden_test.dart` — no shared test
+/// infrastructure for a single class of a few lines.
 class _FixedExerciseSource implements ExerciseSource {
   _FixedExerciseSource(this._exercises);
 
@@ -39,7 +39,7 @@ class _InertTimer implements Timer {
 
 void main() {
   testWidgets(
-    'la série n\'apparaît qu\'à partir de la première bonne réponse (commit F)',
+    'the streak only appears from the first right answer (commit F)',
     (tester) async {
       const exercises = [
         ArithmeticExercise(operandA: 1, operandB: 1, operationType: OperationType.addition),
@@ -61,9 +61,9 @@ void main() {
       )..start();
       addTearDown(controller.dispose);
 
-      // ListenableBuilder : dans l'app réelle, c'est SessionFlowScreen qui
-      // reconstruit SessionScreen à chaque notifyListeners() (commit A).
-      // Sans lui ici, submitAnswer() ne provoquerait aucun rebuild.
+      // ListenableBuilder: in the real app, SessionFlowScreen rebuilds
+      // SessionScreen on every notifyListeners() (commit A). Without it
+      // here, submitAnswer() would trigger no rebuild.
       await tester.pumpWidget(
         MaterialApp(
           theme: buildLightTheme(),
@@ -77,7 +77,7 @@ void main() {
       );
       await tester.pump();
 
-      // Première question : aucune série encore.
+      // First question: no streak yet.
       expect(find.textContaining('streak'), findsNothing);
       expect(find.text('Addition · level 12'), findsOneWidget);
 
@@ -91,16 +91,16 @@ void main() {
 
       expect(find.text('Addition · level 12 · streak 2'), findsOneWidget);
 
-      controller.submitAnswer(0); // 3 + 3, faux : la série retombe
+      controller.submitAnswer(0); // 3 + 3, wrong: the streak drops
       await tester.pump();
 
-      // Session terminée (3/3 réponses) : SessionScreen ne montre plus rien
-      // (EmptyState) — la série finale est visible sur ResultScreen, pas ici.
+      // Session finished (3/3 answers): SessionScreen shows nothing more
+      // (EmptyState) — the final streak shows on ResultScreen, not here.
       expect(controller.state.status.name, 'finished');
     },
   );
 
-  group('clavier physique', () {
+  group('physical keyboard', () {
     Future<SessionController> pumpSession(WidgetTester tester) async {
       const exercises = [
         ArithmeticExercise(operandA: 6, operandB: 6, operationType: OperationType.addition),
@@ -135,7 +135,7 @@ void main() {
       return controller;
     }
 
-    testWidgets('chiffres, retour arrière et Entrée valident une réponse', (tester) async {
+    testWidgets('digits, backspace and Enter submit an answer', (tester) async {
       final controller = await pumpSession(tester);
 
       await tester.sendKeyEvent(LogicalKeyboardKey.digit1);
@@ -152,7 +152,7 @@ void main() {
       expect(controller.state.outcomes.single.isCorrect, isTrue);
     });
 
-    testWidgets('pavé numérique du clavier', (tester) async {
+    testWidgets('keyboard numeric keypad', (tester) async {
       final controller = await pumpSession(tester);
 
       await tester.sendKeyEvent(LogicalKeyboardKey.numpad1);
@@ -163,7 +163,7 @@ void main() {
       expect(controller.state.outcomes.single.submittedValue, 12);
     });
 
-    testWidgets('la saisie est plafonnée à 7 chiffres', (tester) async {
+    testWidgets('input is capped at 7 digits', (tester) async {
       await pumpSession(tester);
 
       for (var i = 0; i < 10; i++) {

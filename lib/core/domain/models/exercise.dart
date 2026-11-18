@@ -1,11 +1,11 @@
 import 'exercise_type.dart';
 import 'operation_type.dart';
 
-/// Racine des types d'exercice. `sealed` force le compilateur à signaler
-/// tout endroit du code qui ne gère pas une nouvelle sous-classe via un
-/// `switch` non exhaustif (règle 11 : jamais de `default` pour masquer le
-/// trou). Toutes les sous-classes vivent dans ce fichier : Dart restreint
-/// les sous-types d'une `sealed class` à la même librairie.
+/// Root of the exercise types. `sealed` makes the compiler flag every place
+/// that does not handle a new subclass through a non-exhaustive `switch`
+/// (rule 11: never a `default` to hide the gap). All subclasses live in this
+/// file: Dart restricts the subtypes of a `sealed class` to the same
+/// library.
 sealed class Exercise {
   const Exercise();
 
@@ -82,8 +82,8 @@ final class PowerExercise extends Exercise {
 final class SquareRootExercise extends Exercise {
   const SquareRootExercise({required this.radicand});
 
-  /// Toujours un carré parfait : garanti par le générateur (règle 10), non
-  /// revérifié ici.
+  /// Always a perfect square: guaranteed by the generator (rule 10), not
+  /// rechecked here.
   final int radicand;
 
   @override
@@ -91,8 +91,8 @@ final class SquareRootExercise extends Exercise {
 
   @override
   int get correctAnswer {
-    // Recherche entière incrémentale : jamais de sqrt() flottant (piège
-    // documenté — erreurs d'arrondi sur les grandes valeurs).
+    // Incremental integer search: never a floating-point sqrt() (documented
+    // pitfall — rounding errors on large values).
     var root = 0;
     while ((root + 1) * (root + 1) <= radicand) {
       root++;

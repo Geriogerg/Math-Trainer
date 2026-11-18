@@ -1,31 +1,31 @@
-/// Raison d'un échec de connexion/inscription, indépendante du backend :
-/// l'infrastructure traduit ses propres codes d'erreur vers ces cas, la
-/// présentation choisit le message affiché (en français) — jamais le texte
-/// brut du serveur, en anglais et pensé pour un développeur.
+/// Why a sign-in/sign-up failed, independent of the backend: the
+/// infrastructure maps its own error codes to these cases, and the
+/// presentation picks the message shown — never the raw server text, written
+/// for a developer.
 enum AccountFailure {
-  /// Email inconnu ou mot de passe faux — volontairement indistincts côté
-  /// serveur (ne pas révéler quels emails ont un compte).
+  /// Unknown email or wrong password — deliberately indistinguishable on the
+  /// server (do not reveal which emails have an account).
   invalidCredentials,
 
-  /// Compte créé, mais email jamais confirmé.
+  /// Account created, but the email was never confirmed.
   emailNotConfirmed,
 
   emailAlreadyUsed,
 
-  /// Mot de passe refusé par la politique du projet (trop court, trop simple).
+  /// Password rejected by the project's policy (too short, too simple).
   weakPassword,
 
-  /// Email mal formé ou champ requis absent.
+  /// Malformed email or missing required field.
   invalidInput,
 
-  /// Trop de tentatives (ou d'emails envoyés) en peu de temps.
+  /// Too many attempts (or emails sent) in a short time.
   rateLimited,
 
-  /// Serveur injoignable : pas de réseau, ou serveur en erreur (5xx).
+  /// Server unreachable: no network, or server error (5xx).
   network,
 
-  /// Tout le reste — [AccountException.detail] porte alors le message brut,
-  /// seul indice disponible pour diagnostiquer.
+  /// Everything else — [AccountException.detail] then carries the raw
+  /// message, the only clue available for diagnosis.
   unknown,
 }
 
@@ -34,8 +34,8 @@ class AccountException implements Exception {
 
   final AccountFailure failure;
 
-  /// Message technique d'origine, pour le diagnostic — pas pour l'affichage
-  /// courant.
+  /// Original technical message, for diagnosis — not for regular
+  /// display.
   final String? detail;
 
   @override

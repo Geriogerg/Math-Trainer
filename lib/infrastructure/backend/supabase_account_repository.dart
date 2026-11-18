@@ -3,13 +3,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/domain/account/account.dart';
 import '../../core/domain/account/account_repository.dart';
 
-/// Codes `error_code` de Supabase Auth (chaînes, pas l'enum `ErrorCode` de
-/// gotrue : `invalid_credentials` et `email_address_invalid` n'y figurent
-/// pas dans la version utilisée, le serveur les renvoie pourtant).
+/// Supabase Auth `error_code` values (strings, not gotrue's `ErrorCode`
+/// enum: `invalid_credentials` and `email_address_invalid` are missing from
+/// it in the version used, yet the server returns them).
 AccountException _toAccountException(AuthException error) {
-  // Levée par gotrue quand la requête n'aboutit pas (pas de réseau, CORS)
-  // ou que le serveur répond 5xx — dans les deux cas, rien à corriger côté
-  // joueur, seulement réessayer plus tard.
+  // Thrown by gotrue when the request does not go through (no network,
+  // CORS) or the server answers 5xx — in both cases nothing to fix on the
+  // player's side, only retry later.
   if (error is AuthRetryableFetchException) {
     return AccountException(AccountFailure.network, detail: error.message);
   }
@@ -38,11 +38,11 @@ class SupabaseAccountRepository implements AccountRepository {
     return Account(id: user.id, email: email);
   }
 
-  /// Malgré son nom, le `ReplaySubject` de `supabase_common` derrière
-  /// `onAuthStateChange` ne rejoue que le **dernier** événement à un nouvel
-  /// abonné, pas tout l'historique — c'est ce qui garantit le contrat
-  /// « état courant d'abord » d'`AccountRepository.authState`. Comportement
-  /// de bibliothèque verrouillé par `supabase_account_repository_test.dart`.
+  /// Despite its name, the `ReplaySubject` from `supabase_common` behind
+  /// `onAuthStateChange` replays only the **latest** event to a new
+  /// subscriber, not the whole history — which is what guarantees the
+  /// "current state first" contract of `AccountRepository.authState`.
+  /// Library behaviour locked by `supabase_account_repository_test.dart`.
   @override
   Stream<Account?> get authState => _client.auth.onAuthStateChange.map(
     (state) => _toAccount(state.session?.user),
@@ -58,8 +58,8 @@ class SupabaseAccountRepository implements AccountRepository {
         email: email,
         password: password,
       );
-      // `session == null` : confirmation par email requise, pas encore de
-      // connexion active — distinct d'un échec (voir account_repository.dart).
+      // `session == null`: email confirmation required, no active session
+      // yet — not a failure (see account_repository.dart).
       if (response.session == null) return null;
       return _toAccount(response.user);
     } on AuthException catch (e) {
@@ -90,17 +90,17 @@ class SupabaseAccountRepository implements AccountRepository {
     }
   }
 
-  /// gotrue efface la session locale et émet `signedOut` *avant* de
-  /// prévenir le serveur : hors ligne, le joueur est donc bien déconnecté,
-  /// seule la révocation côté serveur échoue (le jeton expirera de lui-même).
-  /// Laisser remonter cette erreur la rendait non gérée depuis le bouton
-  /// « Se déconnecter », pour une déconnexion pourtant effective.
+  /// gotrue clears the local session and emits `signedOut` *before*
+  /// notifying the server: offline, the player is indeed signed out, only
+  /// the server-side revocation fails (the token will expire on its own).
+  /// Letting that error propagate left it unhandled from the "Sign out"
+  /// button, for a sign-out that had actually happened.
   @override
   Future<void> signOut() async {
     try {
       await _client.auth.signOut();
     } on AuthException catch (_) {
-      // Déconnexion locale déjà faite, voir ci-dessus.
+      // Local sign-out already done, see above.
     }
   }
 }

@@ -21,37 +21,37 @@ class _ThrowingSessionRepository implements SessionRepository {
     required PersistedSession session,
     required List<PersistedAnswer> answers,
     required Map<ExerciseType, LevelCacheEntry> levelUpdates,
-  }) => throw Exception('échec simulé');
+  }) => throw Exception('simulated failure');
 
   @override
   Future<List<PersistedSession>> recentSessions(
     String playerId, {
     int limit = 20,
-  }) => throw Exception('échec simulé');
+  }) => throw Exception('simulated failure');
 
   @override
   Future<void> transferPlayerData({
     required String fromPlayerId,
     required String toPlayerId,
-  }) => throw Exception('échec simulé');
+  }) => throw Exception('simulated failure');
 
   @override
   Future<List<PersistedAnswer>> answersForSession(String sessionId) =>
-      throw Exception('échec simulé');
+      throw Exception('simulated failure');
 
   @override
   Future<Map<ExerciseType, LevelCacheEntry>> currentLevels(String playerId) =>
-      throw Exception('échec simulé');
+      throw Exception('simulated failure');
 
   @override
   Future<Map<ExerciseType, double>> averageElapsedMsByType(String playerId) =>
-      throw Exception('échec simulé');
+      throw Exception('simulated failure');
 
   @override
   Future<List<PersistedSession>> sessionsSince(
     String playerId,
     DateTime since,
-  ) => throw Exception('échec simulé');
+  ) => throw Exception('simulated failure');
 }
 
 void main() {
@@ -66,33 +66,32 @@ void main() {
     profileRepository: FakeProfileRepository(),
   );
 
-  // Fait avancer le temps juste assez pour que la transition standard de
-  // MaterialPageRoute se stabilise, sans attendre le reste (le chrono de
-  // SessionScreen tourne 5 s à chaque question : un pumpAndSettle() ici
-  // n'arriverait jamais à convergence tant qu'une nouvelle question relance
-  // l'animation).
+  // Advances time just enough for the standard MaterialPageRoute transition
+  // to settle, without waiting for the rest (SessionScreen's timer runs 5 s
+  // per question: a pumpAndSettle() here would never converge while a new
+  // question restarts the animation).
   Future<void> settlePageTransition(WidgetTester tester) async {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
   }
 
-  testWidgets('affiche l\'écran d\'accueil', (WidgetTester tester) async {
+  testWidgets('shows the home screen', (WidgetTester tester) async {
     await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
-    // `AuthGate` résout la session locale de façon asynchrone (même hors
-    // réseau) : une frame supplémentaire est nécessaire avant que le contenu
-    // réel (ici `AppShell`) ne remplace le spinner initial.
+    // `AuthGate` resolves the local session asynchronously (even offline):
+    // one more frame is needed before the real content (here `AppShell`)
+    // replaces the initial spinner.
     await tester.pump();
 
     expect(find.text('Math Trainer'), findsOneWidget);
   });
 
-  testWidgets('démarrer une session pousse le pavé numérique en plein écran', (
+  testWidgets('starting a session pushes the keypad full screen', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
-    // `AuthGate` résout la session locale de façon asynchrone (même hors
-    // réseau) : une frame supplémentaire est nécessaire avant que le contenu
-    // réel (ici `AppShell`) ne remplace le spinner initial.
+    // `AuthGate` resolves the local session asynchronously (even offline):
+    // one more frame is needed before the real content (here `AppShell`)
+    // replaces the initial spinner.
     await tester.pump();
 
     await tester.tap(find.text('Start'));
@@ -103,16 +102,16 @@ void main() {
     expect(find.byIcon(Icons.backspace_outlined), findsOneWidget);
   });
 
-  testWidgets('aucun type sélectionné désactive Commencer et explique pourquoi', (
+  testWidgets('no type selected disables Start and explains why', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
-    // `AuthGate` résout la session locale de façon asynchrone (même hors
-    // réseau) : une frame supplémentaire est nécessaire avant que le contenu
-    // réel (ici `AppShell`) ne remplace le spinner initial.
+    // `AuthGate` resolves the local session asynchronously (even offline):
+    // one more frame is needed before the real content (here `AppShell`)
+    // replaces the initial spinner.
     await tester.pump();
 
-    // Décoche les 2 types pré-sélectionnés par défaut (étape 4.1, commit A).
+    // Untick the 2 types selected by default (step 4.1, commit A).
     for (final label in ['Addition', 'Subtraction']) {
       await tester.tap(find.text(label));
       await tester.pump();
@@ -123,18 +122,18 @@ void main() {
     await tester.tap(find.text('Start'));
     await tester.pump();
 
-    // Toujours sur l'écran de sélection : le bouton désactivé n'a rien déclenché.
+    // Still on the selection screen: the disabled button triggered nothing.
     expect(find.text('Math Trainer'), findsOneWidget);
     expect(find.byIcon(Icons.check), findsNothing);
   });
 
-  testWidgets('un seul type sélectionné démarre une session mono-type', (
+  testWidgets('a single selected type starts a single-type session', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
-    // `AuthGate` résout la session locale de façon asynchrone (même hors
-    // réseau) : une frame supplémentaire est nécessaire avant que le contenu
-    // réel (ici `AppShell`) ne remplace le spinner initial.
+    // `AuthGate` resolves the local session asynchronously (even offline):
+    // one more frame is needed before the real content (here `AppShell`)
+    // replaces the initial spinner.
     await tester.pump();
 
     await tester.tap(find.text('Subtraction'));
@@ -146,24 +145,24 @@ void main() {
   });
 
   testWidgets(
-    'le geste retour pendant une session demande confirmation avant d\'interrompre (étape 5, commit A)',
+    'the back gesture during a session asks for confirmation before interrupting (step 5, commit A)',
     (WidgetTester tester) async {
       await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
-      // `AuthGate` résout la session locale de façon asynchrone (même hors
-      // réseau) : une frame supplémentaire est nécessaire avant que le contenu
-      // réel (ici `AppShell`) ne remplace le spinner initial.
+      // `AuthGate` resolves the local session asynchronously (even offline):
+      // one more frame is needed before the real content (here `AppShell`)
+      // replaces the initial spinner.
       await tester.pump();
 
       await tester.tap(find.text('Start'));
       await settlePageTransition(tester);
       expect(find.byIcon(Icons.check), findsOneWidget);
 
-      // Pas de bouton retour visible (`doc/design.md` : l'écran de session ne
-      // porte aucune navigation) : on déclenche la tentative de pop comme le
-      // ferait le geste système, via le Navigator qui porte la route poussée.
-      // `pumpAndSettle()` est proscrit ici (voir `settlePageTransition`) : le
-      // chrono de la question tourne toujours pendant que le dialogue est
-      // ouvert, et ferait avancer le temps virtuel jusqu'au timeout.
+      // No visible back button (`doc/design.md`: the session screen carries
+      // no navigation): trigger the pop attempt as the system gesture would,
+      // through the Navigator holding the pushed route.
+      // `pumpAndSettle()` is banned here (see `settlePageTransition`): the
+      // question timer keeps running while the dialog is open, and would
+      // advance virtual time up to the timeout.
       Future<void> attemptPop() async {
         final context = tester.element(find.byType(SessionScreen));
         Navigator.of(context).maybePop();
@@ -174,14 +173,14 @@ void main() {
       await attemptPop();
       expect(find.text('Quit the game?'), findsOneWidget);
 
-      // Annuler : le dialogue se ferme, la session continue sans rien perdre.
+      // Cancel: the dialog closes, the session goes on without losing anything.
       await tester.tap(find.text('Cancel'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 200));
       expect(find.text('Quit the game?'), findsNothing);
       expect(find.byIcon(Icons.check), findsOneWidget);
 
-      // Nouvelle tentative, confirmée cette fois : la session est interrompue.
+      // New attempt, confirmed this time: the session is interrupted.
       await attemptPop();
       await tester.tap(find.text('Quit'));
       await settlePageTransition(tester);
@@ -190,11 +189,10 @@ void main() {
     },
   );
 
-  /// 2 types par défaut, n_min=4 (étape 4.2) : sessionLengthFor(2, 4, 24) = 8
-  /// questions. La borne de boucle (20) reste une marge de sécurité, pas le
-  /// compte réel. Taper '1' puis valider, sans pump entre les deux pour
-  /// éviter toute collision avec le '1' qui apparaîtrait ensuite dans la
-  /// réponse affichée.
+  /// 2 types by default, n_min=4 (step 4.2): sessionLengthFor(2, 4, 24) = 8
+  /// questions. The loop bound (20) is a safety margin, not the real count.
+  /// Type '1' then submit, without a pump in between to avoid any collision
+  /// with the '1' that would then appear in the displayed answer.
   Future<void> playToCompletion(WidgetTester tester) async {
     for (
       var i = 0;
@@ -209,12 +207,12 @@ void main() {
   }
 
   testWidgets(
-    '« Nouvelle sélection » après une session ramène à l\'écran de sélection',
+    '"New selection" after a session goes back to the selection screen',
     (WidgetTester tester) async {
       await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
-      // `AuthGate` résout la session locale de façon asynchrone (même hors
-      // réseau) : une frame supplémentaire est nécessaire avant que le contenu
-      // réel (ici `AppShell`) ne remplace le spinner initial.
+      // `AuthGate` resolves the local session asynchronously (even offline):
+      // one more frame is needed before the real content (here `AppShell`)
+      // replaces the initial spinner.
       await tester.pump();
 
       await tester.tap(find.text('Start'));
@@ -230,10 +228,10 @@ void main() {
   );
 
   testWidgets(
-    'le niveau global de l\'écran Jouer est relu au retour d\'une session',
+    "the Play screen's overall level is re-read on return from a session",
     (WidgetTester tester) async {
-      // Environnement neuf : celui partagé accumule l'historique des autres
-      // tests, et ce test a besoin de partir sans historique.
+      // Fresh environment: the shared one accumulates the history of the
+      // other tests, and this test needs to start without history.
       final environment = AppEnvironment(
         repository: InMemorySessionRepository(),
         playerId: 'test-player',
@@ -258,12 +256,12 @@ void main() {
   );
 
   testWidgets(
-    '« Rejouer » relance immédiatement sans repasser par la sélection',
+    '"Play again" restarts immediately without going back through the selection',
     (WidgetTester tester) async {
       await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
-      // `AuthGate` résout la session locale de façon asynchrone (même hors
-      // réseau) : une frame supplémentaire est nécessaire avant que le contenu
-      // réel (ici `AppShell`) ne remplace le spinner initial.
+      // `AuthGate` resolves the local session asynchronously (even offline):
+      // one more frame is needed before the real content (here `AppShell`)
+      // replaces the initial spinner.
       await tester.pump();
 
       await tester.tap(find.text('Start'));
@@ -273,8 +271,8 @@ void main() {
       await tester.tap(find.text('Play again'));
       await settlePageTransition(tester);
 
-      // Directement de retour sur le pavé, pas sur l'écran de sélection : « 1 »
-      // est la nouvelle première question, jamais l'écran « Math Trainer ».
+      // Straight back on the keypad, not on the selection screen: "1" is the
+      // new first question, never the "Math Trainer" screen.
       expect(find.text('Math Trainer'), findsNothing);
       expect(find.text('1 / 8'), findsOneWidget);
       expect(find.byIcon(Icons.check), findsOneWidget);
@@ -282,10 +280,10 @@ void main() {
   );
 
   testWidgets(
-    'la barre d\'onglets bascule vers Profil sans perdre la sélection de Jouer',
+    "the tab bar switches to Profile without losing Play's selection",
     (WidgetTester tester) async {
-      // Le bloc identité en tête de Profil (étape 6, tranche 2) pousse
-      // « Non joué » hors de la fenêtre de test par défaut.
+      // The identity block at the top of Profile (step 6, slice 2) pushes
+      // "Not played" out of the default test window.
       tester.view.physicalSize = const Size(412, 1800);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -294,9 +292,9 @@ void main() {
       });
 
       await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
-      // `AuthGate` résout la session locale de façon asynchrone (même hors
-      // réseau) : une frame supplémentaire est nécessaire avant que le contenu
-      // réel (ici `AppShell`) ne remplace le spinner initial.
+      // `AuthGate` resolves the local session asynchronously (even offline):
+      // one more frame is needed before the real content (here `AppShell`)
+      // replaces the initial spinner.
       await tester.pump();
 
       await tester.tap(find.text('Multiplication'));
@@ -310,7 +308,7 @@ void main() {
       await tester.tap(find.text('Play'));
       await tester.pumpAndSettle();
 
-      // IndexedStack : l'onglet Jouer garde son état, Multiplication reste coché.
+      // IndexedStack: the Play tab keeps its state, Multiplication stays ticked.
       final chip = tester.widget<FilterChip>(
         find.ancestor(
           of: find.text('Multiplication'),
@@ -322,7 +320,7 @@ void main() {
   );
 
   testWidgets(
-    'un repository qui échoue au démarrage affiche un message et laisse réessayer',
+    'a repository failing at start shows a message and lets the player retry',
     (WidgetTester tester) async {
       final failingEnvironment = AppEnvironment(
         repository: _ThrowingSessionRepository(),
@@ -337,7 +335,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Could not start the session.'), findsOneWidget);
-      // Le bouton est redevenu actif : c'est l'action de reprise.
+      // The button is active again: it is the retry action.
       expect(
         tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
         isNotNull,
@@ -346,18 +344,18 @@ void main() {
       await tester.tap(find.text('Start'));
       await tester.pumpAndSettle();
 
-      // Toujours bloqué (même repository), toujours le même message, pas de crash.
+      // Still blocked (same repository), still the same message, no crash.
       expect(find.text('Could not start the session.'), findsOneWidget);
     },
   );
 
-  testWidgets('le bouton nuit/jour bascule le thème et persiste le choix', (
+  testWidgets('the day/night button toggles the theme and persists the choice', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
-    // `AuthGate` résout la session locale de façon asynchrone (même hors
-    // réseau) : une frame supplémentaire est nécessaire avant que le contenu
-    // réel (ici `AppShell`) ne remplace le spinner initial.
+    // `AuthGate` resolves the local session asynchronously (even offline):
+    // one more frame is needed before the real content (here `AppShell`)
+    // replaces the initial spinner.
     await tester.pump();
     await tester.pumpAndSettle();
 
@@ -379,11 +377,11 @@ void main() {
     ).brightness;
     expect(toggledBrightness, isNot(initialBrightness));
 
-    // Une nouvelle instance pointant sur le même environnement retrouve le choix.
+    // A new instance pointing at the same environment finds the choice.
     await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
-    // `AuthGate` résout la session locale de façon asynchrone (même hors
-    // réseau) : une frame supplémentaire est nécessaire avant que le contenu
-    // réel (ici `AppShell`) ne remplace le spinner initial.
+    // `AuthGate` resolves the local session asynchronously (even offline):
+    // one more frame is needed before the real content (here `AppShell`)
+    // replaces the initial spinner.
     await tester.pump();
     await tester.pumpAndSettle();
 

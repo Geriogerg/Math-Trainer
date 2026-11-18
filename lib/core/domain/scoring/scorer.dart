@@ -16,30 +16,29 @@ class ScoringRules {
   final int streakBonusPerStep;
   final int maxStreakBonus;
 
-  /// Au niveau 100, les points bruts sont multipliés par `1 +
-  /// difficultyBonusMax` ; au niveau 1, par 1 (aucun bonus). Non calibré,
-  /// voir `doc/decisions.md`.
+  /// At level 100, raw points are multiplied by `1 + difficultyBonusMax`;
+  /// at level 1, by 1 (no bonus). Uncalibrated, see
+  /// `doc/decisions.md`.
   final double difficultyBonusMax;
 }
 
-/// Fonctions pures de calcul de points. Le streak (nombre de bonnes
-/// réponses consécutives) est un état de session détenu par
-/// `SessionController`, pas par `Scorer` : ce dernier reste sans état
-/// interne et donc trivial à tester.
+/// Pure point computations. The streak (number of consecutive right
+/// answers) is session state held by `SessionController`, not by `Scorer`:
+/// the scorer stays stateless and therefore trivial to test.
 class Scorer {
   const Scorer({this.rules = const ScoringRules()});
 
   final ScoringRules rules;
 
-  /// [currentStreak] compte la réponse en cours : 1 pour la première bonne
-  /// réponse d'une série, 2 pour la deuxième consécutive, etc. [level] est
-  /// le niveau figé de l'opération pour cette session (`SessionConfig.
-  /// levels`), jamais le niveau courant du cache — la difficulté qui a
-  /// réellement produit cette question.
+  /// [currentStreak] counts the current answer: 1 for the first right
+  /// answer of a streak, 2 for the second in a row, etc. [level] is the
+  /// operation's frozen level for this session (`SessionConfig.levels`),
+  /// never the cache's current level — the difficulty that actually
+  /// produced this question.
   int pointsFor(AnswerResult answer, {required int currentStreak, required int level}) {
-    // `level` validé même pour une réponse fausse (compat. avec le
-    // comportement d'origine, testé explicitement) : `_difficultyMultiplier`
-    // doit s'évaluer avant le court-circuit de `rawPointsFor`.
+    // `level` is validated even for a wrong answer (compatible with the
+    // original behaviour, tested explicitly): `_difficultyMultiplier` must
+    // run before `rawPointsFor` short-circuits.
     final multiplier = _difficultyMultiplier(level);
     if (!answer.isCorrect) return 0;
     final raw = rawPointsFor(answer, currentStreak: currentStreak);
@@ -47,10 +46,10 @@ class Scorer {
     return (rawPoints * multiplier).round();
   }
 
-  /// Décomposition d'une réponse avant multiplicateur de difficulté —
-  /// {base: 0, speedBonus: 0, streakBonus: 0} si `!answer.isCorrect`. Sert à
-  /// afficher la composition du score en fin de session (`doc/design.md`) ;
-  /// `pointsFor` s'appuie dessus plutôt que de dupliquer le calcul.
+  /// Breakdown of one answer before the difficulty multiplier —
+  /// {base: 0, speedBonus: 0, streakBonus: 0} if `!answer.isCorrect`. Used to
+  /// show the score breakdown at the end of a session (`doc/design.md`);
+  /// `pointsFor` relies on it rather than duplicating the computation.
   ({int base, int speedBonus, int streakBonus}) rawPointsFor(
     AnswerResult answer, {
     required int currentStreak,
@@ -78,7 +77,7 @@ class Scorer {
 
   double _difficultyMultiplier(int level) {
     if (level < 1 || level > 100) {
-      throw ArgumentError.value(level, 'level', 'doit être compris entre 1 et 100.');
+      throw ArgumentError.value(level, 'level', 'must be between 1 and 100.');
     }
     return 1 + (level - 1) / 99 * rules.difficultyBonusMax;
   }

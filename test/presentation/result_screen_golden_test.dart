@@ -15,8 +15,8 @@ import 'package:math_trainer/presentation/theme/app_theme.dart';
 
 import 'golden_test_utils.dart';
 
-/// Même double que les autres golden — pas d'infrastructure de test
-/// partagée pour une seule classe de quelques lignes.
+/// Same double as the other goldens — no shared test infrastructure for a
+/// single class of a few lines.
 class _FixedExerciseSource implements ExerciseSource {
   _FixedExerciseSource(this._exercises);
 
@@ -61,11 +61,11 @@ void main() {
     );
     controller.start();
     for (var i = 0; i < 4; i++) {
-      controller.submitAnswer(i); // i + 0 = i : toujours correct
+      controller.submitAnswer(i); // i + 0 = i: always right
     }
-    // lastLevelUpdates doit être résolu avant la capture, sinon le golden
-    // fige l'état transitoire « niveau avant seul » plutôt que le résultat
-    // final de l'animation (`doc/design.md`, AppMotion.levelUp).
+    // lastLevelUpdates must be resolved before the capture, otherwise the
+    // golden freezes the transient "level before only" state rather than the
+    // animation's final result (`doc/design.md`, AppMotion.levelUp).
     await controller.pendingPersistence;
     return controller;
   }
@@ -74,7 +74,7 @@ void main() {
     (name: 'light', theme: buildLightTheme()),
     (name: 'dark', theme: buildDarkTheme()),
   ]) {
-    testWidgets('écran de résultat — ${mode.name}', (tester) async {
+    testWidgets('result screen — ${mode.name}', (tester) async {
       await setGoldenSurfaceSize(tester);
       final controller = await buildFinishedController();
       addTearDown(controller.dispose);
@@ -93,8 +93,8 @@ void main() {
           ),
         ),
       );
-      // Laisse l'animation de niveau (600 ms) atteindre sa valeur finale —
-      // sans ça la capture dépendrait du temps réel écoulé, non reproductible.
+      // Lets the level animation (600 ms) reach its final value — without it
+      // the capture would depend on real elapsed time, not reproducible.
       await tester.pumpAndSettle();
 
       await expectLater(

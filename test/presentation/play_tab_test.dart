@@ -13,8 +13,8 @@ import 'package:math_trainer/presentation/theme/app_theme.dart';
 import '../fake_account_repository.dart';
 import '../fake_profile_repository.dart';
 
-/// Store en mémoire — pas d'infrastructure de test partagée pour une seule
-/// classe de quelques lignes (convention du projet).
+/// In-memory store — no shared test infrastructure for a single class of a
+/// few lines (project convention).
 class _FakeTypeSelectionStore implements TypeSelectionStore {
   Set<ExerciseType>? stored;
 
@@ -39,55 +39,53 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets(
-    'une sélection déjà enregistrée remplace le défaut au démarrage',
-    (tester) async {
-      final store = _FakeTypeSelectionStore()
-        ..stored = {ExerciseType.multiplication, ExerciseType.division};
-      final environment = AppEnvironment(
-        repository: InMemorySessionRepository(),
-        playerId: 'test-player',
-        accountRepository: FakeAccountRepository(),
-        profileRepository: FakeProfileRepository(),
-        typeSelectionStore: store,
-      );
+  testWidgets('an already saved selection replaces the default at start', (
+    tester,
+  ) async {
+    final store = _FakeTypeSelectionStore()
+      ..stored = {ExerciseType.multiplication, ExerciseType.division};
+    final environment = AppEnvironment(
+      repository: InMemorySessionRepository(),
+      playerId: 'test-player',
+      accountRepository: FakeAccountRepository(),
+      profileRepository: FakeProfileRepository(),
+      typeSelectionStore: store,
+    );
 
-      await pumpPlayTab(tester, environment);
+    await pumpPlayTab(tester, environment);
 
-      FilterChip chipFor(String label) => tester.widget<FilterChip>(
-        find.ancestor(of: find.text(label), matching: find.byType(FilterChip)),
-      );
+    FilterChip chipFor(String label) => tester.widget<FilterChip>(
+      find.ancestor(of: find.text(label), matching: find.byType(FilterChip)),
+    );
 
-      expect(chipFor('Multiplication').selected, isTrue);
-      expect(chipFor('Division').selected, isTrue);
-      expect(chipFor('Addition').selected, isFalse);
-      expect(chipFor('Subtraction').selected, isFalse);
-    },
-  );
+    expect(chipFor('Multiplication').selected, isTrue);
+    expect(chipFor('Division').selected, isTrue);
+    expect(chipFor('Addition').selected, isFalse);
+    expect(chipFor('Subtraction').selected, isFalse);
+  });
 
-  testWidgets(
-    'sans historique, une sélection préenregistrée absente laisse le défaut',
-    (tester) async {
-      final environment = AppEnvironment(
-        repository: InMemorySessionRepository(),
-        playerId: 'test-player',
-        accountRepository: FakeAccountRepository(),
-        profileRepository: FakeProfileRepository(),
-        typeSelectionStore: _FakeTypeSelectionStore(),
-      );
+  testWidgets('without history, a missing saved selection keeps the default', (
+    tester,
+  ) async {
+    final environment = AppEnvironment(
+      repository: InMemorySessionRepository(),
+      playerId: 'test-player',
+      accountRepository: FakeAccountRepository(),
+      profileRepository: FakeProfileRepository(),
+      typeSelectionStore: _FakeTypeSelectionStore(),
+    );
 
-      await pumpPlayTab(tester, environment);
+    await pumpPlayTab(tester, environment);
 
-      FilterChip chipFor(String label) => tester.widget<FilterChip>(
-        find.ancestor(of: find.text(label), matching: find.byType(FilterChip)),
-      );
+    FilterChip chipFor(String label) => tester.widget<FilterChip>(
+      find.ancestor(of: find.text(label), matching: find.byType(FilterChip)),
+    );
 
-      expect(chipFor('Addition').selected, isTrue);
-      expect(chipFor('Subtraction').selected, isTrue);
-    },
-  );
+    expect(chipFor('Addition').selected, isTrue);
+    expect(chipFor('Subtraction').selected, isTrue);
+  });
 
-  testWidgets('changer une puce persiste la nouvelle sélection dans le store', (
+  testWidgets('changing a chip persists the new selection in the store', (
     tester,
   ) async {
     final store = _FakeTypeSelectionStore();
@@ -109,7 +107,7 @@ void main() {
       ExerciseType.multiplication,
     });
 
-    // Une deuxième instance pointant sur le même store retrouve le changement.
+    // A second instance pointing at the same store finds the change.
     final secondEnvironment = AppEnvironment(
       repository: InMemorySessionRepository(),
       playerId: 'test-player',
@@ -128,7 +126,7 @@ void main() {
     expect(chip.selected, isTrue);
   });
 
-  testWidgets('sans historique : phrase d\'accueil, pas de niveau global', (
+  testWidgets('without history: welcome sentence, no overall level', (
     tester,
   ) async {
     final environment = AppEnvironment(
@@ -145,43 +143,42 @@ void main() {
     expect(find.textContaining('Overall level'), findsNothing);
   });
 
-  testWidgets(
-    'avec historique : niveau global affiché, pas la phrase d\'accueil',
-    (tester) async {
-      final repository = InMemorySessionRepository();
-      await repository.recordSession(
-        session: PersistedSession(
-          id: 'session-1',
-          playerId: 'test-player',
-          seed: 1,
-          enabledTypes: const {ExerciseType.addition},
-          exerciseCount: 4,
-          totalScore: 40,
-          levels: const {ExerciseType.addition: 1},
-          createdAt: DateTime.utc(2026, 8, 8),
-        ),
-        answers: const [],
-        levelUpdates: {
-          ExerciseType.addition: LevelCacheEntry(
-            level: 42,
-            sessionsPlayed: 1,
-            updatedAt: DateTime.utc(2026, 8, 8),
-          ),
-        },
-      );
-      final environment = AppEnvironment(
-        repository: repository,
+  testWidgets('with history: overall level shown, not the welcome sentence', (
+    tester,
+  ) async {
+    final repository = InMemorySessionRepository();
+    await repository.recordSession(
+      session: PersistedSession(
+        id: 'session-1',
         playerId: 'test-player',
-        accountRepository: FakeAccountRepository(),
-        profileRepository: FakeProfileRepository(),
-        typeSelectionStore: _FakeTypeSelectionStore(),
-      );
+        seed: 1,
+        enabledTypes: const {ExerciseType.addition},
+        exerciseCount: 4,
+        totalScore: 40,
+        levels: const {ExerciseType.addition: 1},
+        createdAt: DateTime.utc(2026, 8, 8),
+      ),
+      answers: const [],
+      levelUpdates: {
+        ExerciseType.addition: LevelCacheEntry(
+          level: 42,
+          sessionsPlayed: 1,
+          updatedAt: DateTime.utc(2026, 8, 8),
+        ),
+      },
+    );
+    final environment = AppEnvironment(
+      repository: repository,
+      playerId: 'test-player',
+      accountRepository: FakeAccountRepository(),
+      profileRepository: FakeProfileRepository(),
+      typeSelectionStore: _FakeTypeSelectionStore(),
+    );
 
-      await pumpPlayTab(tester, environment);
+    await pumpPlayTab(tester, environment);
 
-      // (42 + 6 × 1 plancher pour les 6 types non joués) / 7 ≈ 6,86 → 7.
-      expect(find.text('Overall level: 7'), findsOneWidget);
-      expect(find.text('Difficulty adapts to your answers.'), findsNothing);
-    },
-  );
+    // (42 + 6 × 1 floor for the 6 types not played) / 7 ≈ 6.86 → 7.
+    expect(find.text('Overall level: 7'), findsOneWidget);
+    expect(find.text('Difficulty adapts to your answers.'), findsNothing);
+  });
 }

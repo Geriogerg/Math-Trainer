@@ -5,8 +5,8 @@ import '../theme/app_theme.dart';
 
 enum _AuthMode { signIn, signUp }
 
-/// Le message brut du serveur (anglais, pensé pour un développeur) n'apparaît
-/// que pour un échec non répertorié — seul indice disponible dans ce cas.
+/// The raw server message (written for a developer) only appears for an
+/// unlisted failure — the only clue available in that case.
 String _describeError(Object error) {
   if (error is! AccountException) return 'Unexpected error: $error';
   return switch (error.failure) {
@@ -16,7 +16,7 @@ String _describeError(Object error) {
     AccountFailure.emailAlreadyUsed =>
       'An account already exists with this email. Sign in instead.',
     AccountFailure.weakPassword =>
-      // Pas de longueur citée : le minimum se règle par projet Supabase.
+      // No length quoted: the minimum is set per Supabase project.
       'Password too weak — choose a longer one.',
     AccountFailure.invalidInput => 'Invalid email address.',
     AccountFailure.rateLimited =>
@@ -27,10 +27,9 @@ String _describeError(Object error) {
   };
 }
 
-/// Formulaire connexion/inscription — porte d'entrée de l'app (`AuthGate`,
-/// connexion obligatoire, `doc/online.md`). Extrait de l'ancien `OnlineTab`
-/// (étape 6, tranche 1) : la connexion n'est plus un onglet, mais une porte
-/// au niveau de l'app.
+/// Sign-in/sign-up form — the app's entry gate (`AuthGate`, mandatory
+/// sign-in, `doc/online.md`). Extracted from the former `OnlineTab` (step
+/// 6, slice 1): signing in is no longer a tab but a gate at app level.
 class AuthForm extends StatefulWidget {
   const AuthForm({super.key, required this.accountRepository});
 
@@ -56,8 +55,8 @@ class _AuthFormState extends State<AuthForm> {
   }
 
   Future<void> _submit() async {
-    // L'autocomplétion des claviers mobiles ajoute souvent une espace après
-    // l'email, que le serveur refuserait comme adresse invalide.
+    // Mobile keyboard autocompletion often adds a space after the email,
+    // which the server would reject as an invalid address.
     final email = _emailController.text.trim();
     final password = _passwordController.text;
     if (email.isEmpty || password.isEmpty) {
@@ -80,10 +79,10 @@ class _AuthFormState extends State<AuthForm> {
         );
         if (!mounted) return;
         if (account == null) {
-          // Confirmation par email requise : pas encore connecté, authState
-          // reste `null` (`account_repository.dart`) — bascule vers le
-          // formulaire de connexion plutôt que de laisser l'inscription
-          // affichée comme si de rien n'était.
+          // Email confirmation required: not signed in yet, authState stays
+          // `null` (`account_repository.dart`) — switch to the sign-in form
+          // rather than leaving the sign-up form shown as if nothing had
+          // happened.
           setState(() {
             _isSubmitting = false;
             _mode = _AuthMode.signIn;
@@ -103,8 +102,8 @@ class _AuthFormState extends State<AuthForm> {
       });
       return;
     }
-    // Succès avec session active : `AuthGate.authState` émettra le compte
-    // connecté et reconstruira au-dessus de ce widget — rien à faire ici.
+    // Success with an active session: `AuthGate.authState` will emit the
+    // signed-in account and rebuild above this widget — nothing to do here.
     if (mounted) setState(() => _isSubmitting = false);
   }
 
@@ -126,9 +125,9 @@ class _AuthFormState extends State<AuthForm> {
                   style: theme.textTheme.titleMedium,
                 ),
                 const SizedBox(height: 24),
-                // `AutofillGroup` + `autofillHints` : le gestionnaire de mots de
-                // passe du navigateur/téléphone propose et enregistre les
-                // identifiants. Entrée dans le mot de passe valide le formulaire.
+                // `AutofillGroup` + `autofillHints`: the browser/phone password
+                // manager suggests and saves the credentials. Enter in the
+                // password field submits the form.
                 AutofillGroup(
                   child: Column(
                     children: [

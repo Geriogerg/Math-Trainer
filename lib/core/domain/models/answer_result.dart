@@ -1,12 +1,11 @@
 import 'exercise.dart';
 
-/// Sentinelle pour « aucune valeur saisie, la question a expiré ». Jamais une
-/// vraie réponse : le pavé n'a pas de touche `−` et aucune opération ne
-/// produit de réponse correcte négative (soustraction garantie
-/// `operandA ≥ operandB`, toutes les autres sur des opérandes positifs) —
-/// voir `doc/decisions.md`. Évite de rendre `submittedValue` nullable, ce qui
-/// aurait exigé une migration de schéma (`answers.submitted_value` est
-/// `REAL NOT NULL`).
+/// Sentinel for "no value typed, the question timed out". Never a real
+/// answer: the keypad has no `−` key and no operation produces a negative
+/// correct answer (subtraction guarantees `operandA ≥ operandB`, all the
+/// others use positive operands) — see `doc/decisions.md`. Avoids making
+/// `submittedValue` nullable, which would have needed a schema migration
+/// (`answers.submitted_value` is `REAL NOT NULL`).
 const timeoutSubmittedValue = -1;
 
 class AnswerResult {

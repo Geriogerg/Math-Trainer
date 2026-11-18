@@ -3,15 +3,15 @@ import 'dart:math' as math;
 import 'answer_outcome.dart';
 import 'leveling_rules.dart';
 
-/// Fonction pure de mise à jour du niveau — voir `doc/decisions.md` pour la
-/// sémantique complète. Rejouable sur un historique : appeler [update] une
-/// fois par session, en repassant le niveau retourné comme `currentLevel` de
-/// l'appel suivant, reconstruit la progression complète — c'est ce qui
-/// permettra la recalibration des paramètres et le recalcul côté serveur.
+/// Pure level update function — see `doc/decisions.md` for the full
+/// semantics. Replayable over a history: calling [update] once per session,
+/// passing the returned level as the next call's `currentLevel`, rebuilds
+/// the whole progression — which enables recalibrating the parameters and
+/// recomputing server-side.
 ///
-/// [answers] ne porte que les réponses d'**une seule opération** : le niveau
-/// est par opération, et cette fonction ne connaît pas `ExerciseType` —
-/// c'est à l'appelant de filtrer avant d'appeler.
+/// [answers] holds the answers of **a single operation** only: the level is
+/// per operation, and this function does not know `ExerciseType` — the
+/// caller filters before calling.
 class LevelUpdater {
   LevelUpdater({LevelingRules? rules}) : rules = rules ?? LevelingRules();
 
@@ -23,7 +23,7 @@ class LevelUpdater {
     ConfidenceMultiplier confidence = ConfidenceMultiplier.normal,
   }) {
     if (currentLevel < 1 || currentLevel > 100) {
-      throw ArgumentError.value(currentLevel, 'currentLevel', 'doit être compris entre 1 et 100.');
+      throw ArgumentError.value(currentLevel, 'currentLevel', 'must be between 1 and 100.');
     }
 
     if (answers.length < rules.nMin) return currentLevel;
@@ -40,10 +40,10 @@ class LevelUpdater {
       ConfidenceMultiplier.returning => rules.boostRetour,
     };
 
-    // Pondération par volume : 1,0 pile à n = nMin (comportement inchangé à
-    // la frontière), croît en racine au-delà — 16 réponses ne pèsent pas 4×
-    // plus que 4, seulement 2×. Sans ça, une session de 4 réponses à 85 % et
-    // une de 16 réponses à 85 % déplaçaient le niveau identiquement (voir
+    // Volume weighting: exactly 1.0 at n = nMin (unchanged behaviour at the
+    // boundary), growing as a square root beyond — 16 answers do not weigh
+    // 4× more than 4, only 2×. Without it, a session of 4 answers at 85 %
+    // and one of 16 answers at 85 % moved the level identically (see
     // doc/decisions.md).
     final volumeWeight = math.sqrt(answers.length / rules.nMin);
 

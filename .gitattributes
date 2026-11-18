@@ -1,6 +1,6 @@
-# Fins de ligne LF dans le dépôt quel que soit l'éditeur Windows : sans ça,
-# un éditeur qui réécrit en CRLF fait apparaître des fichiers entiers comme
-# modifiés sans aucun changement réel.
+# LF line endings in the repo whatever the Windows editor: without this, an
+# editor rewriting in CRLF makes whole files look modified with no real
+# change.
 *.dart text eol=lf
 *.md text eol=lf
 *.yaml text eol=lf

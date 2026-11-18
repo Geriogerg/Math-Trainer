@@ -5,7 +5,7 @@ import 'package:test/test.dart';
 
 void main() {
   group('describeExerciseForStorage', () {
-    test('décrit un ArithmeticExercise avec ses opérandes', () {
+    test('describes an ArithmeticExercise with its operands', () {
       const exercise = ArithmeticExercise(
         operandA: 4,
         operandB: 3,
@@ -19,7 +19,7 @@ void main() {
       expect(described.operands, {'operandA': 4, 'operandB': 3});
     });
 
-    test('décrit un PowerExercise avec base et exposant', () {
+    test('describes a PowerExercise with base and exponent', () {
       const exercise = PowerExercise(base: 3, exponent: 2);
 
       final described = describeExerciseForStorage(exercise);
@@ -29,7 +29,7 @@ void main() {
       expect(described.operands, {'base': 3, 'exponent': 2});
     });
 
-    test('décrit un SquareRootExercise avec le radicande', () {
+    test('describes a SquareRootExercise with the radicand', () {
       const exercise = SquareRootExercise(radicand: 16);
 
       final described = describeExerciseForStorage(exercise);
@@ -39,7 +39,7 @@ void main() {
       expect(described.operands, {'radicand': 16});
     });
 
-    test('décrit un PercentageExercise avec percent et base', () {
+    test('describes a PercentageExercise with percent and base', () {
       const exercise = PercentageExercise(percent: 25, base: 80);
 
       final described = describeExerciseForStorage(exercise);

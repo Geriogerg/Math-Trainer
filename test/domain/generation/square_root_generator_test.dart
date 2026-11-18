@@ -8,7 +8,7 @@ void main() {
   group('SquareRootExerciseGenerator', () {
     final generator = SquareRootExerciseGenerator();
 
-    test('la même seed produit toujours la même séquence', () {
+    test('the same seed always produces the same sequence', () {
       final randomA = Random(7);
       final randomB = Random(7);
 
@@ -18,7 +18,7 @@ void main() {
       expect(sequenceA, equals(sequenceB));
     });
 
-    test('le radicande est toujours un carré parfait dans les bornes par défaut', () {
+    test('the radicand is always a perfect square within the default bounds', () {
       final random = Random(1);
 
       for (var i = 0; i < 50; i++) {
@@ -30,7 +30,7 @@ void main() {
       }
     });
 
-    test('rootRange personnalisée restreint le tirage', () {
+    test('a custom rootRange restricts the draw', () {
       final narrowGenerator = SquareRootExerciseGenerator(rootRange: OperandRange(min: 7, max: 7));
       final random = Random(2);
 

@@ -8,14 +8,14 @@ void main() {
     final rules = LevelingRules();
     final now = DateTime.utc(2026, 8, 8);
 
-    test('calibration quand l\'opération n\'a jamais été jouée', () {
+    test('calibration when the operation was never played', () {
       expect(
         confidenceFor(entry: null, now: now, rules: rules),
         ConfidenceMultiplier.calibration,
       );
     });
 
-    test('calibration pendant les 3 premières sessions d\'une opération', () {
+    test("calibration during an operation's first 3 sessions", () {
       for (final sessionsPlayed in [0, 1, 2]) {
         final entry = LevelCacheEntry(level: 50, sessionsPlayed: sessionsPlayed, updatedAt: now);
         expect(
@@ -25,20 +25,20 @@ void main() {
       }
     });
 
-    test('normal après 3 sessions et sans longue absence', () {
+    test('normal after 3 sessions and no long absence', () {
       final entry = LevelCacheEntry(level: 50, sessionsPlayed: 5, updatedAt: now);
 
       expect(confidenceFor(entry: entry, now: now, rules: rules), ConfidenceMultiplier.normal);
     });
 
-    test('returning après une absence de absenceDaysThreshold jours ou plus', () {
+    test('returning after an absence of absenceDaysThreshold days or more', () {
       final lastPlayed = now.subtract(Duration(days: rules.absenceDaysThreshold));
       final entry = LevelCacheEntry(level: 50, sessionsPlayed: 5, updatedAt: lastPlayed);
 
       expect(confidenceFor(entry: entry, now: now, rules: rules), ConfidenceMultiplier.returning);
     });
 
-    test('normal juste sous le seuil d\'absence', () {
+    test('normal just under the absence threshold', () {
       final lastPlayed = now.subtract(Duration(days: rules.absenceDaysThreshold - 1));
       final entry = LevelCacheEntry(level: 50, sessionsPlayed: 5, updatedAt: lastPlayed);
 

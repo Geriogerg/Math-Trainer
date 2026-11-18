@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 
-/// Remplace un `SizedBox.shrink()` comme état d'écran (`doc/design.md`) : un
-/// écran vide est une impasse, message et action de sortie obligatoires.
-/// Partagé entre `SessionScreen` et `SessionFlowScreen` — les deux branches
-/// qu'il couvre sont mortes en pratique (`SessionState` garantit un
-/// `currentExercise` non nul tant que `status == inProgress`), mais le
-/// contenu affiché s'il fallait quand même les atteindre doit rester
-/// utilisable.
+/// Replaces a `SizedBox.shrink()` as a screen state (`doc/design.md`): an
+/// empty screen is a dead end, a message and an exit action are required.
+/// Shared by `SessionScreen` and `SessionFlowScreen` — both branches it
+/// covers are dead in practice (`SessionState` guarantees a non-null
+/// `currentExercise` while `status == inProgress`), but what shows if they
+/// were reached anyway must stay usable.
 class EmptyState extends StatelessWidget {
   const EmptyState({super.key, required this.message, required this.actionLabel, required this.onAction});
 

@@ -1,8 +1,8 @@
-/// Fournit l'identifiant UUID local de l'appareil — le `playerId` d'avant le
-/// passage aux comptes. Ne sert plus qu'à retrouver ces anciennes parties
-/// pour les rattacher au premier compte connecté (`environmentForAccount`) ;
-/// l'implémentation concrète (shared_preferences) vit dans la couche
-/// d'infrastructure, jamais dans le domaine.
+/// Provides the device's local UUID — the `playerId` from before accounts.
+/// Only used now to find those older games and hand them to the first
+/// account that signs in (`environmentForAccount`); the concrete
+/// implementation (shared_preferences) lives in the infrastructure layer,
+/// never in the domain.
 abstract class LocalPlayerIdProvider {
   Future<String> currentPlayerId();
 }

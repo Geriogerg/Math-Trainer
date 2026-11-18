@@ -26,14 +26,14 @@ class _MathTrainerAppState extends State<MathTrainerApp> {
   }
 
   Future<void> _loadThemeMode() async {
-    // Purement auxiliaire : un échec ici laisse simplement le thème système
-    // en place, même logique que `PlayTab._loadStartupState`.
+    // Purely auxiliary: a failure here just leaves the system theme in
+    // place, same logic as `PlayTab._loadStartupState`.
     try {
       final stored = await widget.environment.themeModeStore.load();
       if (!mounted || stored == null) return;
       setState(() => _themeMode = _toThemeMode(stored));
     } on Exception catch (_) {
-      // Reste sur le thème système déjà affiché.
+      // Stay on the system theme already shown.
     }
   }
 
@@ -41,15 +41,15 @@ class _MathTrainerAppState extends State<MathTrainerApp> {
     final isDark = switch (_themeMode) {
       ThemeMode.dark => true,
       ThemeMode.light => false,
-      // Pas encore de choix explicite : se base sur la luminosité système
-      // effective plutôt que de figer arbitrairement clair ou sombre.
+      // No explicit choice yet: start from the effective system brightness
+      // rather than arbitrarily fixing light or dark.
       ThemeMode.system =>
         PlatformDispatcher.instance.platformBrightness == Brightness.dark,
     };
     final next = isDark ? ThemeModePreference.light : ThemeModePreference.dark;
     setState(() => _themeMode = _toThemeMode(next));
-    // Échec silencieux voulu (préférence auxiliaire) ; `ignore()` l'empêche de
-    // remonter en erreur asynchrone non gérée.
+    // Silent failure on purpose (auxiliary preference); `ignore()` keeps it
+    // from surfacing as an unhandled asynchronous error.
     widget.environment.themeModeStore.save(next).ignore();
   }
 

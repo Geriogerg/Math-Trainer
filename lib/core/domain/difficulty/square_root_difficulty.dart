@@ -1,7 +1,7 @@
 import '../generation/operand_range.dart';
 import 'level_interpolation.dart';
 
-/// Seule la taille de la racine tirée varie avec le niveau.
+/// Only the size of the drawn root varies with the level.
 class SquareRootDifficulty {
   const SquareRootDifficulty({required this.rootMaxAtLevel1, required this.rootMaxAtLevel100});
 
@@ -16,5 +16,5 @@ class SquareRootDifficulty {
   );
 }
 
-/// Valeurs de départ non calibrées — voir `doc/decisions.md`.
+/// Uncalibrated starting values — see `doc/decisions.md`.
 const squareRootDifficulty = SquareRootDifficulty(rootMaxAtLevel1: 4, rootMaxAtLevel100: 40);

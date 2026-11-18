@@ -1,7 +1,7 @@
-/// Tout ce dont [LevelUpdater] a besoin d'une réponse : ni l'[Exercise] du
-/// gameplay live, ni les champs de persistance (id, timestamps) d'une
-/// réponse stockée. `AnswerResult` et `PersistedAnswer` se convertissent
-/// trivialement vers ce type, sans que ce fichier ait à les connaître.
+/// Everything [LevelUpdater] needs from an answer: neither the live
+/// gameplay [Exercise] nor the persistence fields (id, timestamps) of a
+/// stored answer. `AnswerResult` and `PersistedAnswer` convert trivially to
+/// this type, without this file having to know them.
 class AnswerOutcome {
   const AnswerOutcome({required this.isCorrect, required this.elapsedMs});
 

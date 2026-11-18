@@ -4,8 +4,8 @@ import '../models/exercise.dart';
 import 'exercise_generator.dart';
 import 'operand_range.dart';
 
-/// Tire la racine `r` et présente `r²` (règle 10) : jamais de tirage sur
-/// `radicand` suivi d'une vérification « est-ce un carré parfait ? ».
+/// Draws the root `r` and shows `r²` (rule 10): never a draw on `radicand`
+/// followed by an "is it a perfect square?" check.
 class SquareRootExerciseGenerator implements ExerciseGenerator {
   SquareRootExerciseGenerator({OperandRange? rootRange})
     : rootRange = rootRange ?? OperandRange(min: 2, max: 12);

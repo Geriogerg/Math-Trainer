@@ -11,7 +11,7 @@ import '../fake_profile_repository.dart';
 
 void main() {
   testWidgets(
-    'le fondu de changement d\'onglet ne casse pas la préservation d\'état (commit F)',
+    'the tab change fade does not break state preservation (commit F)',
     (tester) async {
       final environment = AppEnvironment(
         repository: InMemorySessionRepository(),
@@ -32,14 +32,14 @@ void main() {
       await tester.pump();
 
       await tester.tap(find.text('Profile'));
-      // Une seule frame : le fondu (200 ms) est encore en cours, exactement
-      // ce qu'on veut vérifier — pas de pumpAndSettle qui masquerait un
-      // crash pendant la transition elle-même.
+      // A single frame: the fade (200 ms) is still running, exactly what we
+      // want to check — no pumpAndSettle that would hide a crash during the
+      // transition itself.
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 250));
 
-      // Pas `find.text('Profile')` : ambigu avec le libellé de
-      // l'onglet lui-même, présent en même temps dans l'arbre.
+      // Not `find.text('Profile')`: ambiguous with the tab's own label,
+      // present in the tree at the same time.
       expect(find.text('By operation'), findsOneWidget);
 
       await tester.tap(find.text('Play'));

@@ -1,13 +1,13 @@
 import '../models/exercise_type.dart';
 
-/// Décide la séquence des types d'exercice d'une session — point
-/// d'extension entre le solo (rotation par dette, dépend de l'historique du
-/// joueur) et le duel futur (quotas fixes, indépendants de l'historique
-/// pour que deux joueurs reçoivent la même séquence à `(seed, config)` égal
-/// sans partager leurs données locales). Voir `doc/decisions.md`.
+/// Decides the sequence of exercise types in a session — the extension
+/// point between solo (debt rotation, depends on the player's history) and
+/// future duels (fixed quotas, independent of history so that two players
+/// get the same sequence for equal `(seed, config)` without sharing their
+/// local data). See `doc/decisions.md`.
 abstract class TypeSelectionStrategy {
-  /// [sortedEnabledTypes] est déjà trié par `.index` (jamais tiré
-  /// directement sur un `Set`). La longueur du résultat fixe le nombre de
-  /// questions de la session.
+  /// [sortedEnabledTypes] is already sorted by `.index` (never drawn
+  /// directly from a `Set`). The length of the result sets the number of
+  /// questions in the session.
   List<ExerciseType> sequenceFor(List<ExerciseType> sortedEnabledTypes);
 }

@@ -17,7 +17,7 @@ class _FixedSequenceStrategy implements TypeSelectionStrategy {
 
 void main() {
   group('CompositeExerciseGenerator', () {
-    test('la même seed et la même config produisent toujours la même séquence', () {
+    test('the same seed and config always produce the same sequence', () {
       final randomA = Random(7);
       final randomB = Random(7);
       final generatorA = CompositeExerciseGenerator(
@@ -33,8 +33,8 @@ void main() {
       expect(sequenceA, equals(sequenceB));
     });
 
-    test('deux Set aux mêmes éléments mais insérés dans un ordre différent '
-        'produisent la même séquence', () {
+    test('two Sets with the same elements inserted in a different order '
+        'produce the same sequence', () {
       final randomA = Random(3);
       final randomB = Random(3);
       final generatorInsertedOneOrder = CompositeExerciseGenerator(
@@ -56,7 +56,7 @@ void main() {
       expect(sequenceA, equals(sequenceB));
     });
 
-    test('ne génère que des exercices des types activés', () {
+    test('only generates exercises of the enabled types', () {
       final generator = CompositeExerciseGenerator(
         enabledTypes: {ExerciseType.subtraction, ExerciseType.squareRoot},
       );
@@ -68,7 +68,7 @@ void main() {
       }
     });
 
-    test('un seul type activé produit une session mono-type', () {
+    test('a single enabled type produces a single-type session', () {
       final generator = CompositeExerciseGenerator(enabledTypes: {ExerciseType.percentage});
       final random = Random(9);
 
@@ -77,11 +77,11 @@ void main() {
       }
     });
 
-    test('refuse un ensemble de types vide', () {
+    test('rejects an empty set of types', () {
       expect(() => CompositeExerciseGenerator(enabledTypes: {}), throwsArgumentError);
     });
 
-    test('un niveau plus élevé produit des opérandes plus grands', () {
+    test('a higher level produces larger operands', () {
       final random = Random(11);
       final lowLevelGenerator = CompositeExerciseGenerator(
         enabledTypes: {ExerciseType.addition},
@@ -104,7 +104,7 @@ void main() {
       expect(highLevelMax, greaterThan(lowLevelMax));
     });
 
-    test('un type activé sans entrée dans levels utilise le repli niveau 50', () {
+    test('an enabled type missing from levels uses the level 50 fallback', () {
       final withoutLevel = CompositeExerciseGenerator(enabledTypes: {ExerciseType.addition});
       final withLevel50 = CompositeExerciseGenerator(
         enabledTypes: {ExerciseType.addition},
@@ -119,7 +119,7 @@ void main() {
       expect(sequenceA, equals(sequenceB));
     });
 
-    test('avec une stratégie, la séquence de types suit exactement ce qu\'elle renvoie', () {
+    test('with a strategy, the type sequence follows exactly what it returns', () {
       final strategy = _FixedSequenceStrategy([
         ExerciseType.subtraction,
         ExerciseType.addition,
@@ -136,7 +136,7 @@ void main() {
       expect(types, [ExerciseType.subtraction, ExerciseType.addition, ExerciseType.subtraction]);
     });
 
-    test('avec une stratégie, un appel au-delà de la séquence lève', () {
+    test('with a strategy, a call beyond the sequence throws', () {
       final strategy = _FixedSequenceStrategy([ExerciseType.addition]);
       final generator = CompositeExerciseGenerator(
         enabledTypes: {ExerciseType.addition},
@@ -149,8 +149,8 @@ void main() {
       expect(() => generator.next(random), throwsStateError);
     });
 
-    test('avec DebtAwareTypeSelectionStrategy, même seed et même dette produisent la même '
-        'séquence complète (valeurs incluses)', () {
+    test('with DebtAwareTypeSelectionStrategy, the same seed and debt produce the same '
+        'full sequence (values included)', () {
       Map<ExerciseType, int> sessionsPlayedByType() => {
         ExerciseType.addition: 3,
         ExerciseType.subtraction: 0,

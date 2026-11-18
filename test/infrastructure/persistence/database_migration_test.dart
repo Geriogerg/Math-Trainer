@@ -8,12 +8,12 @@ void main() {
     databaseFactory = databaseFactoryFfi;
   });
 
-  test('une base v1 existante migre vers v2 sans perdre ses données', () async {
+  test('an existing v1 database migrates to v2 without losing data', () async {
     const path = 'migration_test.db';
     await databaseFactory.deleteDatabase(path);
 
-    // Réplique le schéma v1 tel qu'il existait avant ce commit, pour
-    // reproduire une vraie base de joueur existant.
+    // Replicates the v1 schema as it existed before this commit, to
+    // reproduce a real existing player's database.
     final v1db = await databaseFactory.openDatabase(
       path,
       options: OpenDatabaseOptions(
@@ -65,7 +65,7 @@ void main() {
     final sessionRows = await v2db.query('sessions', where: 'id = ?', whereArgs: ['legacy-session']);
     expect(sessionRows.single['levels_json'], '{}');
 
-    // player_levels existe et est utilisable après migration.
+    // player_levels exists and is usable after migration.
     await v2db.insert('player_levels', {
       'player_id': 'legacy-player',
       'exercise_type': 'addition',
@@ -80,11 +80,11 @@ void main() {
     await databaseFactory.deleteDatabase(path);
   });
 
-  test("une base v2 existante migre vers v3 : sessions conservées, sans niveau global d'après", () async {
+  test('an existing v2 database migrates to v3: sessions kept, without an overall level after', () async {
     const path = 'migration_v2_test.db';
     await databaseFactory.deleteDatabase(path);
 
-    // Schéma v2 tel qu'il existait avant `overall_level_after`.
+    // v2 schema as it existed before `overall_level_after`.
     final v2db = await databaseFactory.openDatabase(
       path,
       options: OpenDatabaseOptions(

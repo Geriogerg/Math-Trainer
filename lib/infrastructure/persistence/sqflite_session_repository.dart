@@ -78,11 +78,11 @@ class SqfliteSessionRepository implements SessionRepository {
 
   @override
   Future<Map<ExerciseType, double>> averageElapsedMsByType(String playerId) async {
-    // `operation_type`, pas `exercise_type` : pour une variante arithmétique,
-    // `exercise_type` vaut toujours le littéral 'arithmetic' (`exercise_codec.
-    // dart`) — c'est `operation_type` qui porte le nom exploitable en
-    // `ExerciseType` (addition/soustraction/... ou le nom de la variante pour
-    // les trois autres familles, où les deux colonnes coïncident).
+    // `operation_type`, not `exercise_type`: for an arithmetic variant,
+    // `exercise_type` is always the literal 'arithmetic'
+    // (`exercise_codec.dart`) — `operation_type` carries the name usable as
+    // an `ExerciseType` (addition/subtraction/... or the variant's name for
+    // the other three families, where both columns match).
     final rows = await _database.rawQuery(
       '''
       SELECT a.operation_type AS operation_type, AVG(a.elapsed_ms) AS avg_elapsed_ms
@@ -117,8 +117,8 @@ class SqfliteSessionRepository implements SessionRepository {
     required String toPlayerId,
   }) async {
     await _database.transaction((txn) async {
-      // `answers` n'a pas de `player_id` : rattachées par `session_id`, elles
-      // suivent leur session sans rien réécrire.
+      // `answers` has no `player_id`: linked through `session_id`, answers
+      // follow their session without rewriting anything.
       final targetRows = await txn.rawQuery(
         '''
         SELECT 1 FROM sessions WHERE player_id = ?

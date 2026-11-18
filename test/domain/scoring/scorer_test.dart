@@ -22,7 +22,7 @@ void main() {
   }
 
   group('Scorer', () {
-    test('une réponse incorrecte ne rapporte aucun point, quel que soit le streak', () {
+    test('a wrong answer earns no points, whatever the streak', () {
       final points = scorer.pointsFor(
         answer(isCorrect: false, elapsedMs: 0),
         currentStreak: 5,
@@ -32,7 +32,7 @@ void main() {
       expect(points, 0);
     });
 
-    test('une réponse correcte instantanée obtient le bonus de vitesse maximal', () {
+    test('an instant right answer gets the maximum speed bonus', () {
       final points = scorer.pointsFor(
         answer(isCorrect: true, elapsedMs: 0),
         currentStreak: 1,
@@ -42,7 +42,7 @@ void main() {
       expect(points, 10 + 10 + 0);
     });
 
-    test('une réponse correcte hors de la fenêtre de vitesse n\'a aucun bonus de vitesse', () {
+    test('a right answer outside the speed window gets no speed bonus', () {
       final points = scorer.pointsFor(
         answer(isCorrect: true, elapsedMs: 5000),
         currentStreak: 1,
@@ -52,7 +52,7 @@ void main() {
       expect(points, 10 + 0 + 0);
     });
 
-    test('le bonus de streak augmente avec les réponses consécutives puis plafonne', () {
+    test('the streak bonus grows with consecutive answers then caps', () {
       final rules = scorer.rules;
 
       final pointsAtStreak5 = scorer.pointsFor(
@@ -70,7 +70,7 @@ void main() {
       expect(pointsAtStreak50, rules.basePoints + rules.maxStreakBonus);
     });
 
-    test('un temps écoulé négatif (horloge qui recule) ne dépasse pas le bonus de vitesse max', () {
+    test('a negative elapsed time (clock going back) does not exceed the max speed bonus', () {
       final rules = scorer.rules;
 
       final points = scorer.pointsFor(
@@ -82,7 +82,7 @@ void main() {
       expect(points, rules.basePoints + rules.maxSpeedBonus);
     });
 
-    test('niveau 1 ne change pas les points (aucun bonus de difficulté)', () {
+    test('level 1 does not change the points (no difficulty bonus)', () {
       final rules = scorer.rules;
 
       final points = scorer.pointsFor(
@@ -94,7 +94,7 @@ void main() {
       expect(points, rules.basePoints);
     });
 
-    test('niveau 100 double les points avec difficultyBonusMax par défaut (1.0)', () {
+    test('level 100 doubles the points with the default difficultyBonusMax (1.0)', () {
       final rules = scorer.rules;
 
       final points = scorer.pointsFor(
@@ -106,7 +106,7 @@ void main() {
       expect(points, rules.basePoints * 2);
     });
 
-    test('un niveau intermédiaire applique un bonus de difficulté proportionnel', () {
+    test('an intermediate level applies a proportional difficulty bonus', () {
       const rules = ScoringRules(difficultyBonusMax: 1.0);
       const scorerWithRules = Scorer(rules: rules);
 
@@ -120,13 +120,13 @@ void main() {
       expect(points, (rules.basePoints * (1 + 49 / 99)).round());
     });
 
-    test('rawPointsFor décompose une réponse fausse en zéros', () {
+    test('rawPointsFor breaks a wrong answer down into zeros', () {
       final raw = scorer.rawPointsFor(answer(isCorrect: false, elapsedMs: 0), currentStreak: 5);
 
       expect(raw, (base: 0, speedBonus: 0, streakBonus: 0));
     });
 
-    test('rawPointsFor décompose une réponse correcte (base, vitesse, série séparés)', () {
+    test('rawPointsFor breaks a right answer down (base, speed, streak apart)', () {
       final rules = scorer.rules;
 
       final raw = scorer.rawPointsFor(answer(isCorrect: true, elapsedMs: 0), currentStreak: 5);
@@ -136,7 +136,7 @@ void main() {
       expect(raw.streakBonus, 4 * rules.streakBonusPerStep);
     });
 
-    test('pointsFor applique le multiplicateur de difficulté à la somme de rawPointsFor', () {
+    test('pointsFor applies the difficulty multiplier to the sum of rawPointsFor', () {
       const scorerWithRules = Scorer(rules: ScoringRules(difficultyBonusMax: 1.0));
       final theAnswer = answer(isCorrect: true, elapsedMs: 5000);
 
@@ -148,7 +148,7 @@ void main() {
       expect(points, ((raw.base + raw.speedBonus + raw.streakBonus) * expectedMultiplier).round());
     });
 
-    test('refuse un niveau hors [1, 100], y compris pour une réponse fausse', () {
+    test('rejects a level outside [1, 100], even for a wrong answer', () {
       expect(
         () => scorer.pointsFor(
           answer(isCorrect: true, elapsedMs: 0),

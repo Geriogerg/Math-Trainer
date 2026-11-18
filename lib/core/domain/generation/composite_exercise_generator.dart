@@ -13,18 +13,18 @@ import 'power_generator.dart';
 import 'square_root_generator.dart';
 import 'type_selection_strategy.dart';
 
-/// Niveau utilisé pour tout type activé absent de `levels` — repli
-/// temporaire tant que le commit D ne câble pas les vrais niveaux depuis
-/// l'historique (voir `doc/decisions.md`, étape 4 commit C).
+/// Level used for any enabled type missing from `levels` — a temporary
+/// fallback until commit D wires the real levels from history (see
+/// `doc/decisions.md`, step 4 commit C).
 const _defaultLevel = 50;
 
-/// Un seul flux seedé pour toutes les familles activées : le tirage « quel
-/// type ? » et les tirages « quelles valeurs ? » qui suivent partagent le
-/// même [Random]. `enabledTypes` est converti une fois en liste triée par
-/// `.index` au constructeur — ne jamais tirer directement sur un `Set`,
-/// dont l'ordre d'itération suit l'insertion, pas le contenu : deux `Set`
-/// avec les mêmes éléments dans un ordre différent casseraient sinon la
-/// règle 2 (même config → même séquence) sans erreur visible.
+/// One seeded stream for every enabled family: the "which type?" draw and
+/// the "which values?" draws that follow share the same [Random].
+/// `enabledTypes` is converted once into a list sorted by `.index` in the
+/// constructor — never draw directly from a `Set`, whose iteration order
+/// follows insertion, not content: two `Set`s with the same elements in a
+/// different order would otherwise break rule 2 (same config → same
+/// sequence) with no visible error.
 class CompositeExerciseGenerator implements ExerciseGenerator {
   CompositeExerciseGenerator({
     required Set<ExerciseType> enabledTypes,
@@ -36,7 +36,7 @@ class CompositeExerciseGenerator implements ExerciseGenerator {
            type: _buildGenerator(type, levels?[type] ?? _defaultLevel),
        } {
     if (enabledTypes.isEmpty) {
-      throw ArgumentError.value(enabledTypes, 'enabledTypes', 'ne doit pas être vide.');
+      throw ArgumentError.value(enabledTypes, 'enabledTypes', 'must not be empty.');
     }
     _sequence = strategy?.sequenceFor(_sortedTypes);
   }
@@ -44,9 +44,9 @@ class CompositeExerciseGenerator implements ExerciseGenerator {
   final List<ExerciseType> _sortedTypes;
   final Map<ExerciseType, ExerciseGenerator> _generators;
 
-  /// `null` : mode flux infini, tirage uniforme par appel (comportement
-  /// historique, inchangé). Non `null` : séquence bornée construite une
-  /// fois par la stratégie injectée — voir `doc/decisions.md`.
+  /// `null`: endless stream, one uniform draw per call (historical
+  /// behaviour, unchanged). Non-`null`: bounded sequence built once by the
+  /// injected strategy — see `doc/decisions.md`.
   List<ExerciseType>? _sequence;
   int _position = 0;
 
@@ -57,8 +57,8 @@ class CompositeExerciseGenerator implements ExerciseGenerator {
     if (sequence != null) {
       if (_position >= sequence.length) {
         throw StateError(
-          'Séquence épuisée ($_position/${sequence.length}) — la stratégie a été construite '
-          'pour un nombre de questions fixe.',
+          'Sequence exhausted ($_position/${sequence.length}) — the strategy was built '
+          'for a fixed number of questions.',
         );
       }
       type = sequence[_position++];

@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 
-/// Écran générique pour un onglet dont la barre de navigation existe déjà
-/// mais dont la fonctionnalité est hors périmètre de l'étape en cours
-/// (`doc/decisions.md` : « chrome posé, contenu en attente »).
+/// Generic screen for a tab whose navigation entry already exists but
+/// whose feature is outside the current phase ("chrome in place, content
+/// pending").
 class ComingSoonScreen extends StatelessWidget {
   const ComingSoonScreen({super.key, required this.label});
 

@@ -1,9 +1,9 @@
 import '../models/exercise.dart';
 
-/// Fournit la séquence d'exercices d'une session. La séparation d'avec
-/// `ExerciseGenerator` est le point d'extension pour le duel : une future
-/// implémentation réseau pourra remplacer `LocalExerciseSource` sans changer
-/// `SessionController` ni l'UI.
+/// Provides a session's exercise sequence. Keeping it apart from
+/// `ExerciseGenerator` is the extension point for duels: a future network
+/// implementation can replace `LocalExerciseSource` without changing
+/// `SessionController` or the UI.
 abstract class ExerciseSource {
   Exercise next();
 }

@@ -3,21 +3,21 @@ import '../models/exercise_type.dart';
 import 'persisted_answer.dart';
 import 'persisted_session.dart';
 
-/// Le domaine ne connaît jamais l'implémentation du stockage (sqflite,
-/// mémoire, ...) — seulement cette interface. Toutes les méthodes sont
-/// asynchrones même quand une implémentation locale est synchrone, pour ne
-/// pas avoir à réécrire la chaîne d'appel le jour où le réseau entre en jeu.
+/// The domain never knows the storage implementation (sqflite, memory, ...)
+/// — only this interface. Every method is asynchronous even when a local
+/// implementation is synchronous, so the call chain need not be rewritten
+/// the day the network comes in.
 abstract class SessionRepository {
-  /// Écrit [session], [answers] et la mise à jour du cache de niveaux en une
-  /// seule opération atomique : le cache ne doit jamais être en avance ou en
-  /// retard sur la session qui l'a produit.
+  /// Writes [session], [answers] and the level cache update in one atomic
+  /// operation: the cache must never be ahead of or behind the session that
+  /// produced it.
   Future<void> recordSession({
     required PersistedSession session,
     required List<PersistedAnswer> answers,
     required Map<ExerciseType, LevelCacheEntry> levelUpdates,
   });
 
-  /// Sessions de [playerId], de la plus récente à la plus ancienne.
+  /// Sessions of [playerId], most recent first.
   Future<List<PersistedSession>> recentSessions(
     String playerId, {
     int limit = 20,
@@ -25,35 +25,34 @@ abstract class SessionRepository {
 
   Future<List<PersistedAnswer>> answersForSession(String sessionId);
 
-  /// État actuel du cache de niveaux pour [playerId]. N'inclut que les
-  /// opérations déjà jouées au moins une fois — à l'appelant de décider du
-  /// niveau par défaut pour une opération absente (voir `doc/decisions.md`).
+  /// Current state of the level cache for [playerId]. Only includes
+  /// operations played at least once — the caller decides the default
+  /// level for a missing operation (see `doc/decisions.md`).
   Future<Map<ExerciseType, LevelCacheEntry>> currentLevels(String playerId);
 
-  /// Temps de réponse moyen par opération, tout l'historique de [playerId]
-  /// confondu. Timeouts inclus sans exclusion — mêmes règles que
-  /// `SessionResult.averageElapsedMs` (déjà utilisé sur l'écran de résultat),
-  /// pour que les deux écrans racontent la même chose. Agrégée en SQL côté
-  /// `sqflite` : ne dégrade pas avec le volume d'historique, contrairement à
-  /// un `answersForSession` appelé une fois par session (`doc/decisions.md`
-  /// — « charger l'historique sans le charger entièrement »).
+  /// Average response time per operation, over the whole history of
+  /// [playerId]. Timeouts included — same rules as
+  /// `SessionResult.averageElapsedMs` (already used on the result screen),
+  /// so both screens tell the same story. Aggregated in SQL on the `sqflite`
+  /// side: does not degrade as history grows, unlike an `answersForSession`
+  /// called once per session (`doc/decisions.md` — loading history without
+  /// loading all of it).
   Future<Map<ExerciseType, double>> averageElapsedMsByType(String playerId);
 
-  /// Sessions de [playerId] créées à partir de [since] (borne incluse),
-  /// triées du plus ancien au plus récent. Fenêtre bornée par date plutôt
-  /// qu'agrégation SQL : `levels` est stocké en JSON, donc aucune colonne
-  /// numérique à agréger pour reconstituer un niveau par opération à un
-  /// instant donné — mais la lecture reste bornée, jamais un historique
-  /// complet.
+  /// Sessions of [playerId] created from [since] (inclusive), oldest first.
+  /// A date-bounded window rather than SQL aggregation: `levels` is stored
+  /// as JSON, so there is no numeric column to aggregate into a
+  /// per-operation level at a given time — but the read stays bounded,
+  /// never the full history.
   Future<List<PersistedSession>> sessionsSince(String playerId, DateTime since);
 
-  /// Rattache à [toPlayerId] tout ce qui a été joué sous [fromPlayerId]
-  /// (sessions, et donc leurs réponses, et cache de niveaux), en une seule
-  /// opération atomique. Sert à la connexion : les parties jouées sous l'id
-  /// local de l'appareil, d'avant le passage aux comptes, reviennent au
-  /// premier compte qui s'y connecte (`doc/online.md`). Ne fait rien si
-  /// [toPlayerId] a déjà des données ici — jamais de fusion de deux
-  /// historiques, dont les caches de niveaux se contrediraient.
+  /// Hands to [toPlayerId] everything played under [fromPlayerId]
+  /// (sessions, hence their answers, and the level cache) in one atomic
+  /// operation. Used at sign-in: games played under the device's local id,
+  /// from before accounts, go to the first account that signs in on it
+  /// (`doc/online.md`). Does nothing if [toPlayerId] already has data here
+  /// — never a merge of two histories, whose level caches would contradict
+  /// each other.
   Future<void> transferPlayerData({
     required String fromPlayerId,
     required String toPlayerId,

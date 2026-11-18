@@ -16,8 +16,8 @@ import 'package:math_trainer/presentation/theme/app_theme.dart';
 import '../fake_account_repository.dart';
 import '../fake_profile_repository.dart';
 
-/// Échoue tant que [shouldFail] est vrai, réussit ensuite — simule un
-/// réseau/disque qui se rétablit, pour tester le bouton « Réessayer ».
+/// Fails while [shouldFail] is true, succeeds afterwards — simulates a
+/// network/disk that recovers, to test the "Retry" button.
 class _FlakySessionRepository implements SessionRepository {
   bool shouldFail = true;
 
@@ -25,7 +25,7 @@ class _FlakySessionRepository implements SessionRepository {
   Future<Map<ExerciseType, LevelCacheEntry>> currentLevels(
     String playerId,
   ) async {
-    if (shouldFail) throw Exception('échec simulé');
+    if (shouldFail) throw Exception('simulated failure');
     return {
       ExerciseType.addition: LevelCacheEntry(
         level: 7,
@@ -47,7 +47,7 @@ class _FlakySessionRepository implements SessionRepository {
     String playerId, {
     int limit = 20,
   }) async {
-    if (shouldFail) throw Exception('échec simulé');
+    if (shouldFail) throw Exception('simulated failure');
     return [];
   }
 
@@ -65,7 +65,7 @@ class _FlakySessionRepository implements SessionRepository {
   Future<Map<ExerciseType, double>> averageElapsedMsByType(
     String playerId,
   ) async {
-    if (shouldFail) throw Exception('échec simulé');
+    if (shouldFail) throw Exception('simulated failure');
     return {};
   }
 
@@ -74,15 +74,14 @@ class _FlakySessionRepository implements SessionRepository {
     String playerId,
     DateTime since,
   ) async {
-    if (shouldFail) throw Exception('échec simulé');
+    if (shouldFail) throw Exception('simulated failure');
     return [];
   }
 }
 
-/// Fausse implémentation locale qui enregistre l'appel à `signOut()` — le
-/// `FakeAccountRepository` partagé le lance en `UnimplementedError` (il ne
-/// sert qu'à satisfaire le constructeur pour les tests qui ne s'y
-/// intéressent pas).
+/// Local fake recording the call to `signOut()` — the shared
+/// `FakeAccountRepository` throws `UnimplementedError` there (it only
+/// satisfies the constructor for tests that do not care).
 class _RecordingAccountRepository implements AccountRepository {
   bool signOutCalled = false;
 
@@ -105,9 +104,9 @@ class _RecordingAccountRepository implements AccountRepository {
 }
 
 void main() {
-  // Écran désormais plus long (bloc identité + 4 blocs de progression) : une
-  // fenêtre de test trop courte laisserait les dernières lignes hors du
-  // viewport initial, donc absentes de `find.text()` sans scroll.
+  // A longer screen now (identity block + 4 progress blocks): a test window
+  // that is too short would leave the last lines outside the initial
+  // viewport, hence missing from `find.text()` without scrolling.
   Future<void> setTallSurface(WidgetTester tester) async {
     tester.view.physicalSize = const Size(412, 1800);
     tester.view.devicePixelRatio = 1.0;
@@ -118,7 +117,7 @@ void main() {
   }
 
   testWidgets(
-    'affiche les 7 types, un niveau connu et "Non joué" pour les autres',
+    'shows the 7 types, one known level and "Not played" for the others',
     (WidgetTester tester) async {
       await setTallSurface(tester);
       final repository = InMemorySessionRepository();
@@ -166,8 +165,8 @@ void main() {
   );
 
   testWidgets(
-    'redevenir actif après une session recharge les niveaux (IndexedStack ne '
-    'reconstruit pas le widget)',
+    'becoming active after a session reloads the levels (IndexedStack does not '
+    'rebuild the widget)',
     (WidgetTester tester) async {
       await setTallSurface(tester);
       final repository = InMemorySessionRepository();
@@ -212,12 +211,12 @@ void main() {
         },
       );
 
-      // Toujours inactif : pas de rechargement, la vue reste celle d'avant la session.
+      // Still inactive: no reload, the view stays the one from before the session.
       await pump(false);
       await tester.pumpAndSettle();
       expect(find.text('Not played'), findsNWidgets(7));
 
-      // Transition inactif → actif : didUpdateWidget doit relancer le chargement.
+      // Inactive → active transition: didUpdateWidget must restart the load.
       await pump(true);
       await tester.pumpAndSettle();
 
@@ -227,7 +226,7 @@ void main() {
   );
 
   testWidgets(
-    'un repository qui échoue affiche un message et un bouton Réessayer',
+    'a failing repository shows a message and a Retry button',
     (WidgetTester tester) async {
       await setTallSurface(tester);
       final repository = _FlakySessionRepository();
@@ -252,7 +251,7 @@ void main() {
   );
 
   testWidgets(
-    'Réessayer relance la lecture et affiche le profil si elle réussit',
+    'Retry reloads and shows the profile if it succeeds',
     (WidgetTester tester) async {
       await setTallSurface(tester);
       final repository = _FlakySessionRepository();
@@ -282,13 +281,13 @@ void main() {
   );
 
   testWidgets(
-    'niveau global, variation, courbe et sessions récentes reflètent l\'historique (commit E)',
+    'overall level, change, curve and recent sessions reflect the history (commit E)',
     (WidgetTester tester) async {
       await setTallSurface(tester);
       final repository = InMemorySessionRepository();
-      // Relatif à « maintenant » réel, pas une date figée : le widget filtre
-      // sur `DateTime.now()`, une date en dur dériverait hors de la fenêtre
-      // de 30 jours au fil du temps.
+      // Relative to the real "now", not a fixed date: the widget filters on
+      // `DateTime.now()`, a hard-coded date would drift out of the 30-day
+      // window over time.
       final now = DateTime.now().toUtc();
 
       Future<void> recordAt(
@@ -307,8 +306,8 @@ void main() {
           totalScore: score,
           levels: {ExerciseType.addition: level},
           createdAt: createdAt,
-          // Ce qu'enregistre le contrôleur : niveau global (7 types, six au
-          // plancher) une fois l'addition passée à [level].
+          // What the controller stores: the overall level (7 types, six at
+          // the floor) once addition has moved to [level].
           overallLevelAfter: (level + 6) / 7,
         ),
         answers: answers,
@@ -379,13 +378,13 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Profile'), findsOneWidget);
-      // (50 + 6 × 1 plancher pour les 6 types non joués) / 7 = 8.
+      // (50 + 6 × 1 floor for the 6 types not played) / 7 = 8.
       expect(find.textContaining('Overall level: 8'), findsOneWidget);
-      // Niveau global après la première session de la fenêtre (36/7) puis
-      // après la dernière (56/7) : 20/7 ≈ +3 — la dernière partie compte.
+      // Overall level after the window's first session (36/7) then after the
+      // last (56/7): 20/7 ≈ +3 — the last game counts.
       expect(find.textContaining('30-day change: +3'), findsOneWidget);
-      // Effet de chacune des deux dernières sessions : 10/7 ≈ +1 ; la plus
-      // ancienne n'a pas de session précédente à laquelle se comparer.
+      // Effect of each of the two latest sessions: 10/7 ≈ +1; the oldest has
+      // no previous session to compare with.
       expect(find.text('+1'), findsNWidgets(2));
       expect(
         find.text('Not enough data for the last 30 days.'),
@@ -398,7 +397,7 @@ void main() {
     },
   );
 
-  testWidgets('affiche l\'invite quand aucun nom de joueur n\'est enregistré', (
+  testWidgets('shows the prompt when no player name is saved', (
     WidgetTester tester,
   ) async {
     await setTallSurface(tester);
@@ -421,11 +420,11 @@ void main() {
     expect(find.text('player@test.com'), findsOneWidget);
   });
 
-  // Régression : le nom (réseau) et les statistiques (locales) étaient lus
-  // dans un même `Future.wait` — hors ligne, tout l'écran tombait sur
-  // « Impossible de charger le profil. », statistiques locales comprises.
+  // Regression: the name (network) and the statistics (local) were read in
+  // the same `Future.wait` — offline, the whole screen fell to "Could not
+  // load the profile.", local statistics included.
   testWidgets(
-    'nom de joueur injoignable : les statistiques locales restent affichées',
+    'player name unreachable: the local statistics stay shown',
     (WidgetTester tester) async {
       await setTallSurface(tester);
       final profileRepository = FakeProfileRepository()..shouldFail = true;
@@ -461,7 +460,7 @@ void main() {
     },
   );
 
-  testWidgets('affiche le nom de joueur déjà enregistré', (
+  testWidgets('shows the player name already saved', (
     WidgetTester tester,
   ) async {
     await setTallSurface(tester);
@@ -485,7 +484,7 @@ void main() {
   });
 
   testWidgets(
-    'modifier le nom de joueur appelle updateDisplayName et rafraîchit l\'affichage',
+    'editing the player name calls updateDisplayName and refreshes the display',
     (WidgetTester tester) async {
       await setTallSurface(tester);
       final profileRepository = FakeProfileRepository()..displayName = 'Alex';
@@ -516,7 +515,7 @@ void main() {
   );
 
   testWidgets(
-    'un nom non enregistré est signalé, l\'ancien nom reste affiché',
+    'an unsaved name is reported, the old name stays shown',
     (WidgetTester tester) async {
       await setTallSurface(tester);
       final profileRepository = FakeProfileRepository()
@@ -548,7 +547,7 @@ void main() {
     },
   );
 
-  testWidgets('Se déconnecter appelle signOut', (WidgetTester tester) async {
+  testWidgets('Sign out calls signOut', (WidgetTester tester) async {
     await setTallSurface(tester);
     final accountRepository = _RecordingAccountRepository();
     final environment = AppEnvironment(

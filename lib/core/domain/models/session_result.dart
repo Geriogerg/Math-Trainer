@@ -11,9 +11,9 @@ class SessionResult {
   final List<AnswerResult> outcomes;
   final int totalScore;
 
-  /// Sert uniquement à recalculer [scoreBreakdown] avec la même formule que
-  /// celle qui a réellement produit [totalScore] — à passer explicitement
-  /// depuis `SessionController` si un `Scorer` non standard est utilisé.
+  /// Only used to recompute [scoreBreakdown] with the same formula that
+  /// actually produced [totalScore] — pass it explicitly from
+  /// `SessionController` if a non-standard `Scorer` is used.
   final Scorer scorer;
 
   int get correctCount => outcomes.where((outcome) => outcome.isCorrect).length;
@@ -28,15 +28,15 @@ class SessionResult {
 
   int get timeoutCount => outcomes.where((outcome) => outcome.isTimeout).length;
 
-  /// Fausse mais pas hors délai — `doc/design.md` distingue les deux plutôt
-  /// que de les confondre sous « incorrect ».
+  /// Wrong but not timed out — `doc/design.md` keeps the two apart rather
+  /// than merging them as "incorrect".
   int get wrongCount => outcomes.length - correctCount - timeoutCount;
 
-  /// Meilleure série de bonnes réponses consécutives, pas la série finale
-  /// (`SessionState.currentStreak`) : le joueur peut avoir terminé sur une
-  /// mauvaise réponse après une longue série. Reconstituée en rejouant
-  /// `outcomes` — le streak à chaque instant ne dépend que de la séquence
-  /// juste/faux qui précède.
+  /// Best streak of consecutive right answers, not the final streak
+  /// (`SessionState.currentStreak`): the player may have ended on a wrong
+  /// answer after a long streak. Rebuilt by replaying `outcomes` — the
+  /// streak at any moment only depends on the right/wrong sequence before
+  /// it.
   int get bestStreak {
     var current = 0;
     var best = 0;
@@ -47,11 +47,11 @@ class SessionResult {
     return best;
   }
 
-  /// Décomposition du score total. `difficultyBonus` capture à la fois le
-  /// multiplicateur de difficulté et l'arrondi par réponse plutôt que
-  /// d'exposer un multiplicateur unique : plusieurs types (donc plusieurs
-  /// niveaux figés) peuvent coexister dans une même session, et
-  /// `doc/decisions.md` interdit un niveau unifié.
+  /// Breakdown of the total score. `difficultyBonus` captures both the
+  /// difficulty multiplier and per-answer rounding rather than exposing a
+  /// single multiplier: several types (hence several frozen levels) can
+  /// coexist in one session, and `doc/decisions.md` rules out a unified
+  /// level.
   ({int base, int speedBonus, int streakBonus, int difficultyBonus}) get scoreBreakdown {
     var current = 0;
     var base = 0;

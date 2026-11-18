@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 
-/// Affichée à la place de l'app quand le build est mal préparé
+/// Shown instead of the app when the build is badly prepared
 /// (`MissingBackendConfigException`, `WebStorageUnavailableException`,
-/// `composition_root.dart`) — une erreur de build destinée au développeur,
-/// jamais un état qu'un joueur peut corriger, d'où le message technique.
+/// `composition_root.dart`) — a build error meant for the developer, never
+/// a state a player can fix, hence the technical message.
 class ConfigErrorApp extends StatelessWidget {
   const ConfigErrorApp({
     super.key,

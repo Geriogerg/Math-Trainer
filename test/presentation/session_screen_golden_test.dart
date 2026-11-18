@@ -15,9 +15,8 @@ import 'package:math_trainer/presentation/theme/app_theme.dart';
 
 import 'golden_test_utils.dart';
 
-/// Même double que `test/state/session_controller_test.dart` — pas
-/// d'infrastructure de test partagée pour une seule classe de quelques
-/// lignes (convention du projet).
+/// Same double as `test/state/session_controller_test.dart` — no shared test
+/// infrastructure for a single class of a few lines (project convention).
 class _FixedExerciseSource implements ExerciseSource {
   _FixedExerciseSource(this._exercises);
 
@@ -28,9 +27,9 @@ class _FixedExerciseSource implements ExerciseSource {
   Exercise next() => _exercises[_index++];
 }
 
-/// Un vrai `Timer(Duration(seconds: 15), ...)` resterait en attente à la fin
-/// du test (`flutter_test` échoue dessus) ; ce golden n'a besoin ni de le
-/// déclencher ni de l'annuler explicitement, juste qu'il n'existe pas.
+/// A real `Timer(Duration(seconds: 15), ...)` would stay pending at the end
+/// of the test (`flutter_test` fails on it); this golden needs neither to
+/// fire nor to cancel it explicitly, only for it not to exist.
 class _InertTimer implements Timer {
   @override
   void cancel() {}
@@ -68,7 +67,7 @@ void main() {
     (name: 'light', theme: buildLightTheme()),
     (name: 'dark', theme: buildDarkTheme()),
   ]) {
-    testWidgets('écran de session — ${mode.name}', (tester) async {
+    testWidgets('session screen — ${mode.name}', (tester) async {
       await setGoldenSurfaceSize(tester);
       final controller = buildController();
       addTearDown(controller.dispose);
@@ -79,8 +78,8 @@ void main() {
           home: Scaffold(body: SessionScreen(controller: controller)),
         ),
       );
-      // Un seul pump, sans avancer le temps : le chrono (5 s) doit rester au
-      // même point à chaque exécution pour un golden reproductible.
+      // A single pump, without advancing time: the timer (5 s) must stay at
+      // the same point on every run for a reproducible golden.
       await tester.pump();
 
       await expectLater(

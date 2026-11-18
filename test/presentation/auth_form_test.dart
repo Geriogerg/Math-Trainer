@@ -6,7 +6,7 @@ import 'package:math_trainer/core/domain/account/account_repository.dart';
 import 'package:math_trainer/presentation/screens/auth_form.dart';
 import 'package:math_trainer/presentation/theme/app_theme.dart';
 
-/// Enregistre les identifiants reçus et échoue avec [failure] si fourni.
+/// Records the credentials received and fails with [failure] if given.
 class _RecordingAccountRepository implements AccountRepository {
   _RecordingAccountRepository({this.failure});
 
@@ -65,7 +65,7 @@ void main() {
   }
 
   testWidgets(
-    'un refus du serveur s\'affiche en français, sans le message brut',
+    'a server refusal shows our own message, not the raw one',
     (tester) async {
       final repository = _RecordingAccountRepository(
         failure: AccountFailure.invalidCredentials,
@@ -79,7 +79,7 @@ void main() {
     },
   );
 
-  testWidgets('serveur injoignable : invite à vérifier la connexion', (
+  testWidgets('server unreachable: asks to check the connection', (
     tester,
   ) async {
     await pumpForm(
@@ -92,7 +92,7 @@ void main() {
     expect(find.textContaining('Server unreachable'), findsOneWidget);
   });
 
-  testWidgets('l\'email est envoyé sans les espaces ajoutées par le clavier', (
+  testWidgets('the email is sent without the spaces added by the keyboard', (
     tester,
   ) async {
     final repository = _RecordingAccountRepository();
@@ -103,7 +103,7 @@ void main() {
     expect(repository.signInCalls, ['player@test.com']);
   });
 
-  testWidgets('champ vide : message local, aucun appel au serveur', (
+  testWidgets('empty field: local message, no server call', (
     tester,
   ) async {
     final repository = _RecordingAccountRepository();
@@ -115,7 +115,7 @@ void main() {
     expect(find.text('Enter your email and password.'), findsOneWidget);
   });
 
-  testWidgets('Entrée dans le mot de passe valide le formulaire', (tester) async {
+  testWidgets('Enter in the password field submits the form', (tester) async {
     final repository = _RecordingAccountRepository();
     await pumpForm(tester, repository);
 

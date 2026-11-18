@@ -4,9 +4,9 @@ import 'persisted_answer.dart';
 import 'persisted_session.dart';
 import 'session_repository.dart';
 
-/// Implémentation de référence, Dart pur, sans I/O : sert de double de test
-/// pour tout code qui dépend de [SessionRepository]. Plus utilisée par l'app
-/// elle-même — le web a désormais sa base SQLite (`composition_root.dart`).
+/// Reference implementation, pure Dart, no I/O: a test double for any code
+/// depending on [SessionRepository]. No longer used by the app itself — the
+/// web now has its SQLite database (`composition_root.dart`).
 class InMemorySessionRepository implements SessionRepository {
   final List<PersistedSession> _sessions = [];
   final List<PersistedAnswer> _answers = [];
@@ -52,8 +52,8 @@ class InMemorySessionRepository implements SessionRepository {
     final byType = <ExerciseType, List<int>>{};
     for (final answer in _answers) {
       if (!sessionIds.contains(answer.sessionId)) continue;
-      // `operationType`, pas `exerciseType` : voir le commentaire équivalent
-      // dans SqfliteSessionRepository — 'arithmetic' n'est pas un ExerciseType.
+      // `operationType`, not `exerciseType`: see the matching comment in
+      // SqfliteSessionRepository — 'arithmetic' is not an ExerciseType.
       final type = ExerciseType.values.byName(answer.operationType);
       byType.putIfAbsent(type, () => []).add(answer.elapsedMs);
     }

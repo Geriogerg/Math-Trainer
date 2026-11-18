@@ -11,13 +11,13 @@ void main() {
   });
 
   group('SharedPreferencesTypeSelectionStore', () {
-    test('load() renvoie null tant que rien n\'a été enregistré', () async {
+    test('load() returns null until something is saved', () async {
       final store = SharedPreferencesTypeSelectionStore();
 
       expect(await store.load(), isNull);
     });
 
-    test('save() puis load() retrouve exactement les types enregistrés', () async {
+    test('save() then load() finds exactly the saved types', () async {
       final store = SharedPreferencesTypeSelectionStore();
 
       await store.save({ExerciseType.multiplication, ExerciseType.division});
@@ -26,7 +26,7 @@ void main() {
       expect(result, {ExerciseType.multiplication, ExerciseType.division});
     });
 
-    test('une sélection vide enregistrée explicitement est distincte de "jamais enregistré"', () async {
+    test('an empty selection saved explicitly is distinct from "never saved"', () async {
       final store = SharedPreferencesTypeSelectionStore();
 
       await store.save(const {});
@@ -36,7 +36,7 @@ void main() {
       expect(result, isEmpty);
     });
 
-    test('persiste au-delà de l\'instance du store', () async {
+    test('persists beyond the store instance', () async {
       await SharedPreferencesTypeSelectionStore().save({ExerciseType.percentage});
 
       final result = await SharedPreferencesTypeSelectionStore().load();

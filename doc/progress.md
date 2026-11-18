@@ -68,6 +68,8 @@ State at the plan: 49 commits, 176 core tests / 328 in total.
   Phase 8. Checkpoint: the owner reads the docs.
 - *Owner request, outside the plan* — Interface text in English: every screen, the web page
   title and description, tests and golden images.
+- *Owner request, outside the plan* — Code comments, error messages, test names, tool,
+  `supabase/profiles.sql` (policies renamed, old names dropped) and config comments in English.
 
 ### Remaining contradictions after commit 0 (for the owner)
 

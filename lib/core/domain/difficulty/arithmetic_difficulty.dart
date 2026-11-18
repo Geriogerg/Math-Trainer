@@ -1,13 +1,13 @@
 import '../generation/operand_range.dart';
 import 'level_interpolation.dart';
 
-/// Partagée par les 4 opérations arithmétiques (même type de sortie,
-/// [OperandRange]) : « sept fonctions niveau → bornes » au sens de sept
-/// points d'entrée, pas sept corps de code dupliqués.
+/// Shared by the 4 arithmetic operations (same output type,
+/// [OperandRange]): "seven level → bounds functions" in the sense of seven
+/// entry points, not seven duplicated bodies.
 ///
-/// Stocke des `int` bruts plutôt que des [OperandRange] pour rester
-/// `const` — `OperandRange` n'a plus de constructeur `const` depuis que
-/// son invariant `min <= max` est défendu par un `throw`.
+/// Stores raw `int`s rather than [OperandRange]s to stay `const` —
+/// `OperandRange` lost its `const` constructor when its `min <= max`
+/// invariant became a `throw`.
 class LinearOperandRangeDifficulty {
   const LinearOperandRangeDifficulty({
     required this.minAtLevel1,
@@ -27,7 +27,7 @@ class LinearOperandRangeDifficulty {
   );
 }
 
-/// Valeurs de départ non calibrées — voir `doc/decisions.md`.
+/// Uncalibrated starting values — see `doc/decisions.md`.
 const additionDifficulty = LinearOperandRangeDifficulty(
   minAtLevel1: 1,
   maxAtLevel1: 5,

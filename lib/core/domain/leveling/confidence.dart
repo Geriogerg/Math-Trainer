@@ -1,10 +1,10 @@
 import '../persistence/level_cache_entry.dart';
 import 'leveling_rules.dart';
 
-/// Décide quel [ConfidenceMultiplier] appliquer, à partir de l'état de
-/// cache actuel d'une opération. `LevelUpdater`/`LevelingRules` ne portent
-/// pas cette décision (voir `leveling_rules.dart`) : c'est à l'appelant, qui
-/// a l'historique sous la main, de la prendre.
+/// Decides which [ConfidenceMultiplier] to apply, from an operation's
+/// current cache state. `LevelUpdater`/`LevelingRules` do not own this
+/// decision (see `leveling_rules.dart`): it belongs to the caller, who has
+/// the history at hand.
 ConfidenceMultiplier confidenceFor({
   required LevelCacheEntry? entry,
   required DateTime now,

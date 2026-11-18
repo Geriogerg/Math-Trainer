@@ -21,7 +21,7 @@ void main() {
       return counts;
     }
 
-    test('couverture garantie sous le plafond : chaque type actif apparaît exactement n_min fois', () {
+    test('guaranteed coverage under the cap: each active type appears exactly n_min times', () {
       for (final k in [1, 2, 3]) {
         final strategy = DebtAwareTypeSelectionStrategy(
           exerciseCount: 8 * k,
@@ -33,20 +33,20 @@ void main() {
         expect(sequence, hasLength(8 * k));
         final counts = countByType(sequence);
         for (final type in sortedTypes(k)) {
-          expect(counts[type], 8, reason: '$type devrait apparaître exactement 8 fois');
+          expect(counts[type], 8, reason: '$type should appear exactly 8 times');
         }
       }
     });
 
-    test('au-delà du plafond, le type le plus joué (le moins endetté) est exclu', () {
+    test('beyond the cap, the most played (least indebted) type is left out', () {
       final strategy = DebtAwareTypeSelectionStrategy(
-        exerciseCount: 24, // plafond, budget pour 3 blocs de 8 sur 4 types actifs
+        exerciseCount: 24, // the cap, budget for 3 blocks of 8 over 4 active types
         nMin: 8,
         sessionsPlayedByType: const {
           ExerciseType.addition: 0,
           ExerciseType.subtraction: 0,
           ExerciseType.multiplication: 5,
-          ExerciseType.division: 10, // le plus joué : le moins endetté
+          ExerciseType.division: 10, // most played: least indebted
         },
       );
       final sequence = strategy.sequenceFor(sortedFourTypes);
@@ -59,7 +59,7 @@ void main() {
       expect(counts.containsKey(ExerciseType.division), isFalse);
     });
 
-    test('égalité de dette tranchée par ordre .index', () {
+    test('equal debt broken by .index order', () {
       final strategy = DebtAwareTypeSelectionStrategy(
         exerciseCount: 24,
         nMin: 8,
@@ -72,19 +72,18 @@ void main() {
       );
       final counts = countByType(strategy.sequenceFor(sortedFourTypes));
 
-      // À dette égale, les 3 premiers par .index (addition, subtraction,
-      // multiplication) passent avant division.
+      // At equal debt, the first 3 by .index (addition, subtraction,
+      // multiplication) come before division.
       expect(counts[ExerciseType.addition], 8);
       expect(counts[ExerciseType.subtraction], 8);
       expect(counts[ExerciseType.multiplication], 8);
       expect(counts.containsKey(ExerciseType.division), isFalse);
     });
 
-    test('reste non nul réparti aux types suivants, pas aux types déjà pleins', () {
-      // 2 types, n_min=8, budget=20 : 2 blocs complets (16) puis 4 de reste.
-      // Avec 2 types seulement, tout le monde a déjà un bloc complet : le
-      // reste doit alors se répartir en bonus (pool de secours), pas rester
-      // bloqué.
+    test('a non-zero remainder goes to the next types, not to already full ones', () {
+      // 2 types, n_min=8, budget=20: 2 full blocks (16) then 4 remaining.
+      // With only 2 types, everyone already has a full block: the remainder
+      // must then be spread as a bonus (fallback pool), not stay stuck.
       final strategy = DebtAwareTypeSelectionStrategy(
         exerciseCount: 20,
         nMin: 8,
@@ -99,10 +98,10 @@ void main() {
       expect(counts[ExerciseType.subtraction]! >= 8, isTrue);
     });
 
-    test('reste réparti à un 3e type qui n\'a pas de bloc complet', () {
-      // 3 types, n_min=8, budget=17 : 2 blocs complets (16) puis 1 de
-      // reste. Le 3e type (le plus endetté restant) doit recevoir ce
-      // dernier, pas un des 2 déjà pleins.
+    test('the remainder goes to a 3rd type without a full block', () {
+      // 3 types, n_min=8, budget=17: 2 full blocks (16) then 1 remaining.
+      // The 3rd type (the most indebted left) must get it, not one of the 2
+      // already full.
       final strategy = DebtAwareTypeSelectionStrategy(
         exerciseCount: 17,
         nMin: 8,
@@ -115,7 +114,7 @@ void main() {
       expect(counts[ExerciseType.multiplication], 1);
     });
 
-    test('entrelacement : un type ne monopolise ni le début ni la fin de la séquence', () {
+    test('interleaving: no type monopolises the start or the end of the sequence', () {
       final strategy = DebtAwareTypeSelectionStrategy(
         exerciseCount: 16,
         nMin: 8,
@@ -123,13 +122,13 @@ void main() {
       );
       final sequence = strategy.sequenceFor(sortedTypes(2));
 
-      // Round-robin strict sur 2 types à quota égal : alternance parfaite.
+      // Strict round-robin over 2 types with equal quotas: perfect alternation.
       expect(sequence.first, ExerciseType.addition);
       expect(sequence[1], ExerciseType.subtraction);
       expect(sequence.last, ExerciseType.subtraction);
     });
 
-    test('même dette et même budget produisent toujours la même séquence (déterminisme)', () {
+    test('the same debt and budget always produce the same sequence (determinism)', () {
       final debt = {ExerciseType.addition: 2, ExerciseType.subtraction: 0};
       final strategyA = DebtAwareTypeSelectionStrategy(
         exerciseCount: 16,
@@ -145,7 +144,7 @@ void main() {
       expect(strategyA.sequenceFor(sortedTypes(2)), equals(strategyB.sequenceFor(sortedTypes(2))));
     });
 
-    test('rotation sur plusieurs sessions simulées : les 4 types finissent tous couverts', () {
+    test('rotation over several simulated sessions: all 4 types end up covered', () {
       final sessionsPlayed = <ExerciseType, int>{};
       final coveredAtLeastOnce = <ExerciseType>{};
 
@@ -157,8 +156,8 @@ void main() {
         );
         final counts = countByType(strategy.sequenceFor(sortedFourTypes));
 
-        // Simule _computeLevelUpdates : seuls les types ayant reçu un bloc
-        // complet voient leur sessionsPlayed incrémenté.
+        // Simulates _computeLevelUpdates: only types that received a full
+        // block get their sessionsPlayed incremented.
         for (final entry in counts.entries) {
           if (entry.value >= 8) {
             sessionsPlayed[entry.key] = (sessionsPlayed[entry.key] ?? 0) + 1;

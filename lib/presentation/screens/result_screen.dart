@@ -19,11 +19,11 @@ class ResultScreen extends StatelessWidget {
 
   final SessionController controller;
 
-  /// Relance immédiate : mêmes types, niveaux actualisés, nouvelle seed
-  /// (étape 4.2, commit C — `doc/decisions.md`).
+  /// Immediate replay: same types, updated levels, new seed (step 4.2,
+  /// commit C — `doc/decisions.md`).
   final VoidCallback onPlayAgain;
 
-  /// Ramène à l'écran de sélection des types, pour en changer.
+  /// Goes back to the type selection screen, to change it.
   final VoidCallback onExitToSelection;
 
   final bool isRestarting;
@@ -55,9 +55,9 @@ class ResultScreen extends StatelessWidget {
                   style: theme.textTheme.titleMedium,
                 ),
                 const SizedBox(height: 24),
-                // Aucun changement de niveau pour une session interrompue —
-                // countsForLevels est resté à false, lastLevelUpdates ne se peuple
-                // jamais (`doc/decisions.md`).
+                // No level change for an interrupted session — countsForLevels
+                // stayed false, lastLevelUpdates is never set
+                // (`doc/decisions.md`).
                 if (status == SessionStatus.finished) ...[
                   for (final type in controller.config.enabledTypes)
                     _LevelChangeRow(
@@ -89,9 +89,9 @@ class ResultScreen extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: labelStyle,
                 ),
-                // Vaut 0 pour tout joueur sous un niveau significatif
-                // (`_difficultyMultiplier(1) == 1`) — une ligne à 0 pour la
-                // majorité des sessions des premières semaines n'apprend rien.
+                // 0 for every player below a meaningful level
+                // (`_difficultyMultiplier(1) == 1`) — a line at 0 for most
+                // sessions of the first weeks teaches nothing.
                 if (breakdown.difficultyBonus != 0)
                   Text(
                     'Difficulty bonus: ${breakdown.difficultyBonus}',
@@ -99,9 +99,9 @@ class ResultScreen extends StatelessWidget {
                     style: labelStyle,
                   ),
                 const SizedBox(height: 16),
-                // Décompte brut, jamais un pourcentage présenté comme un progrès
-                // (`doc/design.md`) : le taux de réussite converge vers p_cible par
-                // construction, il ne mesure plus rien (`doc/decisions.md`).
+                // Raw count, never a percentage presented as progress
+                // (`doc/design.md`): accuracy converges to p_cible by
+                // construction, it measures nothing (`doc/decisions.md`).
                 Text(
                   '${result.correctCount} right · ${result.wrongCount} wrong · '
                   '${result.timeoutCount} timed out',
@@ -137,9 +137,9 @@ class ResultScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  // Rejoue la même écriture (`retryPersistence`) : utile
-                  // quand l'échec était passager (stockage momentanément
-                  // indisponible). Désactivé pendant l'essai en cours.
+                  // Replays the same write (`retryPersistence`): useful when
+                  // the failure was transient (storage briefly unavailable).
+                  // Disabled while an attempt is running.
                   TextButton(
                     onPressed: controller.isRetryingPersistence
                         ? null
@@ -148,9 +148,9 @@ class ResultScreen extends StatelessWidget {
                   ),
                 ],
                 const SizedBox(height: 32),
-                // Centrés (`doc/design.md`) — Rejouer reste visuellement
-                // dominant via son style rempli (`FilledButton`), pas via sa
-                // position.
+                // Centred (`doc/design.md`) — Play again stays visually
+                // dominant through its filled style (`FilledButton`), not
+                // its position.
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -190,9 +190,9 @@ class ResultScreen extends StatelessWidget {
   }
 }
 
-/// Anime `before` → niveau après (`AppMotion.levelUp`, 600 ms) une fois
-/// [updates] résolu. Tant que `null` (calcul encore en tâche de fond),
-/// affiche `before` sans animation plutôt qu'un état vide.
+/// Animates `before` → level after (`AppMotion.levelUp`, 600 ms) once
+/// [updates] has resolved. While `null` (computation still in the
+/// background), shows `before` without animation rather than an empty state.
 class _LevelChangeRow extends StatelessWidget {
   const _LevelChangeRow({
     required this.label,
@@ -221,9 +221,9 @@ class _LevelChangeRow extends StatelessWidget {
 
     final entry = updates![type];
     if (entry == null) {
-      // Type resté sous n_min cette session : aucune entrée calculée, donc
-      // rien à animer — distinct de « évalué, niveau inchangé » (le joueur
-      // ne peut pas faire la différence si les deux cas rendent pareil).
+      // Type stayed below n_min this session: no entry computed, so nothing
+      // to animate — distinct from "evaluated, level unchanged" (the player
+      // could not tell the difference if both rendered the same).
       return Text(
         '$label — level $before (not enough answers to count)',
         textAlign: TextAlign.center,

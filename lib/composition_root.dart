@@ -24,18 +24,17 @@ import 'infrastructure/persistence/shared_preferences_theme_mode_store.dart';
 import 'infrastructure/persistence/shared_preferences_type_selection_store.dart';
 import 'infrastructure/persistence/sqflite_session_repository.dart';
 
-/// Cible de durée (~90 s à ~4 s/question, grossier — voir `doc/decisions.md`)
-/// déguisée en plafond de questions : `sessionLengthFor` ne dépasse jamais
-/// cette valeur, quel que soit le nombre de types actifs.
+/// Duration target (~90 s at ~4 s/question, rough — see `doc/decisions.md`)
+/// disguised as a question cap: `sessionLengthFor` never exceeds this value,
+/// whatever the number of active types.
 const _sessionLengthCap = 24;
 
 final _levelingRules = LevelingRules();
 
-/// Dépendances concrètes résolues une fois au démarrage de l'app (voir
-/// `main.dart`), avant `runApp()` — jamais dans un widget UI. C'est le seul
-/// fichier qui choisit *quelles* implémentations concrètes utiliser
-/// (génération, persistance) ; `home_screen.dart` ne fait qu'observer le
-/// `SessionController` qui en résulte.
+/// Concrete dependencies resolved once at app start (see `main.dart`),
+/// before `runApp()` — never in a UI widget. This is the only file choosing
+/// *which* concrete implementations to use (generation, persistence);
+/// screens only observe the resulting `SessionController`.
 class AppEnvironment {
   const AppEnvironment({
     required this.repository,
@@ -48,34 +47,32 @@ class AppEnvironment {
 
   final SessionRepository repository;
 
-  /// Joueur dont les données sont lues et écrites. Au démarrage : l'id local
-  /// de l'appareil (`LocalPlayerIdProvider`), qui ne sert plus qu'à
-  /// retrouver les parties jouées avant le passage aux comptes. Dès la
-  /// connexion, `AuthGate` le remplace par l'id du compte
-  /// ([environmentForAccount]) : les écrans ne voient jamais que celui-là.
+  /// Player whose data is read and written. At start: the device's local id
+  /// (`LocalPlayerIdProvider`), now only used to find games played before
+  /// accounts. On sign-in, `AuthGate` replaces it with the account id
+  /// ([environmentForAccount]): screens only ever see that one.
   final String playerId;
 
-  /// Requis, pas de défaut concret : contrairement à `typeSelectionStore`/
-  /// `themeModeStore` (lecture locale auxiliaire, échec silencieux
-  /// acceptable), le compte est la fonctionnalité même de l'onglet En ligne
-  /// — un défaut masquerait un oubli de câblage plutôt que de simplifier les
-  /// tests. Les tests qui ne s'intéressent pas au compte passent
-  /// `FakeAccountRepository` (`test/fake_account_repository.dart`).
+  /// Required, no concrete default: unlike `typeSelectionStore`/
+  /// `themeModeStore` (auxiliary local read, silent failure acceptable), the
+  /// account is the very feature of the sign-in gate — a default would hide
+  /// a wiring mistake rather than simplify tests. Tests that do not care
+  /// about the account pass `FakeAccountRepository`
+  /// (`test/fake_account_repository.dart`).
   final AccountRepository accountRepository;
 
-  /// Même raisonnement que `accountRepository` : requis, pas de défaut
-  /// silencieux — c'est la fonctionnalité centrale de l'onglet Profil.
+  /// Same reasoning as `accountRepository`: required, no silent default —
+  /// it is the core feature of the Profile tab.
   final ProfileRepository profileRepository;
 
-  /// Optionnel, défaut concret plutôt que requis : un champ requis casserait
-  /// la construction dans les tests qui ne s'intéressent jamais à `PlayTab`
-  /// (`ProgressScreen`, `ResultScreen`...), même raisonnement que
-  /// `SessionResult.scorer` (étape 5, commit D).
+  /// Optional, concrete default rather than required: a required field would
+  /// break construction in tests that never care about `PlayTab`
+  /// (`ProfileScreen`, `ResultScreen`...), same reasoning as
+  /// `SessionResult.scorer` (step 5, commit D).
   final TypeSelectionStore typeSelectionStore;
 
-  /// Même raisonnement que `typeSelectionStore` : optionnel pour ne pas
-  /// casser la construction dans les tests qui ne s'intéressent pas à la
-  /// bascule de thème.
+  /// Same reasoning as `typeSelectionStore`: optional so as not to break
+  /// construction in tests that do not care about the theme toggle.
   final ThemeModeStore themeModeStore;
 
   AppEnvironment forPlayer(String playerId) => AppEnvironment(
@@ -88,14 +85,13 @@ class AppEnvironment {
   );
 }
 
-/// Environnement du joueur connecté : niveaux et historique rattachés au
-/// compte, pas à l'appareil — deux comptes sur le même navigateur ne
-/// partagent plus rien. Reprend d'abord les parties jouées sous l'id local
-/// de l'appareil (`SessionRepository.transferPlayerData` : seulement si le
-/// compte n'a encore rien ici, donc en pratique le premier compte connecté).
-/// Un échec de cette reprise n'empêche pas de jouer : les anciennes parties
-/// restent sous l'id de l'appareil, et la reprise est retentée à la
-/// connexion suivante.
+/// Environment of the signed-in player: levels and history bound to the
+/// account, not the device — two accounts on the same browser share
+/// nothing. First adopts the games played under the device's local id
+/// (`SessionRepository.transferPlayerData`: only if the account has nothing
+/// here yet, so in practice the first account to sign in). A failed
+/// adoption does not prevent playing: the old games stay under the device
+/// id, and adoption is retried at the next sign-in.
 Future<AppEnvironment> environmentForAccount(
   AppEnvironment environment,
   Account account,
@@ -106,25 +102,25 @@ Future<AppEnvironment> environmentForAccount(
       toPlayerId: account.id,
     );
   } on Exception catch (_) {
-    // Voir ci-dessus : sans conséquence pour la partie en cours.
+    // See above: no consequence for the game being played.
   }
   return environment.forPlayer(account.id);
 }
 
-/// URL et clé publique lues à la compilation (`--dart-define`), jamais en
-/// dur dans le code source (`doc/online.md`) — la clé publique est conçue
-/// pour être embarquée côté client (RLS protège les données, pas le secret
-/// de cette clé), mais l'URL/clé restent spécifiques à chaque projet Supabase.
+/// URL and publishable key read at compile time (`--dart-define`), never
+/// hard-coded in the source (`doc/online.md`) — the publishable key is meant
+/// to ship in the client (RLS protects the data, not this key's secrecy),
+/// but the URL/key remain specific to each Supabase project.
 const _supabaseUrl = String.fromEnvironment('SUPABASE_URL');
 const _supabasePublishableKey = String.fromEnvironment(
   'SUPABASE_PUBLISHABLE_KEY',
 );
 
-/// Build lancé sans `--dart-define-from-file=dart_defines.json` (voir
-/// `dart_defines.example.json`). Sans ce contrôle, l'app démarrait quand même
-/// sur la porte de connexion, avec un client Supabase sans adresse : chaque
-/// tentative échouait sur une erreur d'URI incompréhensible, et la connexion
-/// étant obligatoire, l'app entière devenait inutilisable sans explication.
+/// Build started without `--dart-define-from-file=dart_defines.json` (see
+/// `dart_defines.example.json`). Without this check the app still started
+/// on the sign-in gate with an address-less Supabase client: every attempt
+/// failed on an incomprehensible URI error, and with sign-in mandatory the
+/// whole app became unusable without explanation.
 class MissingBackendConfigException implements Exception {
   const MissingBackendConfigException(this.missingKeys);
 
@@ -135,11 +131,12 @@ class MissingBackendConfigException implements Exception {
       'MissingBackendConfigException: ${missingKeys.join(', ')} absent(s)';
 }
 
-/// Sur web, la base SQLite tourne en WebAssembly dans un worker
-/// (`sqflite_common_ffi_web`) chargé depuis `web/sqlite3.wasm` et
-/// `web/sqflite_sw.js`. Absents (setup jamais lancé), l'ouverture échoue :
-/// sans ce contrôle l'app planterait au démarrage sans explication — et
-/// retomber sur un stockage en mémoire perdrait les parties en silence.
+/// On web, the SQLite database runs as WebAssembly in a worker
+/// (`sqflite_common_ffi_web`) loaded from `web/sqlite3.wasm` and
+/// `web/sqflite_sw.js`. If they are missing (setup never run), opening
+/// fails: without this check the app would crash at start with no
+/// explanation — and falling back to in-memory storage would lose games
+/// silently.
 class WebStorageUnavailableException implements Exception {
   const WebStorageUnavailableException(this.cause);
 
@@ -183,19 +180,19 @@ Future<AppEnvironment> buildAppEnvironment() async {
   );
 }
 
-/// Assemble un `SessionController` prêt à jouer : source d'exercices locale
-/// (mélange de [enabledTypes], choisis par l'utilisateur sur `HomeScreen`)
-/// + seed du moment + dépendances de [environment]. Asynchrone : lit le
-/// cache de niveaux du joueur (règle 4, repositories toujours asynchrones)
-/// pour figer les niveaux de cette session — niveau 1 pour toute opération
-/// jamais jouée (aucune compétence estimée = on part du bas).
+/// Builds a `SessionController` ready to play: local exercise source (a mix
+/// of [enabledTypes], chosen by the player on `PlayTab`) + a fresh seed +
+/// the dependencies of [environment]. Asynchronous: reads the player's level
+/// cache (rule 4, repositories always async) to freeze this session's levels
+/// — level 1 for any operation never played (no estimated skill = start at
+/// the bottom).
 ///
-/// Le nombre de questions n'est plus fixe : `sessionLengthFor` vise assez de
-/// questions pour que chaque type actif atteigne `n_min` (donc que son
-/// cache de niveau puisse bouger), plafonné à `_sessionLengthCap`. Au-delà
-/// du plafond, `DebtAwareTypeSelectionStrategy` priorise les types les
-/// moins joués (`sessionsPlayed`, déjà lu ci-dessus pour les niveaux) —
-/// aucun nouvel appel au repository (voir `doc/decisions.md`).
+/// The number of questions is not fixed: `sessionLengthFor` aims for enough
+/// questions for every active type to reach `n_min` (so its level cache can
+/// move), capped at `_sessionLengthCap`. Beyond the cap,
+/// `DebtAwareTypeSelectionStrategy` favours the least-played types
+/// (`sessionsPlayed`, already read above for the levels) — no extra
+/// repository call (see `doc/decisions.md`).
 Future<SessionController> buildSessionController(
   AppEnvironment environment,
   Set<ExerciseType> enabledTypes,

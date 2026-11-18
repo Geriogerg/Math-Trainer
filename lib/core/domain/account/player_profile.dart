@@ -3,8 +3,8 @@ class PlayerProfile {
 
   final String accountId;
 
-  /// `null` : jamais choisi. L'appelant affiche une invite à en choisir un
-  /// plutôt qu'un nom vide.
+  /// `null`: never chosen. The caller shows a prompt to choose one rather
+  /// than an empty name.
   final String? displayName;
 
   @override

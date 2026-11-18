@@ -4,20 +4,19 @@ import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart'
     show databaseFactoryFfiWeb;
 
-/// Version courante du schéma. Toute évolution incrémente cette valeur et
-/// ajoute une branche dans [_onUpgrade] — jamais destructive, jamais
-/// rétroactive.
+/// Current schema version. Every change increments this value and adds a
+/// branch in [_onUpgrade] — never destructive, never retroactive.
 const schemaVersion = 3;
 
-/// Base de l'app, à l'emplacement attendu par chaque plateforme. Sur web :
-/// même schéma et même code SQL qu'ailleurs, SQLite compilé en WebAssembly
-/// (`sqflite_common_ffi_web`, fichiers `web/sqlite3.wasm` et
-/// `web/sqflite_sw.js`), stocké dans l'IndexedDB du navigateur — un chemin
-/// n'y est qu'un nom.
+/// The app's database, where each platform expects it. On web: same schema
+/// and same SQL as elsewhere, SQLite compiled to WebAssembly
+/// (`sqflite_common_ffi_web`, files `web/sqlite3.wasm` and
+/// `web/sqflite_sw.js`), stored in the browser's IndexedDB — a path there
+/// is just a name.
 ///
-/// Délai sur web : un `sqflite_sw.js` introuvable ne remonte pas toujours
-/// d'erreur (constaté sous Edge — 404 sur le worker, puis l'ouverture
-/// n'aboutit jamais) ; sans borne, l'app resterait sur une page blanche.
+/// Timeout on web: a missing `sqflite_sw.js` does not always surface an
+/// error (seen in Edge — 404 on the worker, then opening never completes);
+/// without a bound, the app would stay on a blank page.
 Future<Database> openAppDatabase() async {
   if (kIsWeb) {
     databaseFactory = databaseFactoryFfiWeb;
@@ -30,10 +29,10 @@ Future<Database> openAppDatabase() async {
   );
 }
 
-/// Ouvre (et crée/migre si besoin) la base SQLite du stockage local.
-/// [path] est fourni par l'appelant : un chemin réel en production
-/// (`join(await getDatabasesPath(), 'math_trainer.db')`), ou
-/// `inMemoryDatabasePath` dans les tests.
+/// Opens (and creates/migrates if needed) the local SQLite database.
+/// [path] comes from the caller: a real path in production
+/// (`join(await getDatabasesPath(), 'math_trainer.db')`), or
+/// `inMemoryDatabasePath` in tests.
 Future<Database> openMathTrainerDatabase(String path) {
   return openDatabase(
     path,
@@ -98,9 +97,9 @@ Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     ''');
   }
   if (oldVersion < 3) {
-    // Nullable, pas de valeur reconstituée : le niveau global d'après une
-    // ancienne session dépend de tout le cache à cet instant, que
-    // l'historique ne permet pas de retrouver fidèlement.
+    // Nullable, no rebuilt value: the overall level after an old session
+    // depends on the whole cache at that time, which history cannot
+    // faithfully recover.
     await db.execute('ALTER TABLE sessions ADD COLUMN overall_level_after REAL');
   }
 }

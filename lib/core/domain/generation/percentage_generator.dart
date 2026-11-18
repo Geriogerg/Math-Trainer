@@ -4,9 +4,9 @@ import '../models/exercise.dart';
 import 'exercise_generator.dart';
 import 'operand_range.dart';
 
-/// Choisit `percent` puis construit `base` comme un multiple du pas requis
-/// pour que `percent * base` soit exactement divisible par 100 (règle 10) :
-/// jamais de tirage suivi d'une vérification de divisibilité.
+/// Picks `percent` then builds `base` as a multiple of the step required for
+/// `percent * base` to be exactly divisible by 100 (rule 10): never a draw
+/// followed by a divisibility check.
 class PercentageExerciseGenerator implements ExerciseGenerator {
   PercentageExerciseGenerator({OperandRange? percentRange, OperandRange? multiplierRange})
     : percentRange = percentRange ?? OperandRange(min: 5, max: 50),

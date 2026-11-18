@@ -1,14 +1,14 @@
 import '../generation/operand_range.dart';
 import 'level_interpolation.dart';
 
-/// Seule la plage de `percent` varie avec le niveau (min et max s'écartent
-/// tous deux) ; le multiplicateur de construction de `base` reste à la
-/// plage par défaut du générateur, inchangée depuis l'étape 3.
+/// Only the `percent` range varies with the level (min and max both
+/// widen); the multiplier building `base` stays at the generator's default
+/// range, unchanged since step 3.
 ///
-/// Remplace la liste discrète {5, 10, 20, 25, 50} par une plage continue,
-/// pour rester cohérent avec le mécanisme d'interpolation linéaire des six
-/// autres axes — voir `doc/decisions.md`. L'exactitude de la génération
-/// reste garantie par construction quel que soit le pourcentage tiré.
+/// Replaces the discrete list {5, 10, 20, 25, 50} with a continuous range,
+/// consistent with the linear interpolation of the six other axes — see
+/// `doc/decisions.md`. Generation stays exact by construction whatever
+/// percentage is drawn.
 class PercentageDifficulty {
   const PercentageDifficulty({
     required this.percentMinAtLevel1,
@@ -28,7 +28,7 @@ class PercentageDifficulty {
   );
 }
 
-/// Valeurs de départ non calibrées — voir `doc/decisions.md`.
+/// Uncalibrated starting values — see `doc/decisions.md`.
 const percentageDifficulty = PercentageDifficulty(
   percentMinAtLevel1: 10,
   percentMaxAtLevel1: 50,

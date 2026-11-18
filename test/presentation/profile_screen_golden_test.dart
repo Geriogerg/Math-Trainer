@@ -14,12 +14,11 @@ import '../fake_account_repository.dart';
 import '../fake_profile_repository.dart';
 import 'golden_test_utils.dart';
 
-/// Niveaux fixes pour deux types, les cinq autres restent « Non joué » —
-/// assez pour voir les deux états dans le même golden. Dates de session
-/// relatives à `DateTime.now()` (calculées une fois à la construction) :
-/// l'écran positionne la courbe par rapport à « maintenant », des dates
-/// figées en dur dériveraient hors de la fenêtre de 30 jours au fil du
-/// temps et rendraient le golden non reproductible.
+/// Fixed levels for two types, the other five stay "Not played" — enough to
+/// see both states in the same golden. Session dates relative to
+/// `DateTime.now()` (computed once at construction): the screen positions
+/// the curve relative to "now", hard-coded dates would drift out of the
+/// 30-day window over time and make the golden non-reproducible.
 class _FixedLevelsRepository implements SessionRepository {
   _FixedLevelsRepository(DateTime now)
     : _windowSessions = [
@@ -80,8 +79,8 @@ class _FixedLevelsRepository implements SessionRepository {
     totalScore: score,
     levels: {ExerciseType.addition: level},
     createdAt: createdAt,
-    // Même valeur que le niveau d'entrée : garde la courbe et les écarts
-    // de l'image de référence d'avant `overallLevelAfter` (20 → 30 → 42).
+    // Same value as the entry level: keeps the curve and gaps of the
+    // reference image from before `overallLevelAfter` (20 → 30 → 42).
     overallLevelAfter: level.toDouble(),
   );
 
@@ -143,7 +142,7 @@ void main() {
     (name: 'light', theme: buildLightTheme()),
     (name: 'dark', theme: buildDarkTheme()),
   ]) {
-    testWidgets('écran de profil — ${mode.name}', (tester) async {
+    testWidgets('profile screen — ${mode.name}', (tester) async {
       await setGoldenSurfaceSize(tester);
       final environment = AppEnvironment(
         repository: _FixedLevelsRepository(DateTime.now().toUtc()),

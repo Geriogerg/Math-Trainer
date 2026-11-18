@@ -1,19 +1,19 @@
-/// État persisté du cache de niveau pour une opération : cache recalculable,
-/// pas une entité synchronisable (voir `doc/decisions.md`) — c'est pourquoi
-/// le stockage sous-jacent utilise une clé composite plutôt qu'un UUID, et
-/// pourquoi ce type n'est pas nommé `PersistedLevel` comme `PersistedSession`/
-/// `PersistedAnswer` : contrairement à eux, il n'a pas d'identité à
-/// synchroniser.
+/// Persisted state of the level cache for one operation: a recomputable
+/// cache, not a syncable entity (see `doc/decisions.md`) — which is why the
+/// underlying storage uses a composite key rather than a UUID, and why this
+/// type is not named `PersistedLevel` like `PersistedSession`/
+/// `PersistedAnswer`: unlike them, it has no identity to
+/// sync.
 class LevelCacheEntry {
   LevelCacheEntry({required this.level, required this.sessionsPlayed, required this.updatedAt}) {
     if (level < 1 || level > 100) {
-      throw ArgumentError.value(level, 'level', 'doit être compris entre 1 et 100.');
+      throw ArgumentError.value(level, 'level', 'must be between 1 and 100.');
     }
     if (sessionsPlayed < 0) {
-      throw ArgumentError.value(sessionsPlayed, 'sessionsPlayed', 'ne doit pas être négatif.');
+      throw ArgumentError.value(sessionsPlayed, 'sessionsPlayed', 'must not be negative.');
     }
     if (!updatedAt.isUtc) {
-      throw ArgumentError.value(updatedAt, 'updatedAt', 'doit être en UTC (DateTime.toUtc()).');
+      throw ArgumentError.value(updatedAt, 'updatedAt', 'must be UTC (DateTime.toUtc()).');
     }
   }
 

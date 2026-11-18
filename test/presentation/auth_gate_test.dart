@@ -17,16 +17,15 @@ import 'package:math_trainer/presentation/theme/app_theme.dart';
 import '../fake_account_repository.dart';
 import '../fake_profile_repository.dart';
 
-/// Contrôlable — contrairement à `FakeAccountRepository`
-/// (`test/fake_account_repository.dart`), qui démarre déjà connecté et ne
-/// sert qu'aux tests qui ne s'intéressent pas à la porte elle-même.
+/// Controllable — unlike `FakeAccountRepository`
+/// (`test/fake_account_repository.dart`), which starts signed in and only
+/// serves tests that do not care about the gate itself.
 class _ControllableAccountRepository implements AccountRepository {
   final _controller = StreamController<Account?>.broadcast();
 
-  /// Simule la résolution de la session locale (persistée ou absente) —
-  /// `AuthGate` ne doit jamais afficher le formulaire tant que cette
-  /// résolution n'a pas eu lieu, pour ne pas faire clignoter la porte pour
-  /// un joueur déjà connecté.
+  /// Simulates resolving the local session (persisted or absent) —
+  /// `AuthGate` must never show the form before this resolution, so the
+  /// gate does not flicker for a player already signed in.
   void resolveSession(Account? account) => _controller.add(account);
 
   @override
@@ -78,36 +77,32 @@ void main() {
     return environment;
   }
 
-  testWidgets(
-    'affiche un indicateur de chargement tant que la session locale n\'est pas résolue',
-    (tester) async {
-      await pumpGate(tester, _ControllableAccountRepository());
-      await tester.pump();
-
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
-      expect(find.byType(TextField), findsNothing);
-      expect(find.text('Math Trainer'), findsNothing);
-    },
-  );
-
-  testWidgets(
-    'affiche le formulaire de connexion une fois la session résolue comme absente',
-    (tester) async {
-      final accountRepository = _ControllableAccountRepository();
-      await pumpGate(tester, accountRepository);
-      await tester.pump();
-
-      accountRepository.resolveSession(null);
-      await tester.pumpAndSettle();
-
-      expect(find.text('Sign in'), findsWidgets);
-      expect(find.byType(TextField), findsNWidgets(2));
-    },
-  );
-
-  testWidgets('se connecter depuis le formulaire bascule vers AppShell', (
+  testWidgets('shows a loading indicator until the local session is resolved', (
     tester,
   ) async {
+    await pumpGate(tester, _ControllableAccountRepository());
+    await tester.pump();
+
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.byType(TextField), findsNothing);
+    expect(find.text('Math Trainer'), findsNothing);
+  });
+
+  testWidgets('shows the sign-in form once the session resolves as absent', (
+    tester,
+  ) async {
+    final accountRepository = _ControllableAccountRepository();
+    await pumpGate(tester, accountRepository);
+    await tester.pump();
+
+    accountRepository.resolveSession(null);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sign in'), findsWidgets);
+    expect(find.byType(TextField), findsNWidgets(2));
+  });
+
+  testWidgets('signing in from the form switches to AppShell', (tester) async {
     final accountRepository = _ControllableAccountRepository();
     await pumpGate(tester, accountRepository);
     await tester.pump();
@@ -123,64 +118,63 @@ void main() {
     expect(find.byType(TextField), findsNothing);
   });
 
-  // Régression : `authState` renvoie un nouveau `Stream` à chaque lecture.
-  // Lu dans `build()`, chaque reconstruction du parent (bascule nuit/jour)
-  // réabonnait `StreamBuilder`, qui repassait par `waiting` : `AppShell`
-  // était démonté puis recréé, et l'onglet courant revenait sur Jouer.
-  testWidgets(
-    'une reconstruction du parent conserve l\'état d\'AppShell (onglet courant)',
-    (tester) async {
-      final environment = AppEnvironment(
-        repository: InMemorySessionRepository(),
-        playerId: 'test-player',
-        accountRepository: FakeAccountRepository(),
-        profileRepository: FakeProfileRepository(),
-      );
-      late StateSetter rebuildParent;
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: buildLightTheme(),
-          home: StatefulBuilder(
-            builder: (context, setState) {
-              rebuildParent = setState;
-              return AuthGate(environment: environment);
-            },
-          ),
+  // Regression: `authState` returns a new `Stream` on each read. Read in
+  // `build()`, every rebuild of the parent (day/night toggle) resubscribed
+  // `StreamBuilder`, which went back through `waiting`: `AppShell` was
+  // unmounted then recreated, and the current tab went back to Play.
+  testWidgets("a parent rebuild keeps AppShell's state (current tab)", (
+    tester,
+  ) async {
+    final environment = AppEnvironment(
+      repository: InMemorySessionRepository(),
+      playerId: 'test-player',
+      accountRepository: FakeAccountRepository(),
+      profileRepository: FakeProfileRepository(),
+    );
+    late StateSetter rebuildParent;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildLightTheme(),
+        home: StatefulBuilder(
+          builder: (context, setState) {
+            rebuildParent = setState;
+            return AuthGate(environment: environment);
+          },
         ),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Profile'));
-      await tester.pumpAndSettle();
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Profile'));
+    await tester.pumpAndSettle();
 
-      rebuildParent(() {});
-      await tester.pump();
+    rebuildParent(() {});
+    await tester.pump();
 
-      expect(
-        find.byType(CircularProgressIndicator),
-        findsNothing,
-        reason: 'la porte ne doit pas repasser par l\'état de chargement',
-      );
-      await tester.pumpAndSettle();
-      final navigationBar = tester.widget<NavigationBar>(
-        find.byType(NavigationBar),
-      );
-      expect(navigationBar.selectedIndex, 2);
-    },
-  );
+    expect(
+      find.byType(CircularProgressIndicator),
+      findsNothing,
+      reason: 'the gate must not go back through the loading state',
+    );
+    await tester.pumpAndSettle();
+    final navigationBar = tester.widget<NavigationBar>(
+      find.byType(NavigationBar),
+    );
+    expect(navigationBar.selectedIndex, 2);
+  });
 
-  group('données rattachées au compte', () {
-    // `PlayTab` lit la sélection mémorisée avec le niveau global : sans
-    // préférences simulées, cette lecture échoue et l'écran reste sur
-    // l'accueil, quel que soit l'historique.
+  group('data bound to the account', () {
+    // `PlayTab` reads the remembered selection along with the overall level:
+    // without simulated preferences, that read fails and the screen stays on
+    // the welcome text, whatever the history.
     setUp(() => SharedPreferences.setMockInitialValues({}));
 
     const accountA = Account(id: 'compte-a', email: 'a@test.com');
     const accountB = Account(id: 'compte-b', email: 'b@test.com');
     const welcome = 'Difficulty adapts to your answers.';
 
-    /// Partie jouée sous l'id local de l'appareil (`test-player`, celui de
-    /// `pumpGate`), comme avant le passage aux comptes. Addition au niveau
-    /// 43, les six autres types au plancher : niveau global (43 + 6) / 7 = 7.
+    /// Game played under the device's local id (`test-player`, the one of
+    /// `pumpGate`), as before accounts. Addition at level 43, the six other
+    /// types at the floor: overall level (43 + 6) / 7 = 7.
     Future<void> playOnDevice(AppEnvironment environment) =>
         environment.repository.recordSession(
           session: PersistedSession(
@@ -204,7 +198,7 @@ void main() {
         );
 
     testWidgets(
-      "les parties de l'appareil reviennent au premier compte connecté, pas au suivant",
+      "the device's games go to the first account that signs in, not the next one",
       (tester) async {
         final accountRepository = _ControllableAccountRepository();
         final environment = await pumpGate(tester, accountRepository);
@@ -228,21 +222,20 @@ void main() {
       },
     );
 
-    testWidgets(
-      'changer de compte sans passer par la déconnexion repart à neuf',
-      (tester) async {
-        final accountRepository = _ControllableAccountRepository();
-        final environment = await pumpGate(tester, accountRepository);
-        await playOnDevice(environment);
-        accountRepository.resolveSession(accountA);
-        await tester.pumpAndSettle();
-        expect(find.text('Overall level: 7'), findsOneWidget);
+    testWidgets('switching accounts without signing out starts afresh', (
+      tester,
+    ) async {
+      final accountRepository = _ControllableAccountRepository();
+      final environment = await pumpGate(tester, accountRepository);
+      await playOnDevice(environment);
+      accountRepository.resolveSession(accountA);
+      await tester.pumpAndSettle();
+      expect(find.text('Overall level: 7'), findsOneWidget);
 
-        accountRepository.resolveSession(accountB);
-        await tester.pumpAndSettle();
+      accountRepository.resolveSession(accountB);
+      await tester.pumpAndSettle();
 
-        expect(find.text(welcome), findsOneWidget);
-      },
-    );
+      expect(find.text(welcome), findsOneWidget);
+    });
   });
 }

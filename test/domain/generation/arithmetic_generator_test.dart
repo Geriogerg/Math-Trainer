@@ -8,7 +8,7 @@ import 'package:test/test.dart';
 
 void main() {
   group('ArithmeticExerciseGenerator', () {
-    test('la même seed produit toujours la même séquence', () {
+    test('the same seed always produces the same sequence', () {
       final generatorA = ArithmeticExerciseGenerator(
         operationTypes: OperationType.values,
       );
@@ -25,7 +25,7 @@ void main() {
       expect(sequenceA, equals(sequenceB));
     });
 
-    test('les divisions ont toujours un résultat entier exact', () {
+    test('divisions always have an exact integer result', () {
       final generator = ArithmeticExerciseGenerator(
         operationTypes: const [OperationType.division],
       );
@@ -37,7 +37,7 @@ void main() {
       }
     });
 
-    test('les soustractions ne produisent jamais de résultat négatif', () {
+    test('subtractions never produce a negative result', () {
       final generator = ArithmeticExerciseGenerator(
         operationTypes: const [OperationType.subtraction],
       );
@@ -49,7 +49,7 @@ void main() {
       }
     });
 
-    test('ne génère que les types d\'opération configurés', () {
+    test('only generates the configured operation types', () {
       final generator = ArithmeticExerciseGenerator(
         operationTypes: const [OperationType.addition, OperationType.multiplication],
       );
@@ -64,10 +64,10 @@ void main() {
       }
     });
 
-    test('des seeds différentes produisent des séquences différentes', () {
-      // Propriété constatée empiriquement sur cet échantillon, pas une
-      // garantie mathématique : deux seeds distinctes pourraient en théorie
-      // produire la même séquence par coïncidence.
+    test('different seeds produce different sequences', () {
+      // A property observed empirically on this sample, not a mathematical
+      // guarantee: two distinct seeds could in theory produce the same
+      // sequence by coincidence.
       List<ArithmeticExercise> sequenceFor(int seed) {
         final generator = ArithmeticExerciseGenerator(operationTypes: OperationType.values);
         final random = Random(seed);
@@ -83,7 +83,7 @@ void main() {
       }
     });
 
-    test('les opérandes générés respectent les bornes configurées', () {
+    test('generated operands respect the configured bounds', () {
       final range = OperandRange(min: 5, max: 8);
       final generator = ArithmeticExerciseGenerator(
         operationTypes: const [
@@ -102,14 +102,14 @@ void main() {
       }
     });
 
-    test("refuse une liste de types d'opération vide", () {
+    test('rejects an empty list of operation types', () {
       expect(
         () => ArithmeticExerciseGenerator(operationTypes: const []),
         throwsArgumentError,
       );
     });
 
-    test('refuse une plage autorisant un diviseur nul quand la division est activée', () {
+    test('rejects a range allowing a zero divisor when division is enabled', () {
       expect(
         () => ArithmeticExerciseGenerator(
           operationTypes: const [OperationType.division],

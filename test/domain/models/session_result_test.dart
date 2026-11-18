@@ -13,7 +13,7 @@ void main() {
   );
 
   group('SessionResult', () {
-    test('calcule précision et temps moyen à partir des réponses', () {
+    test('computes accuracy and average time from the answers', () {
       final result = SessionResult(
         totalScore: 150,
         outcomes: const [
@@ -37,7 +37,7 @@ void main() {
       expect(result.averageElapsedMs, 1500);
     });
 
-    test('gère une session sans réponse sans division par zéro', () {
+    test('handles a session without answers without dividing by zero', () {
       const result = SessionResult(totalScore: 0, outcomes: []);
 
       expect(result.correctCount, 0);
@@ -56,7 +56,7 @@ void main() {
       elapsedMs: 15000,
     );
 
-    test('timeoutCount et wrongCount distinguent hors délai et simplement faux', () {
+    test('timeoutCount and wrongCount tell timed out from simply wrong', () {
       final result = SessionResult(
         totalScore: 0,
         outcomes: [correct(), wrong(), timeout(), timeout()],
@@ -67,8 +67,8 @@ void main() {
       expect(result.timeoutCount, 2);
     });
 
-    test('bestStreak retient le maximum, pas la série finale', () {
-      // juste, juste, juste, faux, juste : meilleure série 3, série finale 1.
+    test('bestStreak keeps the maximum, not the final streak', () {
+      // right, right, right, wrong, right: best streak 3, final streak 1.
       final result = SessionResult(
         totalScore: 0,
         outcomes: [correct(), correct(), correct(), wrong(), correct()],
@@ -77,16 +77,16 @@ void main() {
       expect(result.bestStreak, 3);
     });
 
-    test('bestStreak vaut 0 si aucune réponse correcte', () {
+    test('bestStreak is 0 if no answer is right', () {
       final result = SessionResult(totalScore: 0, outcomes: [wrong(), timeout()]);
 
       expect(result.bestStreak, 0);
     });
 
-    test('scoreBreakdown reconstitue base/vitesse/série à partir du streak rejoué', () {
+    test('scoreBreakdown rebuilds base/speed/streak from the replayed streak', () {
       const scorer = Scorer();
       final outcomes = [correct(elapsedMs: 0), correct(elapsedMs: 0), wrong()];
-      // Rejoué : streak 1 puis 2 pour les deux réponses correctes.
+      // Replayed: streak 1 then 2 for the two right answers.
       final raw1 = scorer.rawPointsFor(outcomes[0], currentStreak: 1);
       final raw2 = scorer.rawPointsFor(outcomes[1], currentStreak: 2);
       final expectedBase = raw1.base + raw2.base;
@@ -100,7 +100,7 @@ void main() {
       expect(breakdown.base, expectedBase);
       expect(breakdown.speedBonus, expectedSpeed);
       expect(breakdown.streakBonus, expectedStreak);
-      // Les quatre composantes doivent toujours sommer exactement au score total.
+      // The four components must always sum exactly to the total score.
       expect(
         breakdown.base + breakdown.speedBonus + breakdown.streakBonus + breakdown.difficultyBonus,
         totalScore,

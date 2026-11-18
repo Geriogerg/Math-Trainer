@@ -9,27 +9,25 @@ import '../../core/domain/leveling/overall_level.dart';
 import '../theme/app_theme.dart';
 import 'session_flow_screen.dart';
 
-/// 2 types par défaut, pas 4 : avec `n_min` (4 depuis l'étape 4.2, 8
-/// jusque-là) et le plafond de session, c'est ce qui garantit une couverture
-/// du cache de niveau dès la première session pour un joueur qui ne touche
-/// pas à la sélection (étape 4.1, commit A — voir `doc/decisions.md`).
-/// Addition/soustraction : opérations inverses l'une de l'autre, charge
-/// cognitive minimale pour un premier joueur ; les 5 autres types restent
-/// tous disponibles, juste décochés.
+/// 2 types by default, not 4: with `n_min` (4 since step 4.2, 8 before) and
+/// the session cap, this guarantees level cache coverage from the first
+/// session for a player who never touches the selection (step 4.1, commit
+/// A — see `doc/decisions.md`). Addition/subtraction: inverse operations,
+/// minimal cognitive load for a first player; the 5 other types stay
+/// available, just unticked.
 const _defaultSelectedTypes = {ExerciseType.addition, ExerciseType.subtraction};
 
-/// Onglet « Jouer » de `AppShell`. Ne gère plus que la sélection des types :
-/// la session elle-même est poussée en plein écran par-dessus la barre
-/// d'onglets (`SessionFlowScreen`), pas basculée inline comme avant l'étape
-/// 5, commit E.
+/// The "Play" tab of `AppShell`. Only handles the type selection: the
+/// session itself is pushed full screen over the tab bar
+/// (`SessionFlowScreen`), not switched inline as before step 5, commit E.
 class PlayTab extends StatefulWidget {
   const PlayTab({super.key, required this.environment, this.onToggleTheme});
 
   final AppEnvironment environment;
 
-  /// Bouton nuit/jour, dans le coin de l'écran d'accueil (`doc/design.md`) —
-  /// `null` par défaut pour ne pas casser les tests qui ne s'intéressent pas
-  /// au thème.
+  /// Day/night button in the corner of the home screen (`doc/design.md`) —
+  /// `null` by default so as not to break tests that do not care about the
+  /// theme.
   final VoidCallback? onToggleTheme;
 
   @override
@@ -41,10 +39,9 @@ class _PlayTabState extends State<PlayTab> {
   bool _isStarting = false;
   String? _startError;
 
-  /// `null` tant que la lecture n'a pas résolu — le défaut ci-dessus reste
-  /// affiché pendant ce court intervalle plutôt qu'un état de chargement sur
-  /// l'écran principal (analyse UX post-étape 5 : lecture locale, pas de
-  /// spinner justifié pour ça).
+  /// `null` until the read resolves — the default above stays shown during
+  /// this short interval rather than a loading state on the main screen
+  /// (post-step-5 UX review: a local read, no spinner justified).
   double? _globalLevel;
   bool _hasHistory = false;
 
@@ -55,10 +52,10 @@ class _PlayTabState extends State<PlayTab> {
   }
 
   Future<void> _loadStartupState() async {
-    // Purement auxiliaire (repère de niveau, accueil, sélection mémorisée) :
-    // un échec ici ne doit jamais empêcher de lancer une session avec le
-    // défaut déjà affiché — même logique que l'échec silencieux de
-    // `_persistCompletedSession` côté contrôleur.
+    // Purely auxiliary (level hint, welcome, remembered selection): a
+    // failure here must never prevent starting a session with the default
+    // already shown — same logic as the silent failure of
+    // `_persistCompletedSession` in the controller.
     try {
       final results = await Future.wait([
         widget.environment.typeSelectionStore.load(),
@@ -75,15 +72,15 @@ class _PlayTabState extends State<PlayTab> {
         _globalLevel = levels.isEmpty ? null : overallLevel(levels);
       });
     } on Exception catch (_) {
-      // Reste sur le défaut déjà affiché — pas d'état d'erreur sur l'écran
-      // principal pour une information secondaire.
+      // Stay on the default already shown — no error state on the main
+      // screen for secondary information.
     }
   }
 
   void _updateSelection(Set<ExerciseType> types) {
     setState(() => _selectedTypes = types);
-    // Écriture continue, pas de bouton dédié — en tâche de fond, l'échec
-    // silencieux ne coûte qu'un retour au défaut au prochain lancement.
+    // Continuous write, no dedicated button — in the background, a silent
+    // failure only costs a return to the default at the next launch.
     widget.environment.typeSelectionStore.save(types).ignore();
   }
 
@@ -100,13 +97,13 @@ class _PlayTabState extends State<PlayTab> {
       );
     } catch (_) {
       if (!mounted) return;
-      // Le bouton "Commencer" redevient actif : c'est l'action de reprise,
-      // pas besoin d'un bouton dédié.
+      // The "Start" button becomes active again: it is the retry action, no
+      // need for a dedicated button.
       setState(() {
         _isStarting = false;
-        // Pas de « Réessayez. » : le bouton Commencer, redevenu actif, porte
-        // déjà l'action (`doc/design.md` — un message d'erreur ne contient
-        // pas l'action).
+        // No "Try again.": the Start button, active again, already carries
+        // the action (`doc/design.md` — an error message does not contain
+        // the action).
         _startError = 'Could not start the session.';
       });
       return;
@@ -114,10 +111,10 @@ class _PlayTabState extends State<PlayTab> {
     if (!mounted) return;
     controller.start();
     setState(() => _isStarting = false);
-    // SessionFlowScreen possède le contrôleur (dispose() dans son propre
-    // State). La route rend l'écriture de fin de session encore en cours
-    // (`SessionFlowScreen._exitToSelection`) : relire les niveaux avant
-    // qu'elle aboutisse afficherait le niveau global d'avant la partie.
+    // SessionFlowScreen owns the controller (dispose() in its own State).
+    // The route returns the end-of-session write still running
+    // (`SessionFlowScreen._exitToSelection`): re-reading the levels before it
+    // completes would show the overall level from before the game.
     final pendingPersistence = await Navigator.of(context)
         .push<Future<void>>(
           MaterialPageRoute(
@@ -166,9 +163,9 @@ class _TypeSelectionView extends StatelessWidget {
   final String? startError;
   final VoidCallback? onToggleTheme;
 
-  /// Historique existant pour ce joueur (au moins un type déjà joué) —
-  /// distingue le repère de niveau de la phrase d'accueil pour un nouveau
-  /// joueur (analyse UX post-étape 5).
+  /// Existing history for this player (at least one type played) — tells
+  /// the level hint apart from the welcome sentence for a new player
+  /// (post-step-5 UX review).
   final bool hasHistory;
   final double? globalLevel;
 

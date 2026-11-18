@@ -3,11 +3,10 @@ import 'package:flutter/material.dart';
 import '../core/domain/models/exercise.dart';
 import '../core/domain/models/operation_type.dart';
 
-/// Compose l'affichage d'un [Exercise] à partir des champs de sa variante —
-/// le domaine ne produit plus de texte (`doc/decisions.md`, « Exercise.prompt
-/// quitte le domaine »). `switch` exhaustif sans `default` (règle 11) :
-/// tout nouveau type d'exercice fait échouer la compilation ici tant qu'il
-/// n'a pas son rendu.
+/// Builds the display of an [Exercise] from its variant's fields — the
+/// domain produces no text (`doc/decisions.md`, "`Exercise.prompt` left the
+/// domain"). Exhaustive `switch` without `default` (rule 11): any new
+/// exercise type fails to compile here until it has its rendering.
 class ExercisePrompt extends StatelessWidget {
   const ExercisePrompt({super.key, required this.exercise});
 
@@ -30,17 +29,17 @@ class ExercisePrompt extends StatelessWidget {
 
 String _operatorSymbol(OperationType type) => switch (type) {
   OperationType.addition => '+',
-  // Vrai signe moins U+2212, jamais le trait d'union U+002D (`doc/design.md`).
+  // True minus sign U+2212, never the hyphen U+002D (`doc/design.md`).
   OperationType.subtraction => '−',
   OperationType.multiplication => '×',
   OperationType.division => '÷',
 };
 
-/// Exposant en position haute, ~55 % de la taille de la base (`doc/design.md`)
-/// — jamais `^`, jamais les chiffres Unicode `²`/`³` (rendent mal selon les
-/// polices et s'arrêtent à 3). Le `WidgetSpan` aligné en haut de ligne donne
-/// l'effet de décalage : un texte plus petit aligné sur le sommet de la ligne
-/// se retrouve visuellement plus haut que la base.
+/// Raised exponent, ~55 % of the base's size (`doc/design.md`) — never `^`,
+/// never the Unicode digits `²`/`³` (they render poorly across fonts and
+/// stop at 3). The `WidgetSpan` aligned to the top of the line gives the
+/// offset: smaller text aligned to the top of the line sits visually higher
+/// than the base.
 class _PowerPrompt extends StatelessWidget {
   const _PowerPrompt({required this.exercise, required this.style});
 
@@ -65,9 +64,9 @@ class _PowerPrompt extends StatelessWidget {
   }
 }
 
-/// Barre horizontale au-dessus du radicande (`doc/design.md`) : sans elle,
-/// `√169` se lit `√1` puis `69`. `Border(top:)` sur le radicande seul — le
-/// symbole `√` n'est pas sous la barre, simplification assumée par
+/// Horizontal bar over the radicand (`doc/design.md`): without it, `√169`
+/// reads `√1` then `69`. `Border(top:)` on the radicand alone — the `√`
+/// symbol is not under the bar, a simplification accepted by
 /// `doc/design.md`.
 class _SquareRootPrompt extends StatelessWidget {
   const _SquareRootPrompt({required this.exercise, required this.style});

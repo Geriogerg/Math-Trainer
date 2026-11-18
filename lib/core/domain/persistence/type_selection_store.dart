@@ -1,12 +1,12 @@
 import '../models/exercise_type.dart';
 
-/// Mémorise la sélection de types entre deux lancements de l'app —
-/// implémentation concrète (shared_preferences) dans `infrastructure/`,
-/// jamais dans le domaine (règle 3).
+/// Remembers the type selection between app launches — concrete
+/// implementation (shared_preferences) in `infrastructure/`, never in the
+/// domain (rule 3).
 abstract class TypeSelectionStore {
-  /// `null` : jamais enregistré, l'appelant applique son propre défaut.
-  /// Un ensemble vide enregistré explicitement (le joueur a tout décoché)
-  /// est distinct de `null` et doit être respecté tel quel.
+  /// `null`: never stored, the caller applies its own default. An empty set
+  /// stored explicitly (the player unticked everything) is distinct from
+  /// `null` and must be respected as is.
   Future<Set<ExerciseType>?> load();
 
   Future<void> save(Set<ExerciseType> types);

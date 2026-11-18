@@ -1,30 +1,30 @@
 import 'package:math_trainer/core/domain/account/player_profile.dart';
 import 'package:math_trainer/core/domain/account/profile_repository.dart';
 
-/// Pour les tests qui ne s'intéressent pas au profil — même raisonnement que
-/// `FakeAccountRepository` : `AppEnvironment.profileRepository` est requis,
-/// pas de défaut concret.
+/// For tests that do not care about the profile — same reasoning as
+/// `FakeAccountRepository`: `AppEnvironment.profileRepository` is required,
+/// with no concrete default.
 class FakeProfileRepository implements ProfileRepository {
   String? displayName = 'Joueur Test';
 
-  /// Simule un Supabase injoignable (hors ligne) pour `currentProfile()`.
+  /// Simulates an unreachable Supabase (offline) for `currentProfile()`.
   bool shouldFail = false;
 
   @override
   Future<PlayerProfile> currentProfile() async {
-    if (shouldFail) throw Exception('réseau indisponible (simulé)');
+    if (shouldFail) throw Exception('network unavailable (simulated)');
     return PlayerProfile(
       accountId: 'fake-account-id',
       displayName: displayName,
     );
   }
 
-  /// Simule un enregistrement refusé (réseau, table absente).
+  /// Simulates a refused save (network, missing table).
   bool updateShouldFail = false;
 
   @override
   Future<void> updateDisplayName(String displayName) async {
-    if (updateShouldFail) throw Exception('enregistrement refusé (simulé)');
+    if (updateShouldFail) throw Exception('save refused (simulated)');
     this.displayName = displayName;
   }
 }

@@ -3,14 +3,14 @@ import 'package:test/test.dart';
 
 void main() {
   group('LevelCacheEntry', () {
-    test('accepte des valeurs valides', () {
+    test('accepts valid values', () {
       final entry = LevelCacheEntry(level: 50, sessionsPlayed: 3, updatedAt: DateTime.utc(2026, 8, 8));
 
       expect(entry.level, 50);
       expect(entry.sessionsPlayed, 3);
     });
 
-    test('refuse un niveau hors [1, 100]', () {
+    test('rejects a level outside [1, 100]', () {
       expect(
         () => LevelCacheEntry(level: 0, sessionsPlayed: 0, updatedAt: DateTime.utc(2026, 8, 8)),
         throwsArgumentError,
@@ -21,14 +21,14 @@ void main() {
       );
     });
 
-    test('refuse un sessionsPlayed négatif', () {
+    test('rejects a negative sessionsPlayed', () {
       expect(
         () => LevelCacheEntry(level: 50, sessionsPlayed: -1, updatedAt: DateTime.utc(2026, 8, 8)),
         throwsArgumentError,
       );
     });
 
-    test('refuse un updatedAt qui n\'est pas en UTC', () {
+    test('rejects an updatedAt that is not UTC', () {
       expect(
         () => LevelCacheEntry(level: 50, sessionsPlayed: 0, updatedAt: DateTime(2026, 8, 8)),
         throwsArgumentError,

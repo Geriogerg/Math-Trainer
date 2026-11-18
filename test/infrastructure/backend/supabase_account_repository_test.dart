@@ -22,19 +22,19 @@ void main() {
 
   tearDown(() => supabase.client.dispose());
 
-  test('authState émet null au démarrage sans session', () async {
+  test('authState emits null at start without a session', () async {
     supabase.emitInitialSessionWithoutUser();
     expect(await repository.authState.first, isNull);
   });
 
-  // Garde-fou de bibliothèque : `ProfileScreen` lit le compte par
-  // `authState.first`. Ça ne tient que parce que `onAuthStateChange` rejoue
-  // le dernier événement seulement (pas tout l'historique, malgré le nom
-  // `ReplaySubject`). Si une mise à jour de Supabase changeait ce point,
-  // `.first` renverrait `initialSession` (aucun compte) après toute
-  // connexion faite pendant le lancement en cours.
+  // Library guard: `ProfileScreen` reads the account through
+  // `authState.first`. That only holds because `onAuthStateChange` replays
+  // the latest event only (not the whole history, despite the name
+  // `ReplaySubject`). If a Supabase update changed this, `.first` would
+  // return `initialSession` (no account) after any sign-in made during the
+  // current launch.
   test(
-    'authState.first donne le compte courant après une connexion faite pendant ce lancement',
+    'authState.first gives the current account after a sign-in made during this launch',
     () async {
       supabase.emitInitialSessionWithoutUser();
       await supabase.signIn();
@@ -44,7 +44,7 @@ void main() {
   );
 
   test(
-    'un nouvel abonné ne rejoue pas l\'état déconnecté de l\'historique',
+    'a new subscriber does not replay the signed-out state from history',
     () async {
       supabase.emitInitialSessionWithoutUser();
       await supabase.signIn();
@@ -58,7 +58,7 @@ void main() {
     },
   );
 
-  test('authState suit la connexion puis la déconnexion', () async {
+  test('authState follows sign-in then sign-out', () async {
     supabase.emitInitialSessionWithoutUser();
     final emitted = <Account?>[];
     final subscription = repository.authState.listen(emitted.add);
@@ -73,7 +73,7 @@ void main() {
     expect(emitted, [null, _account, null]);
   });
 
-  test('déconnexion hors ligne : déconnecté localement, sans erreur', () async {
+  test('offline sign-out: signed out locally, without an error', () async {
     final offlineLogout = SupabaseTestClient(
       authHandler: (request) async => request.url.path == '/auth/v1/logout'
           ? throw http.ClientException('Failed host lookup')
@@ -88,9 +88,9 @@ void main() {
     expect(await repo.authState.first, isNull);
   });
 
-  group('erreurs traduites en AccountException', () {
-    /// Format actuel de Supabase Auth : en-tête de version d'API, code dans
-    /// `code` (avant 2024 : `error_code`).
+  group('errors mapped to AccountException', () {
+    /// Current Supabase Auth format: API version header, code in `code`
+    /// (before 2024: `error_code`).
     Future<http.Response> Function(http.Request) refuse(
       int status,
       String code,
@@ -140,7 +140,7 @@ void main() {
       });
     }
 
-    test('réseau indisponible → network', () async {
+    test('network unavailable → network', () async {
       final offline = SupabaseTestClient(
         authHandler: (_) async =>
             throw http.ClientException('Failed host lookup'),
@@ -154,7 +154,7 @@ void main() {
       );
     });
 
-    test('serveur en erreur (5xx) → network', () async {
+    test('server error (5xx) → network', () async {
       final failing = SupabaseTestClient(
         authHandler: (_) async => http.Response('upstream error', 503),
       );

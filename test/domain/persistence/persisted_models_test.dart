@@ -20,31 +20,31 @@ void main() {
       );
     }
 
-    test('deux instances avec les mêmes valeurs sont égales', () {
+    test('two instances with the same values are equal', () {
       expect(buildAnswer(), equals(buildAnswer()));
       expect(buildAnswer().hashCode, equals(buildAnswer().hashCode));
     });
 
-    test('copyWith sans argument ne modifie rien', () {
+    test('copyWith without arguments changes nothing', () {
       final original = buildAnswer();
       expect(original.copyWith(), equals(original));
     });
 
-    test('copyWith peut poser syncedAt', () {
+    test('copyWith can set syncedAt', () {
       final syncedAt = DateTime.utc(2026, 8, 9);
       final updated = buildAnswer().copyWith(syncedAt: syncedAt);
 
       expect(updated.syncedAt, syncedAt);
     });
 
-    test('copyWith peut remettre syncedAt à null explicitement', () {
+    test('copyWith can set syncedAt back to null explicitly', () {
       final withSync = buildAnswer(syncedAt: DateTime.utc(2026, 8, 9));
       final reverted = withSync.copyWith(syncedAt: null);
 
       expect(reverted.syncedAt, isNull);
     });
 
-    test('refuse un createdAt qui n\'est pas en UTC', () {
+    test('rejects a createdAt that is not UTC', () {
       expect(
         () => PersistedAnswer(
           id: 'answer-1',
@@ -61,7 +61,7 @@ void main() {
       );
     });
 
-    test('refuse un syncedAt qui n\'est pas en UTC', () {
+    test('rejects a syncedAt that is not UTC', () {
       expect(
         () => buildAnswer().copyWith(syncedAt: DateTime(2026, 8, 9)),
         throwsArgumentError,
@@ -85,12 +85,12 @@ void main() {
       );
     }
 
-    test('deux instances avec les mêmes valeurs sont égales', () {
+    test('two instances with the same values are equal', () {
       expect(buildSession(), equals(buildSession()));
       expect(buildSession().hashCode, equals(buildSession().hashCode));
     });
 
-    test('enabledTypes construits dans un ordre d\'insertion différent restent égaux', () {
+    test('enabledTypes built in a different insertion order stay equal', () {
       final a = PersistedSession(
         id: 'session-1',
         playerId: 'player-1',
@@ -116,7 +116,7 @@ void main() {
       expect(a.hashCode, equals(b.hashCode));
     });
 
-    test('levels construits dans un ordre d\'insertion différent restent égaux', () {
+    test('levels built in a different insertion order stay equal', () {
       final a = buildSession();
       final b = PersistedSession(
         id: 'session-1',
@@ -133,7 +133,7 @@ void main() {
       expect(a.hashCode, equals(b.hashCode));
     });
 
-    test('un niveau différent rend deux sessions inégales', () {
+    test('a different level makes two sessions unequal', () {
       final a = buildSession();
       final b = PersistedSession(
         id: 'session-1',
@@ -149,7 +149,7 @@ void main() {
       expect(a, isNot(equals(b)));
     });
 
-    test('copyWith peut poser puis remettre syncedAt à null', () {
+    test('copyWith can set then reset syncedAt to null', () {
       final synced = buildSession().copyWith(syncedAt: DateTime.utc(2026, 8, 9));
       expect(synced.syncedAt, isNotNull);
 
@@ -157,7 +157,7 @@ void main() {
       expect(reverted.syncedAt, isNull);
     });
 
-    test('refuse un createdAt qui n\'est pas en UTC', () {
+    test('rejects a createdAt that is not UTC', () {
       expect(
         () => PersistedSession(
           id: 'session-1',
@@ -173,16 +173,16 @@ void main() {
       );
     });
 
-    test("un niveau global d'après différent rend deux sessions inégales", () {
+    test('a different overall level after makes two sessions unequal', () {
       expect(buildSession(overallLevelAfter: 12.5), isNot(equals(buildSession(overallLevelAfter: 13))));
       expect(buildSession(overallLevelAfter: 12.5), isNot(equals(buildSession(overallLevelAfter: null))));
     });
 
-    test("copyWith conserve le niveau global d'après", () {
+    test('copyWith keeps the overall level after', () {
       expect(buildSession(overallLevelAfter: 12.5).copyWith(playerId: 'compte').overallLevelAfter, 12.5);
     });
 
-    test('refuse un niveau global hors de [1, 100]', () {
+    test('rejects an overall level outside [1, 100]', () {
       expect(() => buildSession(overallLevelAfter: 0.5), throwsArgumentError);
       expect(() => buildSession(overallLevelAfter: 100.5), throwsArgumentError);
       expect(buildSession(overallLevelAfter: 1).overallLevelAfter, 1);

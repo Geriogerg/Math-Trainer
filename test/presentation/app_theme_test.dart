@@ -17,14 +17,14 @@ void main() {
     profileRepository: FakeProfileRepository(),
   );
 
-  test('les deux thèmes exposent AppPalette et AppMotion', () {
+  test('both themes expose AppPalette and AppMotion', () {
     for (final theme in [buildLightTheme(), buildDarkTheme()]) {
       expect(theme.extension<AppPalette>(), isNotNull);
       expect(theme.extension<AppMotion>(), isNotNull);
     }
   });
 
-  testWidgets('l\'app construit sans lever en mode clair forcé', (
+  testWidgets('the app builds without throwing in forced light mode', (
     tester,
   ) async {
     tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
@@ -37,7 +37,7 @@ void main() {
     expect(find.text('Math Trainer'), findsOneWidget);
   });
 
-  testWidgets('l\'app construit sans lever en mode sombre forcé', (
+  testWidgets('the app builds without throwing in forced dark mode', (
     tester,
   ) async {
     tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;

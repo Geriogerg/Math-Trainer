@@ -2,13 +2,13 @@ import 'dart:ui' show lerpDouble;
 
 import 'package:flutter/material.dart';
 
-/// Thème « nuit électrique » (`doc/design.md`) : palette, typographie et
-/// durées d'animation centralisées ici, jamais en dur dans un widget.
-/// `ColorScheme` couvre les rôles Material 3 usuels ; `AppPalette`, `AppMotion`
-/// et `AppMetrics` couvrent ce qui n'a pas d'équivalent standard (texte
-/// discret, durées d'animation, tailles/paddings partagés). Les deux modes
-/// doivent rester strictement symétriques dans leur structure : n'ajouter un
-/// champ que dans les deux fonctions à la fois.
+/// "Nuit électrique" theme (`doc/design.md`): palette, typography and
+/// animation durations centralised here, never hard-coded in a widget.
+/// `ColorScheme` covers the usual Material 3 roles; `AppPalette`, `AppMotion`
+/// and `AppMetrics` cover what has no standard equivalent (muted text,
+/// animation durations, shared sizes/paddings). Both modes must stay
+/// strictly symmetric in structure: only add a field to both functions at
+/// once.
 
 const _fontFamily = 'Inter';
 
@@ -33,8 +33,8 @@ ThemeData buildDarkTheme() => _buildTheme(
     surfaceContainerHigh: Color(0xFF1B2340),
     outline: Color(0xFF2A3352),
     primary: Color(0xFF5DCAA5),
-    // Accent clair : texte sombre plutôt que blanc pour le contraste
-    // (`design.md` ne tranche pas ce point, confirmé à l'œil sur Android).
+    // Light accent: dark text rather than white for contrast (`design.md`
+    // does not settle this point, checked by eye on Android).
     onPrimary: Color(0xFF101528),
     onSurface: Color(0xFFE6F1FB),
     onSurfaceVariant: Color(0xFF85B7EB),
@@ -52,11 +52,11 @@ const _motion = AppMotion(
   levelUp: AnimationSpec(Duration(milliseconds: 600), Curves.easeOutCubic),
 );
 
-/// `rootPadding` : seule valeur commune aux trois variantes de padding racine
-/// qui coexistaient avant l'étape 5, commit B (`all(24)`, `fromLTRB(24,16,24,8)`,
-/// aucune). `keypadHeight` : `doc/design.md` impose une valeur fixe (jamais un
-/// ratio d'écran) mais n'en fixe pas le nombre — 300 reste proche du rendu
-/// antérieur (`0.38 × ~800 dp` sur un téléphone courant).
+/// `rootPadding`: the only value shared by the three root padding variants
+/// that coexisted before step 5, commit B (`all(24)`, `fromLTRB(24,16,24,8)`,
+/// none). `keypadHeight`: `doc/design.md` requires a fixed value (never a
+/// ratio of the screen) but does not set the number — 300 stays close to the
+/// earlier rendering (`0.38 × ~800 dp` on a common phone).
 const _metrics = AppMetrics(rootPadding: EdgeInsets.all(24), keypadHeight: 300);
 
 ThemeData _buildTheme({required ColorScheme colorScheme, required AppPalette palette}) {
@@ -73,12 +73,11 @@ ThemeData _buildTheme({required ColorScheme colorScheme, required AppPalette pal
   );
 }
 
-/// Les 5 tailles de `doc/design.md` se posent sur 5 des 15 styles nommés du
-/// `TextTheme` Material 3 (mapping arbitraire, aucun rôle standard n'y
-/// correspond nativement). Les 10 restants gardent la taille par défaut de
-/// Material 3 mais héritent quand même du plafond de graisse et des chiffres
-/// tabulaires : la règle « jamais 600/700 » et « chiffres tabulaires partout »
-/// s'appliquent à tout le `TextTheme`, pas qu'aux 5 tailles nommées.
+/// The 5 sizes of `doc/design.md` sit on 5 of the 15 named styles of the
+/// Material 3 `TextTheme` (an arbitrary mapping, no standard role matches
+/// natively). The other 10 keep Material 3's default size but still inherit
+/// the weight cap and tabular figures: "never 600/700" and "tabular figures
+/// everywhere" apply to the whole `TextTheme`, not just the 5 named sizes.
 TextTheme _textThemeFor(TextTheme base) {
   TextStyle? finalize(TextStyle? style, {double? fontSize, FontWeight? fontWeight}) {
     if (style == null) return null;
@@ -109,10 +108,10 @@ TextTheme _textThemeFor(TextTheme base) {
   );
 }
 
-/// `doc/design.md` : « Deux graisses seulement : 400 [...] 500. Jamais 600
-/// ou 700. » Les styles Material 3 par défaut restent en dessous de ce
-/// plafond dans la quasi-totalité des cas ; ce garde-fou couvre le cas où un
-/// futur changement de version Flutter en introduirait un.
+/// `doc/design.md`: "Two weights only: 400 [...] 500. Never 600 or 700."
+/// Material 3's default styles stay below this cap in almost every case;
+/// this guard covers a future Flutter version introducing one that does
+/// not.
 FontWeight _capWeight(FontWeight? weight) {
   if (weight == null) return FontWeight.w400;
   return weight.value >= FontWeight.w600.value ? FontWeight.w500 : weight;
@@ -122,8 +121,8 @@ FontWeight _capWeight(FontWeight? weight) {
 class AppPalette extends ThemeExtension<AppPalette> {
   const AppPalette({required this.textMuted});
 
-  /// Onglets inactifs, indications — seul rôle de `doc/design.md` sans
-  /// équivalent dans `ColorScheme`.
+  /// Inactive tabs, hints — the only role in `doc/design.md` without an
+  /// equivalent in `ColorScheme`.
   final Color textMuted;
 
   @override
@@ -140,11 +139,11 @@ class AppPalette extends ThemeExtension<AppPalette> {
 class AppMetrics extends ThemeExtension<AppMetrics> {
   const AppMetrics({required this.rootPadding, required this.keypadHeight});
 
-  /// Padding uniforme du contenu racine de chaque écran.
+  /// Uniform padding of each screen's root content.
   final EdgeInsets rootPadding;
 
-  /// Hauteur fixe du pavé numérique (`doc/design.md` : jamais un ratio
-  /// d'écran — la mise en page ne doit pas bouger d'un appareil à l'autre).
+  /// Fixed height of the keypad (`doc/design.md`: never a ratio of the
+  /// screen — the layout must not move from one device to another).
   final double keypadHeight;
 
   @override
@@ -181,20 +180,20 @@ class AppMotion extends ThemeExtension<AppMotion> {
     required this.levelUp,
   });
 
-  /// Flash + secousse/pulse de la réponse juste/fausse.
+  /// Flash + shake/pulse of the right/wrong answer.
   final AnimationSpec feedback;
 
-  /// Enfoncement d'une touche du pavé.
+  /// Keypad key press.
   final AnimationSpec keyPress;
 
-  /// Passage à la question suivante.
+  /// Move to the next question.
   final AnimationSpec questionTransition;
 
-  /// Changement d'onglet de navigation.
+  /// Navigation tab change.
   final AnimationSpec tabChange;
 
-  /// Montée de niveau sur l'écran de progression — seule animation lente
-  /// assumée (`doc/design.md`).
+  /// Level-up on the result screen — the only deliberately slow animation
+  /// (`doc/design.md`).
   final AnimationSpec levelUp;
 
   @override
@@ -214,8 +213,8 @@ class AppMotion extends ThemeExtension<AppMotion> {
 
   @override
   AppMotion lerp(ThemeExtension<AppMotion>? other, double t) {
-    // Pas d'interpolation continue entre deux jeux de durées/courbes — ça
-    // n'a pas de sens ici (contrairement aux couleurs). Bascule au milieu.
+    // No continuous interpolation between two sets of durations/curves — it
+    // makes no sense here (unlike colours). Switch at the midpoint.
     if (other is! AppMotion) return this;
     return t < 0.5 ? this : other;
   }

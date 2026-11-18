@@ -4,10 +4,10 @@ import 'package:math_trainer/composition_root.dart';
 import 'package:math_trainer/presentation/screens/config_error_screen.dart';
 
 void main() {
-  // `flutter test` ne passe aucun `--dart-define` : exactement la situation
-  // d'un build lancé sans `dart_defines.json`.
+  // `flutter test` passes no `--dart-define`: exactly the situation of a
+  // build started without `dart_defines.json`.
   test(
-    'buildAppEnvironment refuse de démarrer sans configuration Supabase',
+    'buildAppEnvironment refuses to start without the Supabase configuration',
     () async {
       await expectLater(
         buildAppEnvironment(),
@@ -22,7 +22,7 @@ void main() {
     },
   );
 
-  testWidgets('ConfigErrorApp nomme les clés manquantes et le correctif', (
+  testWidgets('ConfigErrorApp names the missing keys and the fix', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -37,7 +37,7 @@ void main() {
     );
   });
 
-  testWidgets('stockage web indisponible : nomme la commande de setup', (
+  testWidgets('web storage unavailable: names the setup command', (
     tester,
   ) async {
     await tester.pumpWidget(

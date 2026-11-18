@@ -1,28 +1,28 @@
 import 'account.dart';
 
-// Fait partie du contrat : tout appelant de `signIn`/`signUp` en a besoin.
+// Part of the contract: every caller of `signIn`/`signUp` needs it.
 export 'account_exception.dart';
 
-/// Compte en ligne — implémentation concrète (Supabase) dans
-/// `infrastructure/backend/`, jamais dans le domaine (règle 3).
+/// Online account — concrete implementation (Supabase) in
+/// `infrastructure/backend/`, never in the domain (rule 3).
 abstract class AccountRepository {
-  /// Compte connecté, `null` si personne n'est connecté. Chaque abonnement
-  /// reçoit d'abord l'état **courant**, puis chaque changement (connexion,
-  /// déconnexion, expiration de session) sans polling — donc `.first` donne
-  /// le compte connecté à l'instant de l'appel, jamais un état antérieur.
+  /// Signed-in account, `null` if nobody is signed in. Each subscription
+  /// first receives the **current** state, then every change (sign-in,
+  /// sign-out, session expiry) without polling — so `.first` gives the
+  /// account signed in at the time of the call, never an earlier state.
   Stream<Account?> get authState;
 
-  /// `null` : compte créé, mais confirmation par email requise avant de
-  /// pouvoir se connecter (comportement par défaut d'un projet Supabase) —
-  /// distinct d'un échec, `authState` reste `null` jusqu'à la confirmation
-  /// et une connexion explicite. Lance une `AccountException` en cas d'échec
-  /// réel (email déjà utilisé, réseau indisponible).
+  /// `null`: account created, but email confirmation is required before
+  /// signing in (a Supabase project's default) — not a failure, `authState`
+  /// stays `null` until confirmation and an explicit sign-in. Throws an
+  /// `AccountException` on a real failure (email already used, network
+  /// unavailable).
   Future<Account?> signUp({required String email, required String password});
 
-  /// Lance une `AccountException` en cas d'échec (identifiants invalides,
-  /// réseau indisponible).
+  /// Throws an `AccountException` on failure (invalid credentials,
+  /// network unavailable).
   Future<Account> signIn({required String email, required String password});
 
-  /// Déconnecte localement dans tous les cas, même hors ligne — ne lève pas.
+  /// Signs out locally in every case, even offline — never throws.
   Future<void> signOut();
 }

@@ -39,7 +39,7 @@ void main() {
   }
 
   group('InMemorySessionRepository', () {
-    test('recordSession puis answersForSession retrouve exactement ce qui a été écrit', () async {
+    test('recordSession then answersForSession finds exactly what was written', () async {
       final repository = InMemorySessionRepository();
       final s = session('session-1', createdAt: DateTime.utc(2026, 8, 8));
       final answers = [answer('answer-1', 'session-1'), answer('answer-2', 'session-1')];
@@ -50,7 +50,7 @@ void main() {
       expect(result, equals(answers));
     });
 
-    test('answersForSession ne retourne que les réponses de la session demandée', () async {
+    test('answersForSession only returns the answers of the requested session', () async {
       final repository = InMemorySessionRepository();
       await repository.recordSession(
         session: session('session-1', createdAt: DateTime.utc(2026, 8, 8)),
@@ -68,7 +68,7 @@ void main() {
       expect(result.map((a) => a.id), equals(['answer-1']));
     });
 
-    test('recentSessions trie du plus récent au plus ancien et respecte la limite', () async {
+    test('recentSessions sorts most recent first and respects the limit', () async {
       final repository = InMemorySessionRepository();
       await repository.recordSession(
         session: session('oldest', createdAt: DateTime.utc(2026, 8, 1)),
@@ -91,7 +91,7 @@ void main() {
       expect(result.map((s) => s.id), equals(['newest', 'middle']));
     });
 
-    test('recentSessions ne retourne que les sessions du joueur demandé', () async {
+    test("recentSessions only returns the requested player's sessions", () async {
       final repository = InMemorySessionRepository();
       await repository.recordSession(
         session: session('a-1', createdAt: DateTime.utc(2026, 8, 1), playerId: 'player-a'),
@@ -109,7 +109,7 @@ void main() {
       expect(result.map((s) => s.id), equals(['a-1']));
     });
 
-    test('transferPlayerData rattache sessions, réponses et niveaux au nouveau joueur', () async {
+    test('transferPlayerData hands sessions, answers and levels to the new player', () async {
       final repository = InMemorySessionRepository();
       final entry = LevelCacheEntry(level: 42, sessionsPlayed: 1, updatedAt: DateTime.utc(2026, 8, 8));
       await repository.recordSession(
@@ -129,7 +129,7 @@ void main() {
       expect(await repository.currentLevels('device'), isEmpty);
     });
 
-    test('transferPlayerData ne fusionne jamais avec un joueur qui a déjà des données', () async {
+    test('transferPlayerData never merges with a player who already has data', () async {
       final repository = InMemorySessionRepository();
       final deviceLevel = LevelCacheEntry(level: 10, sessionsPlayed: 1, updatedAt: DateTime.utc(2026, 8, 8));
       final accountLevel = LevelCacheEntry(level: 80, sessionsPlayed: 3, updatedAt: DateTime.utc(2026, 8, 9));
@@ -151,13 +151,13 @@ void main() {
       expect((await repository.recentSessions('device')).map((s) => s.id), ['device-1']);
     });
 
-    test('currentLevels est vide pour un joueur jamais joué', () async {
+    test('currentLevels is empty for a player who never played', () async {
       final repository = InMemorySessionRepository();
 
       expect(await repository.currentLevels('unknown-player'), isEmpty);
     });
 
-    test('currentLevels retrouve ce qui a été écrit via recordSession', () async {
+    test('currentLevels finds what was written through recordSession', () async {
       final repository = InMemorySessionRepository();
       final entry = LevelCacheEntry(level: 42, sessionsPlayed: 1, updatedAt: DateTime.utc(2026, 8, 8));
 
@@ -172,7 +172,7 @@ void main() {
       expect(levels[ExerciseType.addition]?.sessionsPlayed, 1);
     });
 
-    test('currentLevels ne mélange pas les joueurs', () async {
+    test('currentLevels does not mix players', () async {
       final repository = InMemorySessionRepository();
       final entry = LevelCacheEntry(level: 77, sessionsPlayed: 1, updatedAt: DateTime.utc(2026, 8, 8));
 
@@ -185,7 +185,7 @@ void main() {
       expect(await repository.currentLevels('player-b'), isEmpty);
     });
 
-    test('averageElapsedMsByType moyenne par opération, réponses d\'un seul joueur', () async {
+    test("averageElapsedMsByType averages per operation, one player's answers only", () async {
       final repository = InMemorySessionRepository();
       await repository.recordSession(
         session: session('session-1', createdAt: DateTime.utc(2026, 8, 8)),
@@ -196,7 +196,7 @@ void main() {
         ],
         levelUpdates: const {},
       );
-      // Réponse d'un autre joueur — ne doit pas entrer dans la moyenne.
+      // Another player's answer — must not enter the mean.
       await repository.recordSession(
         session: session('session-2', createdAt: DateTime.utc(2026, 8, 8), playerId: 'player-b'),
         answers: [answer('a4', 'session-2', operationType: 'addition', elapsedMs: 9999)],
@@ -210,7 +210,7 @@ void main() {
       expect(result.containsKey(ExerciseType.multiplication), isFalse);
     });
 
-    test('sessionsSince ne retourne que les sessions du joueur à partir de la date, triées', () async {
+    test("sessionsSince only returns the player's sessions from the date, sorted", () async {
       final repository = InMemorySessionRepository();
       await repository.recordSession(
         session: session('too-old', createdAt: DateTime.utc(2026, 7, 1)),

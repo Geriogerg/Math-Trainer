@@ -1,7 +1,7 @@
 // ignore_for_file: avoid_print
 //
-// Script CLI, pas du code app : la sortie console est le produit livré,
-// pas un artefact de debug à remplacer par un logger.
+// A CLI script, not app code: console output is the deliverable, not a
+// debug artefact to replace with a logger.
 
 import 'dart:io';
 
@@ -13,23 +13,23 @@ import 'package:math_trainer/core/domain/models/exercise_type.dart';
 
 import 'src/replay_metrics.dart';
 
-/// Rejoue l'historique SQLite pour évaluer, un paramètre de [LevelingRules]
-/// à la fois, l'effet sur la convergence, l'oscillation et le biais de la
-/// trajectoire de niveau. Script hors app, pas un écran — voir
-/// `doc/decisions.md` pour le périmètre (les bornes de difficulté et
-/// `difficultyBonusMax` ne sont pas concernés, `n_min` reste fixe).
+/// Replays the SQLite history to assess, one [LevelingRules] parameter at a
+/// time, the effect on convergence, oscillation and bias of the level
+/// trajectory. A script outside the app, not a screen — see
+/// `doc/decisions.md` for the scope (difficulty bounds and
+/// `difficultyBonusMax` are not covered, `n_min` stays fixed).
 ///
-/// Lit la base en SQL brut via `sqflite_common_ffi` plutôt que de passer par
-/// `SqfliteSessionRepository` : ce dernier importe `package:sqflite/sqflite.dart`
-/// (le plugin Flutter), qui tire `dart:ui` — indisponible pour un script
-/// lancé en `dart run` pur, hors du SDK Flutter. `sqflite_common_ffi` seul
-/// n'a pas ce problème.
+/// Reads the database in raw SQL through `sqflite_common_ffi` rather than
+/// `SqfliteSessionRepository`: the latter imports `package:sqflite/sqflite.dart`
+/// (the Flutter plugin), which pulls in `dart:ui` — unavailable to a script
+/// run with plain `dart run`, outside the Flutter SDK. `sqflite_common_ffi`
+/// alone does not have this problem.
 ///
-/// Usage : `dart run tool/recalibrate.dart --db <chemin vers math_trainer.db>`
+/// Usage: `dart run tool/recalibrate.dart --db <path to math_trainer.db>`
 Future<void> main(List<String> args) async {
   final dbPath = _argValue(args, '--db');
   if (dbPath == null) {
-    stderr.writeln('Usage: dart run tool/recalibrate.dart --db <chemin vers math_trainer.db>');
+    stderr.writeln('Usage: dart run tool/recalibrate.dart --db <path to math_trainer.db>');
     exit(64);
   }
 
@@ -42,17 +42,17 @@ Future<void> main(List<String> args) async {
 
   if (trajectories.isEmpty) {
     print(
-      'Aucune paire (joueur, opération) avec au moins 2 sessions de '
-      '${defaultRules.nMin}+ réponses — pas assez de données pour une mesure fiable.',
+      'No (player, operation) pair with at least 2 sessions of '
+      '${defaultRules.nMin}+ answers — not enough data for a reliable measure.',
     );
     return;
   }
 
-  print('${trajectories.length} trajectoire(s) (joueur, opération) chargée(s).\n');
+  print('${trajectories.length} (player, operation) trajectory(ies) loaded.\n');
 
   final baseTime = DateTime.utc(2026, 1, 1);
   for (final sweep in _sweeps) {
-    print('== ${sweep.name} (défaut : ${sweep.defaultValue}) ==');
+    print('== ${sweep.name} (default: ${sweep.defaultValue}) ==');
     print('valeur\tconvergence (sessions)\toscillation (±niveaux)\tbiais (niveaux/session)');
     for (final candidate in sweep.candidates) {
       final rules = sweep.apply(defaultRules, candidate);
@@ -66,8 +66,8 @@ Future<void> main(List<String> args) async {
   }
 
   print(
-    'Cibles (doc/decisions.md) : convergence 10–20 sessions, oscillation ≤ 2, '
-    'biais légèrement positif.',
+    'Targets (doc/decisions.md): convergence in 10–20 sessions, oscillation ≤ 2, '
+    'slightly positive bias.',
   );
 }
 
@@ -79,13 +79,13 @@ String? _argValue(List<String> args, String name) {
   return args[index + 1];
 }
 
-/// Sessions sous `n_min` déjà exclues ici (ce filtre ne varie pas d'un
-/// balayage à l'autre, contrairement au reste de `LevelingRules`).
+/// Sessions under `n_min` are already excluded here (this filter does not
+/// vary from one sweep to the next, unlike the rest of `LevelingRules`).
 Future<List<Trajectory>> _loadTrajectories(Database database, {required int nMin}) async {
   final sessionRows = await database.query(
     'sessions',
     columns: ['id', 'player_id'],
-    orderBy: 'created_at ASC', // chronologique, pas récent→ancien
+    orderBy: 'created_at ASC', // chronological, not recent→old
   );
 
   final byPlayerAndType = <String, Trajectory>{};
@@ -102,10 +102,10 @@ Future<List<Trajectory>> _loadTrajectories(Database database, {required int nMin
 
     final byType = <ExerciseType, List<AnswerOutcome>>{};
     for (final row in answerRows) {
-      // `exercise_type` vaut 'arithmetic' pour les 4 opérations arithmétiques
-      // (voir exercise_codec.dart) : l'opération précise est dans
-      // `operation_type` dans ce cas-là seulement. Pour les 3 autres types,
-      // `exercise_type` porte déjà le nom exact.
+      // `exercise_type` is 'arithmetic' for the 4 arithmetic operations (see
+      // exercise_codec.dart): the exact operation is in `operation_type` in
+      // that case only. For the 3 other types, `exercise_type` already
+      // carries the exact name.
       final storedType = row['exercise_type'] as String;
       final type = ExerciseType.values.byName(
         storedType == 'arithmetic' ? row['operation_type'] as String : storedType,
@@ -126,14 +126,14 @@ Future<List<Trajectory>> _loadTrajectories(Database database, {required int nMin
     }
   }
 
-  // Une seule session ne donne aucune trajectoire à observer (rien à
-  // converger) : exclue plutôt que de fausser la moyenne avec du bruit.
+  // A single session gives no trajectory to observe (nothing to converge):
+  // excluded rather than skewing the mean with noise.
   return byPlayerAndType.values.where((t) => t.length >= 2).toList();
 }
 
-/// Un paramètre de [LevelingRules] à la fois, les autres restant au défaut
-/// — pas de recherche combinatoire sur les 10 ensemble (illisible et hors
-/// de portée avec le volume de données actuel).
+/// One [LevelingRules] parameter at a time, the others at their default —
+/// no combinatorial search over all 10 together (unreadable and out of
+/// reach with the current data volume).
 class _Sweep {
   const _Sweep(this.name, this.defaultValue, this.candidates, this.apply);
   final String name;

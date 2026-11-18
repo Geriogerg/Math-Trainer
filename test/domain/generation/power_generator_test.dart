@@ -8,7 +8,7 @@ void main() {
   group('PowerExerciseGenerator', () {
     final generator = PowerExerciseGenerator();
 
-    test('la même seed produit toujours la même séquence', () {
+    test('the same seed always produces the same sequence', () {
       final randomA = Random(7);
       final randomB = Random(7);
 
@@ -18,7 +18,7 @@ void main() {
       expect(sequenceA, equals(sequenceB));
     });
 
-    test('base et exposant respectent les bornes par défaut', () {
+    test('base and exponent respect the default bounds', () {
       final random = Random(1);
 
       for (var i = 0; i < 50; i++) {
@@ -28,7 +28,7 @@ void main() {
       }
     });
 
-    test('exponentRange personnalisée restreint le tirage', () {
+    test('a custom exponentRange restricts the draw', () {
       final narrowGenerator = PowerExerciseGenerator(
         exponentRange: OperandRange(min: 4, max: 4),
       );

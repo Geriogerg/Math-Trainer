@@ -10,7 +10,7 @@ void main() {
   });
 
   group('SharedPreferencesPlayerIdProvider', () {
-    test('génère un id au premier appel puis le réutilise', () async {
+    test('generates an id on the first call then reuses it', () async {
       final provider = SharedPreferencesPlayerIdProvider();
 
       final first = await provider.currentPlayerId();
@@ -19,7 +19,7 @@ void main() {
       expect(first, second);
     });
 
-    test('l\'id persiste au-delà de l\'instance du provider', () async {
+    test('the id persists beyond the provider instance', () async {
       final first = await SharedPreferencesPlayerIdProvider().currentPlayerId();
       final second = await SharedPreferencesPlayerIdProvider().currentPlayerId();
 

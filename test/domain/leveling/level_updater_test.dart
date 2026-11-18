@@ -5,21 +5,21 @@ import 'package:test/test.dart';
 
 void main() {
   group('LevelUpdater', () {
-    test('moins de n_min réponses : le niveau ne bouge pas (échantillon de bruit)', () {
+    test('fewer than n_min answers: the level does not move (noise sample)', () {
       final updater = LevelUpdater();
       final answers = List.generate(3, (_) => const AnswerOutcome(isCorrect: true, elapsedMs: 0));
 
       expect(updater.update(currentLevel: 50, answers: answers), 50);
     });
 
-    test('exactement n_min réponses, toutes justes et rapides : le niveau monte (K_haut)', () {
+    test('exactly n_min answers, all right and fast: the level rises (K_haut)', () {
       final updater = LevelUpdater();
       final answers = List.generate(4, (_) => const AnswerOutcome(isCorrect: true, elapsedMs: 0));
 
       expect(updater.update(currentLevel: 50, answers: answers), 51);
     });
 
-    test('toutes fausses : le niveau descend (K_bas)', () {
+    test('all wrong: the level falls (K_bas)', () {
       final updater = LevelUpdater();
       final answers = List.generate(
         4,
@@ -29,7 +29,7 @@ void main() {
       expect(updater.update(currentLevel: 50, answers: answers), 49);
     });
 
-    test('performance proche de la cible : bande morte, le niveau ne bouge pas', () {
+    test('performance close to the target: dead band, the level does not move', () {
       final updater = LevelUpdater();
       final answers = [
         ...List.generate(2, (_) => const AnswerOutcome(isCorrect: true, elapsedMs: 0)),
@@ -39,7 +39,7 @@ void main() {
       expect(updater.update(currentLevel: 50, answers: answers), 50);
     });
 
-    test('confidenceFactor : calibration fait bouger le niveau davantage que normal', () {
+    test('confidenceFactor: calibration moves the level more than normal', () {
       final updater = LevelUpdater();
       final answers = List.generate(4, (_) => const AnswerOutcome(isCorrect: true, elapsedMs: 0));
 
@@ -55,18 +55,18 @@ void main() {
       expect(calibration - 50, greaterThan(normal - 50));
     });
 
-    test('Δ_max plafonne la variation, même avec un fort multiplicateur de confiance', () {
+    test('Δ_max caps the change, even with a strong confidence multiplier', () {
       final updater = LevelUpdater(rules: LevelingRules(deltaMax: 1));
       final answers = List.generate(4, (_) => const AnswerOutcome(isCorrect: true, elapsedMs: 0));
 
-      // Sans plafond à 1, ce même scénario donnerait 53 (voir test précédent).
+      // Without a cap at 1, this same scenario would give 53 (see previous test).
       expect(
         updater.update(currentLevel: 50, answers: answers, confidence: ConfidenceMultiplier.calibration),
         51,
       );
     });
 
-    test('le niveau est borné à 100', () {
+    test('the level is capped at 100', () {
       final updater = LevelUpdater();
       final answers = List.generate(4, (_) => const AnswerOutcome(isCorrect: true, elapsedMs: 0));
 
@@ -76,7 +76,7 @@ void main() {
       );
     });
 
-    test('le niveau est borné à 1', () {
+    test('the level is floored at 1', () {
       final updater = LevelUpdater();
       final answers = List.generate(
         4,
@@ -89,7 +89,7 @@ void main() {
       );
     });
 
-    test('des réponses correctes plus rapides ne font jamais moins progresser', () {
+    test('faster right answers never progress less', () {
       final updater = LevelUpdater();
 
       int levelFor(int elapsedMs) {
@@ -108,7 +108,7 @@ void main() {
       expect(mid, greaterThanOrEqualTo(slow));
     });
 
-    test('une réponse fausse ne rapporte jamais de crédit, quel que soit le temps', () {
+    test('a wrong answer never earns credit, whatever the time', () {
       final updater = LevelUpdater();
       final fastWrong = List.generate(
         4,
@@ -125,7 +125,7 @@ void main() {
       );
     });
 
-    test('refuse un niveau hors [1, 100]', () {
+    test('rejects a level outside [1, 100]', () {
       final updater = LevelUpdater();
       final answers = List.generate(4, (_) => const AnswerOutcome(isCorrect: true, elapsedMs: 0));
 
@@ -133,15 +133,15 @@ void main() {
       expect(() => updater.update(currentLevel: 101, answers: answers), throwsArgumentError);
     });
 
-    test('rejouable sur un historique : plier sur des sessions successives monte puis plafonne', () {
+    test('replayable over a history: folding over successive sessions rises then caps', () {
       final updater = LevelUpdater();
       final greatSession = List.generate(
         4,
         (_) => const AnswerOutcome(isCorrect: true, elapsedMs: 0),
       );
 
-      // À ces paramètres, une session « parfaite » fait gagner ~1 niveau : il
-      // en faut assez pour atteindre le plafond depuis 50 et y rester.
+      // With these parameters, a "perfect" session gains ~1 level: enough
+      // of them are needed to reach the cap from 50 and stay there.
       var level = 50;
       final levels = <int>[];
       for (var i = 0; i < 60; i++) {

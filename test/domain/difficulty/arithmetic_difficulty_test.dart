@@ -14,7 +14,7 @@ void main() {
       group(entry.key, () {
         final difficulty = entry.value;
 
-        test('valeurs exactes aux niveaux 1 et 100', () {
+        test('exact values at levels 1 and 100', () {
           final atLevel1 = difficulty.operandRangeFor(1);
           final atLevel100 = difficulty.operandRangeFor(100);
 
@@ -24,7 +24,7 @@ void main() {
           expect(atLevel100.max, difficulty.maxAtLevel100);
         });
 
-        test('monotone sur les points d\'ancrage (1, 25, 50, 75, 100)', () {
+        test('monotonic over the anchor points (1, 25, 50, 75, 100)', () {
           final maxValues = [
             for (final level in [1, 25, 50, 75, 100]) difficulty.operandRangeFor(level).max,
           ];
@@ -34,7 +34,7 @@ void main() {
           }
         });
 
-        test('pas de saut brutal : chaque palier suit la proportion attendue', () {
+        test('no brutal jump: each step follows the expected proportion', () {
           final anchors = [1, 25, 50, 75, 100];
           final totalSpan = difficulty.maxAtLevel100 - difficulty.maxAtLevel1;
           final maxValues = [for (final level in anchors) difficulty.operandRangeFor(level).max];
@@ -47,7 +47,7 @@ void main() {
           }
         });
 
-        test('refuse un niveau hors [1, 100]', () {
+        test('rejects a level outside [1, 100]', () {
           expect(() => difficulty.operandRangeFor(0), throwsArgumentError);
           expect(() => difficulty.operandRangeFor(101), throwsArgumentError);
         });

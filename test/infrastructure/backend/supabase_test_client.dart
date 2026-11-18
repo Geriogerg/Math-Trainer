@@ -7,8 +7,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 const testUserId = '11111111-1111-4111-8111-111111111111';
 const testEmail = 'player@test.com';
 
-/// JWT non signé mais bien formé : gotrue lit `exp` dans la charge utile
-/// (`Session.expiresAt`) sans jamais vérifier la signature côté client.
+/// An unsigned but well-formed JWT: gotrue reads `exp` from the payload
+/// (`Session.expiresAt`) without ever checking the signature client-side.
 String _fakeAccessToken() {
   String encode(Map<String, Object> json) =>
       base64Url.encode(utf8.encode(jsonEncode(json))).replaceAll('=', '');
@@ -35,13 +35,13 @@ Map<String, Object?> _sessionJson() => {
   },
 };
 
-/// Un vrai `SupabaseClient` (même code que l'app) dont seul le transport HTTP
-/// est simulé : connexion et déconnexion répondent comme Supabase Auth, et
-/// [restHandler] répond aux requêtes PostgREST (`/rest/v1/...`). Chaque
-/// requête PostgREST reçue est ajoutée à [restRequests]. [authHandler], s'il
-/// est fourni, répond en premier aux requêtes d'Auth (connexion,
-/// inscription, déconnexion) — pour simuler un refus du serveur ou une panne
-/// réseau (lever une exception) ; `null` laisse la réponse par défaut.
+/// A real `SupabaseClient` (the app's code) with only the HTTP transport
+/// simulated: sign-in and sign-out answer like Supabase Auth, and
+/// [restHandler] answers PostgREST requests (`/rest/v1/...`). Each PostgREST
+/// request received is added to [restRequests]. [authHandler], if given,
+/// answers Auth requests first (sign-in, sign-up, sign-out) — to simulate a
+/// server refusal or a network failure (throw an exception); `null` keeps
+/// the default answer.
 class SupabaseTestClient {
   SupabaseTestClient({
     Future<http.Response> Function(http.Request request)? restHandler,
@@ -67,8 +67,8 @@ class SupabaseTestClient {
         if (path.startsWith('/rest/v1/') && restHandler != null) {
           restRequests.add(request);
           final response = await restHandler(request);
-          // PostgREST lit `response.request` pour choisir comment décoder le
-          // corps — un `MockClient` ne le renseigne pas de lui-même.
+          // PostgREST reads `response.request` to choose how to decode the
+          // body — a `MockClient` does not set it by itself.
           return http.Response.bytes(
             response.bodyBytes,
             response.statusCode,
@@ -76,12 +76,12 @@ class SupabaseTestClient {
             request: request,
           );
         }
-        return http.Response('non simulé : ${request.method} $path', 500);
+        return http.Response('not simulated: ${request.method} $path', 500);
       }),
-      // `implicit` : le flux PKCE par défaut exige un stockage pour le
-      // vérificateur de code dès `signUp` (l'app l'obtient de
-      // `Supabase.initialize`). Seul le lien de confirmation par email en
-      // dépend — hors du champ de ces tests.
+      // `implicit`: the default PKCE flow needs storage for the code
+      // verifier as early as `signUp` (the app gets it from
+      // `Supabase.initialize`). Only the email confirmation link depends on
+      // it — outside the scope of these tests.
       authOptions: const AuthClientOptions(
         autoRefreshToken: false,
         authFlowType: AuthFlowType.implicit,
@@ -92,9 +92,9 @@ class SupabaseTestClient {
   late final SupabaseClient client;
   final restRequests = <http.Request>[];
 
-  /// Reproduit ce que `Supabase.initialize` fait au démarrage de l'app sans
-  /// session persistée : un événement `initialSession` sans session, qui
-  /// reste ensuite en tête de l'historique rejoué par `onAuthStateChange`.
+  /// Reproduces what `Supabase.initialize` does at app start without a
+  /// persisted session: an `initialSession` event without a session, which
+  /// then stays at the head of the history replayed by `onAuthStateChange`.
   void emitInitialSessionWithoutUser() {
     // ignore: invalid_use_of_internal_member
     client.auth.notifyAllSubscribers(AuthChangeEvent.initialSession);

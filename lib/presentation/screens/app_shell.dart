@@ -6,26 +6,25 @@ import 'coming_soon_screen.dart';
 import 'play_tab.dart';
 import 'profile_screen.dart';
 
-/// Coquille permanente de l'app : barre d'onglets basse à quatre entrées
-/// (`doc/design.md` — pas de tiroir latéral, `doc/decisions.md`).
-/// `IndexedStack` plutôt qu'un switch sur l'onglet actif : chaque onglet
-/// garde son état (sélection de types en cours, etc.) une fois visité,
-/// plutôt que d'être reconstruit à chaque retour.
+/// The app's permanent shell: a bottom tab bar with four entries
+/// (`doc/design.md` — no side drawer, `doc/decisions.md`). `IndexedStack`
+/// rather than a switch on the active tab: each tab keeps its state
+/// (current type selection, etc.) once visited, rather than being rebuilt
+/// on every return.
 ///
-/// Les onglets ne sont construits qu'à la première visite (`_visited`) : un
-/// `IndexedStack` naïf construit ses quatre enfants dès le lancement, donc
-/// `ProfileScreen` lirait le cache de niveaux immédiatement même si le
-/// joueur ne quitte jamais l'onglet Jouer — un aller-disque inutile à
-/// chaque démarrage, et une source d'échec (ex. lecture qui lève) sans
-/// rapport avec l'onglet réellement affiché.
+/// Tabs are only built on their first visit (`_visited`): a naive
+/// `IndexedStack` builds its four children at launch, so `ProfileScreen`
+/// would read the level cache immediately even if the player never leaves
+/// the Play tab — a useless disk read at every start, and a source of
+/// failure (e.g. a read that throws) unrelated to the tab actually shown.
 class AppShell extends StatefulWidget {
   const AppShell({super.key, required this.environment, this.onToggleTheme});
 
   final AppEnvironment environment;
 
-  /// Relayé jusqu'au bouton nuit/jour de `PlayTab` — `null` par défaut pour
-  /// ne pas casser les tests qui construisent `AppShell` sans s'intéresser
-  /// au thème.
+  /// Passed down to the day/night button of `PlayTab` — `null` by default so
+  /// as not to break tests that build `AppShell` without caring about the
+  /// theme.
   final VoidCallback? onToggleTheme;
 
   @override
@@ -37,12 +36,12 @@ class _AppShellState extends State<AppShell>
   int _index = 0;
   final _visited = {0};
 
-  /// Fondu de changement d'onglet (`AppMotion.tabChange`) — anime une
-  /// `Opacity` par-dessus l'`IndexedStack`, qui lui reste intact : le
-  /// remplacer par un widget reconstruit à chaque bascule perdrait l'état de
-  /// chaque onglet (sélection de types en cours sur Jouer, entre autres).
-  /// Durée posée juste avant `.forward()` (indisponible avant le premier
-  /// frame), même schéma que `_feedbackController` de `session_screen.dart`.
+  /// Tab change fade (`AppMotion.tabChange`) — animates an `Opacity` over
+  /// the `IndexedStack`, which stays intact: replacing it with a widget
+  /// rebuilt at each switch would lose each tab's state (the current type
+  /// selection on Play, among others). Duration set just before
+  /// `.forward()` (unavailable before the first frame), same pattern as
+  /// `_feedbackController` in `session_screen.dart`.
   late final AnimationController _tabTransitionController = AnimationController(
     vsync: this,
     value: 1,

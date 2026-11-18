@@ -17,9 +17,9 @@ phase). Where another doc disagrees with `doc/plan.md`, the plan wins — report
 ## Current phase
 
 **Phase 0 — Stabilise and build the web pipeline.** Commit list and exit test: `doc/plan.md`,
-section 7. Commit 0 (docs alignment) done, waiting for the owner's read. Next: the owner-requested
-switch of the interface and comments to English, then commit 1 (CI) — blocked until the repo is
-on GitHub. Update this block at every commit.
+section 7. Commit 0 (docs alignment) done, waiting for the owner's read; the owner-requested
+switch to English (interface, comments, tests) done. Next: commit 1 (CI) — blocked until the repo
+is on GitHub. Update this block at every commit.
 
 ## Who you work with
 

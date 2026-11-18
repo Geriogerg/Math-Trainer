@@ -4,7 +4,7 @@ import 'package:test/test.dart';
 
 void main() {
   group('ArithmeticExercise', () {
-    test('calcule la bonne réponse pour chaque opération', () {
+    test('computes the right answer for each operation', () {
       expect(
         const ArithmeticExercise(
           operandA: 4,
@@ -39,7 +39,7 @@ void main() {
       );
     });
 
-    test('isCorrectAnswer compare des entiers', () {
+    test('isCorrectAnswer compares integers', () {
       const exercise = ArithmeticExercise(
         operandA: 12,
         operandB: 3,
@@ -50,7 +50,7 @@ void main() {
       expect(exercise.isCorrectAnswer(5), isFalse);
     });
 
-    test('deux exercices avec les mêmes valeurs sont égaux', () {
+    test('two exercises with the same values are equal', () {
       const a = ArithmeticExercise(
         operandA: 4,
         operandB: 3,
@@ -66,7 +66,7 @@ void main() {
       expect(a.hashCode, equals(b.hashCode));
     });
 
-    test('rejette une réponse fausse pour chaque opération', () {
+    test('rejects a wrong answer for each operation', () {
       expect(
         const ArithmeticExercise(
           operandA: 4,
@@ -93,7 +93,7 @@ void main() {
       );
     });
 
-    test('soustraction à opérandes égaux a une réponse correcte de zéro', () {
+    test('subtraction with equal operands has a correct answer of zero', () {
       const exercise = ArithmeticExercise(
         operandA: 5,
         operandB: 5,
@@ -104,7 +104,7 @@ void main() {
       expect(exercise.isCorrectAnswer(0), isTrue);
     });
 
-    // Pas de test pour « aucune tolérance numérique » : isCorrectAnswer(int) ne peut
-    // plus recevoir de valeur fractionnaire, la garantie est portée par le compilateur.
+    // No test for "no numeric tolerance": isCorrectAnswer(int) can no longer
+    // receive a fractional value, the compiler carries the guarantee.
   });
 }

@@ -1,6 +1,6 @@
-/// Paramètres de la formule de mise à jour du niveau. Valeurs non calibrées
-/// (issues d'un simulateur, pas de données réelles) — voir `doc/decisions.md`
-/// pour la sémantique de chacune et les cibles de réglage.
+/// Parameters of the level update formula. Uncalibrated values (from a
+/// simulator, not real data) — see `doc/decisions.md` for the meaning of
+/// each and the tuning targets.
 class LevelingRules {
   LevelingRules({
     this.pCible = 0.70,
@@ -20,61 +20,61 @@ class LevelingRules {
       throw ArgumentError.value(
         tLentMs,
         'tLentMs',
-        'doit être strictement supérieur à tRapideMs ($tRapideMs).',
+        'must be strictly greater than tRapideMs ($tRapideMs).',
       );
     }
     if (absenceDaysThreshold <= 0) {
       throw ArgumentError.value(
         absenceDaysThreshold,
         'absenceDaysThreshold',
-        'doit être strictement positif.',
+        'must be strictly positive.',
       );
     }
     if (nMin <= 0) {
-      throw ArgumentError.value(nMin, 'nMin', 'doit être strictement positif.');
+      throw ArgumentError.value(nMin, 'nMin', 'must be strictly positive.');
     }
   }
 
-  /// Performance d'équilibre visée.
+  /// Target equilibrium performance.
   final double pCible;
 
-  /// Crédit d'une bonne réponse lente ; paramètre de tempérament.
+  /// Credit for a slow right answer; temperament parameter.
   final double f;
 
-  /// Vitesse de montée du niveau.
+  /// Rising speed of the level.
   final double kHaut;
 
-  /// Vitesse de descente du niveau ; ratio kHaut/kBas volontairement 2:1.
+  /// Falling speed of the level; kHaut/kBas ratio 2:1 on purpose.
   final double kBas;
 
-  /// Bande morte : en deçà, le niveau ne bouge pas.
+  /// Dead band: below it, the level does not move.
   final double delta;
 
-  /// Déplacement maximal du niveau par session.
+  /// Maximum level move per session.
   final int deltaMax;
 
-  /// En deçà de ce nombre de réponses, la session ne compte pas (bruit).
+  /// Below this number of answers, the session does not count (noise).
   final int nMin;
 
-  /// Multiplicateur de confiance pendant les 3 premières sessions d'une opération.
+  /// Confidence multiplier during an operation's first 3 sessions.
   final double kCalib;
 
-  /// Multiplicateur de confiance après une longue absence.
+  /// Confidence multiplier after a long absence.
   final double boostRetour;
 
-  /// Sous ce temps de réponse (ms), vitesse = 1.
+  /// Below this response time (ms), speed = 1.
   final int tRapideMs;
 
-  /// Au-dessus de ce temps de réponse (ms), vitesse = 0.
+  /// Above this response time (ms), speed = 0.
   final int tLentMs;
 
-  /// Nombre de jours sans réponse sur une opération au-delà duquel
-  /// `confidenceFor` bascule sur `returning`.
+  /// Number of days without an answer on an operation beyond which
+  /// `confidenceFor` switches to `returning`.
   final int absenceDaysThreshold;
 }
 
-/// `calibration` = `kCalib` (3 premières sessions d'une opération),
-/// `returning` = `boostRetour` (après une longue absence). Le décompte des
-/// sessions et de l'absence n'appartient pas à ce module : l'appelant décide
-/// quelle valeur passer, à partir de l'historique qu'il a sous la main.
+/// `calibration` = `kCalib` (an operation's first 3 sessions),
+/// `returning` = `boostRetour` (after a long absence). Counting sessions
+/// and absence does not belong to this module: the caller decides which
+/// value to pass, from the history it has at hand.
 enum ConfidenceMultiplier { normal, calibration, returning }

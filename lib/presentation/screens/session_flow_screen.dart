@@ -7,13 +7,13 @@ import 'empty_state.dart';
 import 'result_screen.dart';
 import 'session_screen.dart';
 
-/// Poussée en plein écran par-dessus la coquille à onglets (`doc/design.md` :
-/// « l'écran de session [...] ne porte aucune navigation »). Bascule entre
-/// `SessionScreen` et `ResultScreen` selon `SessionController.state.status`.
+/// Pushed full screen over the tabbed shell (`doc/design.md`: "the session
+/// screen [...] carries no navigation"). Switches between `SessionScreen`
+/// and `ResultScreen` according to `SessionController.state.status`.
 ///
-/// Propriétaire du contrôleur affiché (pas juste un relais de celui reçu en
-/// paramètre) : une relance immédiate (étape 4.2, commit C) en construit un
-/// nouveau et le substitue à l'ancien sans dépiler la route.
+/// Owns the controller shown (not just a relay of the one received as a
+/// parameter): an immediate replay (step 4.2, commit C) builds a new one and
+/// swaps it for the old one without popping the route.
 class SessionFlowScreen extends StatefulWidget {
   const SessionFlowScreen({super.key, required this.controller, required this.environment});
 
@@ -41,15 +41,15 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
     super.dispose();
   }
 
-  /// Rend l'écriture de fin de session en cours à `PlayTab`, qui l'attend
-  /// avant de relire le niveau global affiché.
+  /// Returns the running end-of-session write to `PlayTab`, which waits for
+  /// it before re-reading the overall level shown.
   void _exitToSelection() =>
       Navigator.of(context).pop(_controller.pendingPersistence);
 
-  /// Geste retour pendant une session en cours (étape 5, commit A) : le
-  /// pop est intercepté (`canPop: false` tant que `inProgress`), confirmé
-  /// puis traité comme un abandon manuel — même distinction terminée/
-  /// interrompue qu'un abandon automatique par timeouts (étape 4.2).
+  /// Back gesture during a running session (step 5, commit A): the pop is
+  /// intercepted (`canPop: false` while `inProgress`), confirmed, then
+  /// handled as a manual abandonment — same finished/interrupted
+  /// distinction as the automatic abandonment on timeouts (step 4.2).
   Future<void> _handlePopAttempt(bool didPop) async {
     if (didPop) return;
     final confirmed = await showDialog<bool>(
@@ -77,17 +77,17 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
     Navigator.of(context).pop();
   }
 
-  /// Mêmes types, niveaux relus (donc à jour), nouvelle seed — la réutiliser
-  /// ferait rejouer exactement les mêmes questions (`doc/decisions.md`).
+  /// Same types, levels re-read (so up to date), new seed — reusing it would
+  /// replay exactly the same questions (`doc/decisions.md`).
   Future<void> _playAgain() async {
     setState(() {
       _isRestarting = true;
       _restartError = null;
     });
     try {
-      // La mise à jour du cache de niveaux de la session qui vient de se
-      // terminer tourne en tâche de fond : sans l'attendre, on relirait des
-      // niveaux périmés, à l'inverse de ce que la relance immédiate promet.
+      // The level cache update of the session that just ended runs in the
+      // background: without waiting for it, we would re-read stale levels,
+      // the opposite of what the immediate replay promises.
       await _controller.pendingPersistence;
       final types = _controller.config.enabledTypes;
       final next = await buildSessionController(widget.environment, types);
@@ -103,8 +103,8 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
       if (!mounted) return;
       setState(() {
         _isRestarting = false;
-        // Pas de « Réessayez. » : le bouton Rejouer, redevenu actif, porte
-        // déjà l'action (`doc/design.md`).
+        // No "Try again.": the Play again button, active again, already
+        // carries the action (`doc/design.md`).
         _restartError = 'Could not start a new session.';
       });
     }

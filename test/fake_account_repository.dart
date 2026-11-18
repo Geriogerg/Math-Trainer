@@ -3,14 +3,13 @@ import 'package:math_trainer/core/domain/account/account_repository.dart';
 
 const _fakeAccount = Account(id: 'fake-account-id', email: 'player@test.com');
 
-/// Pour les tests qui ne s'intéressent pas au compte — `AppEnvironment`
-/// exige `accountRepository` (pas de défaut concret, `composition_root.dart`),
-/// donc chaque test doit en fournir un même s'il n'exerce jamais l'onglet
-/// Profil. Connecté par défaut : avec `AuthGate`, la connexion est
-/// obligatoire pour atteindre `AppShell`, donc un flux jamais connecté
-/// bloquerait tous les tests qui ne testent pas l'authentification
-/// elle-même. Voir `auth_gate_test.dart` pour une fausse implémentation
-/// contrôlable qui exerce réellement la porte de connexion.
+/// For tests that do not care about the account — `AppEnvironment` requires
+/// `accountRepository` (no concrete default, `composition_root.dart`), so
+/// every test must provide one even if it never exercises the Profile tab.
+/// Signed in by default: with `AuthGate`, signing in is mandatory to reach
+/// `AppShell`, so a never-signed-in stream would block every test that does
+/// not test authentication itself. See `auth_gate_test.dart` for a
+/// controllable fake that really exercises the sign-in gate.
 class FakeAccountRepository implements AccountRepository {
   @override
   Stream<Account?> get authState => Stream.value(_fakeAccount);

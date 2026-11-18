@@ -6,71 +6,70 @@ import '../../tool/src/replay_metrics.dart';
 
 void main() {
   group('mean', () {
-    test('liste vide : null', () {
+    test('empty list: null', () {
       expect(mean([]), isNull);
     });
 
-    test('moyenne simple', () {
+    test('plain mean', () {
       expect(mean([1, 2, 3]), 2.0);
     });
   });
 
   group('convergenceIndex', () {
-    test('trajectoire plate : convergence immédiate', () {
+    test('flat trajectory: immediate convergence', () {
       expect(convergenceIndex([50, 50, 50, 50, 50]), 0);
     });
 
-    test('ne converge jamais si aucune fenêtre ne descend sous la cible', () {
-      // Amplitude > 2 dans n'importe quelle fenêtre de 5 : montée constante.
+    test('never converges if no window drops below the target', () {
+      // Amplitude > 2 in any window of 5: constant rise.
       final levels = List.generate(20, (i) => i * 5);
       expect(convergenceIndex(levels), isNull);
     });
 
-    test('un seul écart tardif n\'empêche plus la détection (fenêtre bornée)', () {
-      // 19 valeurs stables à 50, puis un écart isolé à la toute fin.
+    test('a single late deviation no longer prevents detection (bounded window)', () {
+      // 19 stable values at 50, then an isolated deviation at the very end.
       final levels = [...List.generate(19, (_) => 50), 90];
 
-      // Avec l'ancienne définition (amplitude sur tout le reste de la
-      // trajectoire), aucun indice n'aurait convergé : l'écart final
-      // apparaît dans la queue de chaque indice testé. Avec la fenêtre
-      // bornée (5), la convergence est détectée dès l'indice 0 : ses 5
-      // premières valeurs (toutes 50) n'incluent pas l'écart final.
+      // With the old definition (amplitude over the whole rest of the
+      // trajectory), no index would have converged: the final deviation
+      // shows in the tail of every index tested. With the bounded window
+      // (5), convergence is detected from index 0: its first 5 values (all
+      // 50) do not include the final deviation.
       expect(convergenceIndex(levels), 0);
     });
 
-    test('détecte la fenêtre stable même après une phase instable', () {
+    test('detects the stable window even after an unstable phase', () {
       final levels = [10, 90, 10, 90, 50, 51, 50, 51, 50, 51];
-      // Les 5 premières valeurs oscillent bien au-delà de la cible ; la
-      // fenêtre [50,51,50,51,50] (indice 4) est la première sous la cible.
+      // The first 5 values oscillate well beyond the target; the window
+      // [50,51,50,51,50] (index 4) is the first under the target.
       expect(convergenceIndex(levels), 4);
     });
 
-    test('une fenêtre de longueur 1 en fin de trajectoire n\'est jamais prise pour une '
+    test('a window of length 1 at the end of a trajectory is never taken for a '
         'convergence', () {
-      // Instable jusqu'au bout ; la toute dernière fenêtre ne contient
-      // qu'un seul élément (indice 4, un seul élément restant) — une
-      // amplitude de 0 par construction qu'il ne faut pas laisser passer
-      // pour une convergence.
+      // Unstable to the end; the very last window holds a single element
+      // (index 4, one element left) — an amplitude of 0 by construction that
+      // must not pass for a convergence.
       expect(convergenceIndex([10, 90, 10, 90, 30]), isNull);
     });
   });
 
   group('replay', () {
-    test('8 réponses justes et instantanées, niveau de départ toujours 1 (rejeu à froid, '
-        'pas le niveau figé d\'une vraie session)', () {
+    test('8 right and instant answers, starting level always 1 (cold replay, '
+        "not a real session's frozen level)", () {
       final trajectory = [
         List.generate(8, (_) => const AnswerOutcome(isCorrect: true, elapsedMs: 0)),
       ];
 
       final levels = replay(trajectory, LevelingRules(), DateTime.utc(2026, 1, 1));
 
-      // Depuis 1, confiance calibration (jamais joué) : deadbandRemoved=0.23,
-      // k=kHaut=3.0, confidenceFactor=kCalib=4.0, pondération volume √(8/4) —
-      // largement au-delà de deltaMax, clampé à 3.0 → 1 + 3 = 4.
+      // From 1, calibration confidence (never played): deadbandRemoved=0.23,
+      // k=kHaut=3.0, confidenceFactor=kCalib=4.0, volume weighting √(8/4) —
+      // well beyond deltaMax, clamped to 3.0 → 1 + 3 = 4.
       expect(levels, [4]);
     });
 
-    test('rejoue plusieurs sessions dans l\'ordre, chaque niveau nourrit la suivante', () {
+    test('replays several sessions in order, each level feeding the next', () {
       final trajectory = [
         List.generate(8, (_) => const AnswerOutcome(isCorrect: true, elapsedMs: 0)),
         List.generate(8, (_) => const AnswerOutcome(isCorrect: true, elapsedMs: 0)),
@@ -78,18 +77,18 @@ void main() {
 
       final levels = replay(trajectory, LevelingRules(), DateTime.utc(2026, 1, 1));
 
-      // Session 1 : niveau 1 → confiance calibration (jamais joué) ; borné
-      // par deltaMax (3) dans les deux sens du calcul, donc 1 + 3 = 4.
-      // Session 2 : sessionsPlayed=1 < 3, encore calibration ; 4 + 3 = 7.
+      // Session 1: level 1 → calibration confidence (never played); bounded
+      // by deltaMax (3) both ways, so 1 + 3 = 4.
+      // Session 2: sessionsPlayed=1 < 3, still calibration; 4 + 3 = 7.
       expect(levels, [4, 7]);
     });
   });
 
   group('averageMetrics', () {
-    test('moyenne convergence/oscillation/biais sur plusieurs trajectoires', () {
-      // Deux trajectoires de 2 sessions chacune, toutes fausses : niveau de
-      // départ 1, reste bloqué à 1 (borné bas) dès la première session — la
-      // fenêtre [1, 1] converge à l'indice 0 pour les deux trajectoires.
+    test('averages convergence/oscillation/bias over several trajectories', () {
+      // Two trajectories of 2 sessions each, all wrong: starting level 1,
+      // stuck at 1 (lower bound) from the first session — the window [1, 1]
+      // converges at index 0 for both trajectories.
       final allFalseSession = List.generate(
         8,
         (_) => const AnswerOutcome(isCorrect: false, elapsedMs: 0),
@@ -106,9 +105,9 @@ void main() {
       expect(metrics.bias, 0.0);
     });
 
-    test('une trajectoire trop courte pour converger n\'est pas comptée', () {
-      // Une seule session ne peut jamais "converger" au sens de la fenêtre
-      // (il faut au moins 2 valeurs) : exclue du calcul, pas de crash.
+    test('a trajectory too short to converge is not counted', () {
+      // A single session can never "converge" in the window sense (at least
+      // 2 values needed): excluded from the computation, no crash.
       final trajectories = [
         [List.generate(8, (_) => const AnswerOutcome(isCorrect: true, elapsedMs: 0))],
       ];

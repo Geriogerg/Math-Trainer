@@ -22,7 +22,7 @@ void main() {
   }
 
   group('LevelCacheOrchestrator', () {
-    test('moins de n_min réponses pour un type : aucune entrée dans le résultat', () async {
+    test('fewer than n_min answers for a type: no entry in the result', () async {
       final orchestrator = LevelCacheOrchestrator();
       final repository = InMemorySessionRepository();
 
@@ -37,8 +37,8 @@ void main() {
       expect(updates, isEmpty);
     });
 
-    test('au moins n_min réponses justes et rapides : le niveau monte (calibration, jamais '
-        'joué avant)', () async {
+    test('at least n_min right and fast answers: the level rises (calibration, never '
+        'played before)', () async {
       final orchestrator = LevelCacheOrchestrator();
       final repository = InMemorySessionRepository();
 
@@ -50,14 +50,14 @@ void main() {
         now: DateTime.utc(2026, 8, 8),
       );
 
-      // Même scénario que le test LevelUpdater du commit A (étape 4.2) : depuis
-      // 50, n_min réponses justes et instantanées, confiance calibration → 53.
+      // Same scenario as the LevelUpdater test of commit A (step 4.2): from
+      // 50, n_min right and instant answers, calibration confidence → 53.
       expect(updates[ExerciseType.addition]?.level, 53);
       expect(updates[ExerciseType.addition]?.sessionsPlayed, 1);
     });
 
-    test('un joueur avec 3 sessions déjà jouées récemment sur ce type obtient une confiance '
-        'normale, pas calibration', () async {
+    test('a player with 3 recent sessions on this type gets normal confidence, '
+        'not calibration', () async {
       final orchestrator = LevelCacheOrchestrator();
       final repository = InMemorySessionRepository();
       final now = DateTime.utc(2026, 8, 8);
@@ -87,13 +87,13 @@ void main() {
         now: now,
       );
 
-      // Confiance normale (K_haut sans multiplicateur) : +1, pas +3 comme
-      // en calibration (voir LevelUpdater : normal → 51, calibration → 53).
+      // Normal confidence (K_haut without multiplier): +1, not +3 as in
+      // calibration (see LevelUpdater: normal → 51, calibration → 53).
       expect(updates[ExerciseType.addition]?.level, 51);
       expect(updates[ExerciseType.addition]?.sessionsPlayed, 4);
     });
 
-    test('un type sous n_min n\'empêche pas la mise à jour d\'un autre type au-dessus', () async {
+    test('a type under n_min does not prevent updating another type above it', () async {
       final orchestrator = LevelCacheOrchestrator();
       final repository = InMemorySessionRepository();
 
@@ -109,14 +109,14 @@ void main() {
       expect(updates.containsKey(ExerciseType.subtraction), isFalse);
     });
 
-    test('le niveau figé passé en paramètre sert de point de départ, jamais celui du cache '
+    test('the frozen level passed in is the starting point, never the cache one '
         'lu en interne', () async {
       final orchestrator = LevelCacheOrchestrator();
       final repository = InMemorySessionRepository();
       final now = DateTime.utc(2026, 8, 8);
 
-      // Le cache dit 80, mais la session a été générée avec 50 (frozenLevels) :
-      // c'est 50 qui doit servir de point de départ au calcul.
+      // The cache says 80, but the session was generated at 50 (frozenLevels):
+      // 50 must be the starting point of the computation.
       await repository.recordSession(
         session: PersistedSession(
           id: 'session-0',
@@ -142,7 +142,7 @@ void main() {
         now: now,
       );
 
-      expect(updates[ExerciseType.addition]?.level, 51); // 50 + 1, pas 80 + 1
+      expect(updates[ExerciseType.addition]?.level, 51); // 50 + 1, not 80 + 1
     });
   });
 }

@@ -5,8 +5,8 @@ import 'composition_root.dart';
 import 'presentation/screens/config_error_screen.dart';
 
 Future<void> main() async {
-  // Requis car on fait du travail asynchrone (ouverture de la base, lecture
-  // des préférences) avant `runApp()`.
+  // Required because asynchronous work happens (opening the database,
+  // reading preferences) before `runApp()`.
   WidgetsFlutterBinding.ensureInitialized();
   final AppEnvironment environment;
   try {

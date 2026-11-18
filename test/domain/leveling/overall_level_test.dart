@@ -8,16 +8,16 @@ LevelCacheEntry _level(int level) =>
 
 void main() {
   group('overallLevel', () {
-    test('aucun type joué : niveau plancher 1', () {
+    test('no type played: floor level 1', () {
       expect(overallLevel(const {}), 1);
     });
 
-    test('un type jamais joué compte au plancher, pas absent de la moyenne', () {
-      // (43 + 6 × 1) / 7 = 7, pas 43.
+    test('a type never played counts at the floor, not left out of the mean', () {
+      // (43 + 6 × 1) / 7 = 7, not 43.
       expect(overallLevel({ExerciseType.addition: _level(43)}), 7);
     });
 
-    test('moyenne sur les 7 types quand tous sont joués', () {
+    test('mean over the 7 types when all are played', () {
       expect(overallLevel({for (final type in ExerciseType.values) type: _level(50)}), 50);
     });
   });

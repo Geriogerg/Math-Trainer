@@ -1,9 +1,9 @@
 import '../models/exercise_type.dart';
 import 'type_selection_strategy.dart';
 
-/// Stratégie solo : priorité aux types les moins joués (`sessionsPlayed` le
-/// plus bas dans `player_levels`), sans aucun compteur dédié — l'entrée est
-/// déjà en base, recalculable côté serveur. Voir `doc/decisions.md`.
+/// Solo strategy: least-played types first (lowest `sessionsPlayed` in
+/// `player_levels`), with no dedicated counter — the input is already
+/// stored, recomputable server-side. See `doc/decisions.md`.
 class DebtAwareTypeSelectionStrategy implements TypeSelectionStrategy {
   DebtAwareTypeSelectionStrategy({
     required this.exerciseCount,
@@ -17,9 +17,9 @@ class DebtAwareTypeSelectionStrategy implements TypeSelectionStrategy {
 
   @override
   List<ExerciseType> sequenceFor(List<ExerciseType> sortedEnabledTypes) {
-    // `List.sort` n'est pas garanti stable en Dart : l'égalité de dette est
-    // tranchée explicitement par `.index` (celui de `sortedEnabledTypes`),
-    // jamais laissée à l'algorithme de tri.
+    // `List.sort` is not guaranteed stable in Dart: equal debt is broken
+    // explicitly by `.index` (that of `sortedEnabledTypes`), never left to
+    // the sort algorithm.
     final priority = [...sortedEnabledTypes]..sort((a, b) {
       final byDebt = (sessionsPlayedByType[a] ?? 0).compareTo(sessionsPlayedByType[b] ?? 0);
       return byDebt != 0 ? byDebt : a.index.compareTo(b.index);
@@ -31,11 +31,11 @@ class DebtAwareTypeSelectionStrategy implements TypeSelectionStrategy {
     };
 
     var remaining = exerciseCount - fullBlockCount * nMin;
-    // Le reste va d'abord aux types qui n'ont pas eu de bloc complet ; si
-    // tous les types actifs en ont un (budget plus grand que n_min ×
-    // nombre de types), il n'y a personne d'autre à qui le donner : les
-    // types déjà pleins reçoivent le surplus en bonus plutôt que de laisser
-    // remaining non distribué (ce qui bloquerait l'entrelacement plus bas).
+    // The remainder goes first to types that did not get a full block; if
+    // every active type has one (budget larger than n_min × number of
+    // types), there is nobody else to give it to: the already full types
+    // get the surplus as a bonus rather than leaving `remaining`
+    // undistributed (which would block the interleaving below).
     final remainderCandidates = priority.skip(fullBlockCount).toList();
     final remainderPool = remainderCandidates.isNotEmpty ? remainderCandidates : priority;
     var i = 0;

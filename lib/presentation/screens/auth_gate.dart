@@ -7,13 +7,13 @@ import '../../core/domain/account/account.dart';
 import 'app_shell.dart';
 import 'auth_form.dart';
 
-/// Porte d'entrée de l'app — connexion obligatoire (`doc/online.md`, étape 6
-/// tranche 2). La session Supabase est persistée localement : un joueur déjà
-/// connecté retrouve son compte sans réseau au lancement suivant, seul un
-/// premier lancement (jamais connecté sur cet appareil) ou une déconnexion
-/// explicite affiche le formulaire. Une fois connecté, tout ce qui suit
-/// (niveaux, historique) est rattaché au compte, pas à l'appareil
-/// (`environmentForAccount`).
+/// The app's entry gate — mandatory sign-in (`doc/online.md`, step 6 slice
+/// 2; replaced by anonymous-first in Phase 1). The Supabase session is
+/// persisted locally: a player already signed in gets their account back
+/// without network at the next launch; only a first launch (never signed in
+/// on this device) or an explicit sign-out shows the form. Once signed in,
+/// everything that follows (levels, history) is bound to the account, not
+/// the device (`environmentForAccount`).
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key, required this.environment, this.onToggleTheme});
 
@@ -27,25 +27,24 @@ class AuthGate extends StatefulWidget {
 class _AuthGateState extends State<AuthGate> {
   late final StreamSubscription<Account?> _authSubscription;
 
-  /// `false` tant que la session locale n'est pas résolue (pas de réseau
-  /// nécessaire) — ne jamais afficher le formulaire à ce stade, ça ferait
-  /// clignoter la porte pour un joueur déjà connecté.
+  /// `false` until the local session is resolved (no network needed) —
+  /// never show the form at this stage, it would make the gate flicker for
+  /// a player already signed in.
   bool _isResolved = false;
   Account? _account;
 
-  /// Environnement du compte connecté (`environmentForAccount`), `null` tant
-  /// que la reprise des parties de l'appareil n'a pas abouti — chargement
-  /// affiché pendant ce temps, pour qu'aucun écran ne lise un historique
-  /// encore incomplet.
+  /// Environment of the signed-in account (`environmentForAccount`), `null`
+  /// until adopting the device's games has completed — loading is shown
+  /// meanwhile, so that no screen reads a still incomplete history.
   AppEnvironment? _playerEnvironment;
 
   @override
   void initState() {
     super.initState();
-    // Abonnement unique, pas un `StreamBuilder` : `authState` renvoie un
-    // nouveau `Stream` à chaque lecture, et un réabonnement repasserait par
-    // l'état de chargement, ce qui démonterait puis recréerait `AppShell`
-    // (onglet courant et état perdus) à chaque reconstruction du parent.
+    // A single subscription, not a `StreamBuilder`: `authState` returns a
+    // new `Stream` on each read, and resubscribing would go through the
+    // loading state again, unmounting then recreating `AppShell` (current
+    // tab and state lost) on every rebuild of the parent.
     _authSubscription = widget.environment.accountRepository.authState.listen(
       _onAccountChanged,
     );
@@ -63,8 +62,8 @@ class _AuthGateState extends State<AuthGate> {
       widget.environment,
       account,
     );
-    // Déconnexion ou changement de compte pendant la reprise : résultat
-    // périmé, l'appel déclenché par le nouvel état s'en charge.
+    // Signed out or switched account during adoption: stale result, the
+    // call triggered by the new state takes over.
     if (!mounted || _account?.id != account.id) return;
     setState(() => _playerEnvironment = playerEnvironment);
   }
@@ -92,8 +91,8 @@ class _AuthGateState extends State<AuthGate> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     return AppShell(
-      // Un autre compte repart d'un `AppShell` neuf : aucun état (niveau
-      // affiché, onglet Profil) ne survit d'un joueur à l'autre.
+      // Another account starts from a fresh `AppShell`: no state (displayed
+      // level, Profile tab) survives from one player to the next.
       key: ValueKey(account.id),
       environment: playerEnvironment,
       onToggleTheme: widget.onToggleTheme,

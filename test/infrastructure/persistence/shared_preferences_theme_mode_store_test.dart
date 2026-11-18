@@ -11,13 +11,13 @@ void main() {
   });
 
   group('SharedPreferencesThemeModeStore', () {
-    test('load() renvoie null tant que rien n\'a été enregistré', () async {
+    test('load() returns null until something is saved', () async {
       final store = SharedPreferencesThemeModeStore();
 
       expect(await store.load(), isNull);
     });
 
-    test('save() puis load() retrouve la préférence enregistrée', () async {
+    test('save() then load() finds the saved preference', () async {
       final store = SharedPreferencesThemeModeStore();
 
       await store.save(ThemeModePreference.dark);
@@ -26,7 +26,7 @@ void main() {
       expect(result, ThemeModePreference.dark);
     });
 
-    test('persiste au-delà de l\'instance du store', () async {
+    test('persists beyond the store instance', () async {
       await SharedPreferencesThemeModeStore().save(ThemeModePreference.light);
 
       final result = await SharedPreferencesThemeModeStore().load();
