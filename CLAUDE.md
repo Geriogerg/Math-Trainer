@@ -20,8 +20,9 @@ phase). Where another doc disagrees with `doc/plan.md`, the plan wins — report
 section 7. Repo: `github.com/Geriogerg/Math-Trainer` (public), branch `main`; preview
 `https://geriogerg.github.io/Math-Trainer/`. Done: 0 (docs), 1 (CI), 2 (preview deployment),
 4 (one timestamp per answer), 5 (`δ` checked: keep 0.07, owner to confirm), 6 (debug switch
-for the timeout). Parked: 3 (`material_ui` needs the owner's yes on a new dependency). Next: 7
-(hooks and reviewer subagent). Update this block at every commit.
+for the timeout), 7 (formatting, hooks, reviewer subagent). Parked: 3 (`material_ui` needs the
+owner's yes on a new dependency). Next: 8 (first-load size and time, persistent storage). Update
+this block at every commit.
 
 ## Who you work with
 
@@ -117,10 +118,16 @@ touched; simplicity first, no abstraction for a single use case; report gaps wit
 - `SafeArea` on every screen.
 - The on-screen keypad is the primary input; physical keyboard on desktop; the native keyboard
   never appears during a game.
-- Lints: `flutter_lints`, checked by `dart analyze`.
+- Lints: `flutter_lints`, checked by `dart analyze`. Formatting: `dart format` at the default
+  width, checked by CI.
 
-**Before every commit**: `dart test test/domain`, `flutter test`, `flutter analyze` clean; CI green
-after push. Checkpoint commits are played by the owner on a phone browser (a docs-only checkpoint
+**Hooks and reviewer** (`.claude/`, active when Claude Code is started in this folder): a
+PreToolUse hook refuses `assert(` in `lib/core/` and unseeded `Random()` in `lib/` and `test/`; a
+PostToolUse hook runs `dart format` on every Dart file written (`tool/hooks/`). Before committing
+a plan commit, run the `reviewer` subagent on the diff and fix what it reports.
+
+**Before every commit**: `dart format --output=none --set-exit-if-changed lib test tool`,
+`dart test test/domain`, `flutter test`, `flutter analyze` clean; CI green after push. Checkpoint commits are played by the owner on a phone browser (a docs-only checkpoint
 is read instead). *Until Phase 0 commit 3, `flutter analyze` shows the Flutter 3.50
 `material_ui` deprecation infos and nothing else, and CI runs it with `--no-fatal-infos`.*
 

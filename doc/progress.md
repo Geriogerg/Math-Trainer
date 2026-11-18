@@ -100,6 +100,15 @@ State at the plan: 49 commits, 176 core tests / 328 in total.
   timer bar stays full). `questionTimeoutFor` in `composition_root.dart` honours the switch only
   when `kDebugMode`, a compile-time `false` in profile and release builds; tests cover the four
   cases, the controller without a timer and the full bar.
+- **Commit 7** *(A)*, in two parts. `de338fa`: the whole repo formatted with `dart format` (77 of
+  133 files were not; listed in `.git-blame-ignore-revs`). Then: Claude Code hooks in
+  `.claude/settings.json` — PreToolUse refuses `assert(` in `lib/core/` and unseeded `Random()` in
+  `lib/` and `test/` (`tool/hooks/edit_rules.dart`, tested, including a scan of the current code);
+  PostToolUse formats each Dart file written; `tool/hooks/run.sh` uses the SDK's Dart VM (about
+  1.4 s per Dart edit, against 3 s through the `dart` wrapper) and skips non-Dart files. Reviewer
+  subagent `.claude/agents/reviewer.md` (read-only, CLAUDE.md rules as checklist). CI checks
+  formatting. The hooks load only when Claude Code starts in `math_trainer/`; not yet seen
+  running live (they load at session start).
 
 ### Remaining contradictions after commit 0
 

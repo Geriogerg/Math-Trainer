@@ -1,0 +1,5 @@
+# Pure formatting commits, hidden from `git blame` (GitHub reads this file;
+# locally: git config blame.ignoreRevsFile .git-blame-ignore-revs).
+
+# Phase 0, commit 7 (1/2): whole repo formatted with dart format
+de338fafc8f713522913023fe0beb13ee96b6556

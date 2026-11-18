@@ -50,6 +50,11 @@ supabase/
 tool/
   recalibrate.dart         # replays stored answers to tune the leveling constants (Phase 3)
   delta_check.dart         # simulated players against LevelUpdater, compares δ / n_min settings
+  hooks/                   # Claude Code hooks (.claude/settings.json): edit_rules.dart (rules,
+                           # tested), guard_edit.dart, format_edit.dart, run.sh (launcher)
+.claude/
+  settings.json            # the hooks above
+  agents/reviewer.md       # reviewer subagent: diff against the CLAUDE.md rules
 test/
   domain/                  # mirrors core/domain — `dart test test/domain`
   state/                   # SessionController — `flutter test` (ChangeNotifier pulls dart:ui)
