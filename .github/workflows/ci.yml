@@ -1,5 +1,7 @@
-# CI: core tests, all tests, analyzer and web build on every push.
-# Android is not built until Phase 8 (doc/plan.md, section 5).
+# CI: core tests, all tests, analyzer and web build on every push; a push to
+# main that passes all of them deploys the preview to GitHub Pages
+# (https://<owner>.github.io/<repo>/). Android is not built until Phase 8
+# (doc/plan.md, section 5).
 name: CI
 
 on:
@@ -61,4 +63,35 @@ jobs:
           jq -n --arg url "$SUPABASE_URL" --arg key "$SUPABASE_PUBLISHABLE_KEY" \
             '{SUPABASE_URL: $url, SUPABASE_PUBLISHABLE_KEY: $key}' > dart_defines.json
       - name: Web build
-        run: flutter build web --release --dart-define-from-file=dart_defines.json
+        # Served from https://<owner>.github.io/<repo>/: every URL in the build
+        # (bootstrap, assets, sqflite_sw.js, sqlite3.wasm) resolves against
+        # this base.
+        run: >
+          flutter build web --release
+          --base-href "/${{ github.event.repository.name }}/"
+          --dart-define-from-file=dart_defines.json
+      - name: Upload the site
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [test, web]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    # One deployment at a time; a newer push waits rather than cancelling one
+    # half-way.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

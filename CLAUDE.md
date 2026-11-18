@@ -17,9 +17,10 @@ phase). Where another doc disagrees with `doc/plan.md`, the plan wins — report
 ## Current phase
 
 **Phase 0 — Stabilise and build the web pipeline.** Commit list and exit test: `doc/plan.md`,
-section 7. Repo: `github.com/Geriogerg/Math-Trainer` (public), branch `main`. Done: 0 (docs),
-1 (CI). Parked: 3 (`material_ui` needs the owner's yes on a new dependency). Next: 2 (preview
-deployment). Update this block at every commit.
+section 7. Repo: `github.com/Geriogerg/Math-Trainer` (public), branch `main`; preview
+`https://geriogerg.github.io/Math-Trainer/`. Done: 0 (docs), 1 (CI), 2 (preview deployment).
+Parked: 3 (`material_ui` needs the owner's yes on a new dependency). Next: 4 (one timestamp per
+answer). Update this block at every commit.
 
 ## Who you work with
 
@@ -124,7 +125,8 @@ is read instead). *Until Phase 0 commit 3, `flutter analyze` shows the Flutter 3
 
 CI: `.github/workflows/ci.yml` — tests and analyzer on `windows-latest` (golden images are
 recorded on Windows), web build on `ubuntu-latest`; Supabase settings from the repository secrets
-`SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`.
+`SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`. A green push to `main` deploys the preview to
+GitHub Pages (base path `/Math-Trainer/`).
 
 ## Commands
 
@@ -157,6 +159,11 @@ and public key. Without it the app shows "Missing configuration".
 - Browser storage can be evicted (Safari especially): local web history is unsafe until server
   sync.
 - Floating-point `sqrt()` is forbidden: integer arithmetic only.
+- Local sub-path build from Git Bash: `MSYS_NO_PATHCONV=1 flutter build web --base-href
+  /Math-Trainer/ …`, otherwise the base href becomes a Windows path. Delete `build/web` first: an
+  incremental build once dropped every file copied from `web/` (icons, manifest, favicon).
+- Headless Edge with `--virtual-time-budget` fast-forwards the 20 s database-open timeout and shows
+  "Web storage unavailable" although the build is fine; check web builds in real time.
 - *Android, for Phase 8*: prefer `flutter build apk --debug` + `adb install -r` + `adb shell am
   start` over an attached `flutter run` (it disconnects). `kotlin.incremental=false` works around
   a Windows Kotlin crash across drives. Environment split C:/D: (SDK, AVD, `GRADLE_USER_HOME` on

@@ -79,6 +79,11 @@ State at the plan: 49 commits, 176 core tests / 328 in total.
   analyzer (`--no-fatal-infos` until commit 3) on Windows, where the golden images are recorded;
   web build on Linux with the Supabase settings from repository secrets. No Android build (plan
   v1.1).
+- **Commit 2** *(A)* — Preview on GitHub Pages, `https://geriogerg.github.io/Math-Trainer/`: the
+  web job builds with `--base-href /<repo>/` and uploads the site on pushes to `main`; a `deploy`
+  job publishes it once tests and build are green. Host chosen because it needs only GitHub (repo
+  public, free plan). Sub-path build checked locally in a real browser: database opens, sign-in
+  shows.
 - **Commit 3** — *parked*: needs the owner's yes on the new `material_ui` dependency.
 
 ### Remaining contradictions after commit 0

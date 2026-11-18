@@ -52,6 +52,16 @@ server's own tables. Never a paywall on an exercise type — the overall ranking
 ranking of subscribers.
 **Reopen** after Phase 7, on retention data (owner decision).
 
+### Preview on GitHub Pages
+
+Phase 0 commit 2. Needs no account or token beyond GitHub: the deployment runs in the same
+workflow as CI, after tests and build are green, and the repo being public keeps it on the free
+plan. Limits accepted: no custom HTTP headers (none needed — SQLite runs in a shared worker, no
+`SharedArrayBuffer`), a sub-path (`/Math-Trainer/`) the build must know (`--base-href`), a
+10-minute cache.
+**Reopen when** the app needs custom headers, the repo goes private, or the public launch needs
+a production host on its own domain (Phase 6).
+
 ### English everywhere
 
 Owner decision of 18 Nov 2026: interface text, code comments, docs and commit messages are in
