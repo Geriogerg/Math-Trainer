@@ -1,468 +1,387 @@
-# Décisions — Math Trainer
+# Decisions — Math Trainer
 
-Arbitrages passés et leurs raisons. **Non chargé automatiquement.** Objet : éviter de
-re-litiguer une question déjà tranchée, et documenter à quelle condition rouvrir le dossier.
+Past trade-offs and their reasons. **Not loaded automatically.** Purpose: avoid re-arguing a
+settled question, and record under which condition to reopen it. Product decisions owned by the
+plan are summarised here with their reason; `doc/plan.md` remains the authority.
 
-## `correctAnswer` typé `int` et non `num` (étape 3)
+## Product direction (plan of 18 Nov 2026)
 
-À l'origine `num`, avec `/` pour la division — donc un `double`. La règle 9 était alors une
-promesse documentaire que le type système contredisait. Ça fonctionnait par chance : en Dart
-`4 == 4.0` vaut `true`. Le jour où un résultat n'est pas exactement représentable en binaire,
-la comparaison échoue silencieusement et le joueur voit une bonne réponse comptée fausse.
-Passage à `int` et `~/`, décidé avant l'ajout des trois nouvelles variantes qui auraient
-hérité de la signature fragile.
+### Web-first, mobile-ready
 
-## `ExerciseType` au-dessus d'`OperationType` (étape 3)
+The Android emulator is unusable and iOS needs a Mac: the web build is the product until mobile
+development is possible again. A hosted URL opened in a phone browser gets real players with no
+store review, and an invite-only web beta produces the sessions calibration waits for. Guardrails:
+web-specific code only in `infrastructure/`, no dependency without a mobile path, touch-first
+input. Android is not checked until Phase 8 (owner, 18 Nov 2026).
+**Reopen when** the owner says mobile development is possible again (Phase 8).
 
-Option écartée : étendre `OperationType` avec `power`, `squareRoot`, `percentage`.
-`OperationType` n'est pas un axe de sélection mais un champ interne à `ArithmeticExercise`,
-consommé par deux `switch` exhaustifs produisant un symbole et un calcul binaire. L'étendre
-aurait rendu ces `switch` non exhaustifs et forcé l'écriture de cas absurdes (un symbole
-d'opération binaire pour une racine), transformant la règle 11 en corvée de remplissage.
+### Anonymous-first replaces mandatory sign-in
 
-## Le niveau est une estimation de compétence, pas une barre de progression
+Mandatory sign-in (step 6, slice 2) makes most first-time players leave before one question. A
+player is created silently on first launch; email (later Google) is linked when they want the
+leaderboard or a second device. Existing email accounts keep their data. The detailed design is
+proposed to the owner before Phase 1 commit 1.
+**Reopen when** abuse of anonymous accounts costs more than the protections planned (CAPTCHA,
+cleanup).
 
-Option écartée : un niveau qui ne fait que monter avec le temps de jeu. Il aurait classé
-l'assiduité plutôt que la compétence, et se serait tassé au plafond (tous ex æquo à 700/700)
-en quelques mois, tuant le classement général.
+### Glicko-2 rather than Elo
 
-Retenu : un niveau par opération reflétant la difficulté à laquelle le joueur répond juste et
-vite. Il monte, il plafonne, et **il descend sur performance insuffisante**.
+Glicko-2 carries a rating deviation: a new or returning player's rating moves fast and settles,
+which Elo only approximates with ad-hoc K-factors, and the deviation gives a natural "provisional"
+flag. Server-side only, provisional for the first ~10 duels.
+**Reopen when** duel volume shows the provisional period is too long or too short.
 
-Option également écartée : ne faire descendre le niveau que par inactivité. Deux raisons.
-D'une part c'est incohérent avec une estimation de compétence — un joueur qui échoue
-systématiquement resterait bloqué à son meilleur jour, sur des questions dérivées d'un niveau
-qu'il ne tient plus, sans mécanisme de retour. D'autre part, punir l'absence est une mécanique
-de rétention agressive qui génère de la culpabilité et pousse à la désinstallation.
+### Ghost duels before live duels
 
-Compensation retenue à la place : après une longue absence, le multiplicateur `boost_retour`
-fait bouger le niveau plus vite **dans les deux sens** pendant quelques sessions. Le joueur ne
-perd rien, le système se réétalonne. C'est un facteur K variable appliqué au temps.
+Live duels need enough players online at once for queues under ~20 s, which a young app does not
+have. A ghost duel (a real recorded run replayed at its pace) needs nobody else online and reuses
+the same deterministic generation. Live duels open on an owner decision, on measured concurrency.
+**Reopen when** concurrency is measured high enough.
 
-Conséquences : le niveau est l'unité comparable du classement général (les scores bruts ne le
-sont pas, puisque les joueurs ne reçoivent pas les mêmes questions) ; et le taux de réussite
-converge vers `p_cible` pour tout le monde, donc **il ne mesure plus rien et ne doit jamais
-être affiché comme une récompense**. Ce qui progresse, c'est le niveau.
+### Monorepo `app/`, `packages/math_core/`, `server/`
 
-## Paramètres du système de niveaux — valeurs de départ
+The server must run the same core as the app (rule 1). A pure-Dart package imported by path from
+both sides keeps one implementation and one test suite, with no publishing step. Done in Phase 2
+commit 1, with no behaviour change.
+**Reopen when** the server needs a release cycle independent of the app.
 
-**Non calibrées.** Issues d'un simulateur reposant sur une hypothèse logistique de la courbe
-de performance, pas de données réelles. À recalibrer en rejouant l'historique une fois quelques
-dizaines de sessions accumulées — c'est l'usage prévu de la granularité de stockage.
+### No ads, payments or third-party analytics before online play
 
-Formule, par question : `p = 0` si faux, sinon `p = f + (1 − f) · vitesse`, où `vitesse` vaut 1
-sous `t_rapide`, 0 au-dessus de `t_lent`, linéaire entre les deux.
-En fin de session : `Δ = moyenne(p) − p_cible` ; si `|Δ| < δ` le niveau ne bouge pas ; sinon on
-retire la bande morte, on multiplie par `K_haut` ou `K_bas` puis par le multiplicateur de
-confiance, on borne à `Δ_max`, on applique.
+They would distort an unproven product and add consent obligations; usage numbers come from the
+server's own tables. Never a paywall on an exercise type — the overall ranking would become a
+ranking of subscribers.
+**Reopen** after Phase 7, on retention data (owner decision).
 
-| Paramètre | Valeur | Note |
+### English everywhere
+
+Owner decision of 18 Nov 2026: interface text, code comments, docs and commit messages are in
+English. One language for the code, the docs and the product; it also removes translation as a
+prerequisite to a wider audience. Earlier commit messages stay in French.
+**Reopen when** a localisation layer (French and others) is planned.
+
+## `correctAnswer` typed `int`, not `num` (step 3)
+
+Originally `num`, with `/` for division — so a `double`. Rule 9 was then a documentary promise the
+type system contradicted. It worked by luck: in Dart `4 == 4.0` is `true`. The day a result is not
+exactly representable in binary, the comparison fails silently and the player sees a right answer
+counted wrong. Switched to `int` and `~/` before three new variants inherited the fragile signature.
+
+## `ExerciseType` above `OperationType` (step 3)
+
+Rejected: extending `OperationType` with `power`, `squareRoot`, `percentage`. `OperationType` is
+not a selection axis but a field internal to `ArithmeticExercise`, consumed by two exhaustive
+`switch` producing a symbol and a binary computation. Extending it would have made those `switch`
+non-exhaustive and forced absurd cases (a binary operator symbol for a root).
+
+## The level estimates skill, it is not a progress bar
+
+Rejected: a level that only rises with play time. It would rank diligence rather than skill and
+pile up at the ceiling within months, killing the overall leaderboard.
+
+Chosen: one level per operation reflecting the difficulty at which the player answers right and
+fast. It rises, plateaus, and **falls on insufficient performance**.
+
+Also rejected: lowering the level only through inactivity. Inconsistent with a skill estimate — a
+player failing systematically would stay stuck at their best day — and punishing absence is an
+aggressive retention mechanic that breeds guilt and uninstalls.
+
+Instead: after a long absence, `boost_retour` makes the level move faster **in both directions**
+for a few sessions. The player loses nothing, the system re-adjusts.
+
+Consequences: the level is the comparable unit of the leaderboard (raw scores are not, since
+players get different questions); and accuracy converges to `p_cible` for everyone, so **it
+measures nothing and must never be shown as a reward**.
+
+## Leveling parameters — starting values
+
+**Not calibrated.** They come from a simulator built on a logistic performance curve, not from real
+data. To be recalibrated by replaying history (`tool/recalibrate.dart`, Phase 3) — the intended use
+of per-answer storage.
+
+Per question: `p = 0` if wrong, else `p = f + (1 − f) · speed`, where `speed` is 1 below
+`t_rapide`, 0 above `t_lent`, linear in between. At the end of a session:
+`Δ = mean(p) − p_cible`; if `|Δ| < δ` the level does not move; otherwise the dead band is removed,
+the result is multiplied by `K_haut` or `K_bas`, then by the confidence multiplier and by
+`√(n / n_min)`, capped at `Δ_max`, and applied.
+
+| Parameter | Value | Note |
 |---|---|---|
-| `p_cible` | 0,70 | performance d'équilibre visée |
-| `f` | 0,30 | crédit d'une bonne réponse lente ; **paramètre de tempérament** — monter vers 0,60 rend le jeu plus nerveux |
-| `K_haut` | 3,0 | vitesse de montée |
-| `K_bas` | 1,5 | vitesse de descente ; ratio 2:1 volontaire |
-| `δ` | 0,05 | bande morte ; à 0 le niveau oscille en permanence |
-| `Δ_max` | 3 | déplacement max par session |
-| `n_min` | 8 | en deçà, la session ne compte pas (échantillon de bruit) |
-| `K_calib` | ×4 sur 3 sessions | calibrage initial |
-| `boost_retour` | ×2 sur 2 sessions | après longue absence |
+| `p_cible` | 0.70 | target equilibrium performance |
+| `f` | 0.30 | credit for a slow right answer; **temperament parameter** — towards 0.60 the game gets twitchier |
+| `K_haut` | 3.0 | rising speed |
+| `K_bas` | 1.5 | falling speed; 2:1 ratio on purpose |
+| `δ` | 0.07 | dead band; was 0.05 at `n_min` = 8 — **value not yet approved by the owner** (see below) |
+| `Δ_max` | 3 | maximum move per session |
+| `n_min` | 4 | below this, a type's answers do not count for the session (noise) |
+| `K_calib` | ×4 over 3 sessions | initial calibration |
+| `boost_retour` | ×2 over 2 sessions | after a long absence (30 days) |
+| `t_rapide` / `t_lent` | 2 s / 8 s | speed credit bounds |
 
-Cibles de réglage : convergence en 10–20 sessions, oscillation à l'équilibre sous ±2 niveaux,
-biais moyen légèrement positif (conséquence attendue de `K_haut > K_bas`, sans effet sur
-l'équité du classement puisqu'il s'applique identiquement à tous).
+Tuning targets: convergence in 10–20 sessions, oscillation at equilibrium within ±2 levels, a
+slightly positive mean bias (expected from `K_haut > K_bas`, harmless to fairness since it applies
+to everyone equally).
 
-Le ratio `K_haut / K_bas` fait que le niveau surestime légèrement la compétence réelle. Choix
-assumé : le confort du joueur prime, et le biais étant uniforme il ne fausse pas la comparaison.
+## One difficulty axis at a time
 
-## Un seul axe de difficulté à la fois
+Difficulty derives from the level through operand size. **Do not vary operand size and allotted
+time together**: the effects would compound into a brutal curve mid-scale, hard to diagnose. (The
+plan's timeout derived from the level, Phase 3, is a separate measured change.)
 
-La difficulté dérive du niveau par l'ampleur des opérandes. **Ne pas faire varier simultanément
-la taille des opérandes et le temps imparti** : les deux effets se composeraient et produiraient
-une courbe brutale au milieu de l'échelle, difficile à diagnostiquer.
+Consequence on rule 2: the sequence is not reproducible from the seed alone, since bounds depend on
+the level. The level enters the config explicitly, is **frozen at the start of the session** and
+never recomputed during it — otherwise the server cannot revalidate and duels fail.
 
-Conséquence sur la règle 2 : la séquence n'est plus reproductible à partir de la seed seule,
-puisque les bornes dépendent du niveau. Le niveau doit entrer explicitement dans la config,
-**être figé au début de la session** et jamais recalculé en cours de route — sinon le serveur ne
-peut pas revalider et le mode duel tombe.
+700 steps (7 operations × 100) are not calibrated by hand: one continuous `level → bounds` function
+per operation, five anchor points checked by hand (1, 25, 50, 75, 100), and two tests —
+monotonicity and no brutal jump between consecutive levels.
 
-700 paliers (7 opérations × 100) ne se calibrent pas à la main : une fonction continue
-`niveau → bornes` par opération, cinq points d'ancrage vérifiés manuellement (1, 25, 50, 75, 100),
-et deux tests — monotonie et absence de saut brutal entre niveaux consécutifs.
+## Per-question timeout: 15 s, counted as wrong
 
-## Timeout par question : 15 s, compté comme faux
+Automatic move to the next question after 15 s. Fixed value, not derived from `t_lent` — an
+assumed simplification: 15 s is probably too long for `7 + 4` at level 3 and maybe short for a
+multiplication at level 80. The plan derives it from the level in Phase 3, from measured times.
 
-`t_timeout` existait depuis l'étape 4 avec la sémantique « au-delà, compté comme faux », mais
-rien ne faisait avancer la session : le joueur pouvait rester bloqué indéfiniment. Le passage
-automatique à la question suivante est ajouté.
+A timeout counts as a wrong answer: hesitating too long on a question one cannot solve must cost.
 
-Valeur fixe à 15 s, non dérivée de `t_lent` — choix de simplicité assumé, à revoir à la
-recalibration : 15 s est probablement trop long pour `7 + 4` au niveau 3 et peut-être court pour
-une multiplication au niveau 80.
+### Exception: interruption on abandonment
 
-Un timeout compte comme une réponse fausse. C'est voulu : hésiter trop longtemps sur une
-question qu'on ne sait pas résoudre doit être pénalisé.
+**Three consecutive timeouts without any key pressed** interrupt the session, which then does not
+count for levels. Answers already given stay in history — they are real data, and the level is
+recomputable anyway.
 
-### Exception : interruption pour abandon
+Reason: the useful distinction is not timeout versus wrong answer but **playing badly** versus
+**having stopped playing**. A player who puts the phone down mid-session would otherwise pile up
+zeros and lose levels for a reason unrelated to skill. Consistent with never lowering the level
+through inactivity.
 
-**Trois timeouts consécutifs sans aucune touche pressée** interrompent la session, qui n'est
-alors pas comptabilisée pour les niveaux. Les réponses déjà données restent enregistrées dans
-l'historique — ce sont des données réelles, et le niveau est de toute façon recalculable.
+## The level step is weighted by answer volume
 
-Motif : la distinction utile n'est pas entre timeout et mauvaise réponse, mais entre **jouer
-mal** et **avoir arrêté de jouer**. Un joueur qui pose son téléphone en pleine session (appel,
-métro) accumulerait sinon une série de zéros sur un échantillon large — et depuis la pondération
-par le volume, la descente serait amplifiée. Il perdrait plusieurs niveaux pour une raison sans
-rapport avec sa compétence. Cohérent avec la décision de ne jamais faire descendre le niveau par
-inactivité.
+The formula used a pure mean: 16 additions at 85 % and 4 additions at 85 % moved the level
+exactly the same. Counter-intuitive (focusing on one operation should make it progress faster) and
+a perverse incentive (enable many types, play minimal sessions).
 
-## Le pas de niveau est pondéré par le volume de réponses
+Fix: the step is multiplied by `√(n / n_min)`. The square root rather than the ratio, so that 64
+answers do not move 16 times more than 4 — which would make the system unstable. It is an Elo-like
+variable K applied to sample size. Side effect: small-session noise is damped, and four short
+sessions give about the same result as a long one.
 
-Défaut corrigé : la formule calculait `Δ = moyenne(p) − p_cible`, une moyenne pure. 16 additions
-à 85 % et 4 additions à 85 % produisaient donc **exactement le même déplacement de niveau**.
+## `n_min` from 8 to 4 — coupled to `δ`
 
-Doublement problématique. Contre-intuitif pour le joueur — concentrer sa session sur une
-opération devrait la faire progresser plus vite. Et incitation perverse : le joueur optimal
-activait beaucoup de types et jouait des sessions minimales, puisque seul comptait le rapport.
+Product reason: 8 answers per operation made the minimal session too long. At 4, a single-type
+session lasts about thirty seconds, which makes the "play, replay" loop viable.
 
-Correction : le pas est multiplié par `√(n / n_min)`. La racine plutôt que le rapport direct,
-pour que 64 réponses ne déplacent pas 16 fois plus que 4 — ce qui rendrait le système instable.
-C'est le facteur K variable d'un Elo, appliqué à la taille de l'échantillon.
+**Statistical cost:** the standard deviation of the mean varies as `1/√n`, so going from 8 to 4
+raises noise by about 40 %. A player exactly at the right level can score 4/4 then 2/4 by chance.
 
-Effet de bord bienvenu : le bruit des petites sessions est automatiquement amorti, et quatre
-sessions courtes donnent à peu près le même résultat qu'une longue.
+**`δ` must therefore widen** — the two parameters are coupled; never move one without the other.
+Commit `1f8b891` (12 Aug 2026) widened it from 0.05 to 0.07 as an indicative value. **The owner has
+not approved it**: `δ` is an owner decision (plan, section 8), checked against `n_min` = 4 in
+Phase 0 commit 5.
 
-## `n_min` passe de 8 à 4 — couplé à `δ`
+## The number of questions is derived, not chosen
 
-Motif produit : 8 réponses par opération rendait la session minimale trop longue. À 4, une
-session mono-type dure une trentaine de secondes, ce qui rend viable la boucle « jouer, relancer ».
+`exerciseCount = n_min × active types`, capped at 24 (a target of ~90 s). With `n_min = 4`: one
+type → 4 questions, three types → 12, seven types → 24 (capped; types then rotate by sampling
+debt).
 
-**Coût statistique, à ne pas ignorer :** l'écart-type de la moyenne varie en `1/√n`, donc passer
-de 8 à 4 augmente le bruit d'environ 40 %. Un joueur exactement au bon niveau peut faire 4/4 puis
-2/4 par pur hasard.
+Rejected: letting the player set the number of questions (4 to 50). It would reintroduce the defect
+fixed in step 4.1 — a session too short for the selection makes no operation progress — this time
+triggered by the player without understanding why their level stalls.
 
-**Conséquence : `δ` doit être élargie.** Les deux paramètres sont couplés — la bande morte avait
-été dimensionnée pour `n = 8`. Ne jamais bouger l'un sans l'autre. Valeur exacte à trancher à la
-recalibration ; la pondération par `√(n/n_min)` amortit déjà une partie du problème.
+## Immediate replay at the end of a session
 
-## Le nombre de questions reste dérivé, pas choisi
+Result-screen button: same types, same number of questions, **updated levels** and a **new seed**.
+The new seed is essential — reusing it would replay the same questions. Updated levels make
+difficulty follow progress from one session to the next, which makes the level system perceptible.
 
-`exerciseCount = n_min × types actifs`, mécanisme mis en place en 4.1 et conservé tel quel.
-Avec `n_min = 4` : un type → 4 questions, trois types → 12, sept types → 28.
+## Never show accuracy as a measure of progress
 
-Option envisagée puis écartée : laisser le joueur régler librement le nombre de questions
-(4 à 50). Elle aurait réintroduit exactement le défaut corrigé en 4.1 — une session trop courte
-pour la sélection ne fait progresser aucune opération — cette fois activé par le joueur sans
-qu'il comprenne pourquoi son niveau stagne. Il aurait fallu un avertissement d'interface pour
-compenser, donc un concept de plus.
+It converges to `p_cible` by construction, for every player at every level. Shown as progress, it
+would teach the player that nothing moves while they improve.
 
-Le compte se déduisant de la sélection et de `n_min`, il n'y a rien de nouveau à persister ni à
-faire entrer dans la config de génération.
+The two metrics that really progress are **the level** and **the average response time**. The
+second is the better one: it does not self-regulate, it is immediately understandable, and broken
+down by operation it says *where* to work. Accuracy keeps its place as session feedback ("9/12"),
+never as a curve.
 
-Effet secondaire du passage de `n_min` à 4 : le plafond de session fixé en 4.1 (24 questions,
-soit une cible de ~90 s) n'est désormais atteint qu'à sept types actifs (28 questions). La
-politique de rotation par dette reste en place mais ne se déclenche plus qu'à la marge.
+## Resolved audit findings (step 5)
 
-## Relance immédiate en fin de session
+Kept for history; all fixed.
 
-Bouton de relance sur l'écran de résultat : mêmes types, même nombre de questions,
-**niveaux actualisés** et **nouvelle seed**.
+- **Stored history was never read back** — the Profile tab now reads sessions, answers and levels
+  through aggregated queries on `SessionRepository` (SQL aggregation rather than loading
+  everything: it does not degrade with time and prepares server-side recomputation).
+- **The Android back gesture destroyed the running session** — a `PopScope` intercepts it, asks for
+  confirmation, and stores the session as **interrupted**.
+- **`SizedBox.shrink()` as a screen state** — replaced by explicit empty states with a way out.
+- **Level-up animation never used** — the result screen shows the level change with
+  `AppMotion.levelUp`.
 
-La nouvelle seed est indispensable — la réutiliser ferait rejouer les mêmes questions.
+## Visual direction: "nuit électrique"
 
-Les niveaux actualisés sont le point important : la difficulté suit la progression d'une session
-à l'autre, ce qui rend enfin le système de niveaux *perceptible*. Jusqu'ici rien dans le jeu ne
-montrait qu'il existait. Prévoir un retour visuel bref entre deux sessions (animation de montée
-de niveau, 600 ms, cf. `doc/design.md`).
+Four directions compared (sober slate, light paper, nuit électrique, warm field). Chosen: nuit
+électrique — a competitive register consistent with leaderboard and duels, where "slate" would have
+better served a training tool.
 
-## L'historique écrit n'est jamais relu (constat d'audit, étape 5)
+Direct consequence: with a sea-green accent, green can no longer signal a right answer. Positive
+feedback uses a white flash — which also settles accessibility, since colour alone was never a
+reliable signal. Promoted to rule 14. Palette, typography and durations: `doc/design.md`.
 
-Audit factuel avant l'étape 5 : `recentSessions()` et `answersForSession()` n'ont **aucun appel**
-dans `presentation/`. Chaque champ de `PersistedSession` et `PersistedAnswer` — seed, types,
-score, niveaux, opérandes, temps de réponse — est écrit puis jamais relu. La granularité
-obligatoire qui justifie toute l'architecture de persistance ne sert à personne aujourd'hui.
+## Inter, bundled
 
-Même constat côté animation : `AppMotion.levelUp`, `questionTransition` et `tabChange` sont
-définis dans le thème et n'ont aucune occurrence ailleurs dans `lib/`. L'animation de montée de
-niveau, identifiée comme le moment émotionnel du solo, n'existe pas. Le système de niveaux
-fonctionne et reste invisible pour le joueur.
+Interface font: Inter, variable (opsz + wght axes), one file in `assets/fonts/` from the official
+google/fonts repository (SIL OFL). Bundled rather than fetched at runtime: works offline and
+renders the first frame without a network round-trip. `TextStyle.fontWeight` drives the `wght` axis
+directly. A display typeface for digits is chosen by the owner before Phase 5.
 
-## Ne jamais afficher le taux de réussite comme mesure de progrès
+## `Exercise.prompt` left the domain
 
-Il converge vers `p_cible` par construction, pour tout joueur et à tout niveau. L'afficher comme
-indicateur de progression apprendrait au joueur que rien ne bouge, alors qu'il progresse.
+Exponents must be raised, which a flat `String` cannot express (Unicode `²`/`³` stop quickly and
+render poorly across fonts). The display is composed in the presentation layer from each variant's
+fields. Side effect: no interface text in `core/domain/`; the domain is purely mathematical.
 
-Les deux métriques qui progressent réellement sont **le niveau** et **le temps de réponse
-moyen**. Le second est le meilleur des deux : il ne s'autorégule pas, il est immédiatement
-compréhensible, et il indique *où* travailler quand il est ventilé par opération.
+## No negative result in subtraction
 
-Le taux de réussite garde sa place comme retour de session (« 9/12 »), jamais comme courbe.
+The generator guarantees `operandA ≥ operandB`. Negative answers cause typing errors with no
+teaching value at this stage, and their absence removes the `−` key from the keypad. If this
+changes, the keypad changes too.
 
-## Le geste retour Android détruit la session en cours
+## Built-in keypad rather than the native keyboard
 
-Aucun `PopScope` dans `presentation/` ; `SessionController.dispose()` annule le timer sans rien
-persister. Un balayage retour — réflexe courant sur Android — détruit toutes les réponses déjà
-données.
+The system keyboard hides the field and the timer, imposes an entrance animation and offers useless
+keys. A drawn keypad has a fixed height, hence no layout shift between questions, and saves tens of
+milliseconds per answer.
 
-Traitement retenu : intercepter le geste, demander confirmation, et persister comme session
-**interrompue**. La distinction terminée/interrompue existe déjà depuis l'étape 4.2, il n'y a
-rien de nouveau à modéliser.
+## Bottom tab bar rather than a side drawer
 
-Même famille de défauts : les deux `SizedBox.shrink()` (`session_screen.dart` quand
-`exercise == null`, `session_flow_screen.dart` sur `notStarted`) produisent un écran vide sans
-message ni action — une impasse dont on ne sort que par le geste retour, qui détruit la session.
+A drawer needs two gestures, hides navigation and pushes the thumb to the top-left corner. The
+bottom bar stays visible and will carry duel notification badges. The session screen carries no
+navigation.
 
-## Charger l'historique sans le charger entièrement
+## `assert` does not defend an invariant — use `throw` (rule 13)
 
-Afficher la progression suppose de lire un volume qui croît à chaque session. Deux options :
-requêtes agrégées côté SQLite, ou fenêtre bornée (N dernières sessions / N derniers jours).
+The trap came back three times: division by zero (step 1), non-UTC timestamps (step 2), then
+`OperandRange` and `CompositeExerciseGenerator` (step 3). Same cause each time: a precondition
+guarded by `assert()`, removed from release builds — the invariant disappears exactly where it
+matters. Fixed in step 4 (when computed bounds made invalid ranges reachable) and promoted to rule
+13, each guard with a test of the invalid case.
 
-Préférer l'agrégation en SQL : elle ne dégrade pas avec le temps et prépare le terrain pour le
-recalcul serveur. Conséquence : `SessionRepository` gagne des méthodes de lecture agrégée — c'est
-le seul point de cet audit qui dépasse la couche présentation et touche le domaine.
+## Levels are a recomputable cache, not a source of truth
 
-## Données disponibles à exposer au joueur
+What is stored can be rebuilt entirely from the answer history. The server can recompute the level
+instead of trusting the client, and the update function belongs to the pure domain, with a
+signature taking a list of answers — which also makes recalibration on real data possible.
 
-Toutes déjà calculées ou stockées, aucune n'exige de nouveau calcul métier :
+What is stored **with each session** is the levels frozen at play time, not "the difficulty": the
+pair (seed, levels) lets the server regenerate the sequence. One JSON per session (levels are per
+operation). First real schema migration: `schemaVersion` → 2.
 
-| Donnée | Où elle vit | Où la montrer |
-|---|---|---|
-| Changement de niveau | `LevelCacheEntry.level` avant/après | écran de résultat, avec `AppMotion.levelUp` |
-| `currentStreak` | `SessionState.currentStreak` | pendant la session et en fin de session |
-| Timeout vs faux | `AnswerResult.isTimeout` | écran de résultat — corrections opposées (trop lent / erreur) |
-| Composition du score | `Scorer._speedBonus`, `_streakBonus`, `_difficultyMultiplier` | écran de résultat |
-| Types joués | `config.enabledTypes` | écran de résultat |
-| `sessionsPlayed`, `updatedAt` | `LevelCacheEntry` | écran de progression |
-| Temps moyen par opération | `PersistedAnswer.elapsedMs` agrégé | écran de progression, par opération |
+## Profile curve: overall level after each session (schema v3)
 
-## Direction visuelle : « nuit électrique »
+Each session stores `overall_level_after`: the overall level (`overallLevel`, 7 types, unplayed
+counted as 1) right after it, updated cache included. The curve plots this value; the 30-day change
+is the gap between its first and last points; a game's change in the list is the gap with the
+previous game — exactly the effect of that game.
 
-Quatre directions comparées (ardoise sobre, papier clair, nuit électrique, terrain chaleureux).
-Retenue : nuit électrique — registre compétitif cohérent avec la trajectoire du produit
-(classement, Elo, duels), là où « ardoise » aurait mieux servi un outil d'entraînement.
+This replaced a session-entry snapshot over the types played that day, which never showed the last
+game and made switching from addition to multiplication look like a level drop.
 
-Conséquence directe : l'accent étant vert d'eau, le vert ne peut plus signaler la bonne réponse.
-Le feedback positif passe par un flash blanc — ce qui règle au passage l'accessibilité, puisque
-la couleur seule n'a jamais été un signal fiable. Promu en règle 14.
+- `overallLevel` lives in `core/domain/leveling/`: it is a stored data rule, not just display.
+- Nullable column, no reconstruction for older sessions: the overall level after an old session
+  depends on the whole cache at that time, which history cannot faithfully rebuild. Those sessions
+  are absent from the curve.
+- Cache unreadable when recording: the session is written without this value rather than lost.
 
-Palette, typographie et durées d'animation : `doc/design.md`.
+## Overall level: unplayed types count as 1
 
-## `Exercise.prompt` quitte le domaine
+The overall level averages all seven types, an unplayed type counting as 1 (not 0, outside the
+valid `[1, 100]` range of `LevelCacheEntry`). Averaging only played types inflated the overall level
+of a player who had tried two types out of seven.
 
-Les exposants doivent s'afficher en position haute, ce qu'une `String` plate ne permet pas (les
-caractères Unicode `²`/`³` s'arrêtent vite et rendent mal selon les polices). L'affichage se
-compose donc dans la couche présentation à partir des champs de chaque variante.
+## Failed save: "Retry saving"
 
-Effet de bord bienvenu : la dette du texte français en dur dans `core/domain/`, documentée
-depuis l'étape 3, disparaît. Le domaine redevient purement mathématique.
+The result screen reports a game that was not saved and offers to retry the write
+(`SessionController.retryPersistence`). Same session, same ids: `recordSession` is atomic, a failure
+left nothing, so nothing can be written twice. No background queue: the failure is local (storage
+full or blocked), and an in-memory queue would vanish on reload without guaranteeing more. Server
+upload (Phase 2) relies on `synced_at`, already on every row.
 
-## Pas de résultat négatif en soustraction
+## Difficulty is not a user setting
 
-Le générateur garantit `operandA ≥ operandB`. Motif : les réponses négatives sont une source
-d'erreurs de saisie sans intérêt pédagogique à ce stade, et leur absence permet de supprimer la
-touche `−` du pavé numérique. Décision produit — si elle change, le pavé change aussi.
+Rejected: a global easy/medium/hard selector, or a setting per type. Both contradict the meaning of
+the level — if the player chooses the difficulty, the level no longer measures skill and the
+leaderboard loses its meaning.
 
-## Pavé numérique intégré plutôt que clavier natif
+## The score is session feedback, the level is the ranking unit
 
-Le clavier système masque le champ et le chrono (piège documenté depuis le début), impose une
-animation d'apparition et propose des touches parasites. Un pavé dessiné donne une hauteur fixe,
-donc aucun décalage de mise en page entre deux questions, et supprime plusieurs dizaines de
-millisecondes par réponse.
+Weighting points by difficulty is legitimate: without it, progressing changes nothing in the feel.
+But the score never ranks — the level does. Two numbers telling the same story leave the player not
+knowing which to watch.
 
-## Barre d'onglets basse plutôt que tiroir latéral
+## No generic `List<int> operands` on `Exercise`
 
-Un tiroir demande deux gestes, cache la navigation, et force le pouce vers le coin haut-gauche.
-La barre basse reste visible et accueillera les pastilles de notification des duels.
-L'écran de session, lui, ne porte aucune navigation : plein écran, pour la place et pour éviter
-qu'on quitte une partie en visant un onglet.
+Rule 9 closes the door on exotic types, so the gain would be nil, while the cost would be touching
+stable code and losing the domain names of operands. `operands_json` already covers storage.
 
-## `assert` ne défend pas un invariant — utiliser `throw` (règle 13)
+## Fractions and Euclidean division excluded
 
-Le piège a resurgi trois fois : division par zéro (étape 1), timestamps non-UTC (étape 2), puis
-`OperandRange` et `CompositeExerciseGenerator` (étape 3). Même cause à chaque fois : une
-précondition gardée par `assert()`, donc supprimée du build release — l'invariant n'existe plus
-exactement là où il compte.
+Final product decision. Both violate rule 9: fractions by their answer type, Euclidean division by
+its composite answer (quotient + remainder, two input fields).
 
-Les deux dernières occurrences étaient moins graves (en release, un `Set` vide ou `min > max`
-plante `Random.nextInt()` avec un `RangeError` au lieu de corrompre un résultat) mais relevaient
-du même anti-pattern, et aucun test n'exerçait le cas invalide.
+## Native `ChangeNotifier` rather than provider / riverpod / bloc
 
-Corrigées à l'étape 4, parce que c'est elle qui les rend atteignables : tant que les bornes
-étaient des constantes écrites à la main, `OperandRange` était valide par construction. Dès
-qu'elles sont calculées à partir d'un niveau, un cas invalide devient réel.
+One active controller over three sequential screens does not justify a package.
+**Reopen when** online play brings concurrent network streams (duel state, opponent presence).
 
-Promu en règle 13 plutôt que corrigé une troisième fois au cas par cas.
+## `sqflite` rather than `drift`
 
-## Les niveaux sont un cache recalculable, pas une source de vérité
+Hand-written schema, no code generation or build_runner in the loop.
+**Reopen if** the analytical queries of the learning layer (Phase 4) become painful by hand.
 
-Ce qui est stocké peut être reconstruit intégralement à partir de l'historique des réponses.
-Deux conséquences. Le serveur pourra recalculer le niveau lui-même au lieu de croire le client —
-sans quoi n'importe qui annonce 700 au classement général. Et la fonction de mise à jour du
-niveau appartient au domaine pur, comme le `Scorer`, avec une signature qui accepte une liste de
-réponses : c'est ce qui rendra la recalibration des paramètres possible sur données réelles.
+## Web persistence: SQLite in WebAssembly (`sqflite_common_ffi_web`)
 
-Ce qui est stocké **avec chaque session**, en revanche, ce sont les niveaux figés au moment du
-jeu — pas la « difficulté ». C'est le couple (seed, niveaux) qui permet au serveur de régénérer
-la séquence pour revalider un duel. Les niveaux étant par opération, un JSON par session plutôt
-qu'un scalaire. Première vraie migration de schéma du projet : `schemaVersion` → 2, `onUpgrade`
-enfin non vide.
+Until 17 Nov 2026, `InMemorySessionRepository` was the web fallback: a reload erased everything.
+Chosen: `sqflite_common_ffi_web` — SQLite compiled to WebAssembly, run in a shared worker, database
+stored in the browser's IndexedDB. **Same `SqfliteSessionRepository`, same schema, same
+migrations** as on mobile, where plain `sqflite` replaces it (rule 16).
 
-## La difficulté n'est pas un réglage utilisateur
+Rejected: a hand-written repository on `localStorage` (~5 MB quota, quickly reached with one row
+per answer) or directly on IndexedDB (a second implementation of every query); `drift`.
 
-Options écartées : un sélecteur global facile/moyen/difficile, ou un réglage indépendant par
-type. Les deux contredisent la sémantique du niveau — si le joueur choisit sa difficulté, le
-niveau ne mesure plus sa compétence et le classement général perd son sens. Il n'y a donc aucun
-contrôle de difficulté dans l'UI.
+Cost: two generated files in `web/` (`sqlite3.wasm`, `sqflite_sw.js`, versioned) from
+`dart run sqflite_common_ffi_web:setup` — rerun with `--force` after upgrading the package.
+Missing, the app stops on a "web storage unavailable" screen rather than silently falling back to
+memory. The package is still labelled experimental by its author.
+**Reopen when** browser eviction loses real data before server upload exists, or the package
+stalls.
 
-## Le score reste un retour de session, le niveau reste l'unité de classement
+## No `uuid` dependency
 
-Pondérer les points par difficulté est légitime : sans cela, progresser ne change rien au
-ressenti, ce qui démotive. Mais le score ne classe jamais — c'est le niveau qui classe. Deux
-chiffres qui racontent la même chose laissent le joueur sans savoir lequel regarder.
+A pure-Dart UUID v4 generator (`core/domain/persistence/uuid.dart`, ~15 lines, `Random.secure()`)
+is enough.
 
-## Pas de `List<int> operands` générique sur `Exercise`
+## `points_awarded` removed from `answers` (step 2)
 
-Envisagé pour absorber les variantes unaires (racine) et de futurs types exotiques.
-Abandonné : la règle 9 ferme la porte aux types exotiques, donc le gain serait nul, tandis
-que le coût serait de retoucher du code stable et de perdre le nommage métier des opérandes.
-`operands_json` couvre déjà le besoin côté stockage.
+Proposed in the initial plan, removed during implementation: it grew the change by touching
+`Scorer` and `AnswerResult`, both stable.
 
-## Fractions et divisions euclidiennes écartées du jeu
+## Useless RNG draw in `CompositeExerciseGenerator`
 
-Décision produit, définitive. Toutes deux violent la règle 9 : les fractions par leur type de
-réponse, la division euclidienne par sa réponse composite (quotient + reste, donc deux champs
-de saisie, gestion du focus, validation partielle). Conséquence : la colonne de réponse reste
-`INTEGER` et `TextInputType.number` reste l'unique mode de saisie.
+Reusing `ArithmeticExerciseGenerator` with a one-element list still calls `random.nextInt(1)`
+(always 0). Deterministic and harmless, but **removing it would change every sequence for a given
+seed**. If fixed one day, it must be an isolated commit, with the determinism references
+regenerated in the same commit.
 
-## `ChangeNotifier` natif plutôt que provider / riverpod / bloc
+## Android-only workarounds (Phase 8)
 
-Un seul contrôleur actif sur trois écrans séquentiels ne justifie pas un package.
-**Rouvrir quand** le multijoueur introduira des flux réseau concurrents (état du duel,
-présence de l'adversaire).
+- Verify Android with `flutter build apk --debug`, `adb install -r`, `adb shell am start`: an
+  attached `flutter run` disconnected five or six times.
+- `kotlin.incremental=false` works around a Windows Kotlin crash when the project and Gradle caches
+  are on different drive letters. Recheck on a clean machine or in CI before the first
+  `flutter build appbundle`.
 
-## `sqflite` plutôt que `drift`
+## Manual day/night toggle
 
-Schéma écrit à la main, pas de génération de code ni de build_runner dans la boucle.
-Le volume de requêtes ne justifie pas le coût d'outillage de `drift`.
-**Rouvrir si** les requêtes analytiques du moteur adaptatif deviennent pénibles à la main.
-
-## Pas de dépendance `uuid`
-
-Un générateur UUID v4 pure Dart (`core/domain/persistence/uuid.dart`, ~15 lignes,
-`Random.secure()`) suffit.
-
-## Persistance web : SQLite en WebAssembly (`sqflite_common_ffi_web`)
-
-Jusqu'au 2026-11-17, `InMemorySessionRepository` servait de repli sur web : un rechargement
-effaçait tout. Rouvert quand le web est devenu la seule plateforme de développement (émulateur
-inutilisable). Retenu : `sqflite_common_ffi_web` — SQLite compilé en WebAssembly, exécuté dans
-un worker partagé, base stockée dans l'IndexedDB du navigateur. **Même `SqfliteSessionRepository`,
-même schéma, mêmes migrations** que sur mobile : une seule implémentation à maintenir, déjà
-couverte par les tests du repository.
-
-Écartés : un repository web écrit à la main sur `localStorage` (quota ~5 Mo, vite atteint avec
-une ligne par réponse — granularité obligatoire) ou sur IndexedDB directement (seconde
-implémentation de toutes les requêtes, dont les agrégations SQL) ; `drift` (réécriture de la
-couche, voir plus haut).
-
-Coût : deux fichiers générés dans `web/` (`sqlite3.wasm`, `sqflite_sw.js`, versionnés) par
-`dart run sqflite_common_ffi_web:setup` — à relancer avec `--force` après une mise à jour du
-paquet. Absents, l'app s'arrête sur un écran « Stockage web indisponible » plutôt que de
-retomber en silence sur un stockage en mémoire. Paquet encore déclaré expérimental par son
-auteur ; acceptable tant que le web reste une cible de développement.
-
-## Pas de comptes utilisateurs pour l'instant
-
-Un backend avec comptes coûte incomparablement plus qu'un adaptateur de persistance local, et
-l'app aurait de toute façon besoin de persistance locale (jouabilité hors ligne). Le schéma
-est déjà prêt pour la synchro (`player_id`, UUID côté client, `synced_at`).
-**Quand ce sera le moment :** authentification anonyme d'abord (compte invisible, données
-sauvegardées), création de compte explicite seulement au passage sur un second appareil.
-Imposer une inscription à l'ouverture ferait fuir une part importante des joueurs.
-À noter : un public scolaire ou enfantin fait entrer le RGPD dans l'équation (consentement
-parental, conservation, suppression).
-
-## `points_awarded` retiré de la table `answers` (étape 2)
-
-Proposé au plan initial, retiré à l'implémentation : absent de la liste explicite des colonnes,
-et il faisait grossir le changement en retouchant `Scorer` et `AnswerResult`, tous deux stables.
-
-## Vérification Android : `build apk` + `adb`, pas `flutter run`
-
-`flutter run` resté attaché s'est déconnecté cinq à six fois au fil des étapes, sans raison
-apparente. La séquence fiable est `flutter build apk --debug`, puis `adb install -r` et
-`adb shell am start`. Purement environnemental, comme `kotlin.incremental=false`.
-
-## Tirage RNG inutile dans `CompositeExerciseGenerator`
-
-Réutiliser `ArithmeticExerciseGenerator` avec une liste à un seul élément fait quand même
-appeler `random.nextInt(1)` (toujours 0). Déterministe et sans conséquence fonctionnelle, mais
-c'est le signe que le générateur arithmétique n'expose pas de point d'entrée « une seule
-opération, pas de tirage ».
-
-Laissé en l'état volontairement : **le supprimer changerait toutes les séquences pour une seed
-donnée.** Si c'est corrigé un jour, ce doit être dans un commit isolé, avec les références de
-test de déterminisme régénérées dans le même commit.
-
-## `kotlin.incremental=false`
-
-Contourne un bug Windows : le compilateur Kotlin plante quand le projet et les caches Gradle
-sont sur des lettres de lecteur différentes (D: vs C:). Purement environnemental.
-**À revérifier** sur machine propre ou en CI avant le premier `flutter build appbundle`.
-
-## Bouton nuit/jour manuel
-
-`app.dart` fixait `themeMode: ThemeMode.system` avec un commentaire disant que le choix revenait
-au système, pas à un bouton dans l'app — un choix de code, jamais acté ici. Revenu dessus :
-bouton dans le coin de l'écran d'accueil (`doc/design.md` — emplacement déjà prévu pour
-profil/réglages), bascule persistée via `ThemeModeStore` (même schéma que `TypeSelectionStore` :
-interface dans `core/domain/`, implémentation `SharedPreferences` dans `infrastructure/`). Tant
-que rien n'est enregistré, le thème système reste le défaut — le bouton ne fait que le
-remplacer une fois actionné.
-
-## Niveau global : plancher à 1 pour les types non joués
-
-`averageLevel` faisait la moyenne des seuls types déjà joués — un joueur qui n'a joué qu'à 2
-types sur 7 affichait un niveau global gonflé par l'absence des 5 autres. Corrigé avec
-`overallLevel` (`presentation/level_summary.dart`, depuis déplacé dans
-`core/domain/leveling/overall_level.dart`, voir plus bas) : moyenne sur les 7 types, plancher 1 pour un
-type jamais joué (pas 0, hors du domaine valide `[1, 100]` de `LevelCacheEntry`).
-
-Effet de bord direct : la « Variation (30 j) » de l'écran de progression comparait ce chiffre
-(cache live, potentiellement 7 types) à un instantané de session ancien (1-2 types touchés ce
-jour-là) — une échelle différente à chaque bord de la comparaison, invisible avant le plancher
-mais devenue trompeuse avec lui. Corrigé en comparant deux instantanés de session de même
-échelle (la plus récente et la plus ancienne de la fenêtre de 30 jours) plutôt que le cache live
-à un instantané — `averageLevel` (non modifiée) reste l'outil pour ce genre de comparaison
-session-à-session ; `overallLevel` est réservé au chiffre affiché comme « niveau global ».
-
-## Courbe du Profil : niveau global enregistré après chaque session (schéma v3)
-
-Remplace la comparaison « instantané contre instantané » de la section précédente, qui gardait
-deux défauts : chaque point de la courbe était le niveau *d'entrée* de la session (la dernière
-partie jouée n'apparaissait donc jamais), et il ne portait que sur les types joués ce jour-là
-(passer de l'addition à la multiplication ressemblait à une chute de niveau).
-
-Chaque session enregistre désormais `overall_level_after` : le niveau global (`overallLevel`, 7
-types, plancher 1) juste après elle, cache de niveaux mis à jour compris. La courbe trace cette
-valeur ; la variation sur 30 jours est l'écart entre son premier et son dernier point ; la
-variation d'une session dans la liste est l'écart avec la session précédente — exactement
-l'effet de la session, rien d'autre ne modifiant le cache entre deux parties.
-
-- `overallLevel` passe de `presentation/` à `core/domain/leveling/` : c'est maintenant une règle
-  de données (une valeur enregistrée), plus seulement d'affichage. `averageLevel`, qui ne
-  servait qu'à l'ancienne comparaison, est supprimée.
-- Colonne nullable, sans reconstitution pour les sessions déjà enregistrées : le niveau global
-  d'après dépend de tout le cache à cet instant, que l'historique ne permet pas de retrouver
-  fidèlement. Ces sessions sont simplement absentes de la courbe.
-- Cache illisible au moment de l'enregistrement : la session est écrite sans cette valeur,
-  plutôt que perdue.
-
-## Enregistrement raté : « Réessayer l'enregistrement »
-
-L'écran de résultat signalait déjà une partie non enregistrée ; il propose maintenant de rejouer
-l'écriture (`SessionController.retryPersistence`). Même session, mêmes ids : `recordSession` est
-atomique, un échec n'a rien laissé, donc rien ne peut être écrit deux fois. Pas de file d'attente
-en arrière-plan : l'échec est local (stockage plein ou bloqué), une file en mémoire disparaîtrait
-au rechargement sans rien garantir de plus. La reprise côté serveur (tranche 3) s'appuiera sur
-`synced_at`, déjà présent sur chaque ligne.
+A corner button on the Play screen, persisted through `ThemeModeStore` (interface in
+`core/domain/`, `SharedPreferences` implementation in `infrastructure/`). Until something is stored,
+the system theme stays the default — the button only overrides it once used.

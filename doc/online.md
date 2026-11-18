@@ -1,152 +1,129 @@
-# Mode en ligne — Math Trainer
+# Online — Math Trainer
 
-Comptes, classement général, duels et Elo. **Non chargé automatiquement** — lis-le avant tout
-travail touchant aux comptes, au réseau, ou à `infrastructure/backend/` (à venir). Comme les
-autres docs de ce dossier, le code fait foi en cas de divergence.
+Accounts, server, leaderboard, duels and rating. **Not loaded automatically** — read it before any
+work on accounts, the network, `infrastructure/backend/` or the server. The product direction
+lives in `doc/plan.md` (sections 6.3 to 6.5 and the roadmap); this file holds the technical
+detail and the state of the code. Where the two disagree, the plan wins.
 
-Ce fichier documente une **direction validée**, pas un état livré : rien de ce qui suit n'existe
-encore dans le code tant que l'étape 6 n'a pas commencé.
+## Phasing
 
-## Phasage
+| When | What | State |
+|---|---|---|
+| Step 6, slice 1 | Email/password sign-up and sign-in | done (`0d884c1`) |
+| Step 6, slice 2 | Mandatory sign-in, player name, Profile tab | done (`7400f9b`) |
+| Phase 1 | Anonymous-first, existing accounts migrated, account deletion, real SMTP | planned |
+| Phase 2 | Monorepo, Dart server, session upload, replay validation, leaderboard | planned |
+| Phase 7 | Ghost duels, Glicko-2, friend challenges; live duels on owner decision | planned |
 
-- **Étape 6, tranche 1 (livrée)** — création de compte et connexion (email/mot de passe),
-  sans classement ni synchronisation.
-- **Étape 6, tranche 2 (courante)** — connexion obligatoire pour utiliser l'app, nom de joueur,
-  onglet Progression renommé Profil.
-- **Étape 6, tranche 3** — classement solo entre tous les joueurs de l'app, synchronisation des
-  réponses, service Dart de validation serveur.
-- **Étape 7** — matchs en ligne synchronisés (mêmes questions, en même temps) et Elo. S'appuie
-  sur l'infrastructure posée à l'étape 6 sans la refondre.
+The old "slice 3" (leaderboard, sync, validation service) is Phase 2 of the plan.
 
-### Connexion obligatoire (tranche 2) — révision du principe offline-first
+## Current state (step 6, slices 1–2)
 
-Décision explicite de l'utilisateur, qui revient sur « local = source de vérité en solo,
-utilisable sans compte » (`CLAUDE.md`, stratégie de données). Nuance importante, confirmée dans
-la discussion : **la connexion obligatoire ne veut pas dire réseau obligatoire à chaque
-lancement.** Supabase persiste la session localement (comme `TypeSelectionStore`/`ThemeModeStore`
-le font déjà pour d'autres préférences) — un joueur déjà connecté au moins une fois retrouve sa
-session sans réseau au lancement suivant, et continue de jouer hors ligne normalement. La porte
-d'entrée ne bloque que deux cas : aucune session locale n'a jamais existé sur cet appareil, ou le
-joueur s'est explicitement déconnecté. Dans ces deux cas seulement, une connexion réseau est
-nécessaire pour (re)passer la porte.
+- Supabase client in `infrastructure/backend/`, behind `AccountRepository`/`ProfileRepository`
+  (`core/domain/account/`). The Supabase SDK is never imported outside `infrastructure/` and
+  `composition_root.dart`.
+- **Sign-in is mandatory** (`AuthGate`). This is the current behaviour, **not the direction**:
+  the plan replaces it with anonymous-first in Phase 1 (section 6.3). Supabase persists the
+  session locally, so a player who has signed in once plays offline afterwards; only a fresh
+  browser or an explicit sign-out needs the network.
+- Email confirmation is **off** in the Supabase project for development: the default mailer only
+  sends to organisation members. Phase 1 turns it on with a real SMTP sender and a site URL.
 
-### Nom de joueur (tranche 2)
+### Player name
 
-Nouvelle table Postgres `profiles` (`id` référence `auth.users.id`, `display_name`) plutôt que
-`user_metadata` sur l'utilisateur Auth : `user_metadata` n'est pas conçu pour être lisible par
-les autres joueurs, alors qu'un nom de joueur doit l'être (RLS : lecture publique, écriture
-restreinte à son propre profil) — et c'est exactement la table dont la tranche 3 (classement)
-aura besoin pour afficher un nom à côté d'un niveau. Domaine : `ProfileRepository` (même schéma
-que `AccountRepository`), dans `core/domain/account/`.
+Postgres table `profiles` (`id` references `auth.users.id`, `display_name`) rather than Auth
+`user_metadata`: `user_metadata` is not designed to be readable by other players, while a player
+name must be (RLS: public read, write restricted to one's own row) — and it is the table the
+leaderboard needs to show a name next to a level.
 
-Schéma et RLS versionnés dans `supabase/profiles.sql` (idempotent, à exécuter dans l'éditeur
-SQL du projet). Pas de trigger de création à l'inscription : la ligne naît au premier nom choisi
-(`upsert`), et une ligne absente se lit comme « aucun nom choisi » (`maybeSingle`) — une pièce
-mobile de moins côté serveur. Nom limité à 30 caractères (contrainte `check`, même borne dans
-le dialogue de saisie).
+Schema and RLS versioned in `supabase/profiles.sql` (idempotent, run by hand in the project's SQL
+editor). No sign-up trigger: the row is created by the first chosen name (`upsert`), and a missing
+row reads as "no name chosen" (`maybeSingle`). Name limited to 30 characters (`check` constraint,
+same bound in the input dialog). Player names are public content: a name filter and a report
+action come before the leaderboard opens (Phase 2, commit 7).
 
-Cohérent avec `CLAUDE.md` : « pas d'abstraction pour un seul cas d'usage » — l'étape 6 ne
-construit pas de scaffolding de matchmaking par anticipation.
+### Identity: `playerId` is the account id
 
-## Backend : Supabase
+Decision of 17 Nov 2026, replacing the initial approach that kept the device UUID
+(`LocalPlayerIdProvider`) as `playerId` and linked the account server-side. With that approach two
+accounts on the same browser shared levels and history.
 
-Postgres (agrégations natives pour un classement/ladder — `ORDER BY`, fenêtres, plus adapté
-qu'un magasin document pour ce genre de requêtes) et Auth intégrée. Choix déjà pressenti dans
-`CLAUDE.md` avant cette étape ; confirmé ici.
+- On sign-in, `AuthGate` swaps the device id for the account id (`environmentForAccount`): screens
+  only ever read and write under the account.
+- Games played under the device id are adopted by the first account that signs in on that device
+  (`SessionRepository.transferPlayerData`): one transaction rewriting `player_id` in `sessions` and
+  `player_levels` — `answers` follow through `session_id`. Never a merge: if the account already
+  has data on the device, nothing is adopted.
+- For upload (Phase 2), a local row carries the id that RLS checks (`auth.uid()`) directly, with no
+  mapping table.
+- Anonymous-first (Phase 1) keeps this: an anonymous Supabase user has an id from the first launch,
+  and linking an email keeps the same id, hence the same history.
 
-**Ne jamais importer le SDK Supabase en dehors de `infrastructure/`** (règle 3, même principe que
-`sqflite`/`shared_preferences`) : le domaine ne connaît que des interfaces abstraites.
+## Backend: Supabase + a Dart server
 
-## Validation serveur : pourquoi pas les Edge Functions Supabase
+Supabase provides Auth and Postgres (native aggregations, `ORDER BY` and window functions suit
+rankings). **Supabase never computes a level.**
 
-Règle 1 de `CLAUDE.md` : le cœur métier doit rester « réexécutable côté serveur ». Ça ne concerne
-pas que les duels — le classement solo aussi, puisque « les niveaux sont un cache... recalculés
-à partir de l'historique des réponses » (stratégie de données, `CLAUDE.md`). Un classement public
-qui fait confiance à un niveau envoyé tel quel par le client est trivialement trichable.
+Supabase Edge Functions run Deno/TypeScript; the pure-Dart core cannot run there, and duplicating
+`LevelUpdater`/`Scorer` in TypeScript would mean two implementations to keep in sync — exactly what
+architecture rule 1 prevents. Hence a **separate Dart server** (`shelf`, in a container) that
+reuses the core unchanged. Its host and monthly budget are an owner decision (Phase 2, commit 2).
 
-Les Edge Functions Supabase tournent en Deno/TypeScript — `core/domain` (Dart pur, zéro
-dépendance Flutter, conçu explicitement pour tourner hors de l'app) ne peut pas s'y exécuter tel
-quel. Dupliquer `LevelUpdater`/`Scorer` en TypeScript introduirait deux implémentations à
-maintenir en synchronisation, exactement ce que la règle 1 cherche à éviter.
+Code layout, from Phase 2 commit 1: monorepo `app/` (the Flutter app), `packages/math_core/` (the
+pure-Dart core, imported by both sides through a path dependency), `server/`.
 
-**Décision : un petit service Dart dédié** (probablement `package:shelf`, à trancher au moment du
-plan concret), hébergé à part (Cloud Run, Fly.io ou équivalent — pas encore choisi), qui réutilise
-`core/domain` sans modification pour recalculer niveau et score à partir des réponses soumises.
-Supabase reste la source pour l'authentification et le stockage (Postgres), mais n'est jamais
-celui qui calcule un niveau — seul le service Dart écrit une entrée de classement validée.
+The Supabase service-role key exists only on the server, never in the app nor in the repo.
 
-Conséquence structurelle : `core/domain` (ou `core/` entier) devra être extractible par un service
-qui n'est pas l'app Flutter. La forme exacte (package Dart pur séparé importé par les deux côtés
-via un chemin local, vs monorepo avec un dossier `server/` à côté de `lib/`) est un détail
-d'implémentation à trancher dans le plan concret de l'étape 6, pas ici — mais c'est la contrainte
-qui doit guider ce choix.
+## Data flow (Phase 2)
 
-## Flux de données (étape 6)
+1. The player plays solo exactly as today; local storage stays the source of truth for solo play.
+2. After every finished or interrupted session, the session and its answers go into an offline
+   upload queue with retries. The endpoint is idempotent on the session id; `syncedAt` (already on
+   every row) marks what has been accepted.
+3. The server regenerates the exercises from the seed and the frozen levels with the same core,
+   rechecks every answer, replays the level updates and writes the validated rows. A mismatch is
+   rejected and flagged.
+4. The leaderboard reads only server-written levels; everyone reads it, only the server writes it.
 
-1. Le joueur joue en solo, exactement comme aujourd'hui — rien ne change dans
-   `SessionController`/`SessionRepository` local. Le local reste la source de vérité pour
-   l'expérience solo (offline-first, `CLAUDE.md`).
-2. En tâche de fond, l'app synchronise les `PersistedAnswer` dont `syncedAt` est encore `null`
-   (champ déjà présent dans le modèle, prévu pour ça depuis la règle 6) vers le service de
-   validation.
-3. Le service Dart rejoue le calcul de niveau (`LevelUpdater`/`LevelCacheOrchestrator`, code
-   inchangé) sur l'historique reçu, et écrit le niveau validé dans Postgres.
-4. Le classement général lit exclusivement les niveaux validés côté serveur — jamais une valeur
-   poussée directement par un client.
+## Rankings (Phase 2)
 
-## Identité : compte vs `playerId` local
+- Ranked on **level**: one overall board, one board per operation. Ordered on the continuous level
+  value, displayed as an integer.
+- **Eligibility**: a minimum number of sessions per operation and play within the last 30 days.
+  Inactive players leave the board; their level never decays.
+- **Default view**: the player's percentile plus the five players above and below; top 100 in a
+  second tab; friends later. No weekly leagues in v1.
+- **Anti-cheat**: replay stops forged results, not a calculator in solo play. Implausible timing
+  (multi-digit answers under ~300 ms, unnaturally flat times) is flagged for review, never
+  auto-banned.
 
-**Le `playerId` est l'id du compte Supabase** (décision du 17/11/2026, qui remplace l'approche
-initiale). L'approche initiale gardait l'UUID local de l'appareil (`LocalPlayerIdProvider`) comme
-`playerId` et associait le compte à cet id côté serveur — pensée pour un joueur qui jouerait des
-semaines en solo avant de créer un compte. La connexion obligatoire (tranche 2) a retiré ce cas,
-et l'approche avait un défaut réel : deux comptes sur le même navigateur partageaient niveaux et
-historique.
+Open, to settle in the Phase 2 plan: exact table schema, minimum sessions for eligibility.
 
-- Dès la connexion, `AuthGate` remplace l'id de l'appareil par l'id du compte
-  (`environmentForAccount`) : les écrans ne lisent et n'écrivent jamais que sous le compte.
-- Les parties jouées sous l'id de l'appareil (avant ce changement) reviennent au premier compte
-  qui s'y connecte (`SessionRepository.transferPlayerData`) : une seule transaction qui réécrit
-  `player_id` dans `sessions` et `player_levels` — `answers` suit par `session_id`. Jamais de
-  fusion : si le compte a déjà des données sur l'appareil, rien n'est repris.
-- Pour la synchro (tranche 3), une ligne locale porte donc directement l'id que vérifiera la RLS
-  (`auth.uid()`), sans table d'association.
+## Online play (Phase 7)
 
-## Étape 7 (anticipé, pas implémenté)
+- **v1 — ghost duels**: race a real player's recorded run, replayed live at its original pace.
+  Needs nobody else online; the interface says so plainly.
+- **Duel configuration differs from solo**: fixed quotas per type, difficulty from the rating
+  bracket, never from either player's levels; 10 questions, 3–4 types. Same seed and duel
+  configuration give identical questions on both sides (architecture rule 2).
+- **Rating: Glicko-2**, server-side only, provisional for the first ~10 duels. Rating and level are
+  two numbers on two screens.
+- **v2 — friend challenges**: a link, same seed, 48 hours to answer.
+- **v3 — live duels**, only when the owner decides that concurrency allows queues under ~20 s. Each
+  client times its questions locally and reports results — no shared live clock, so the network
+  never touches per-question timing. A player who drops is replaced by their recorded progress,
+  then their ghost.
+- Duel results and ratings are computed by the server only.
 
-Direction retenue lors de la discussion :
+Nothing in this section is built before Phase 7; it exists so that Phase 1 and 2 choices do not
+have to be undone.
 
-- **Elo initial depuis le niveau solo** — sous-évalué volontairement, avec un rating provisoire
-  (K-factor élevé) sur les premières parties en ligne, qui converge ensuite. Même principe que le
-  rating provisoire des échecs (FIDE/chess.com).
-- **Matchmaking par bande d'Elo**, élargie si aucun adversaire n'est trouvé rapidement. Le niveau
-  des questions envoyées au générateur existant (`CompositeExerciseGenerator`) se dérive de
-  l'Elo apparié, pas des niveaux individuels de chaque joueur.
-- **Synchronisation en direct** — les deux joueurs reçoivent les mêmes questions en même temps.
-  Demande un canal temps réel (écouteurs Postgres/Realtime de Supabase plutôt que des WebSockets
-  maison) pour l'état de la partie (qui a répondu, score en cours). Risque principal : la
-  synchronisation réseau ne doit jamais interférer avec le timing local de chaque question (le
-  jeu se vend sur la vitesse, à la milliseconde) — chaque client chronomètre localement et
-  rapporte un résultat, il n'y a pas d'horloge partagée en direct.
-- **Résultat de match et Elo mis à jour côté serveur uniquement**, via le même service Dart de
-  validation — jamais calculé ou décidé par un client.
+## Settled decisions
 
-Rien de tout ça n'est construit à l'étape 6. Ce paragraphe existe pour que les choix de l'étape 6
-(comptes, service de validation, découpage Supabase) n'aient pas à être défaits quand l'étape 7
-arrivera.
-
-## Décisions actées
-
-- Modèle d'inscription : email/mot de passe (tranche 1).
-- Connexion obligatoire pour utiliser l'app, session persistée localement — pas de réseau requis
-  à chaque lancement pour un joueur déjà connecté (tranche 2, voir plus haut).
-- Nom de joueur via une table `profiles` dédiée, pas `user_metadata` (tranche 2, voir plus haut).
-- `playerId` = id du compte ; parties de l'appareil reprises par le premier compte connecté (voir
-  « Identité » plus haut).
-
-## Points ouverts (à trancher dans le plan concret de la tranche 3)
-
-- Forme exacte de l'extraction de `core/domain` pour le service Dart (package séparé vs dossier
-  `server/` du même repo).
-- Hébergement du service Dart (Cloud Run, Fly.io, autre).
-- Schéma Postgres précis de la table de classement, fréquence de synchronisation des réponses.
+- Email/password sign-in (slice 1); Google sign-in later (plan, section 6.3).
+- Player name in a dedicated `profiles` table, not `user_metadata`.
+- `playerId` = account id; device games adopted by the first account that signs in.
+- Dart server for validation, never Supabase Edge Functions; monorepo layout above.
+- Anonymous-first replaces mandatory sign-in (plan, section 6.3) — design to be approved by the
+  owner before Phase 1 commit 1.
+- Glicko-2 rather than Elo; ghost duels before live duels (plan, section 6.5).

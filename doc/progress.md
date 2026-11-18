@@ -1,0 +1,88 @@
+# Progress — Math Trainer
+
+Commit log by phase. One line per commit, appended after each commit (`CLAUDE.md`, "How a phase
+runs"). Commits before the plan of 18 Nov 2026 are grouped by the old step numbering; their
+messages are in French.
+
+## Before the plan (steps 1–6)
+
+### Step 0–1 — MVP and core tests (8 Aug 2026)
+- `4eb9634` Flutter scaffold and MVP.
+- `219ef83` Core tests consolidated, two fixes.
+- `dac997d` CLAUDE.md: state management, tree, dependencies, roadmap.
+
+### Step 2 — Local persistence (8 Aug)
+- `f28e2b6` SQLite via `sqflite` + `shared_preferences`.
+- `4d7b301` Docs.
+
+### Step 3 — Seven exercise types (8 Aug)
+- `2e9d921` A: answer contract `num` → `int`.
+- `e379b53` B: powers, square roots, percentages in the domain.
+- `e59da25` C: config and UI, exercise type selection.
+- `ba5606f` Docs.
+
+### Step 4 — Level system (10 Aug)
+- `8941d28` A: last `assert` → `throw` (rule 13).
+- `30c1c1e` B: level update in the pure domain.
+- `7ab7bc7` C: difficulty derived from the level.
+- `a7abe3a` D: levels persisted (schema v2).
+- `da32156` E: difficulty-weighted score, progress screen.
+
+### Step 4.1 — Fixes (10–11 Aug)
+- `1a316ee` A: guaranteed sampling. `e2f685c` B: endless spinners. `4f4c494` C: decoupled
+  session persistence. `2444c8c` D: `LevelCacheEntry`, `LevelCacheOrchestrator`. `fccf7e8` E:
+  recalibration script. `d64f9c2` Post-review fixes.
+
+### Step 5 — Visual direction "nuit électrique" (11–13 Aug)
+- `ea1d4cb` Docs (design, architecture, decisions).
+- `a726597` Central theme. `6018353` `Exercise.prompt` removed. `997a906` Maths rendering.
+  `30f8bb3` Built-in keypad. `99399fd` Navigation, progress screen, golden tests. `2bda9e2` Darker
+  dark palette. `88e5066` Docs.
+- `7373a26` Audit defects (PopScope, empty states). `6b3de21` Theme consistency. `1ebd42b`
+  Aggregated reads. `f72ea15` Result screen. `6968afc` Progress screen. `05eed02` Streak,
+  transitions, result golden.
+- `976df5c`, `98db14d`, `30d2fe9`, `93524c5` UX fixes: result clarity, persisted selection, dark
+  palette, day/night toggle, overall level over 7 types.
+
+### Step 4.2 — Session loop (12 Aug)
+- `1f8b891` A: volume-weighted step, `n_min` 8 → 4, `δ` 0.05 → 0.07 (not approved by the owner).
+- `010abe6` B: per-question timeout, interruption on abandonment.
+- `4791321` C: immediate replay. `d00c47a` Docs.
+
+### Step 6 — Accounts (13 Aug – 18 Nov)
+- `0d884c1` Slice 1: sign-up and sign-in (Supabase).
+- `7400f9b` Slice 2: mandatory sign-in, player name, Profile tab; app working again on web.
+- `7de0d4a` Sign-in errors translated, failed name save reported.
+- `49f634b` Product review: physical keyboard, game lost on close, web feedback.
+- `94e785f` Levels and history bound to the account.
+- `b1ff31c` Profile curve on the overall level after each game; retry a failed save.
+- `18fb220` Web persistence: SQLite in WebAssembly (IndexedDB).
+
+State at the plan: 49 commits, 176 core tests / 328 in total.
+
+## Phase 0 — Stabilise and build the web pipeline
+
+- **Commit 0** *(C)* — Docs aligned with `doc/plan.md` and moved to English: `CLAUDE.md`,
+  `doc/online.md`, `doc/decisions.md`, `doc/architecture.md`, `doc/design.md`; this file created;
+  `doc/plan.md` committed. Owner decisions recorded: English everywhere, Android not a concern until
+  Phase 8. Checkpoint: the owner reads the docs.
+
+### Remaining contradictions after commit 0 (for the owner)
+
+Points where `doc/plan.md` and reality disagree; the plan is the owner's to update.
+
+1. **Language.** Section 1 says "French-speaking audience first" and the old `CLAUDE.md` said "UI
+   in French"; the owner has since chosen English everywhere, interface included.
+2. **`δ`.** Section 4 says "`δ` possibly not widened when `n_min` went 8 → 4". It was widened to
+   0.07 in `1f8b891`; what remains open is whether 0.07 is right (commit 5).
+3. **Branch.** Section 5 says "every push to `main`". The local branch has been renamed from
+   `master` to `main`; the repo has no GitHub remote yet (section 10, owner action), which blocks
+   commits 1 and 2.
+4. **Commit 0 as a checkpoint.** It is *(C)*, but no preview URL exists before commit 2; treated as
+   "the owner reads the docs".
+5. **Android in CI.** The owner does not care about Android for now; the plan keeps a compile-only
+   Android build in CI (commit 1) as a guardrail. Kept unless the owner drops it.
+
+Code that does not yet follow the plan, already scheduled: mandatory sign-in versus "offline first"
+(Phase 1); one timestamp shared by all answers of a game (commit 4); correct answer not shown after
+an error (commit 9).

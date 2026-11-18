@@ -1,219 +1,211 @@
 # Design — Math Trainer
 
-Direction visuelle et règles d'interface. **Non chargé automatiquement** — lis-le avant tout
-travail sur `presentation/` ou sur le thème.
+Visual direction and interface rules. **Not loaded automatically** — read it before any work on
+`presentation/` or on the theme. `doc/plan.md` (section 6.2) names this file as the authority on
+palette, typography, notation, layout and durations.
 
-Principe directeur : le jeu se vend sur la vitesse. Tout ce qui ralentit la lecture, déplace un
-élément ou demande un geste supplémentaire est un défaut, pas un détail. La sobriété n'est pas
-une esthétique ici, c'est une contrainte fonctionnelle — l'opération doit être la seule chose
-que l'œil accroche.
+Guiding principle: the game sells on speed. Anything that slows reading, moves an element or asks
+for an extra gesture is a defect, not a detail. Restraint is not an aesthetic here, it is a
+functional constraint — the operation must be the only thing the eye catches.
 
-## Direction retenue : « nuit électrique »
+## Chosen direction: "nuit électrique"
 
-Registre compétitif assumé, cohérent avec la trajectoire du produit (classement, Elo, duels).
+An openly competitive register, consistent with the product's path (leaderboard, ratings, duels).
+The direction keeps its original French name.
 
-### Palette — mode sombre (défaut)
+### Palette — dark mode (default)
 
-| Rôle | Hex | Usage |
+| Role | Hex | Use |
 |---|---|---|
-| Fond | `#101528` | canvas de tous les écrans |
-| Surface | `#1B2340` | cartes, touches du pavé, champs |
-| Bordure | `#2A3352` | séparateurs, piste du chrono |
-| Accent | `#5DCAA5` | action principale, chrono, saisie active, onglet actif |
-| Texte primaire | `#E6F1FB` | opération, chiffres, titres |
-| Texte secondaire | `#85B7EB` | libellés, métadonnées |
-| Texte discret | `#5A6B8C` | onglets inactifs, indications |
+| Background | `#101528` | canvas of every screen |
+| Surface | `#1B2340` | cards, keypad keys, fields |
+| Border | `#2A3352` | separators, timer track |
+| Accent | `#5DCAA5` | primary action, timer, active input, active tab |
+| Primary text | `#E6F1FB` | operation, digits, titles |
+| Secondary text | `#85B7EB` | labels, metadata |
+| Muted text | `#5A6B8C` | inactive tabs, hints |
 
-### Palette — mode clair (obligatoire, pas optionnel)
+### Palette — light mode (mandatory, not optional)
 
-Un jeu mobile se joue autant dehors qu'au lit. Le mode clair n'est pas une variante de confort.
+A mobile game is played outdoors as much as in bed. Light mode is not a comfort variant.
 
-| Rôle | Hex |
+| Role | Hex |
 |---|---|
-| Fond | `#F4F6FB` |
+| Background | `#F4F6FB` |
 | Surface | `#FFFFFF` |
-| Bordure | `#D6DEEC` |
+| Border | `#D6DEEC` |
 | Accent | `#0F6E56` |
-| Texte primaire | `#101528` |
-| Texte secondaire | `#3E5170` |
-| Texte discret | `#7A8AA6` |
+| Primary text | `#101528` |
+| Secondary text | `#3E5170` |
+| Muted text | `#7A8AA6` |
 
-### Feedback juste / faux
+### Right / wrong feedback
 
-L'accent étant vert d'eau, **le vert ne peut pas signaler la bonne réponse** — il serait
-confondu avec la couleur d'action. Et de toute façon :
+The accent being sea-green, **green cannot signal a correct answer** — it would be confused with
+the action colour. And in any case:
 
-**Le feedback ne repose jamais sur la couleur seule.** Trois canaux simultanés, ~120 ms :
+**Feedback never relies on colour alone.** Simultaneous channels, ~120 ms:
 
-- **Juste** — flash blanc bref sur le champ de saisie, légère mise à l'échelle (1,0 → 1,06 → 1,0),
-  vibration très courte.
-- **Faux** — flash `#E24B4A`, secousse horizontale de faible amplitude, vibration plus longue.
+- **Right** — brief white flash on the input field, slight scale (1.0 → 1.06 → 1.0), very short
+  vibration where the platform has one.
+- **Wrong** — `#E24B4A` flash, low-amplitude horizontal shake, longer vibration where available.
 
-Aucun écran intermédiaire, aucun bouton « suivant », aucune pause au-delà de 150 ms. La question
-suivante arrive pendant que le flash s'éteint.
+Haptics are absent in Safari on iOS; colour + motion still satisfies the rule. Sound joins in
+Phase 5 (`doc/plan.md`, section 6.2).
 
-## Typographie
+**After a correct answer**: no intermediate screen, no "next" button, no pause beyond 150 ms. The
+next question arrives as the flash fades.
 
-`Inter` (ou `Roboto Flex` en repli). Deux graisses seulement : 400 pour le texte courant,
-500 pour les chiffres et les titres. Jamais 600 ou 700.
+**After a wrong answer or a timeout** (`doc/plan.md`, section 6.1; Phase 0, commit 9): the
+correct answer stays visible for about one second before the next question. This is the only
+pause the session allows — correcting an error is worth more than the second it costs, and
+correct answers keep the fast flow.
 
-**Chiffres tabulaires partout** (`FontFeature.tabularFigures()`). Sans cela, la réponse en cours
-de saisie se décale à chaque touche et l'œil décroche.
+## Typography
 
-| Élément | Taille |
+`Inter` (bundled in `assets/fonts/`, never fetched at runtime). Two weights only: 400 for running
+text, 500 for digits and titles. Never 600 or 700. A display typeface for digits is planned for
+Phase 5 (owner's choice).
+
+**Tabular figures everywhere** (`FontFeature.tabularFigures()`). Without them, the answer being
+typed shifts at every key and the eye loses its anchor.
+
+| Element | Size |
 |---|---|
-| Opération | 48 sp, poids 500 |
-| Réponse saisie | 32 sp, poids 500 |
-| Titres d'écran | 17 sp, poids 500 |
-| Libellés | 13 sp, poids 400 |
-| Métadonnées | 11 sp, poids 400 |
+| Operation | 48 sp, weight 500 |
+| Typed answer | 32 sp, weight 500 |
+| Screen titles | 17 sp, weight 500 |
+| Labels | 13 sp, weight 400 |
+| Metadata | 11 sp, weight 400 |
 
-## Notation mathématique
+## Mathematical notation
 
-Ces caractères sont non négociables — le trait d'union et l'accent circonflexe sont interdits.
+These characters are non-negotiable — the hyphen and the caret are forbidden.
 
-| Type | Rendu |
+| Type | Rendering |
 |---|---|
 | Addition | `47 + 68` |
-| Soustraction | `92 − 35` — vrai signe moins U+2212, jamais `-` |
-| Multiplication | `24 × 7` — U+00D7, jamais `x` |
-| Division | `96 ÷ 8` — U+00F7, jamais `/` |
-| Puissance | base pleine taille, exposant en position haute, ~55 % de la taille, jamais `^` |
-| Racine | `√` avec **barre horizontale au-dessus du radicande** — sans elle, `√169` se lit `√1` puis `69` |
-| Pourcentage | `25% de 80` — le mot est conservé |
+| Subtraction | `92 − 35` — true minus sign U+2212, never `-` |
+| Multiplication | `24 × 7` — U+00D7, never `x` |
+| Division | `96 ÷ 8` — U+00F7, never `/` |
+| Power | full-size base, raised exponent at ~55 % of the size, never `^` |
+| Square root | `√` with a **horizontal bar over the radicand** — without it, `√169` reads `√1` then `69` |
+| Percentage | `25% of 80` — the word is kept |
 
-L'exposant se rend avec `Text.rich` : un `TextSpan` pour la base, un span décalé vers le haut et
-réduit pour l'exposant. La barre de la racine est un simple `Border(top:)` sur le radicande.
+The exponent is rendered with `Text.rich`: one `TextSpan` for the base, a raised and reduced span
+for the exponent. The root bar is a plain `Border(top:)` on the radicand.
 
-### Conséquence sur le domaine
+The domain exposes no display string: the presentation layer composes the prompt from each
+variant's fields (`base`/`exponent`, `percent`/`base`, etc.). The word "of" in percentages lives
+in the presentation, the only translatable part of the notation.
 
-`Exercise.prompt` renvoyant une `String` **doit disparaître**. Un exposant en position haute
-n'est pas représentable dans une chaîne plate, et les caractères Unicode `²`/`³` s'arrêtent trop
-vite et rendent mal selon les polices.
+## Session screen
 
-L'affichage se compose dans la couche présentation à partir des champs de chaque variante
-(`base`/`exponent`, `percent`/`base`, etc.). Bénéfice : ça résout la dette documentée du texte
-français en dur dans `core/domain/`. Le domaine redevient purement mathématique ; le mot « de »
-des pourcentages vit dans la présentation, seul élément traduisible de l'ensemble.
+No navigation. Full screen over the tab bar — it frees room for a truly large operation and
+prevents leaving a game by aiming at a tab.
 
-## Écran de session
+Top to bottom: progress counter and **timer as a bar** (never as digits — a timer is not read
+while calculating, it is perceived; and the bar shows the time of **the question**, not of the
+session), type and level in muted text, the centred operation, the answer being typed below it,
+then the keypad.
 
-Aucune navigation. Plein écran par-dessus la barre d'onglets — ça libère la place pour une
-opération vraiment grande et évite qu'on quitte une partie en visant un onglet.
+## Built-in keypad
 
-De haut en bas : compteur de progression et **chrono en barre** (jamais en chiffres — on ne lit
-pas un chrono en calculant, on le perçoit ; et la barre représente le temps de **la question**,
-pas de la session), type et niveau en discret, l'opération centrée, la réponse en cours sous
-elle, puis le pavé.
+**Always visible, never the native keyboard.** The system keyboard hides the field and the timer,
+imposes an entrance animation, and offers useless keys.
 
-## Pavé numérique intégré
+Layout consequence to respect: **size the screen backwards** — keypad height fixed first, the
+operation takes what remains. Nothing then moves between two questions, and the eye stays anchored
+to the same spot for the whole session.
 
-**Toujours visible, jamais le clavier natif.** Le clavier système masque le champ et le chrono
-(piège documenté), impose une animation d'apparition, et propose des touches parasites.
+Layout: 1–9 on three rows, then a bottom row `backspace` / `0` / `validate`.
 
-Conséquence de disposition à respecter : **dimensionner l'écran à l'envers** — hauteur du pavé
-fixée d'abord, l'opération occupe ce qui reste. Rien ne bouge alors entre deux questions, et
-l'œil reste ancré au même endroit toute la session.
+- **Validate on the right**: the thumb side for most people, and the most frequent gesture of the
+  session — it must be the fastest.
+- **Backspace on the left**: rarer, so further away.
+- **No `−` key.** Associated product decision: subtraction never produces a negative result
+  (`operandA ≥ operandB`). If that decision changes, the keypad changes too.
 
-Disposition : 1–9 sur trois rangées, puis rangée basse `retour arrière` / `0` / `valider`.
-
-- **Validation à droite** : côté du pouce pour la majorité, et c'est le geste le plus fréquent
-  de la session — il doit être le plus rapide.
-- **Effacement à gauche** : plus rare, donc plus loin.
-- **Pas de touche `−`.** Décision produit associée : la soustraction ne produit jamais de
-  résultat négatif (`operandA ≥ operandB`). Les réponses négatives sont une source d'erreurs de
-  saisie sans intérêt pédagogique à ce stade. Si cette décision change un jour, le pavé change
-  aussi.
-
-**Clavier physique en parallèle du pavé** (web, ordinateur, tablette avec clavier) : chiffres de
-la rangée du haut *sans Maj* (touches physiques — en AZERTY elles produisent « & é " … »),
-pavé numérique, retour arrière, Entrée pour valider. Mêmes chemins que le pavé tactile, donc même
-chronométrage. Saisie plafonnée à 7 chiffres (plus longue réponse possible : 10⁵).
+**Physical keyboard alongside the keypad** (web, desktop, tablet with keyboard): top-row digits
+*without Shift* (physical keys — on AZERTY they produce "& é " …"), numeric keypad, backspace,
+Enter to validate. Same paths as the touch keypad, hence the same timing. Input capped at 7 digits
+(longest possible answer: 10⁵).
 
 ## Navigation
 
-**Barre d'onglets en bas**, quatre entrées : Jouer, En ligne, Profil, Classement.
+**Bottom tab bar**, four entries: Play, Online, Profile, Leaderboard. Online and Leaderboard are
+previews until Phases 2 and 7.
 
-Pas de tiroir latéral : deux gestes au lieu d'un, navigation cachée, et sur un grand téléphone
-il force le pouce vers le coin haut-gauche, le point le moins accessible. La barre basse reste
-visible, atteignable, et accueillera les pastilles de notification quand les duels arriveront.
+No side drawer: two gestures instead of one, hidden navigation, and on a large phone it pushes the
+thumb to the top-left corner, the least reachable spot. The bottom bar stays visible, reachable,
+and will carry notification badges when duels arrive.
 
-**Révision (étape 6, tranche 2) : l'onglet Progression devient Profil**, et porte désormais
-l'identité du joueur (nom de joueur, email, déconnexion) en plus des statistiques déjà présentes
-(niveau global, courbe, ventilation par opération, sessions récentes) — décision explicite de
-l'utilisateur, qui revient sur le principe initial (« pas un cinquième onglet », profil en icône
-de coin). Le bouton nuit/jour, lui, reste une icône de coin sur l'écran Jouer — décision
-indépendante, non concernée par cette révision.
+The Profile tab (formerly Progress) carries the player's identity (player name, email, sign-out)
+alongside the statistics — an explicit owner decision that replaced the original "no fifth tab,
+profile as a corner icon". The day/night toggle stays a corner icon on the Play screen.
 
 ## Animation
 
-Tempérament nerveux mais sans fantaisie. Aucun rebond, aucun `elasticOut`, aucune transition
-décorative.
+Snappy temperament, no whimsy. No bounce, no `elasticOut`, no decorative transition.
 
-| Élément | Durée | Courbe |
+| Element | Duration | Curve |
 |---|---|---|
-| Feedback réponse | 120 ms | `easeOut` |
-| Enfoncement d'une touche | 60 ms | `easeOut` |
-| Transition entre questions | ≤ 150 ms | `easeOut` |
-| Changement d'onglet | ≤ 200 ms | `easeInOut` |
-| Montée de niveau (écran progression) | 600 ms | `easeOutCubic` |
+| Answer feedback | 120 ms | `easeOut` |
+| Key press | 60 ms | `easeOut` |
+| Transition between questions | ≤ 150 ms | `easeOut` |
+| Tab change | ≤ 200 ms | `easeInOut` |
+| Level-up (result screen) | 600 ms | `easeOutCubic` |
 
-La montée de niveau est la seule animation qui a le droit de prendre son temps : c'est le moment
-émotionnel du solo, le seul endroit où le joueur regarde au lieu de réagir.
+The level-up is the only animation allowed to take its time: it is the emotional moment of solo
+play, the only place where the player watches instead of reacting.
 
-## Écran de résultat
+## Result screen
 
-C'est la conclusion de la session et le moment où le système de niveaux devient perceptible.
-Aujourd'hui il n'affiche ni le changement de niveau, ni la série, ni la composition du score.
+The end of the session and the moment the level system becomes visible.
 
-De haut en bas : **le changement de niveau en premier** (animation `AppMotion.levelUp`, 600 ms,
-la seule qui a le droit de prendre son temps), le score avec sa décomposition (base, bonus de
-vitesse, bonus de série, multiplicateur de difficulté), le décompte juste / faux / **hors délai
-distingués**, le temps moyen, la meilleure série, et les types joués.
+Top to bottom: **the level change first** (`AppMotion.levelUp`, 600 ms), the score with its
+breakdown (base, speed bonus, streak bonus, difficulty multiplier), right / wrong / **timed out
+counted separately**, average time, best streak, and the types played. From Phase 0 commit 9, the
+list of mistakes with their correct answers.
 
-Le taux de réussite s'affiche en décompte brut (« 9/12 »), jamais en courbe ni en pourcentage
-présenté comme un progrès.
+Accuracy is shown as a raw count ("9/12"), never as a curve nor as a percentage presented as
+progress.
 
-Deux actions, centrées : **Rejouer** (dominante, style rempli) et **Nouvelle sélection**. Envisager de porter
-les puces de types directement sur cet écran — changer un seul type coûte aujourd'hui 3 taps.
+Two centred actions: **Play again** (dominant, filled) and **New selection**. Worth considering:
+putting the type chips directly on this screen — changing a single type costs 3 taps today.
 
-## Écran de progression
+## Profile statistics
 
-Quatre blocs, du général au détail : niveau global avec sa variation récente ; courbe d'évolution
-du niveau sur 30 jours ; ventilation par opération (barre de niveau + **temps moyen**, qui dit au
-joueur où il est lent) ; sessions récentes avec score et variation de niveau. Courbe et variations
-portent toutes sur le niveau global après chaque session (`doc/decisions.md`) : la même échelle
-partout, quels que soient les types joués.
+Four blocks, from general to detailed: overall level with its recent change; 30-day level curve;
+breakdown per operation (level bar + **average time**, which tells the player where they are
+slow); recent games with score and level change. Curve and changes all use the overall level after
+each game (`doc/decisions.md`): one scale everywhere, whatever types were played.
 
-Les opérations jamais jouées apparaissent en état « non joué » plutôt que masquées — c'est ce qui
-rend visible ce que la sélection par défaut laisse de côté.
+Operations never played appear in a "not played" state rather than hidden — that is what makes
+visible what the default selection leaves out.
 
-## Règles de disposition
+## Layout rules
 
-- **Padding racine uniforme sur tous les écrans.** Trois valeurs différentes coexistent
-  aujourd'hui (`all(24)`, `fromLTRB(24,16,24,8)`, aucune).
-- **Un seul style de titre d'écran.** `headlineMedium` et `headlineSmall` coexistent.
-- **Tout `Text` cite un style de thème explicite.** Aucun style hérité par défaut.
-- **Hauteur du pavé en valeur fixe, jamais en ratio d'écran.** `0.38 * height` fait bouger la
-  mise en page d'un appareil à l'autre et contredit le principe de dimensionnement à l'envers.
-- **Un message d'erreur ne contient pas l'action.** Le texte décrit le problème, le bouton porte
-  l'action — une seule formulation partout, pas « Réessayez » tantôt dans le texte tantôt dans le
-  bouton.
-- **Un état désactivé explique pourquoi.** Un bouton grisé sans message (sélection de types vide)
-  laisse le joueur sans issue lisible.
+- **Uniform root padding on every screen** (`AppMetrics`).
+- **A single screen-title style.**
+- **Every `Text` names an explicit theme style.** No inherited default style.
+- **Keypad height as a fixed value, never a ratio of the screen.** A ratio moves the layout from
+  one device to another and contradicts sizing backwards.
+- **An error message does not contain the action.** The text describes the problem, the button
+  carries the action — one wording everywhere.
+- **A disabled state explains why.** A greyed button without a message (empty type selection)
+  leaves the player with no readable way out.
 
-## Règles d'implémentation
+## Implementation rules
 
-- **Aucune couleur, taille ou durée en dur dans un widget.** Tout passe par `ThemeData` et des
-  extensions de thème, consommées via `Theme.of(context)`.
-- `SafeArea` sur tous les écrans.
-- Les deux modes (clair et sombre) doivent être testés — un écran qui n'existe qu'en sombre est
-  un écran non terminé.
-- **Tests de golden** sur l'écran de session, l'écran de résultat et l'écran de progression,
-  dans les deux modes. C'est le seul filet contre les régressions visuelles.
-- **Aucune couleur Flutter littérale.** `Colors.black` en repli dans `exercise_prompt.dart`
-  produit une barre de racine invisible en mode sombre — le repli doit venir du thème.
-- **Aucun `SizedBox.shrink()` comme état d'écran.** Un écran vide est une impasse : message et
-  action de sortie obligatoires.
-- **Libellés centralisés**, sur le modèle de `exercise_type_labels.dart`. Pas urgent, mais chaque
-  chaîne littérale ajoutée dans un widget est une ligne de plus à reprendre à l'internationalisation.
+- **No colour, size or duration hard-coded in a widget.** Everything goes through `ThemeData` and
+  theme extensions, read via `Theme.of(context)`.
+- `SafeArea` on every screen.
+- Both modes (light and dark) must be tested — a screen that only exists in dark is unfinished.
+- **Golden tests** on the session screen, the result screen and the profile screen, in both modes.
+  They are the only net against visual regressions.
+- **No literal Flutter colour.** A fallback must come from the theme.
+- **No `SizedBox.shrink()` as a screen state.** An empty screen is a dead end: message and exit
+  action required.
+- **Centralised labels**, on the model of `exercise_type_labels.dart`. Every string literal added
+  in a widget is one more line to revisit at internationalisation.

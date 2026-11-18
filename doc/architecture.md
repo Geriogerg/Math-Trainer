@@ -1,148 +1,148 @@
 # Architecture — Math Trainer
 
-Document de référence, **non chargé automatiquement**. Les contraintes non négociables sont
-dans `CLAUDE.md` ; ce fichier décrit l'état des lieux et peut prendre du retard sur le code.
-En cas de divergence, le code fait foi.
+Reference document, **not loaded automatically**. The non-negotiable rules are in `CLAUDE.md`;
+this file describes the current state and may lag behind the code. Where they differ, the code is
+right — report the gap.
 
-## Arborescence
+## Tree
 
 ```
 lib/
-  main.dart                # runApp() — async, résout l'environnement avant ; ConfigErrorApp
-                           # si le build n'embarque pas la configuration Supabase
-  app.dart                 # MaterialApp, thème (clair/sombre/bascule persistée), AuthGate en racine
-  composition_root.dart    # seul fichier qui choisit les implémentations concrètes (AppEnvironment)
+  main.dart                # runApp() — async, resolves the environment first; ConfigErrorApp if
+                           # the build lacks the Supabase configuration or web storage fails
+  app.dart                 # MaterialApp, theme (light/dark/persisted toggle), AuthGate at the root
+  composition_root.dart    # the only file choosing concrete implementations (AppEnvironment)
   core/
-    domain/                # Dart pur — zéro import Flutter (règle 1)
+    domain/                # pure Dart — no Flutter import (rule 1)
       account/             # Account, AccountRepository, PlayerProfile, ProfileRepository (interfaces)
-      models/              # Exercise (sealed) et 4 variantes, ExerciseType, OperationType,
+      models/              # Exercise (sealed) and 4 variants, ExerciseType, OperationType,
                            # AnswerResult, SessionConfig, SessionResult
-      generation/          # ExerciseGenerator, CompositeExerciseGenerator, générateurs
-                           # par type, OperandRange, ExerciseSource, LocalExerciseSource,
+      generation/          # ExerciseGenerator, CompositeExerciseGenerator, per-type generators,
+                           # OperandRange, ExerciseSource, LocalExerciseSource,
                            # DebtAwareTypeSelectionStrategy, session_length.dart
-      difficulty/          # interpolation de niveau par type (arithmetic/power/square_root/percentage)
+      difficulty/          # level → operand bounds per type (arithmetic/power/square_root/percentage)
       leveling/            # LevelUpdater, LevelCacheOrchestrator, LevelingRules, Confidence,
-                           # AnswerOutcome — recalcule les niveaux à partir de l'historique ;
-                           # overall_level.dart (niveau global, aussi enregistré par session)
-      scoring/              # Scorer, ScoringRules
+                           # AnswerOutcome — recompute levels from history; overall_level.dart
+                           # (overall level, also stored per session)
+      scoring/             # Scorer, ScoringRules
       persistence/         # SessionRepository, LocalPlayerIdProvider, TypeSelectionStore,
                            # ThemeModeStore (interfaces), PersistedSession/PersistedAnswer,
                            # LevelCacheEntry, InMemorySessionRepository, uuid.dart, exercise_codec.dart
-    state/                 # SessionController (ChangeNotifier), SessionState — seul point
-                           # du cœur métier qui importe Flutter (foundation.dart seulement)
+    state/                 # SessionController (ChangeNotifier), SessionState — the only part of
+                           # the core importing Flutter (foundation.dart only)
   infrastructure/
-    persistence/           # SqfliteSessionRepository, database.dart (schéma + migrations),
-                           # SharedPreferences{PlayerIdProvider,TypeSelectionStore,ThemeModeStore}
-                           # — seul endroit qui importe sqflite / shared_preferences
-    backend/               # Supabase{Account,Profile}Repository — seul endroit qui importe
-                           # supabase_flutter (hors composition_root.dart)
+    persistence/           # SqfliteSessionRepository, database.dart (schema, migrations, web
+                           # engine), SharedPreferences{PlayerIdProvider,TypeSelectionStore,
+                           # ThemeModeStore} — the only place importing sqflite / shared_preferences
+    backend/               # Supabase{Account,Profile}Repository — the only place importing
+                           # supabase_flutter (besides composition_root.dart)
   presentation/
-    theme/                 # app_theme.dart — ColorScheme clair/sombre, AppPalette/AppMotion/AppMetrics
-    screens/               # AuthGate (connexion obligatoire) + AuthForm, AppShell (coquille à
-                           # onglets, IndexedStack), PlayTab (sélection + bouton nuit/jour),
-                           # SessionFlowScreen/SessionScreen (session plein écran), ResultScreen,
-                           # ProfileScreen (identité + progression, recharge à l'activation de
-                           # l'onglet), ComingSoonScreen, EmptyState, ConfigErrorApp
-    exercise_prompt.dart, exercise_type_labels.dart
+    theme/                 # app_theme.dart — light/dark ColorScheme, AppPalette/AppMotion/AppMetrics
+    screens/               # AuthGate (mandatory sign-in) + AuthForm, AppShell (tabbed shell,
+                           # IndexedStack), PlayTab (type selection + day/night toggle),
+                           # SessionFlowScreen/SessionScreen (full-screen session), ResultScreen,
+                           # ProfileScreen (identity + statistics, reloads when the tab is shown),
+                           # ComingSoonScreen, EmptyState, ConfigErrorApp
+    exercise_prompt.dart   # builds the displayed operation from the exercise's fields
+    exercise_type_labels.dart
 supabase/
-  profiles.sql             # table `profiles` + RLS, à exécuter dans l'éditeur SQL du projet
+  profiles.sql             # `profiles` table + RLS, run by hand in the project's SQL editor
+tool/
+  recalibrate.dart         # replays stored answers to tune the leveling constants (Phase 3)
 test/
-  domain/                  # miroir de core/domain — `dart test test/domain`
-  state/                   # SessionController — `flutter test` (ChangeNotifier tire dart:ui)
-  infrastructure/          # sqflite via sqflite_common_ffi, shared_preferences mocké ;
-                           # backend/ : vrai SupabaseClient, transport HTTP simulé (MockClient)
-  presentation/            # écrans + tests de golden (clair/sombre)
-  widget_test.dart         # smoke test + parcours démarrage → session, bascule de thème
+  domain/                  # mirrors core/domain — `dart test test/domain`
+  state/                   # SessionController — `flutter test` (ChangeNotifier pulls dart:ui)
+  infrastructure/          # sqflite via sqflite_common_ffi, shared_preferences mocked;
+                           # backend/: real SupabaseClient, simulated HTTP transport (MockClient)
+  presentation/            # screens + golden tests (light/dark)
+  widget_test.dart         # smoke test + startup → session flow, theme toggle
 ```
 
-## Mode en ligne (étape 6+)
+From Phase 2 commit 1 the repo becomes a monorepo (`app/`, `packages/math_core/`, `server/`, see
+`doc/online.md`).
 
-Comptes (tranches 1 et 2 de l'étape 6) : client Supabase dans `infrastructure/backend/`,
-derrière `AccountRepository`/`ProfileRepository`. `AuthGate` exige un compte connecté ; la
-session est persistée localement par Supabase, donc pas de réseau requis au lancement pour un
-joueur déjà connecté. Sur `ProfileScreen`, seul le nom de joueur passe par le réseau, chargé à
-part des statistiques locales : hors ligne, seule la ligne du nom est indisponible.
+## Online
 
-À venir (tranche 3, étape 7) : un service Dart séparé (hors de cette app Flutter) réutilisera
-`core/domain` pour la validation côté serveur. Direction et découpage dans `doc/online.md`.
+Accounts (step 6, slices 1–2): Supabase client in `infrastructure/backend/`, behind
+`AccountRepository`/`ProfileRepository`. `AuthGate` requires a signed-in account and swaps the
+device `playerId` for the account id (`environmentForAccount`). The session is persisted locally by
+Supabase, so no network is needed at launch for a player already signed in. On `ProfileScreen`,
+only the player name goes through the network, loaded separately from the local statistics.
 
-## Gestion d'état
+## State management
 
-`ChangeNotifier` natif (`flutter/foundation.dart`), sans package tiers. `SessionController`
-détient un `SessionState` immuable et notifie l'UI via `ListenableBuilder`. Depuis l'étape 2,
-il déclenche aussi l'écriture en base en fin de session — asynchrone, non bloquante pour l'UI,
-échec silencieux.
+Native `ChangeNotifier` (`flutter/foundation.dart`), no third-party package. `SessionController`
+holds an immutable `SessionState` and notifies the UI through `ListenableBuilder`. At the end of a
+session it writes the session, its answers and the level updates in one atomic `recordSession`,
+asynchronously, without blocking the UI. A failed write is reported on the result screen, which
+offers to retry it (`retryPersistence`, same ids — safe because the write is atomic).
 
-`SessionController.abandon()` (étape 5, commit A) délègue à `_interruptSession()`, déjà
-existante depuis l'étape 4.2 pour l'abandon automatique par timeouts — pas de nouvelle notion,
-juste un second déclencheur du même statut `interrupted`. `SessionFlowScreen` l'appelle depuis un
-`PopScope` qui intercepte la tentative de sortie tant que `status == inProgress` (`canPop` réévalué
-à chaque notification, donc placé à l'intérieur du `ListenableBuilder`) et demande confirmation
-avant d'abandonner.
+`SessionController.abandon()` delegates to `_interruptSession()`, also used for the automatic
+interruption after three silent timeouts: one `interrupted` status, two triggers.
+`SessionFlowScreen` calls it from a `PopScope` that intercepts leaving while
+`status == inProgress` and asks for confirmation.
 
 ## Composition root
 
-`lib/composition_root.dart` est le seul fichier qui choisit les implémentations concrètes
-(générateur, repository, backend). La base locale s'ouvre via `openAppDatabase()`
-(`infrastructure/persistence/database.dart`), qui choisit l'emplacement et, sur web, le moteur
-SQLite WebAssembly. Les écrans ne construisent
-plus aucun objet de domaine : ils observent le contrôleur qui en résulte.
+`lib/composition_root.dart` is the only file choosing concrete implementations (generator,
+repository, backend). The local database opens through `openAppDatabase()`
+(`infrastructure/persistence/database.dart`), which picks the location and, on web, the SQLite
+WebAssembly engine. Screens build no domain object: they observe the resulting controller.
 
-## Modèle d'exercice
+`buildSessionController(environment, enabledTypes)` reads the player's levels from the repository
+itself; if a third parameter ever appears, prefer a small configuration object.
 
-Deux enums, deux rôles distincts à ne pas confondre :
+## Exercise model
 
-- **`ExerciseType`** — axe de sélection d'une session, couvre tous les types du jeu.
-  Enhanced enum portant un `OperationType?` : les quatre valeurs arithmétiques référencent leur
-  opération, les autres portent `null`. Évite une table de correspondance séparée.
-- **`OperationType`** — strictement interne à `ArithmeticExercise`, décrit une opération
-  binaire (+ − × ÷). N'est jamais étendu pour un nouveau type d'exercice (règle 12).
+Two enums, two distinct roles:
 
-`Exercise` est une `sealed class` exposant `prompt`, `correctAnswer` (typé **`int`**),
-`isCorrectAnswer(int)` et `ExerciseType get type`. Chaque variante porte ses opérandes sous
-leur nom métier plutôt qu'une liste générique, et implémente `==` / `hashCode`.
+- **`ExerciseType`** — the selection axis of a session, covers every type of the game. An enhanced
+  enum carrying an `OperationType?`: the four arithmetic values reference their operation, the
+  others carry `null`.
+- **`OperationType`** — strictly internal to `ArithmeticExercise`, a binary operation (+ − × ÷).
+  Never extended for a new exercise type (rule 12).
 
-| Variante | Opérandes | Forme présentée |
+`Exercise` is a `sealed class` exposing `correctAnswer` (typed **`int`**),
+`isCorrectAnswer(int)` and `ExerciseType get type`. Each variant names its operands rather than
+holding a generic list, and implements `==` / `hashCode`. The domain exposes **no display string**:
+`presentation/exercise_prompt.dart` composes the prompt from the fields.
+
+| Variant | Operands | Displayed form |
 |---|---|---|
-| `ArithmeticExercise` | `operandA`, `operandB`, `OperationType` | `a + b`, `a - b`, `a × b`, `a ÷ b` |
-| `PowerExercise` | `base`, `exponent` | `a^n` |
-| `SquareRootExercise` | `radicand` (carré parfait) | `√a` |
-| `PercentageExercise` | `percent`, `base` | `p% de a` |
+| `ArithmeticExercise` | `operandA`, `operandB`, `OperationType` | `a + b`, `a − b`, `a × b`, `a ÷ b` |
+| `PowerExercise` | `base`, `exponent` | base with a raised exponent |
+| `SquareRootExercise` | `radicand` (perfect square) | `√a` with a bar over the radicand |
+| `PercentageExercise` | `percent`, `base` | `p% of a` |
 
-La réponse attendue est exposée par le domaine, jamais recalculée par l'UI ni par le `Scorer` :
-l'écran de session ne connaît qu'une saisie `int` et un booléen.
+The expected answer comes from the domain, never recomputed by the UI or the `Scorer`.
 
-Le stockage passe par `operands_json`, qui absorbe les variantes sans migration de schéma.
-Le discriminant stocké est le nom de la valeur d'`ExerciseType`.
+Storage goes through `operands_json`, which absorbs the variants without schema migration. The
+stored discriminant is the `ExerciseType` value name.
 
-Dette connue : `prompt` contient de la copie d'interface en français (« 25% de 80 ») dans le
-domaine pur. Sans conséquence aujourd'hui, à traiter à la première internationalisation.
+## Local schema (version 3)
 
-## Composition et paramètres
-
-`buildSessionController(environment, enabledTypes)` — un troisième paramètre (niveaux du joueur)
-arrive à l'étape 4. Deux paramètres nommés restent lisibles ; au troisième, préférer un petit
-objet de configuration plutôt que d'empiler les paramètres.
-
-`HomeScreen` porte la sélection des types (`_TypeSelectionView`). L'étape 4 n'y ajoute **pas** de
-contrôle de difficulté — celle-ci est dérivée du niveau, pas choisie. En revanche un écran de
-progression viendra s'ajouter ; si le fichier grossit, le scinder par vue.
-
-## Dépendances
-
-| Dépendance | Justification |
+| Table | Content |
 |---|---|
-| `flutter` (SDK) | obligatoire |
-| `cupertino_icons ^1.0.8` | ajoutée par `flutter create` — **non utilisée**, supprimable |
-| `flutter_test` (SDK, dev) | tests widgets |
-| `flutter_lints ^6.0.0` (dev) | lints du projet |
-| `test ^1.25.0` (dev) | permet `dart test` sur le cœur métier pur |
-| `sqflite` | SQLite local (règle 3), schéma écrit à la main |
-| `path` | jointure de chemin cross-platform pour localiser le `.db` |
-| `shared_preferences` | id local de l'appareil (reprise des parties d'avant les comptes) |
-| `sqflite_common_ffi_web` | même SQLite sur web (WebAssembly + IndexedDB), voir `doc/decisions.md` |
-| `sqflite_common_ffi` (dev) | tests du repository sur la Dart VM, sans émulateur |
-| `supabase_flutter` | Auth + Postgres pour le mode en ligne (étape 6, `doc/online.md`) — seul import hors de `infrastructure/backend/` |
+| `sessions` | id, player_id, seed, operation_types, exercise_count, total_score, levels_json (levels frozen at start), overall_level_after (nullable), created_at, synced_at |
+| `answers` | id, session_id, exercise_type, operation_type, operands_json, submitted_value, is_correct, elapsed_ms, created_at, synced_at |
+| `player_levels` | (player_id, exercise_type), level, sessions_played, updated_at — the level cache |
 
-L'étape 3 n'introduit aucune dépendance : puissances, carrés parfaits et pourcentages entiers
-se calculent en arithmétique entière avec `dart:core` seul.
+Known gaps: every answer of a session shares the session's `created_at` (Phase 0, commit 4);
+`submitted_value` is declared `REAL` although every answer is an `int` (stored as a float, read
+back with `toInt()`; worth aligning with the commit 4 migration).
+
+## Dependencies
+
+| Dependency | Reason |
+|---|---|
+| `flutter` (SDK) | required |
+| `cupertino_icons ^1.0.8` | added by `flutter create` — **unused**, removable |
+| `flutter_test` (SDK, dev) | widget tests |
+| `flutter_lints ^6.0.0` (dev) | project lints |
+| `test ^1.25.0` (dev) | `dart test` on the pure core |
+| `sqflite` | local SQLite (rule 3), hand-written schema |
+| `path` | cross-platform path joining for the `.db` |
+| `shared_preferences` | scalars: device id (adopting pre-account games), theme, type selection |
+| `sqflite_common_ffi_web` | the same SQLite on web (WebAssembly + IndexedDB); on mobile `sqflite` replaces it — see `doc/decisions.md` |
+| `sqflite_common_ffi` (dev) | repository tests on the Dart VM |
+| `supabase_flutter` | Auth + Postgres (`doc/online.md`) |
