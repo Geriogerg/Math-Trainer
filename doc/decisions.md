@@ -120,7 +120,7 @@ the result is multiplied by `K_haut` or `K_bas`, then by the confidence multipli
 | `f` | 0.30 | credit for a slow right answer; **temperament parameter** — towards 0.60 the game gets twitchier |
 | `K_haut` | 3.0 | rising speed |
 | `K_bas` | 1.5 | falling speed; 2:1 ratio on purpose |
-| `δ` | 0.07 | dead band; was 0.05 at `n_min` = 8 — **value not yet approved by the owner** (see below) |
+| `δ` | 0.07 | dead band; was 0.05 at `n_min` = 8 — checked in Phase 0 commit 5, kept, **awaiting the owner's confirmation** (see below) |
 | `Δ_max` | 3 | maximum move per session |
 | `n_min` | 4 | below this, a type's answers do not count for the session (noise) |
 | `K_calib` | ×4 over 3 sessions | initial calibration |
@@ -185,8 +185,40 @@ raises noise by about 40 %. A player exactly at the right level can score 4/4 th
 
 **`δ` must therefore widen** — the two parameters are coupled; never move one without the other.
 Commit `1f8b891` (12 Aug 2026) widened it from 0.05 to 0.07 as an indicative value. **The owner has
-not approved it**: `δ` is an owner decision (plan, section 8), checked against `n_min` = 4 in
-Phase 0 commit 5.
+not approved it**: `δ` is an owner decision (plan, section 8).
+
+### Check of Phase 0 commit 5 (`tool/delta_check.dart`)
+
+Simulated players (logistic model, two steepnesses `w` = 6 and 10, 2,000 players, seeded) run the
+real `LevelUpdater`. A model compares settings, it does not calibrate them. At equilibrium
+(oscillation = mean of (max − min) / 2 over 100 sessions; target ±2):
+
+| Setting | Oscillation (w 6 / w 10) | Sessions that move | Convergence from level 1 |
+|---|---|---|---|
+| original: `n` = 8, `δ` = 0.05 | ±1.5 / ±1.7 | 7 % | 60 / 89 sessions |
+| `n` = 4, `δ` = 0.05 | ±2.6 / ±3.2 | 29 % | 45 / 53 |
+| **`n` = 4, `δ` = 0.07 (current)** | **±2.4 / ±3.1** | 27 % | 45 / 53 |
+| `n` = 4, `δ` = 0.10 | ±2.2 / ±2.8 | 23 % | 49 / 56 |
+| `n` = 4, `δ` = 0.15 | frozen | 1 % | never |
+
+Findings:
+
+1. **`n_min` = 4 does jitter more than designed** (±2.4 against ±1.5), and over the ±2 target.
+2. **`δ` is a weak lever.** Going from 0.05 to 0.07 changes the oscillation by about 0.1 level. The
+   level is an integer and the change is rounded, which adds `0.5 / K` to the dead band: to move
+   one level at `n` = 4, `|mean p − p_cible|` must reach 0.237 upwards and 0.403 downwards — rising
+   needs a mean `p` of 0.94.
+3. **A cliff at `δ` ≈ 0.133**: mean `p` is at most 1.0, so the gap upwards is at most 0.30; with
+   `(0.30 − δ) × K_haut < 0.5` the level can never rise outside calibration. `δ` = 0.15 freezes it.
+4. **Convergence is far slower than its 10–20-session target** (45–90 sessions from level 1, for
+   every `δ`): outside calibration a session moves the level by at most one step upwards.
+
+**Recommendation: keep `δ` = 0.07**, awaiting the owner's confirmation. Widening further buys
+little and moves towards the cliff. The real levers are elsewhere and already planned: the
+placement test (Phase 1) for convergence, the continuous level value the leaderboard ranks on
+(plan, section 6.4) which removes the rounding dead band, and recalibration on real data
+(Phase 3).
+**Reopen when** Phase 3 recalibrates on real sessions, or a continuous level is stored.
 
 ## The number of questions is derived, not chosen
 

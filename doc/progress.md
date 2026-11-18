@@ -89,6 +89,12 @@ State at the plan: 49 commits, 176 core tests / 328 in total.
   already existed and was filled with the session's end time. `AnswerResult` gains `answeredAt`
   (UTC, refused otherwise), set when the answer is submitted or the time runs out, stored as the
   answer's `created_at`. Older rows keep their session time. `submitted_value REAL` left as is.
+- **Commit 5** *(A)* — `δ` checked against `n_min` = 4 with `tool/delta_check.dart` (simulated
+  players, real `LevelUpdater`). `δ` was widened (0.07); no new value proposed — keeping 0.07 is
+  recommended, the owner confirms. Findings in `doc/decisions.md`: `n_min` = 4 oscillates ±2.4
+  levels against ±1.5 designed; integer rounding, not `δ`, dominates the dead band; `δ` ≥ 0.133
+  would freeze progress; convergence takes 45–90 sessions against a 10–20 target. Also: the last
+  French column headers of `tool/recalibrate.dart` translated.
 
 ### Remaining contradictions after commit 0
 

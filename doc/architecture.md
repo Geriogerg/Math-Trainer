@@ -49,6 +49,7 @@ supabase/
   profiles.sql             # `profiles` table + RLS, run by hand in the project's SQL editor
 tool/
   recalibrate.dart         # replays stored answers to tune the leveling constants (Phase 3)
+  delta_check.dart         # simulated players against LevelUpdater, compares δ / n_min settings
 test/
   domain/                  # mirrors core/domain — `dart test test/domain`
   state/                   # SessionController — `flutter test` (ChangeNotifier pulls dart:ui)

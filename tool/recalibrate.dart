@@ -53,7 +53,7 @@ Future<void> main(List<String> args) async {
   final baseTime = DateTime.utc(2026, 1, 1);
   for (final sweep in _sweeps) {
     print('== ${sweep.name} (default: ${sweep.defaultValue}) ==');
-    print('valeur\tconvergence (sessions)\toscillation (±niveaux)\tbiais (niveaux/session)');
+    print('value\tconvergence (sessions)\toscillation (±levels)\tbias (levels/session)');
     for (final candidate in sweep.candidates) {
       final rules = sweep.apply(defaultRules, candidate);
       final metrics = averageMetrics(trajectories, rules, baseTime);
