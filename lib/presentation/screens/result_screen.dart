@@ -35,8 +35,8 @@ class ResultScreen extends StatelessWidget {
     final result = controller.result;
     final status = controller.state.status;
     final title = status == SessionStatus.interrupted
-        ? 'Session interrompue'
-        : 'Session terminée';
+        ? 'Session interrupted'
+        : 'Session complete';
     final breakdown = result.scoreBreakdown;
     final labelStyle = theme.textTheme.bodyMedium;
 
@@ -69,23 +69,23 @@ class ResultScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                 ],
                 Text(
-                  'Score : ${result.totalScore}',
+                  'Score: ${result.totalScore}',
                   textAlign: TextAlign.center,
                   style: theme.textTheme.titleLarge,
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Base : ${breakdown.base}',
+                  'Base: ${breakdown.base}',
                   textAlign: TextAlign.center,
                   style: labelStyle,
                 ),
                 Text(
-                  'Bonus de vitesse : ${breakdown.speedBonus}',
+                  'Speed bonus: ${breakdown.speedBonus}',
                   textAlign: TextAlign.center,
                   style: labelStyle,
                 ),
                 Text(
-                  'Bonus de série : ${breakdown.streakBonus}',
+                  'Streak bonus: ${breakdown.streakBonus}',
                   textAlign: TextAlign.center,
                   style: labelStyle,
                 ),
@@ -94,7 +94,7 @@ class ResultScreen extends StatelessWidget {
                 // majorité des sessions des premières semaines n'apprend rien.
                 if (breakdown.difficultyBonus != 0)
                   Text(
-                    'Bonus de difficulté : ${breakdown.difficultyBonus}',
+                    'Difficulty bonus: ${breakdown.difficultyBonus}',
                     textAlign: TextAlign.center,
                     style: labelStyle,
                   ),
@@ -103,34 +103,34 @@ class ResultScreen extends StatelessWidget {
                 // (`doc/design.md`) : le taux de réussite converge vers p_cible par
                 // construction, il ne mesure plus rien (`doc/decisions.md`).
                 Text(
-                  '${result.correctCount} justes · ${result.wrongCount} fausses · '
-                  '${result.timeoutCount} hors délai',
+                  '${result.correctCount} right · ${result.wrongCount} wrong · '
+                  '${result.timeoutCount} timed out',
                   textAlign: TextAlign.center,
                   style: labelStyle,
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Temps moyen : ${result.averageElapsedMs.round()} ms',
+                  'Average time: ${result.averageElapsedMs.round()} ms',
                   textAlign: TextAlign.center,
                   style: labelStyle,
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Meilleure série : ${result.bestStreak}',
+                  'Best streak: ${result.bestStreak}',
                   textAlign: TextAlign.center,
                   style: labelStyle,
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Types joués : ${controller.config.enabledTypes.map(exerciseTypeLabel).join(', ')}',
+                  'Types played: ${controller.config.enabledTypes.map(exerciseTypeLabel).join(', ')}',
                   textAlign: TextAlign.center,
                   style: labelStyle,
                 ),
                 if (controller.persistenceFailed) ...[
                   const SizedBox(height: 16),
                   Text(
-                    'Partie non enregistrée : elle ne compte ni dans '
-                    "l'historique ni pour les niveaux.",
+                    'Game not saved: it does not count in '
+                    'your history or your levels.',
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.error,
@@ -144,7 +144,7 @@ class ResultScreen extends StatelessWidget {
                     onPressed: controller.isRetryingPersistence
                         ? null
                         : controller.retryPersistence,
-                    child: const Text("Réessayer l'enregistrement"),
+                    child: const Text('Retry saving'),
                   ),
                 ],
                 const SizedBox(height: 32),
@@ -156,7 +156,7 @@ class ResultScreen extends StatelessWidget {
                   children: [
                     TextButton(
                       onPressed: onExitToSelection,
-                      child: const Text('Nouvelle sélection'),
+                      child: const Text('New selection'),
                     ),
                     const SizedBox(width: 16),
                     FilledButton(
@@ -167,7 +167,7 @@ class ResultScreen extends StatelessWidget {
                               height: 16,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : const Text('Rejouer'),
+                          : const Text('Play again'),
                     ),
                   ],
                 ),
@@ -213,7 +213,7 @@ class _LevelChangeRow extends StatelessWidget {
 
     if (updates == null) {
       return Text(
-        '$label — niveau $before',
+        '$label — level $before',
         textAlign: TextAlign.center,
         style: style,
       );
@@ -225,7 +225,7 @@ class _LevelChangeRow extends StatelessWidget {
       // rien à animer — distinct de « évalué, niveau inchangé » (le joueur
       // ne peut pas faire la différence si les deux cas rendent pareil).
       return Text(
-        '$label — niveau $before (pas assez de réponses pour compter)',
+        '$label — level $before (not enough answers to count)',
         textAlign: TextAlign.center,
         style: style,
       );
@@ -237,7 +237,7 @@ class _LevelChangeRow extends StatelessWidget {
       duration: motion.duration,
       curve: motion.curve,
       builder: (context, value, _) => Text(
-        '$label — niveau ${value.round()}',
+        '$label — level ${value.round()}',
         textAlign: TextAlign.center,
         style: style,
       ),

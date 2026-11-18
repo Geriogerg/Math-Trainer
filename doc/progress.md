@@ -66,6 +66,8 @@ State at the plan: 49 commits, 176 core tests / 328 in total.
   `doc/online.md`, `doc/decisions.md`, `doc/architecture.md`, `doc/design.md`; this file created;
   `doc/plan.md` committed. Owner decisions recorded: English everywhere, Android not a concern until
   Phase 8. Checkpoint: the owner reads the docs.
+- *Owner request, outside the plan* — Interface text in English: every screen, the web page
+  title and description, tests and golden images.
 
 ### Remaining contradictions after commit 0 (for the owner)
 

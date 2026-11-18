@@ -55,18 +55,18 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Quitter la partie ?'),
+        title: const Text('Quit the game?'),
         content: const Text(
-          'La session sera interrompue. Les réponses déjà données restent enregistrées.',
+          'The session will be interrupted. Answers already given stay saved.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Annuler'),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Quitter'),
+            child: const Text('Quit'),
           ),
         ],
       ),
@@ -105,7 +105,7 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
         _isRestarting = false;
         // Pas de « Réessayez. » : le bouton Rejouer, redevenu actif, porte
         // déjà l'action (`doc/design.md`).
-        _restartError = 'Impossible de relancer une session.';
+        _restartError = 'Could not start a new session.';
       });
     }
   }
@@ -123,8 +123,8 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
             body: SafeArea(
               child: switch (status) {
                 SessionStatus.notStarted => EmptyState(
-                  message: 'Session non démarrée.',
-                  actionLabel: 'Quitter',
+                  message: 'Session not started.',
+                  actionLabel: 'Quit',
                   onAction: () => Navigator.of(context).maybePop(),
                 ),
                 SessionStatus.inProgress => SessionScreen(controller: _controller),

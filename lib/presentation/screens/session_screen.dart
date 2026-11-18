@@ -170,8 +170,8 @@ class _SessionScreenState extends State<SessionScreen> with TickerProviderStateM
     final exercise = state.currentExercise;
     if (exercise == null) {
       return EmptyState(
-        message: 'Aucune question à afficher.',
-        actionLabel: 'Quitter',
+        message: 'No question to show.',
+        actionLabel: 'Quit',
         onAction: () => Navigator.of(context).maybePop(),
       );
     }
@@ -203,8 +203,8 @@ class _SessionScreenState extends State<SessionScreen> with TickerProviderStateM
                     // à chaque première question (`doc/decisions.md` —
                     // currentStreak affiché pendant la session).
                     state.currentStreak > 0
-                        ? '${exerciseTypeLabel(exercise.type)} · niveau $level · série ${state.currentStreak}'
-                        : '${exerciseTypeLabel(exercise.type)} · niveau $level',
+                        ? '${exerciseTypeLabel(exercise.type)} · level $level · streak ${state.currentStreak}'
+                        : '${exerciseTypeLabel(exercise.type)} · level $level',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.extension<AppPalette>()!.textMuted,
                     ),
@@ -360,11 +360,11 @@ class _NumericKeypad extends StatelessWidget {
           child: Row(
             children: [
               Expanded(
-                child: _KeypadKey(icon: Icons.backspace_outlined, semanticLabel: 'Effacer', onTap: onBackspace),
+                child: _KeypadKey(icon: Icons.backspace_outlined, semanticLabel: 'Backspace', onTap: onBackspace),
               ),
               Expanded(child: _KeypadKey(label: '0', onTap: () => onDigit('0'))),
               Expanded(
-                child: _KeypadKey(icon: Icons.check, semanticLabel: 'Valider', onTap: onValidate, isPrimary: true),
+                child: _KeypadKey(icon: Icons.check, semanticLabel: 'Submit', onTap: onValidate, isPrimary: true),
               ),
             ],
           ),

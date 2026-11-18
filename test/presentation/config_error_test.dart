@@ -29,7 +29,7 @@ void main() {
       ConfigErrorApp.missingBackendConfig(['SUPABASE_PUBLISHABLE_KEY']),
     );
 
-    expect(find.text('Configuration manquante'), findsOneWidget);
+    expect(find.text('Missing configuration'), findsOneWidget);
     expect(find.textContaining('SUPABASE_PUBLISHABLE_KEY'), findsOneWidget);
     expect(
       find.textContaining('--dart-define-from-file=dart_defines.json'),
@@ -44,7 +44,7 @@ void main() {
       ConfigErrorApp.webStorageUnavailable('worker introuvable'),
     );
 
-    expect(find.text('Stockage web indisponible'), findsOneWidget);
+    expect(find.text('Web storage unavailable'), findsOneWidget);
     expect(
       find.textContaining('dart run sqflite_common_ffi_web:setup'),
       findsOneWidget,

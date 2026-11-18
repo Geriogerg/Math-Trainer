@@ -81,7 +81,7 @@ class SupabaseAccountRepository implements AccountRepository {
       if (account == null) {
         throw const AccountException(
           AccountFailure.unknown,
-          detail: 'session sans utilisateur ou sans email',
+          detail: 'session without a user or an email',
         );
       }
       return account;

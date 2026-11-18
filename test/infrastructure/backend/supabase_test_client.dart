@@ -5,7 +5,7 @@ import 'package:http/testing.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 const testUserId = '11111111-1111-4111-8111-111111111111';
-const testEmail = 'joueur@test.com';
+const testEmail = 'player@test.com';
 
 /// JWT non signé mais bien formé : gotrue lit `exp` dans la charge utile
 /// (`Session.expiresAt`) sans jamais vérifier la signature côté client.

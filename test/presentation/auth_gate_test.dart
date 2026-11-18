@@ -100,7 +100,7 @@ void main() {
       accountRepository.resolveSession(null);
       await tester.pumpAndSettle();
 
-      expect(find.text('Se connecter'), findsWidgets);
+      expect(find.text('Sign in'), findsWidgets);
       expect(find.byType(TextField), findsNWidgets(2));
     },
   );
@@ -114,9 +114,9 @@ void main() {
     accountRepository.resolveSession(null);
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextField).at(0), 'joueur@test.com');
+    await tester.enterText(find.byType(TextField).at(0), 'player@test.com');
     await tester.enterText(find.byType(TextField).at(1), 'motdepasse');
-    await tester.tap(find.widgetWithText(FilledButton, 'Se connecter'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Sign in'));
     await tester.pumpAndSettle();
 
     expect(find.text('Math Trainer'), findsOneWidget);
@@ -149,7 +149,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Profil'));
+      await tester.tap(find.text('Profile'));
       await tester.pumpAndSettle();
 
       rebuildParent(() {});
@@ -176,7 +176,7 @@ void main() {
 
     const accountA = Account(id: 'compte-a', email: 'a@test.com');
     const accountB = Account(id: 'compte-b', email: 'b@test.com');
-    const welcome = "La difficulté s'ajuste à tes réponses.";
+    const welcome = 'Difficulty adapts to your answers.';
 
     /// Partie jouée sous l'id local de l'appareil (`test-player`, celui de
     /// `pumpGate`), comme avant le passage aux comptes. Addition au niveau
@@ -212,7 +212,7 @@ void main() {
 
         accountRepository.resolveSession(accountA);
         await tester.pumpAndSettle();
-        expect(find.text('Niveau global : 7'), findsOneWidget);
+        expect(find.text('Overall level: 7'), findsOneWidget);
 
         accountRepository.resolveSession(null);
         await tester.pumpAndSettle();
@@ -224,7 +224,7 @@ void main() {
         await tester.pumpAndSettle();
         accountRepository.resolveSession(accountA);
         await tester.pumpAndSettle();
-        expect(find.text('Niveau global : 7'), findsOneWidget);
+        expect(find.text('Overall level: 7'), findsOneWidget);
       },
     );
 
@@ -236,7 +236,7 @@ void main() {
         await playOnDevice(environment);
         accountRepository.resolveSession(accountA);
         await tester.pumpAndSettle();
-        expect(find.text('Niveau global : 7'), findsOneWidget);
+        expect(find.text('Overall level: 7'), findsOneWidget);
 
         accountRepository.resolveSession(accountB);
         await tester.pumpAndSettle();

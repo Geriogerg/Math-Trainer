@@ -8,22 +8,22 @@ enum _AuthMode { signIn, signUp }
 /// Le message brut du serveur (anglais, pensé pour un développeur) n'apparaît
 /// que pour un échec non répertorié — seul indice disponible dans ce cas.
 String _describeError(Object error) {
-  if (error is! AccountException) return 'Erreur inattendue : $error';
+  if (error is! AccountException) return 'Unexpected error: $error';
   return switch (error.failure) {
-    AccountFailure.invalidCredentials => 'Email ou mot de passe incorrect.',
+    AccountFailure.invalidCredentials => 'Incorrect email or password.',
     AccountFailure.emailNotConfirmed =>
-      'Email pas encore confirmé — ouvre le lien reçu par mail, puis réessaie.',
+      'Email not confirmed yet — open the link in the email, then try again.',
     AccountFailure.emailAlreadyUsed =>
-      'Un compte existe déjà avec cet email. Connecte-toi plutôt.',
+      'An account already exists with this email. Sign in instead.',
     AccountFailure.weakPassword =>
       // Pas de longueur citée : le minimum se règle par projet Supabase.
-      'Mot de passe trop faible — choisis-en un plus long.',
-    AccountFailure.invalidInput => 'Adresse email invalide.',
+      'Password too weak — choose a longer one.',
+    AccountFailure.invalidInput => 'Invalid email address.',
     AccountFailure.rateLimited =>
-      'Trop de tentatives. Patiente quelques minutes avant de réessayer.',
+      'Too many attempts. Wait a few minutes before trying again.',
     AccountFailure.network =>
-      'Serveur injoignable. Vérifie ta connexion, puis réessaie.',
-    AccountFailure.unknown => 'Erreur inattendue : ${error.detail ?? '-'}',
+      'Server unreachable. Check your connection, then try again.',
+    AccountFailure.unknown => 'Unexpected error: ${error.detail ?? '-'}',
   };
 }
 
@@ -62,7 +62,7 @@ class _AuthFormState extends State<AuthForm> {
     final password = _passwordController.text;
     if (email.isEmpty || password.isEmpty) {
       setState(() {
-        _error = 'Renseigne l\'email et le mot de passe.';
+        _error = 'Enter your email and password.';
         _info = null;
       });
       return;
@@ -88,7 +88,7 @@ class _AuthFormState extends State<AuthForm> {
             _isSubmitting = false;
             _mode = _AuthMode.signIn;
             _info =
-                'Compte créé — vérifie ta boîte mail pour confirmer, puis connecte-toi.';
+                'Account created — check your inbox to confirm, then sign in.';
           });
           return;
         }
@@ -122,7 +122,7 @@ class _AuthFormState extends State<AuthForm> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  isSignUp ? 'Créer un compte' : 'Se connecter',
+                  isSignUp ? 'Create an account' : 'Sign in',
                   style: theme.textTheme.titleMedium,
                 ),
                 const SizedBox(height: 24),
@@ -153,7 +153,7 @@ class _AuthFormState extends State<AuthForm> {
                           if (!_isSubmitting) _submit();
                         },
                         decoration: const InputDecoration(
-                          labelText: 'Mot de passe',
+                          labelText: 'Password',
                         ),
                       ),
                     ],
@@ -168,7 +168,7 @@ class _AuthFormState extends State<AuthForm> {
                           height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : Text(isSignUp ? 'Créer le compte' : 'Se connecter'),
+                      : Text(isSignUp ? 'Create account' : 'Sign in'),
                 ),
                 const SizedBox(height: 8),
                 TextButton(
@@ -183,8 +183,8 @@ class _AuthFormState extends State<AuthForm> {
                         }),
                   child: Text(
                     isSignUp
-                        ? 'Déjà un compte ? Se connecter'
-                        : 'Pas de compte ? S\'inscrire',
+                        ? 'Already have an account? Sign in'
+                        : 'No account? Sign up',
                   ),
                 ),
                 if (_error != null) ...[

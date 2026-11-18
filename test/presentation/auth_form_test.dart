@@ -57,10 +57,10 @@ void main() {
   }) async {
     await tester.enterText(find.widgetWithText(TextField, 'Email'), email);
     await tester.enterText(
-      find.widgetWithText(TextField, 'Mot de passe'),
+      find.widgetWithText(TextField, 'Password'),
       password,
     );
-    await tester.tap(find.widgetWithText(FilledButton, 'Se connecter'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Sign in'));
     await tester.pump();
   }
 
@@ -72,9 +72,9 @@ void main() {
       );
       await pumpForm(tester, repository);
 
-      await submit(tester, email: 'joueur@test.com', password: 'faux');
+      await submit(tester, email: 'player@test.com', password: 'faux');
 
-      expect(find.text('Email ou mot de passe incorrect.'), findsOneWidget);
+      expect(find.text('Incorrect email or password.'), findsOneWidget);
       expect(find.textContaining('Raw server message'), findsNothing);
     },
   );
@@ -87,9 +87,9 @@ void main() {
       _RecordingAccountRepository(failure: AccountFailure.network),
     );
 
-    await submit(tester, email: 'joueur@test.com', password: 'secret');
+    await submit(tester, email: 'player@test.com', password: 'secret');
 
-    expect(find.textContaining('Serveur injoignable'), findsOneWidget);
+    expect(find.textContaining('Server unreachable'), findsOneWidget);
   });
 
   testWidgets('l\'email est envoyé sans les espaces ajoutées par le clavier', (
@@ -98,9 +98,9 @@ void main() {
     final repository = _RecordingAccountRepository();
     await pumpForm(tester, repository);
 
-    await submit(tester, email: ' joueur@test.com ', password: 'secret');
+    await submit(tester, email: ' player@test.com ', password: 'secret');
 
-    expect(repository.signInCalls, ['joueur@test.com']);
+    expect(repository.signInCalls, ['player@test.com']);
   });
 
   testWidgets('champ vide : message local, aucun appel au serveur', (
@@ -112,7 +112,7 @@ void main() {
     await submit(tester, email: '   ', password: 'secret');
 
     expect(repository.signInCalls, isEmpty);
-    expect(find.text('Renseigne l\'email et le mot de passe.'), findsOneWidget);
+    expect(find.text('Enter your email and password.'), findsOneWidget);
   });
 
   testWidgets('Entrée dans le mot de passe valide le formulaire', (tester) async {
@@ -121,15 +121,15 @@ void main() {
 
     await tester.enterText(
       find.widgetWithText(TextField, 'Email'),
-      'joueur@test.com',
+      'player@test.com',
     );
     await tester.enterText(
-      find.widgetWithText(TextField, 'Mot de passe'),
+      find.widgetWithText(TextField, 'Password'),
       'secret',
     );
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pump();
 
-    expect(repository.signInCalls, ['joueur@test.com']);
+    expect(repository.signInCalls, ['player@test.com']);
   });
 }

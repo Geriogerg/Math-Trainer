@@ -31,18 +31,18 @@ void main() {
       await tester.tap(find.text('Multiplication'));
       await tester.pump();
 
-      await tester.tap(find.text('Profil'));
+      await tester.tap(find.text('Profile'));
       // Une seule frame : le fondu (200 ms) est encore en cours, exactement
       // ce qu'on veut vérifier — pas de pumpAndSettle qui masquerait un
       // crash pendant la transition elle-même.
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 250));
 
-      // Pas `find.text('Profil')` : ambigu avec le libellé de
+      // Pas `find.text('Profile')` : ambigu avec le libellé de
       // l'onglet lui-même, présent en même temps dans l'arbre.
-      expect(find.text('Par opération'), findsOneWidget);
+      expect(find.text('By operation'), findsOneWidget);
 
-      await tester.tap(find.text('Jouer'));
+      await tester.tap(find.text('Play'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 250));
 

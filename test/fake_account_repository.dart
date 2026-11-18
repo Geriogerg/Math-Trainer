@@ -1,7 +1,7 @@
 import 'package:math_trainer/core/domain/account/account.dart';
 import 'package:math_trainer/core/domain/account/account_repository.dart';
 
-const _fakeAccount = Account(id: 'fake-account-id', email: 'joueur@test.com');
+const _fakeAccount = Account(id: 'fake-account-id', email: 'player@test.com');
 
 /// Pour les tests qui ne s'intéressent pas au compte — `AppEnvironment`
 /// exige `accountRepository` (pas de défaut concret, `composition_root.dart`),

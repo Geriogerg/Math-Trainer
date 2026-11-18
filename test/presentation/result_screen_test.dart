@@ -104,16 +104,16 @@ void main() {
 
     await pumpResultScreen(tester, controller);
 
-    expect(find.textContaining('Addition — niveau'), findsOneWidget);
-    expect(find.textContaining('Score : '), findsOneWidget);
-    expect(find.textContaining('Base : '), findsOneWidget);
-    expect(find.textContaining('Bonus de vitesse : '), findsOneWidget);
-    expect(find.textContaining('Bonus de série : '), findsOneWidget);
-    expect(find.textContaining('Bonus de difficulté : '), findsOneWidget);
-    expect(find.textContaining('4 justes · 0 fausses · 0 hors délai'), findsOneWidget);
-    expect(find.textContaining('Temps moyen : '), findsOneWidget);
-    expect(find.textContaining('Meilleure série : 4'), findsOneWidget);
-    expect(find.textContaining('Types joués : Addition'), findsOneWidget);
+    expect(find.textContaining('Addition — level'), findsOneWidget);
+    expect(find.textContaining('Score: '), findsOneWidget);
+    expect(find.textContaining('Base: '), findsOneWidget);
+    expect(find.textContaining('Speed bonus: '), findsOneWidget);
+    expect(find.textContaining('Streak bonus: '), findsOneWidget);
+    expect(find.textContaining('Difficulty bonus: '), findsOneWidget);
+    expect(find.textContaining('4 right · 0 wrong · 0 timed out'), findsOneWidget);
+    expect(find.textContaining('Average time: '), findsOneWidget);
+    expect(find.textContaining('Best streak: 4'), findsOneWidget);
+    expect(find.textContaining('Types played: Addition'), findsOneWidget);
     // Jamais de pourcentage présenté comme un progrès (`doc/design.md`).
     expect(find.textContaining('%'), findsNothing);
   });
@@ -143,7 +143,7 @@ void main() {
 
       await pumpResultScreen(tester, controller);
 
-      expect(find.textContaining('Bonus de difficulté'), findsNothing);
+      expect(find.textContaining('Difficulty bonus'), findsNothing);
     },
   );
 
@@ -176,11 +176,11 @@ void main() {
       await pumpResultScreen(tester, controller);
 
       expect(
-        find.text('Soustraction — niveau 50 (pas assez de réponses pour compter)'),
+        find.text('Subtraction — level 50 (not enough answers to count)'),
         findsOneWidget,
       );
       // L'addition, elle, a bien été évaluée : pas ce texte-là pour elle.
-      expect(find.textContaining('Addition — niveau 50 (pas assez'), findsNothing);
+      expect(find.textContaining('Addition — level 50 (not enough'), findsNothing);
     },
   );
 
@@ -206,8 +206,8 @@ void main() {
 
     await pumpResultScreen(tester, controller);
 
-    expect(find.text('Session interrompue'), findsOneWidget);
-    expect(find.textContaining('Addition — niveau'), findsNothing);
+    expect(find.text('Session interrupted'), findsOneWidget);
+    expect(find.textContaining('Addition — level'), findsNothing);
   });
 
   testWidgets('Rejouer et Nouvelle sélection déclenchent leurs callbacks respectifs', (
@@ -226,10 +226,10 @@ void main() {
       onExitToSelection: () => exitTapped = true,
     );
 
-    await tester.tap(find.text('Rejouer'));
+    await tester.tap(find.text('Play again'));
     expect(playAgainTapped, isTrue);
 
-    await tester.tap(find.text('Nouvelle sélection'));
+    await tester.tap(find.text('New selection'));
     expect(exitTapped, isTrue);
   });
 
@@ -244,7 +244,7 @@ void main() {
 
     await pumpResultScreen(tester, controller);
 
-    expect(find.textContaining('Partie non enregistrée'), findsOneWidget);
+    expect(find.textContaining('Game not saved'), findsOneWidget);
   });
 
   testWidgets('enregistrement réussi : aucun avertissement', (tester) async {
@@ -254,8 +254,8 @@ void main() {
 
     await pumpResultScreen(tester, controller);
 
-    expect(find.textContaining('Partie non enregistrée'), findsNothing);
-    expect(find.text("Réessayer l'enregistrement"), findsNothing);
+    expect(find.textContaining('Game not saved'), findsNothing);
+    expect(find.text('Retry saving'), findsNothing);
   });
 
   testWidgets("« Réessayer l'enregistrement » enregistre la partie et retire l'avertissement", (
@@ -287,12 +287,12 @@ void main() {
     await tester.pumpAndSettle();
 
     repository.failing = false;
-    await tester.tap(find.text("Réessayer l'enregistrement"));
+    await tester.tap(find.text('Retry saving'));
     await tester.pump();
     await tester.pump();
 
-    expect(find.textContaining('Partie non enregistrée'), findsNothing);
-    expect(find.text("Réessayer l'enregistrement"), findsNothing);
+    expect(find.textContaining('Game not saved'), findsNothing);
+    expect(find.text('Retry saving'), findsNothing);
     expect(await repository.recentSessions('test-player'), hasLength(1));
   });
 }

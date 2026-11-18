@@ -88,7 +88,7 @@ class _RecordingAccountRepository implements AccountRepository {
 
   @override
   Stream<Account?> get authState =>
-      Stream.value(const Account(id: 'test-account', email: 'joueur@test.com'));
+      Stream.value(const Account(id: 'test-account', email: 'player@test.com'));
 
   @override
   Future<Account?> signUp({required String email, required String password}) =>
@@ -157,8 +157,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Niveau 42'), findsOneWidget);
-      expect(find.text('Non joué'), findsNWidgets(6));
+      expect(find.text('Level 42'), findsOneWidget);
+      expect(find.text('Not played'), findsNWidgets(6));
       for (final type in ExerciseType.values) {
         expect(find.text(_labelFor(type)), findsOneWidget);
       }
@@ -189,7 +189,7 @@ void main() {
 
       await pump(false);
       await tester.pumpAndSettle();
-      expect(find.text('Non joué'), findsNWidgets(7));
+      expect(find.text('Not played'), findsNWidgets(7));
 
       await repository.recordSession(
         session: PersistedSession(
@@ -215,14 +215,14 @@ void main() {
       // Toujours inactif : pas de rechargement, la vue reste celle d'avant la session.
       await pump(false);
       await tester.pumpAndSettle();
-      expect(find.text('Non joué'), findsNWidgets(7));
+      expect(find.text('Not played'), findsNWidgets(7));
 
       // Transition inactif → actif : didUpdateWidget doit relancer le chargement.
       await pump(true);
       await tester.pumpAndSettle();
 
-      expect(find.text('Niveau 42'), findsOneWidget);
-      expect(find.text('Non joué'), findsNWidgets(6));
+      expect(find.text('Level 42'), findsOneWidget);
+      expect(find.text('Not played'), findsNWidgets(6));
     },
   );
 
@@ -246,8 +246,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Impossible de charger le profil.'), findsOneWidget);
-      expect(find.widgetWithText(FilledButton, 'Réessayer'), findsOneWidget);
+      expect(find.text('Could not load the profile.'), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'Retry'), findsOneWidget);
     },
   );
 
@@ -270,14 +270,14 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.text('Impossible de charger le profil.'), findsOneWidget);
+      expect(find.text('Could not load the profile.'), findsOneWidget);
 
       repository.shouldFail = false;
-      await tester.tap(find.widgetWithText(FilledButton, 'Réessayer'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Retry'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Impossible de charger le profil.'), findsNothing);
-      expect(find.text('Niveau 7'), findsOneWidget);
+      expect(find.text('Could not load the profile.'), findsNothing);
+      expect(find.text('Level 7'), findsOneWidget);
     },
   );
 
@@ -378,20 +378,20 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Profil'), findsOneWidget);
+      expect(find.text('Profile'), findsOneWidget);
       // (50 + 6 × 1 plancher pour les 6 types non joués) / 7 = 8.
-      expect(find.textContaining('Niveau global : 8'), findsOneWidget);
+      expect(find.textContaining('Overall level: 8'), findsOneWidget);
       // Niveau global après la première session de la fenêtre (36/7) puis
       // après la dernière (56/7) : 20/7 ≈ +3 — la dernière partie compte.
-      expect(find.textContaining('Variation (30 j) : +3'), findsOneWidget);
+      expect(find.textContaining('30-day change: +3'), findsOneWidget);
       // Effet de chacune des deux dernières sessions : 10/7 ≈ +1 ; la plus
       // ancienne n'a pas de session précédente à laquelle se comparer.
       expect(find.text('+1'), findsNWidgets(2));
       expect(
-        find.text('Pas assez de données sur les 30 derniers jours.'),
+        find.text('Not enough data for the last 30 days.'),
         findsNothing,
       );
-      expect(find.textContaining('Niveau 50 · 1500 ms'), findsOneWidget);
+      expect(find.textContaining('Level 50 · 1500 ms'), findsOneWidget);
       expect(find.textContaining('Score 70'), findsOneWidget);
       expect(find.textContaining('Score 60'), findsOneWidget);
       expect(find.textContaining('Score 50'), findsOneWidget);
@@ -417,8 +417,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Choisir un nom de joueur'), findsOneWidget);
-    expect(find.text('joueur@test.com'), findsOneWidget);
+    expect(find.text('Choose a player name'), findsOneWidget);
+    expect(find.text('player@test.com'), findsOneWidget);
   });
 
   // Régression : le nom (réseau) et les statistiques (locales) étaient lus
@@ -444,10 +444,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Impossible de charger le profil.'), findsNothing);
-      expect(find.text('Par opération'), findsOneWidget);
-      expect(find.text('joueur@test.com'), findsOneWidget);
-      expect(find.text('Nom de joueur indisponible'), findsOneWidget);
+      expect(find.text('Could not load the profile.'), findsNothing);
+      expect(find.text('By operation'), findsOneWidget);
+      expect(find.text('player@test.com'), findsOneWidget);
+      expect(find.text('Player name unavailable'), findsOneWidget);
       expect(find.byIcon(Icons.edit_outlined), findsNothing);
 
       profileRepository
@@ -481,7 +481,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Alex'), findsOneWidget);
-    expect(find.text('Choisir un nom de joueur'), findsNothing);
+    expect(find.text('Choose a player name'), findsNothing);
   });
 
   testWidgets(
@@ -507,7 +507,7 @@ void main() {
       await tester.tap(find.byIcon(Icons.edit_outlined));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField), 'Nouveau nom');
-      await tester.tap(find.widgetWithText(FilledButton, 'Enregistrer'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
       await tester.pumpAndSettle();
 
       expect(profileRepository.displayName, 'Nouveau nom');
@@ -540,10 +540,10 @@ void main() {
       await tester.tap(find.byIcon(Icons.edit_outlined));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField), 'Nouveau nom');
-      await tester.tap(find.widgetWithText(FilledButton, 'Enregistrer'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Nom non enregistré'), findsOneWidget);
+      expect(find.textContaining('Name not saved'), findsOneWidget);
       expect(find.text('Alex'), findsOneWidget);
     },
   );
@@ -566,7 +566,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Se déconnecter'));
+    await tester.tap(find.text('Sign out'));
     await tester.pumpAndSettle();
 
     expect(accountRepository.signOutCalled, isTrue);
@@ -575,10 +575,10 @@ void main() {
 
 String _labelFor(ExerciseType type) => switch (type) {
   ExerciseType.addition => 'Addition',
-  ExerciseType.subtraction => 'Soustraction',
+  ExerciseType.subtraction => 'Subtraction',
   ExerciseType.multiplication => 'Multiplication',
   ExerciseType.division => 'Division',
-  ExerciseType.power => 'Puissances',
-  ExerciseType.squareRoot => 'Racines carrées',
-  ExerciseType.percentage => 'Pourcentages',
+  ExerciseType.power => 'Powers',
+  ExerciseType.squareRoot => 'Square roots',
+  ExerciseType.percentage => 'Percentages',
 };

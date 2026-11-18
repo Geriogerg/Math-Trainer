@@ -134,7 +134,7 @@ flutter build web --dart-define-from-file=dart_defines.json
 ```
 
 `dart_defines.json` (not versioned; template `dart_defines.example.json`) holds the Supabase URL
-and public key. Without it the app shows "Configuration manquante".
+and public key. Without it the app shows "Missing configuration".
 
 ## Pitfalls (append when you find a new one)
 
@@ -147,7 +147,7 @@ and public key. Without it the app shows "Configuration manquante".
 - `dart test` without the `test/domain` scope fails (it picks up widget tests).
 - `web/sqlite3.wasm` and `web/sqflite_sw.js` come from `dart run sqflite_common_ffi_web:setup`
   (versioned); rerun with `--force` after upgrading `sqflite_common_ffi_web` or `sqlite3`. Missing →
-  "Stockage web indisponible".
+  "Web storage unavailable".
 - **Always web port 8080**: Supabase session, `playerId`, theme and type selection live in
   `localStorage`, scoped to the origin including the port.
 - The Supabase `profiles` table comes from `supabase/profiles.sql`, run by hand in the SQL editor.

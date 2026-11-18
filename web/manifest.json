@@ -5,7 +5,7 @@
     "display": "standalone",
     "background_color": "#101528",
     "theme_color": "#101528",
-    "description": "Calcul mental compétitif : la difficulté s'ajuste à tes réponses.",
+    "description": "Competitive mental math: difficulty adapts to your answers.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

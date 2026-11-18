@@ -78,18 +78,18 @@ void main() {
       await tester.pump();
 
       // Première question : aucune série encore.
-      expect(find.textContaining('série'), findsNothing);
-      expect(find.text('Addition · niveau 12'), findsOneWidget);
+      expect(find.textContaining('streak'), findsNothing);
+      expect(find.text('Addition · level 12'), findsOneWidget);
 
       controller.submitAnswer(2); // 1 + 1, correct
       await tester.pump();
 
-      expect(find.text('Addition · niveau 12 · série 1'), findsOneWidget);
+      expect(find.text('Addition · level 12 · streak 1'), findsOneWidget);
 
       controller.submitAnswer(4); // 2 + 2, correct
       await tester.pump();
 
-      expect(find.text('Addition · niveau 12 · série 2'), findsOneWidget);
+      expect(find.text('Addition · level 12 · streak 2'), findsOneWidget);
 
       controller.submitAnswer(0); // 3 + 3, faux : la série retombe
       await tester.pump();

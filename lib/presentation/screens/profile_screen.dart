@@ -163,7 +163,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Nom non enregistré — vérifie ta connexion et réessaie.',
+            'Name not saved — check your connection and try again.',
           ),
         ),
       );
@@ -178,8 +178,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return EmptyState(
-            message: 'Impossible de charger le profil.',
-            actionLabel: 'Réessayer',
+            message: 'Could not load the profile.',
+            actionLabel: 'Retry',
             onAction: () => setState(_load),
           );
         }
@@ -201,7 +201,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return ListView(
           padding: theme.extension<AppMetrics>()!.rootPadding,
           children: [
-            Text('Profil', style: theme.textTheme.titleMedium),
+            Text('Profile', style: theme.textTheme.titleMedium),
             const SizedBox(height: 24),
             FutureBuilder<PlayerProfile>(
               future: _profile,
@@ -221,22 +221,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 24),
             Text(
-              'Niveau global : ${globalLevel == null ? '—' : globalLevel.round()}',
+              'Overall level: ${globalLevel == null ? '—' : globalLevel.round()}',
               style: theme.textTheme.titleLarge,
             ),
             const SizedBox(height: 4),
             Text(
               windowStart == null || windowEnd == null
-                  ? 'Variation (30 j) : —'
-                  : 'Variation (30 j) : ${_formatDelta(windowEnd - windowStart)}',
+                  ? '30-day change: —'
+                  : '30-day change: ${_formatDelta(windowEnd - windowStart)}',
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 24),
-            Text('Évolution (30 jours)', style: theme.textTheme.bodyMedium),
+            Text('Last 30 days', style: theme.textTheme.bodyMedium),
             const SizedBox(height: 8),
             _LevelCurve(sessions: data.windowSessions, now: data.now),
             const SizedBox(height: 24),
-            Text('Par opération', style: theme.textTheme.bodyMedium),
+            Text('By operation', style: theme.textTheme.bodyMedium),
             const SizedBox(height: 8),
             for (final type in ExerciseType.values)
               _OperationRow(
@@ -245,11 +245,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 averageElapsedMs: data.avgElapsedMs[type],
               ),
             const SizedBox(height: 24),
-            Text('Sessions récentes', style: theme.textTheme.bodyMedium),
+            Text('Recent sessions', style: theme.textTheme.bodyMedium),
             const SizedBox(height: 8),
             if (data.recentSessions.isEmpty)
               Text(
-                'Aucune session encore jouée.',
+                'No session played yet.',
                 style: theme.textTheme.bodyMedium,
               )
             else
@@ -292,7 +292,7 @@ class _DisplayNameDialogState extends State<_DisplayNameDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Nom de joueur'),
+      title: const Text('Player name'),
       // 30 : même borne que la contrainte `check` de `supabase/profiles.sql`,
       // sinon un nom plus long serait refusé par la base sans retour visible.
       content: TextField(
@@ -304,11 +304,11 @@ class _DisplayNameDialogState extends State<_DisplayNameDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Annuler'),
+          child: const Text('Cancel'),
         ),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(_controller.text.trim()),
-          child: const Text('Enregistrer'),
+          child: const Text('Save'),
         ),
       ],
     );
@@ -342,11 +342,11 @@ class _IdentityBlock extends StatelessWidget {
     final profile = this.profile;
     final String nameLine;
     if (profileFailed) {
-      nameLine = 'Nom de joueur indisponible';
+      nameLine = 'Player name unavailable';
     } else if (profile == null) {
       nameLine = '…';
     } else {
-      nameLine = profile.displayName ?? 'Choisir un nom de joueur';
+      nameLine = profile.displayName ?? 'Choose a player name';
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -359,13 +359,13 @@ class _IdentityBlock extends StatelessWidget {
             if (profileFailed)
               IconButton(
                 icon: const Icon(Icons.refresh),
-                tooltip: 'Recharger le nom de joueur',
+                tooltip: 'Reload player name',
                 onPressed: onRetryProfile,
               )
             else
               IconButton(
                 icon: const Icon(Icons.edit_outlined),
-                tooltip: 'Modifier le nom de joueur',
+                tooltip: 'Edit player name',
                 onPressed: onEditName,
               ),
           ],
@@ -377,7 +377,7 @@ class _IdentityBlock extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        TextButton(onPressed: onSignOut, child: const Text('Se déconnecter')),
+        TextButton(onPressed: onSignOut, child: const Text('Sign out')),
       ],
     );
   }
@@ -424,10 +424,10 @@ class _OperationRow extends StatelessWidget {
               const SizedBox(width: 12),
               Text(
                 level == null
-                    ? 'Non joué'
+                    ? 'Not played'
                     : averageElapsedMs == null
-                    ? 'Niveau $level'
-                    : 'Niveau $level · ${averageElapsedMs.round()} ms',
+                    ? 'Level $level'
+                    : 'Level $level · ${averageElapsedMs.round()} ms',
                 style: theme.textTheme.bodyMedium,
               ),
             ],
@@ -526,7 +526,7 @@ class _LevelCurve extends StatelessWidget {
         height: 120,
         child: Center(
           child: Text(
-            'Pas assez de données sur les 30 derniers jours.',
+            'Not enough data for the last 30 days.',
             textAlign: TextAlign.center,
             style: theme.textTheme.bodyMedium,
           ),

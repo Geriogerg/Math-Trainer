@@ -55,7 +55,7 @@ void main() {
 
   testWidgets('pourcentage affiche « p% de a »', (tester) async {
     await pump(tester, const PercentageExercise(percent: 25, base: 80));
-    expect(find.text('25% de 80'), findsOneWidget);
+    expect(find.text('25% of 80'), findsOneWidget);
   });
 
   testWidgets('puissance affiche la base et l\'exposant, jamais un accent circonflexe', (

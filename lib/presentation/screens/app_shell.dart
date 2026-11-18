@@ -73,9 +73,9 @@ class _AppShellState extends State<AppShell>
         environment: widget.environment,
         onToggleTheme: widget.onToggleTheme,
       ),
-      const ComingSoonScreen(label: 'En ligne'),
+      const ComingSoonScreen(label: 'Online'),
       ProfileScreen(environment: widget.environment, isActive: _index == 2),
-      const ComingSoonScreen(label: 'Classement'),
+      const ComingSoonScreen(label: 'Leaderboard'),
     ];
 
     return Scaffold(
@@ -99,19 +99,19 @@ class _AppShellState extends State<AppShell>
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.sports_esports_outlined),
-            label: 'Jouer',
+            label: 'Play',
           ),
           NavigationDestination(
             icon: Icon(Icons.wifi_outlined),
-            label: 'En ligne',
+            label: 'Online',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),
-            label: 'Profil',
+            label: 'Profile',
           ),
           NavigationDestination(
             icon: Icon(Icons.leaderboard_outlined),
-            label: 'Classement',
+            label: 'Leaderboard',
           ),
         ],
       ),

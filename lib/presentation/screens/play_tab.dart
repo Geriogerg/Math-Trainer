@@ -107,7 +107,7 @@ class _PlayTabState extends State<PlayTab> {
         // Pas de « Réessayez. » : le bouton Commencer, redevenu actif, porte
         // déjà l'action (`doc/design.md` — un message d'erreur ne contient
         // pas l'action).
-        _startError = 'Impossible de démarrer la session.';
+        _startError = 'Could not start the session.';
       });
       return;
     }
@@ -198,8 +198,8 @@ class _TypeSelectionView extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   hasHistory
-                      ? 'Niveau global : ${globalLevel?.round() ?? '—'}'
-                      : 'La difficulté s\'ajuste à tes réponses.',
+                      ? 'Overall level: ${globalLevel?.round() ?? '—'}'
+                      : 'Difficulty adapts to your answers.',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.extension<AppPalette>()!.textMuted,
                   ),
@@ -227,12 +227,12 @@ class _TypeSelectionView extends StatelessWidget {
                           height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Commencer'),
+                      : const Text('Start'),
                 ),
                 if (selectedTypes.isEmpty) ...[
                   const SizedBox(height: 8),
                   Text(
-                    'Aucun type sélectionné.',
+                    'No type selected.',
                     style: theme.textTheme.bodyMedium,
                   ),
                 ] else if (startError != null) ...[
@@ -255,7 +255,7 @@ class _TypeSelectionView extends StatelessWidget {
             icon: Icon(
               isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
             ),
-            tooltip: isDark ? 'Mode clair' : 'Mode sombre',
+            tooltip: isDark ? 'Light mode' : 'Dark mode',
             onPressed: onToggleTheme,
           ),
         ),

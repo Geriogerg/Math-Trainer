@@ -23,7 +23,7 @@ class ExercisePrompt extends StatelessWidget {
       ),
       PowerExercise e => _PowerPrompt(exercise: e, style: style),
       SquareRootExercise e => _SquareRootPrompt(exercise: e, style: style),
-      PercentageExercise e => Text('${e.percent}% de ${e.base}', style: style),
+      PercentageExercise e => Text('${e.percent}% of ${e.base}', style: style),
     };
   }
 }

@@ -17,7 +17,7 @@ class ComingSoonScreen extends StatelessWidget {
       padding: theme.extension<AppMetrics>()!.rootPadding,
       child: Center(
         child: Text(
-          '$label — bientôt disponible',
+          '$label — coming soon',
           style: theme.textTheme.bodyMedium?.copyWith(
             color: theme.extension<AppPalette>()?.textMuted,
           ),

@@ -16,26 +16,26 @@ class ConfigErrorApp extends StatelessWidget {
   ConfigErrorApp.missingBackendConfig(List<String> missingKeys, {Key? key})
     : this(
         key: key,
-        title: 'Configuration manquante',
+        title: 'Missing configuration',
         paragraphs: [
-          'Ce build a été lancé sans la configuration Supabase '
+          'This build was started without the Supabase configuration '
               '(${missingKeys.join(', ')}).',
-          'Relancer avec :\n'
+          'Run it again with:\n'
               '--dart-define-from-file=dart_defines.json\n\n'
-              'Modèle : dart_defines.example.json',
+              'Template: dart_defines.example.json',
         ],
       );
 
   ConfigErrorApp.webStorageUnavailable(Object cause, {Key? key})
     : this(
         key: key,
-        title: 'Stockage web indisponible',
+        title: 'Web storage unavailable',
         paragraphs: [
-          'La base locale n\'a pas pu s\'ouvrir dans le navigateur : '
-              'web/sqlite3.wasm ou web/sqflite_sw.js manquent probablement.',
-          'Les générer une fois, depuis le dossier du projet :\n'
+          'The local database could not open in the browser: '
+              'web/sqlite3.wasm or web/sqflite_sw.js is probably missing.',
+          'Generate them once, from the project folder:\n'
               'dart run sqflite_common_ffi_web:setup',
-          'Détail : $cause',
+          'Detail: $cause',
         ],
       );
 

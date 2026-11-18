@@ -95,7 +95,7 @@ void main() {
     // réel (ici `AppShell`) ne remplace le spinner initial.
     await tester.pump();
 
-    await tester.tap(find.text('Commencer'));
+    await tester.tap(find.text('Start'));
     await settlePageTransition(tester);
 
     expect(find.text('7'), findsOneWidget);
@@ -113,14 +113,14 @@ void main() {
     await tester.pump();
 
     // Décoche les 2 types pré-sélectionnés par défaut (étape 4.1, commit A).
-    for (final label in ['Addition', 'Soustraction']) {
+    for (final label in ['Addition', 'Subtraction']) {
       await tester.tap(find.text(label));
       await tester.pump();
     }
 
-    expect(find.text('Aucun type sélectionné.'), findsOneWidget);
+    expect(find.text('No type selected.'), findsOneWidget);
 
-    await tester.tap(find.text('Commencer'));
+    await tester.tap(find.text('Start'));
     await tester.pump();
 
     // Toujours sur l'écran de sélection : le bouton désactivé n'a rien déclenché.
@@ -137,9 +137,9 @@ void main() {
     // réel (ici `AppShell`) ne remplace le spinner initial.
     await tester.pump();
 
-    await tester.tap(find.text('Soustraction'));
+    await tester.tap(find.text('Subtraction'));
     await tester.pump();
-    await tester.tap(find.text('Commencer'));
+    await tester.tap(find.text('Start'));
     await settlePageTransition(tester);
 
     expect(find.byIcon(Icons.check), findsOneWidget);
@@ -154,7 +154,7 @@ void main() {
       // réel (ici `AppShell`) ne remplace le spinner initial.
       await tester.pump();
 
-      await tester.tap(find.text('Commencer'));
+      await tester.tap(find.text('Start'));
       await settlePageTransition(tester);
       expect(find.byIcon(Icons.check), findsOneWidget);
 
@@ -172,21 +172,21 @@ void main() {
       }
 
       await attemptPop();
-      expect(find.text('Quitter la partie ?'), findsOneWidget);
+      expect(find.text('Quit the game?'), findsOneWidget);
 
       // Annuler : le dialogue se ferme, la session continue sans rien perdre.
-      await tester.tap(find.text('Annuler'));
+      await tester.tap(find.text('Cancel'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 200));
-      expect(find.text('Quitter la partie ?'), findsNothing);
+      expect(find.text('Quit the game?'), findsNothing);
       expect(find.byIcon(Icons.check), findsOneWidget);
 
       // Nouvelle tentative, confirmée cette fois : la session est interrompue.
       await attemptPop();
-      await tester.tap(find.text('Quitter'));
+      await tester.tap(find.text('Quit'));
       await settlePageTransition(tester);
 
-      expect(find.text('Session interrompue'), findsOneWidget);
+      expect(find.text('Session interrupted'), findsOneWidget);
     },
   );
 
@@ -198,14 +198,14 @@ void main() {
   Future<void> playToCompletion(WidgetTester tester) async {
     for (
       var i = 0;
-      i < 20 && find.text('Session terminée').evaluate().isEmpty;
+      i < 20 && find.text('Session complete').evaluate().isEmpty;
       i++
     ) {
       await tester.tap(find.text('1'));
       await tester.tap(find.byIcon(Icons.check));
       await tester.pump();
     }
-    expect(find.text('Session terminée'), findsOneWidget);
+    expect(find.text('Session complete'), findsOneWidget);
   }
 
   testWidgets(
@@ -217,11 +217,11 @@ void main() {
       // réel (ici `AppShell`) ne remplace le spinner initial.
       await tester.pump();
 
-      await tester.tap(find.text('Commencer'));
+      await tester.tap(find.text('Start'));
       await settlePageTransition(tester);
       await playToCompletion(tester);
 
-      await tester.tap(find.text('Nouvelle sélection'));
+      await tester.tap(find.text('New selection'));
       await settlePageTransition(tester);
 
       expect(find.text('Math Trainer'), findsOneWidget);
@@ -243,17 +243,17 @@ void main() {
       await tester.pumpWidget(MathTrainerApp(environment: environment));
       await tester.pump();
       expect(
-        find.text('La difficulté s\'ajuste à tes réponses.'),
+        find.text('Difficulty adapts to your answers.'),
         findsOneWidget,
       );
 
-      await tester.tap(find.text('Commencer'));
+      await tester.tap(find.text('Start'));
       await settlePageTransition(tester);
       await playToCompletion(tester);
-      await tester.tap(find.text('Nouvelle sélection'));
+      await tester.tap(find.text('New selection'));
       await settlePageTransition(tester);
 
-      expect(find.textContaining('Niveau global'), findsOneWidget);
+      expect(find.textContaining('Overall level'), findsOneWidget);
     },
   );
 
@@ -266,11 +266,11 @@ void main() {
       // réel (ici `AppShell`) ne remplace le spinner initial.
       await tester.pump();
 
-      await tester.tap(find.text('Commencer'));
+      await tester.tap(find.text('Start'));
       await settlePageTransition(tester);
       await playToCompletion(tester);
 
-      await tester.tap(find.text('Rejouer'));
+      await tester.tap(find.text('Play again'));
       await settlePageTransition(tester);
 
       // Directement de retour sur le pavé, pas sur l'écran de sélection : « 1 »
@@ -302,12 +302,12 @@ void main() {
       await tester.tap(find.text('Multiplication'));
       await tester.pump();
 
-      await tester.tap(find.text('Profil'));
+      await tester.tap(find.text('Profile'));
       await tester.pumpAndSettle();
       expect(find.text('Addition'), findsOneWidget);
-      expect(find.text('Non joué'), findsWidgets);
+      expect(find.text('Not played'), findsWidgets);
 
-      await tester.tap(find.text('Jouer'));
+      await tester.tap(find.text('Play'));
       await tester.pumpAndSettle();
 
       // IndexedStack : l'onglet Jouer garde son état, Multiplication reste coché.
@@ -333,21 +333,21 @@ void main() {
       await tester.pumpWidget(MathTrainerApp(environment: failingEnvironment));
       await tester.pump();
 
-      await tester.tap(find.text('Commencer'));
+      await tester.tap(find.text('Start'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Impossible de démarrer la session.'), findsOneWidget);
+      expect(find.text('Could not start the session.'), findsOneWidget);
       // Le bouton est redevenu actif : c'est l'action de reprise.
       expect(
         tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
         isNotNull,
       );
 
-      await tester.tap(find.text('Commencer'));
+      await tester.tap(find.text('Start'));
       await tester.pumpAndSettle();
 
       // Toujours bloqué (même repository), toujours le même message, pas de crash.
-      expect(find.text('Impossible de démarrer la session.'), findsOneWidget);
+      expect(find.text('Could not start the session.'), findsOneWidget);
     },
   );
 

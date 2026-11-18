@@ -61,7 +61,7 @@ void main() {
       expect(chipFor('Multiplication').selected, isTrue);
       expect(chipFor('Division').selected, isTrue);
       expect(chipFor('Addition').selected, isFalse);
-      expect(chipFor('Soustraction').selected, isFalse);
+      expect(chipFor('Subtraction').selected, isFalse);
     },
   );
 
@@ -83,7 +83,7 @@ void main() {
       );
 
       expect(chipFor('Addition').selected, isTrue);
-      expect(chipFor('Soustraction').selected, isTrue);
+      expect(chipFor('Subtraction').selected, isTrue);
     },
   );
 
@@ -141,11 +141,8 @@ void main() {
 
     await pumpPlayTab(tester, environment);
 
-    expect(
-      find.text('La difficulté s\'ajuste à tes réponses.'),
-      findsOneWidget,
-    );
-    expect(find.textContaining('Niveau global'), findsNothing);
+    expect(find.text('Difficulty adapts to your answers.'), findsOneWidget);
+    expect(find.textContaining('Overall level'), findsNothing);
   });
 
   testWidgets(
@@ -183,11 +180,8 @@ void main() {
       await pumpPlayTab(tester, environment);
 
       // (42 + 6 × 1 plancher pour les 6 types non joués) / 7 ≈ 6,86 → 7.
-      expect(find.text('Niveau global : 7'), findsOneWidget);
-      expect(
-        find.text('La difficulté s\'ajuste à tes réponses.'),
-        findsNothing,
-      );
+      expect(find.text('Overall level: 7'), findsOneWidget);
+      expect(find.text('Difficulty adapts to your answers.'), findsNothing);
     },
   );
 }
