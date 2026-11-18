@@ -44,19 +44,28 @@ class _InertTimer implements Timer {
 void main() {
   setUpAll(loadInterFontForGoldens);
 
-  SessionController buildController() {
+  /// [correcting]: answered 64 instead of 65, the correction pause showing
+  /// (Phase 0, commit 9) — a second question so it is not the last one.
+  SessionController buildController({bool correcting = false}) {
     const exercises = [
       ArithmeticExercise(
         operandA: 47,
         operandB: 18,
         operationType: OperationType.addition,
       ),
+      ArithmeticExercise(
+        operandA: 9,
+        operandB: 6,
+        operationType: OperationType.multiplication,
+      ),
     ];
-    return SessionController(
+    final controller = SessionController(
       config: SessionConfig(
         seed: 1,
         enabledTypes: const {ExerciseType.addition},
-        exerciseCount: exercises.length,
+        // One question in the plain golden (its "1 / 1" stays as recorded),
+        // two when a correction must not be on the last question.
+        exerciseCount: correcting ? 2 : 1,
         levels: const {ExerciseType.addition: 12},
       ),
       exerciseSource: _FixedExerciseSource(exercises),
@@ -64,32 +73,39 @@ void main() {
       playerId: 'golden-player',
       clock: () => DateTime(2026),
       createTimer: (duration, callback) => _InertTimer(),
+      correctionDelay: SessionController.defaultCorrectionDelay,
     )..start();
+    if (correcting) controller.submitAnswer(64);
+    return controller;
   }
 
-  for (final mode in [
-    (name: 'light', theme: buildLightTheme()),
-    (name: 'dark', theme: buildDarkTheme()),
-  ]) {
-    testWidgets('session screen — ${mode.name}', (tester) async {
-      await setGoldenSurfaceSize(tester);
-      final controller = buildController();
-      addTearDown(controller.dispose);
+  for (final (scenario, correcting) in [('', false), ('_correction', true)]) {
+    for (final mode in [
+      (name: 'light', theme: buildLightTheme()),
+      (name: 'dark', theme: buildDarkTheme()),
+    ]) {
+      testWidgets('session screen$scenario — ${mode.name}', (tester) async {
+        await setGoldenSurfaceSize(tester);
+        final controller = buildController(correcting: correcting);
+        addTearDown(controller.dispose);
 
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: mode.theme,
-          home: Scaffold(body: SessionScreen(controller: controller)),
-        ),
-      );
-      // A single pump, without advancing time: the timer (5 s) must stay at
-      // the same point on every run for a reproducible golden.
-      await tester.pump();
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: mode.theme,
+            home: Scaffold(body: SessionScreen(controller: controller)),
+          ),
+        );
+        // A single pump, without advancing time: the timer (5 s) must stay at
+        // the same point on every run for a reproducible golden.
+        await tester.pump();
 
-      await expectLater(
-        find.byType(SessionScreen),
-        matchesGoldenFile('goldens/session_screen_${mode.name}.png'),
-      );
-    });
+        await expectLater(
+          find.byType(SessionScreen),
+          matchesGoldenFile(
+            'goldens/session_screen${scenario}_${mode.name}.png',
+          ),
+        );
+      });
+    }
   }
 }

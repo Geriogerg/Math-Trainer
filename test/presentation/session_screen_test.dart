@@ -195,6 +195,119 @@ void main() {
     });
   });
 
+  group('correction pause (Phase 0, commit 9)', () {
+    late List<void Function()> armed;
+
+    Future<SessionController> pumpCorrecting(WidgetTester tester) async {
+      armed = [];
+      final controller = SessionController(
+        config: SessionConfig(
+          seed: 1,
+          enabledTypes: const {ExerciseType.addition},
+          exerciseCount: 3,
+          levels: const {ExerciseType.addition: 12},
+        ),
+        exerciseSource: _FixedExerciseSource(const [
+          ArithmeticExercise(
+            operandA: 7,
+            operandB: 8,
+            operationType: OperationType.multiplication,
+          ),
+          ArithmeticExercise(
+            operandA: 2,
+            operandB: 2,
+            operationType: OperationType.addition,
+          ),
+          ArithmeticExercise(
+            operandA: 3,
+            operandB: 3,
+            operationType: OperationType.addition,
+          ),
+        ]),
+        repository: InMemorySessionRepository(),
+        playerId: 'test-player',
+        clock: () => DateTime(2026),
+        // Fired by hand: the last armed callback is the running timer.
+        createTimer: (duration, callback) {
+          armed.add(callback);
+          return _InertTimer();
+        },
+        correctionDelay: SessionController.defaultCorrectionDelay,
+      )..start();
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildLightTheme(),
+          home: Scaffold(
+            body: ListenableBuilder(
+              listenable: controller,
+              builder: (context, _) => SessionScreen(controller: controller),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      return controller;
+    }
+
+    testWidgets('a wrong answer shows the correct one and what was typed', (
+      tester,
+    ) async {
+      await pumpCorrecting(tester);
+
+      await tester.tap(find.text('5'));
+      await tester.tap(find.text('4'));
+      await tester.tap(find.byIcon(Icons.check));
+      await tester.pump(const Duration(milliseconds: 200));
+
+      expect(find.text('56'), findsOneWidget); // 7 × 8
+      expect(find.text('Your answer: 54'), findsOneWidget);
+      expect(find.text('7 × 8'), findsOneWidget);
+      expect(find.text('1 / 3'), findsOneWidget);
+    });
+
+    testWidgets('keys are ignored during the pause', (tester) async {
+      final controller = await pumpCorrecting(tester);
+      await tester.tap(find.text('1'));
+      await tester.tap(find.byIcon(Icons.check));
+      await tester.pump(const Duration(milliseconds: 200));
+
+      await tester.tap(find.text('9'));
+      await tester.tap(find.byIcon(Icons.check));
+      await tester.pump(const Duration(milliseconds: 200));
+
+      expect(controller.state.outcomes, hasLength(1));
+      expect(find.text('56'), findsOneWidget);
+    });
+
+    testWidgets('after the pause the next question comes, caption cleared', (
+      tester,
+    ) async {
+      await pumpCorrecting(tester);
+      await tester.tap(find.text('1'));
+      await tester.tap(find.byIcon(Icons.check));
+      await tester.pump(const Duration(milliseconds: 200));
+
+      armed.last(); // end of the correction pause
+      await tester.pump(const Duration(milliseconds: 200));
+
+      expect(find.text('2 + 2'), findsOneWidget);
+      expect(find.text('2 / 3'), findsOneWidget);
+      expect(find.textContaining('Your answer'), findsNothing);
+      expect(find.text('56'), findsNothing);
+    });
+
+    testWidgets("a timeout says Time's up", (tester) async {
+      await pumpCorrecting(tester);
+
+      armed.last(); // the question's timeout
+      await tester.pump(const Duration(milliseconds: 200));
+
+      expect(find.text("Time's up"), findsOneWidget);
+      expect(find.text('56'), findsOneWidget);
+    });
+  });
+
   testWidgets('no timeout (debug switch): the timer bar stays full', (
     tester,
   ) async {

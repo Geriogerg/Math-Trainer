@@ -242,6 +242,7 @@ Future<SessionController> buildSessionController(
     ),
     repository: environment.repository,
     playerId: environment.playerId,
+    correctionDelay: SessionController.defaultCorrectionDelay,
     questionTimeout: questionTimeoutFor(
       isDebugBuild: kDebugMode,
       noTimeoutRequested: _debugNoTimeout,

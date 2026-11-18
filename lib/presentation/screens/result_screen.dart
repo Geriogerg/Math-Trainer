@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../../core/domain/models/answer_result.dart';
 import '../../core/domain/models/exercise_type.dart';
 import '../../core/domain/persistence/level_cache_entry.dart';
 import '../../core/state/session_controller.dart';
 import '../../core/state/session_state.dart';
+import '../exercise_prompt.dart';
 import '../exercise_type_labels.dart';
 import '../theme/app_theme.dart';
 
@@ -39,10 +41,12 @@ class ResultScreen extends StatelessWidget {
         : 'Session complete';
     final breakdown = result.scoreBreakdown;
     final labelStyle = theme.textTheme.bodyMedium;
+    final mistakes = result.outcomes.where((o) => !o.isCorrect).toList();
+    final metrics = theme.extension<AppMetrics>()!;
 
-    return LayoutBuilder(
+    final results = LayoutBuilder(
       builder: (context, constraints) => SingleChildScrollView(
-        padding: theme.extension<AppMetrics>()!.rootPadding,
+        padding: metrics.rootPadding.copyWith(bottom: 0),
         child: ConstrainedBox(
           constraints: BoxConstraints(minHeight: constraints.maxHeight),
           child: Center(
@@ -126,6 +130,20 @@ class ResultScreen extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: labelStyle,
                 ),
+                // Mistakes review (`doc/design.md`, Phase 0 commit 9): every
+                // wrong answer and timeout, in play order, with its correct
+                // answer — the last question's included, which had no
+                // correction pause.
+                if (mistakes.isNotEmpty) ...[
+                  const SizedBox(height: 24),
+                  Text(
+                    'Mistakes',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: 8),
+                  for (final mistake in mistakes) _MistakeRow(outcome: mistake),
+                ],
                 if (controller.persistenceFailed) ...[
                   const SizedBox(height: 16),
                   Text(
@@ -147,44 +165,95 @@ class ResultScreen extends StatelessWidget {
                     child: const Text('Retry saving'),
                   ),
                 ],
-                const SizedBox(height: 32),
-                // Centred (`doc/design.md`) — Play again stays visually
-                // dominant through its filled style (`FilledButton`), not
-                // its position.
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    TextButton(
-                      onPressed: onExitToSelection,
-                      child: const Text('New selection'),
-                    ),
-                    const SizedBox(width: 16),
-                    FilledButton(
-                      onPressed: isRestarting ? null : onPlayAgain,
-                      child: isRestarting
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text('Play again'),
-                    ),
-                  ],
-                ),
-                if (restartError != null) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    restartError!,
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.error,
-                    ),
-                  ),
-                ],
               ],
             ),
           ),
         ),
+      ),
+    );
+
+    // The actions stay pinned under the scrolling results: with a long
+    // mistakes list, "Play again" must not need a scroll — the "play,
+    // replay" loop is the point of this screen.
+    return Column(
+      children: [
+        Expanded(child: results),
+        Padding(
+          padding: metrics.rootPadding.copyWith(top: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Centred (`doc/design.md`) — Play again stays visually
+              // dominant through its filled style (`FilledButton`), not its
+              // position.
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  TextButton(
+                    onPressed: onExitToSelection,
+                    child: const Text('New selection'),
+                  ),
+                  const SizedBox(width: 16),
+                  FilledButton(
+                    onPressed: isRestarting ? null : onPlayAgain,
+                    child: isRestarting
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Play again'),
+                  ),
+                ],
+              ),
+              if (restartError != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  restartError!,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.error,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// "7 × 8 = 56   your answer 54" — the operation as displayed in the session,
+/// its correct answer, then what was given (or "timed out") in muted text.
+class _MistakeRow extends StatelessWidget {
+  const _MistakeRow({required this.outcome});
+
+  final AnswerResult outcome;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final style = theme.textTheme.titleMedium;
+    final given = outcome.isTimeout
+        ? 'timed out'
+        : 'your answer ${outcome.submittedValue}';
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          ExercisePrompt(exercise: outcome.exercise, style: style),
+          Text(' = ${outcome.exercise.correctAnswer}', style: style),
+          const SizedBox(width: 12),
+          Text(
+            given,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.extension<AppPalette>()!.textMuted,
+            ),
+          ),
+        ],
       ),
     );
   }

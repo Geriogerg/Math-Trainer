@@ -11,6 +11,7 @@ import 'package:math_trainer/core/domain/persistence/in_memory_session_repositor
 import 'package:math_trainer/core/domain/persistence/persisted_answer.dart';
 import 'package:math_trainer/core/domain/persistence/persisted_session.dart';
 import 'package:math_trainer/core/domain/persistence/session_repository.dart';
+import 'package:math_trainer/core/state/session_controller.dart';
 
 import 'fake_account_repository.dart';
 import 'fake_profile_repository.dart';
@@ -192,7 +193,9 @@ void main() {
   /// 2 types by default, n_min=4 (step 4.2): sessionLengthFor(2, 4, 24) = 8
   /// questions. The loop bound (20) is a safety margin, not the real count.
   /// Type '1' then submit, without a pump in between to avoid any collision
-  /// with the '1' that would then appear in the displayed answer.
+  /// with the '1' that would then appear in the displayed answer. A wrong
+  /// answer shows its correction for `defaultCorrectionDelay` (Phase 0,
+  /// commit 9): let it elapse before the next question.
   Future<void> playToCompletion(WidgetTester tester) async {
     for (
       var i = 0;
@@ -202,6 +205,7 @@ void main() {
       await tester.tap(find.text('1'));
       await tester.tap(find.byIcon(Icons.check));
       await tester.pump();
+      await tester.pump(SessionController.defaultCorrectionDelay);
     }
     expect(find.text('Session complete'), findsOneWidget);
   }

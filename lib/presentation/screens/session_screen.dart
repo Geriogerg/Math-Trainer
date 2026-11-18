@@ -53,6 +53,14 @@ class _SessionScreenState extends State<SessionScreen>
   String _typedDigits = '';
   bool? _feedbackCorrect;
 
+  /// Answers already seen by this screen: a rebuild with more means a new
+  /// answer (a timeout's feedback plays once, not again when its correction
+  /// pause ends).
+  int _seenOutcomes = 0;
+
+  /// `outcomes.length` of the question the timer bar is running for.
+  int _chronoQuestion = 0;
+
   late final AnimationController _chronoController;
   late final AnimationController _feedbackController;
 
@@ -77,23 +85,30 @@ class _SessionScreenState extends State<SessionScreen>
   @override
   void didUpdateWidget(covariant SessionScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // New question: the controller is the same object from one question to
-    // the next (only its internal state changes), so this is the only
-    // reliable signal — comparing exercises by value could miss a restart if
-    // the same operation comes up twice in a row.
-    if (widget.controller.questionTimeout != null) {
-      _chronoController.forward(from: 0);
+    // The controller is the same object from one question to the next (only
+    // its internal state changes): the number of answers tells a new
+    // question — comparing exercises by value could miss one if the same
+    // operation comes up twice in a row.
+    final state = widget.controller.state;
+    final outcomes = state.outcomes;
+    if (state.isCorrecting) {
+      // The bar freezes during the correction pause: no clock runs.
+      _chronoController.stop();
+    } else if (outcomes.length != _chronoQuestion) {
+      _chronoQuestion = outcomes.length;
+      if (widget.controller.questionTimeout != null) {
+        _chronoController.forward(from: 0);
+      }
     }
 
-    // A timeout advances the session without going through _submit() (no
+    // A timeout ends the question without going through _submit() (no
     // "submit" key pressed): without this check there would be no
     // flash/haptic, while a timeout counts as a wrong answer and must show
     // the same way (rule 14).
-    final outcomes = widget.controller.state.outcomes;
-    final lastOutcome = outcomes.isEmpty ? null : outcomes.last;
-    if (lastOutcome != null && lastOutcome.isTimeout) {
+    if (outcomes.length > _seenOutcomes && outcomes.last.isTimeout) {
       _playFeedback(false);
     }
+    _seenOutcomes = outcomes.length;
   }
 
   @override
@@ -104,6 +119,7 @@ class _SessionScreenState extends State<SessionScreen>
   }
 
   void _appendDigit(String digit) {
+    if (widget.controller.state.isCorrecting) return;
     widget.controller.registerActivity();
     if (_typedDigits.length >= _maxTypedDigits) return;
     setState(() => _typedDigits += digit);
@@ -136,6 +152,7 @@ class _SessionScreenState extends State<SessionScreen>
   }
 
   void _backspace() {
+    if (widget.controller.state.isCorrecting) return;
     widget.controller.registerActivity();
     if (_typedDigits.isEmpty) return;
     setState(
@@ -145,7 +162,7 @@ class _SessionScreenState extends State<SessionScreen>
 
   void _submit() {
     final exercise = widget.controller.state.currentExercise;
-    if (exercise == null) return;
+    if (exercise == null || widget.controller.state.isCorrecting) return;
     final value = int.tryParse(_typedDigits);
     if (value == null) return;
 
@@ -191,6 +208,14 @@ class _SessionScreenState extends State<SessionScreen>
     final theme = Theme.of(context);
     final metrics = theme.extension<AppMetrics>()!;
     final level = widget.controller.config.levels[exercise.type] ?? 1;
+    final correction = state.correction;
+    // During the correction pause the answer field shows the correct
+    // answer; the caption says what was given instead.
+    final caption = correction == null
+        ? ''
+        : correction.isTimeout
+        ? "Time's up"
+        : 'Your answer: ${correction.submittedValue}';
 
     return Focus(
       autofocus: true,
@@ -200,7 +225,9 @@ class _SessionScreenState extends State<SessionScreen>
           Padding(
             padding: metrics.rootPadding,
             child: _TopBar(
-              questionIndex: state.outcomes.length + 1,
+              // The question being corrected is already counted in outcomes.
+              questionIndex:
+                  state.outcomes.length + (correction == null ? 1 : 0),
               totalQuestions: widget.controller.config.exerciseCount,
               chrono: _chronoController,
             ),
@@ -242,9 +269,20 @@ class _SessionScreenState extends State<SessionScreen>
                   ),
                   const SizedBox(height: 24),
                   _AnswerDisplay(
-                    typedDigits: _typedDigits,
+                    typedDigits: correction == null
+                        ? _typedDigits
+                        : '${correction.exercise.correctAnswer}',
                     feedback: _feedbackController,
                     feedbackCorrect: _feedbackCorrect,
+                  ),
+                  const SizedBox(height: 8),
+                  // Always laid out, empty outside a correction: nothing
+                  // moves when it appears.
+                  Text(
+                    caption,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.extension<AppPalette>()!.textMuted,
+                    ),
                   ),
                 ],
               ),

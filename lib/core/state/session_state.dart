@@ -14,14 +14,26 @@ class SessionState {
     this.outcomes = const [],
     this.score = 0,
     this.currentStreak = 0,
+    this.correction,
   });
 
   factory SessionState.initial() =>
       const SessionState(status: SessionStatus.notStarted);
 
   final SessionStatus status;
+
+  /// The question on screen — during a [correction], still the one that was
+  /// just missed.
   final Exercise? currentExercise;
   final List<AnswerResult> outcomes;
   final int score;
   final int currentStreak;
+
+  /// The wrong answer or timeout being corrected: its correct answer stays
+  /// on screen for `SessionController.correctionDelay` before the next
+  /// question (`doc/design.md`). Already counted in [outcomes]; no timer
+  /// runs and input is ignored meanwhile.
+  final AnswerResult? correction;
+
+  bool get isCorrecting => correction != null;
 }

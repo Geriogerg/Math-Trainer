@@ -47,6 +47,7 @@ class SessionController extends ChangeNotifier {
     this.idGenerator = generateUuidV4,
     this.createTimer = Timer.new,
     this.questionTimeout = defaultQuestionTimeout,
+    this.correctionDelay,
     LevelCacheOrchestrator? levelCacheOrchestrator,
   }) : levelCacheOrchestrator =
            levelCacheOrchestrator ?? LevelCacheOrchestrator();
@@ -71,6 +72,16 @@ class SessionController extends ChangeNotifier {
   /// timeouts there is no abandonment interruption either.
   final Duration? questionTimeout;
 
+  static const defaultCorrectionDelay = Duration(milliseconds: 1000);
+
+  /// How long a wrong answer or a timeout keeps its correct answer on
+  /// screen before the next question (`SessionState.correction`,
+  /// `doc/design.md`); the next question's clock starts after it. `null`:
+  /// move on at once — the app passes [defaultCorrectionDelay]
+  /// (`composition_root.dart`). Not after the last question: the session
+  /// ends and the result screen lists the mistakes.
+  final Duration? correctionDelay;
+
   /// Three consecutive timeouts without any key pressed interrupt the
   /// session (`doc/decisions.md`).
   static const _abandonThreshold = 3;
@@ -80,6 +91,7 @@ class SessionController extends ChangeNotifier {
 
   DateTime? _questionStartedAt;
   Timer? _timeoutTimer;
+  Timer? _correctionTimer;
   bool _hasActivityThisQuestion = false;
   int _consecutiveTimeoutsWithoutActivity = 0;
   Future<void>? _pendingPersistence;
@@ -153,6 +165,7 @@ class SessionController extends ChangeNotifier {
   /// abandonment interruption: a timeout after input that was never
   /// submitted does not count as abandonment.
   void registerActivity() {
+    if (_state.isCorrecting) return;
     _hasActivityThisQuestion = true;
   }
 
@@ -197,7 +210,11 @@ class SessionController extends ChangeNotifier {
 
   void submitAnswer(int submittedValue) {
     final exercise = _state.currentExercise;
-    if (_state.status != SessionStatus.inProgress || exercise == null) return;
+    if (_state.status != SessionStatus.inProgress ||
+        exercise == null ||
+        _state.isCorrecting) {
+      return;
+    }
 
     final isCorrect = exercise.isCorrectAnswer(submittedValue);
     _consecutiveTimeoutsWithoutActivity = 0;
@@ -238,21 +255,31 @@ class SessionController extends ChangeNotifier {
     );
     final outcomes = [..._state.outcomes, outcome];
     final isSessionComplete = outcomes.length >= config.exerciseCount;
+    final delay = correctionDelay;
+    final corrects = !isCorrect && !isSessionComplete && delay != null;
 
     _state = SessionState(
       status: isSessionComplete
           ? SessionStatus.finished
           : SessionStatus.inProgress,
-      currentExercise: isSessionComplete ? null : exerciseSource.next(),
+      currentExercise: isSessionComplete
+          ? null
+          : corrects
+          ? exercise
+          : exerciseSource.next(),
       outcomes: outcomes,
       score: _state.score + points,
       currentStreak: nextStreak,
+      correction: corrects ? outcome : null,
     );
-    _questionStartedAt = clock();
 
     if (isSessionComplete) {
       _timeoutTimer?.cancel();
+    } else if (corrects) {
+      _timeoutTimer?.cancel();
+      _correctionTimer = createTimer(delay, _endCorrection);
     } else {
+      _questionStartedAt = clock();
       _scheduleTimeout();
     }
     notifyListeners();
@@ -262,8 +289,27 @@ class SessionController extends ChangeNotifier {
     }
   }
 
+  /// End of the correction pause: the next question, with a fresh clock and
+  /// timeout — the pause never counts in a response time.
+  void _endCorrection() {
+    if (_state.status != SessionStatus.inProgress || !_state.isCorrecting) {
+      return;
+    }
+    _state = SessionState(
+      status: SessionStatus.inProgress,
+      currentExercise: exerciseSource.next(),
+      outcomes: _state.outcomes,
+      score: _state.score,
+      currentStreak: _state.currentStreak,
+    );
+    _questionStartedAt = clock();
+    _scheduleTimeout();
+    notifyListeners();
+  }
+
   void _interruptSession() {
     _timeoutTimer?.cancel();
+    _correctionTimer?.cancel();
     _state = SessionState(
       status: SessionStatus.interrupted,
       outcomes: _state.outcomes,
@@ -295,6 +341,7 @@ class SessionController extends ChangeNotifier {
 
   void restart() {
     _timeoutTimer?.cancel();
+    _correctionTimer?.cancel();
     _state = SessionState.initial();
     _questionStartedAt = null;
     _lastLevelUpdates = null;
@@ -308,6 +355,7 @@ class SessionController extends ChangeNotifier {
   void dispose() {
     _isDisposed = true;
     _timeoutTimer?.cancel();
+    _correctionTimer?.cancel();
     super.dispose();
   }
 

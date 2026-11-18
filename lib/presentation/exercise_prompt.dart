@@ -8,13 +8,17 @@ import '../core/domain/models/operation_type.dart';
 /// domain"). Exhaustive `switch` without `default` (rule 11): any new
 /// exercise type fails to compile here until it has its rendering.
 class ExercisePrompt extends StatelessWidget {
-  const ExercisePrompt({super.key, required this.exercise});
+  const ExercisePrompt({super.key, required this.exercise, this.style});
 
   final Exercise exercise;
 
+  /// Defaults to `displayMedium`, the session screen's size; the result
+  /// screen's mistakes list passes a smaller one.
+  final TextStyle? style;
+
   @override
   Widget build(BuildContext context) {
-    final style = Theme.of(context).textTheme.displayMedium;
+    final style = this.style ?? Theme.of(context).textTheme.displayMedium;
     return switch (exercise) {
       ArithmeticExercise e => Text(
         '${e.operandA} ${_operatorSymbol(e.operationType)} ${e.operandB}',

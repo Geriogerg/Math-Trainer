@@ -56,10 +56,12 @@ class _FakeTimer implements Timer {
 /// shown.
 class _TimerSpy {
   final List<_FakeTimer> created = [];
+  final List<Duration> durations = [];
 
   Timer create(Duration duration, void Function() callback) {
     final timer = _FakeTimer(callback);
     created.add(timer);
+    durations.add(duration);
     return timer;
   }
 
@@ -732,6 +734,145 @@ void main() {
 
       expect(staleTimer.isActive, isFalse);
       expect(controller.state.status, SessionStatus.notStarted);
+    });
+  });
+
+  group('correction pause after a mistake (Phase 0, commit 9)', () {
+    const delay = Duration(milliseconds: 1000);
+    List<ArithmeticExercise> questions(int count) => List.generate(
+      count,
+      (i) => ArithmeticExercise(
+        operandA: i,
+        operandB: 1,
+        operationType: OperationType.addition,
+      ),
+    );
+
+    ({SessionController controller, _TimerSpy spy, void Function(int) tick})
+    build({int count = 4, InMemorySessionRepository? repository}) {
+      final spy = _TimerSpy();
+      var now = DateTime.utc(2024, 5, 1, 12);
+      final controller = SessionController(
+        config: SessionConfig(
+          seed: 1,
+          enabledTypes: {ExerciseType.addition},
+          exerciseCount: count,
+          levels: {ExerciseType.addition: 1},
+        ),
+        exerciseSource: _FixedExerciseSource(questions(count)),
+        repository: repository ?? InMemorySessionRepository(),
+        playerId: 'test-player',
+        clock: () => now,
+        createTimer: spy.create,
+        correctionDelay: delay,
+      );
+      return (
+        controller: controller,
+        spy: spy,
+        tick: (ms) => now = now.add(Duration(milliseconds: ms)),
+      );
+    }
+
+    test('a wrong answer keeps the question on screen with its correction', () {
+      final s = build();
+      s.controller.start();
+
+      s.controller.submitAnswer(99); // 0 + 1 = 1
+
+      final state = s.controller.state;
+      expect(state.status, SessionStatus.inProgress);
+      expect(state.isCorrecting, isTrue);
+      expect(state.correction, state.outcomes.single);
+      expect(state.currentExercise, questions(4)[0]);
+      expect(s.spy.durations.last, delay);
+      expect(s.spy.created.first.isActive, isFalse); // timeout cancelled
+    });
+
+    test('a right answer moves on at once, no pause', () {
+      final s = build();
+      s.controller.start();
+
+      s.controller.submitAnswer(1);
+
+      expect(s.controller.state.isCorrecting, isFalse);
+      expect(s.controller.state.currentExercise, questions(4)[1]);
+      expect(s.spy.durations.last, SessionController.defaultQuestionTimeout);
+    });
+
+    test('a timeout is corrected the same way', () {
+      final s = build();
+      s.controller.start();
+
+      s.spy.latest.fire();
+
+      expect(s.controller.state.correction?.isTimeout, isTrue);
+      expect(s.controller.state.currentExercise, questions(4)[0]);
+    });
+
+    test('input during the pause is ignored', () {
+      final s = build();
+      s.controller.start();
+      s.controller.submitAnswer(99);
+
+      s.controller.submitAnswer(1);
+
+      expect(s.controller.state.outcomes, hasLength(1));
+      expect(s.controller.state.isCorrecting, isTrue);
+    });
+
+    test('after the pause: next question, fresh clock and timeout', () {
+      final s = build();
+      s.controller.start();
+      s.tick(3000);
+      s.controller.submitAnswer(99);
+
+      s.tick(1000); // the pause
+      s.spy.latest.fire();
+      expect(s.controller.state.isCorrecting, isFalse);
+      expect(s.controller.state.currentExercise, questions(4)[1]);
+      expect(s.spy.durations.last, SessionController.defaultQuestionTimeout);
+
+      s.tick(2000);
+      s.controller.submitAnswer(2);
+      // The pause never counts in the next response time.
+      expect(s.controller.state.outcomes.last.elapsedMs, 2000);
+    });
+
+    test('a mistake on the last question ends the session without pause', () {
+      final s = build(count: 1);
+      s.controller.start();
+
+      s.controller.submitAnswer(99);
+
+      expect(s.controller.state.status, SessionStatus.finished);
+      expect(s.controller.state.isCorrecting, isFalse);
+    });
+
+    test('abandoning during the pause interrupts and cancels it', () {
+      final s = build();
+      s.controller.start();
+      s.controller.submitAnswer(99);
+      final pause = s.spy.latest;
+
+      s.controller.abandon();
+
+      expect(s.controller.state.status, SessionStatus.interrupted);
+      expect(pause.isActive, isFalse);
+    });
+
+    test('three silent timeouts still interrupt, pauses in between', () {
+      final s = build(count: 10);
+      s.controller.start();
+
+      for (var i = 0; i < 2; i++) {
+        s.spy.latest.fire(); // timeout
+        expect(s.controller.state.isCorrecting, isTrue);
+        s.spy.latest.fire(); // end of the pause
+      }
+      s.spy.latest.fire(); // third timeout
+
+      expect(s.controller.state.status, SessionStatus.interrupted);
+      expect(s.controller.state.outcomes, hasLength(3));
     });
   });
 

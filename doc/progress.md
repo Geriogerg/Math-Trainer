@@ -116,6 +116,13 @@ State at the plan: 49 commits, 176 core tests / 328 in total.
   localhost, ~5.3 s on Fast 4G, 19.4 s on Slow 4G. Found: CanvasKit and a Roboto font come from
   Google's servers at runtime; `Inter.ttf` is 856 KiB. To re-measure on the preview once it is
   deployed.
+- **Commit 9** *(C)* — Correction pause: after a wrong answer or a timeout (not on the last
+  question), `SessionState.correction` keeps the question on screen with its correct answer and
+  "Your answer: X" / "Time's up" for 1 s (`correctionDelay`, set by the composition root); no
+  timer, input ignored, the next question's clock starts after it. Mistakes review on the result
+  screen; its actions pinned at the bottom so a long list never hides "Play again". Golden images:
+  session and result updated, correction and mistakes added (both themes). **Checkpoint: the
+  owner plays 5 games on a phone** — not deployable until GitHub Pages is enabled.
 
 ### Remaining contradictions after commit 0
 

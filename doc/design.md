@@ -61,6 +61,13 @@ correct answer stays visible for about one second before the next question. This
 pause the session allows — correcting an error is worth more than the second it costs, and
 correct answers keep the fast flow.
 
+During that pause (`SessionController.correctionDelay`, 1,000 ms): the question stays on screen,
+the answer field shows the correct answer after the error feedback, and a muted caption under it
+says "Your answer: 54" or "Time's up" (the caption line is always laid out, so nothing moves). The
+timer bar freezes, keys are ignored, and the next question's clock starts after the pause — it
+never counts in a response time. No pause after the last question: the result screen lists every
+mistake.
+
 ## Typography
 
 `Inter` (bundled in `assets/fonts/`, never fetched at runtime). Two weights only: 400 for running
@@ -165,13 +172,15 @@ The end of the session and the moment the level system becomes visible.
 
 Top to bottom: **the level change first** (`AppMotion.levelUp`, 600 ms), the score with its
 breakdown (base, speed bonus, streak bonus, difficulty multiplier), right / wrong / **timed out
-counted separately**, average time, best streak, and the types played. From Phase 0 commit 9, the
-list of mistakes with their correct answers.
+counted separately**, average time, best streak, and the types played. Then **Mistakes** (Phase 0
+commit 9): every wrong answer and timeout in play order, as "7 × 8 = 56" in the session's
+notation followed by "your answer 54" or "timed out" in muted text.
 
 Accuracy is shown as a raw count ("9/12"), never as a curve nor as a percentage presented as
 progress.
 
-Two centred actions: **Play again** (dominant, filled) and **New selection**. Worth considering:
+Two centred actions: **Play again** (dominant, filled) and **New selection**, pinned at the bottom
+under the scrolling results — a long mistakes list never pushes "Play again" out of reach. Worth considering:
 putting the type chips directly on this screen — changing a single type costs 3 taps today.
 
 ## Profile statistics

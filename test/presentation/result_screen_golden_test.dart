@@ -74,37 +74,97 @@ void main() {
     return controller;
   }
 
-  for (final mode in [
-    (name: 'light', theme: buildLightTheme()),
-    (name: 'dark', theme: buildDarkTheme()),
-  ]) {
-    testWidgets('result screen — ${mode.name}', (tester) async {
-      await setGoldenSurfaceSize(tester);
-      final controller = await buildFinishedController();
-      addTearDown(controller.dispose);
+  /// Two mistakes (a wrong answer, a timeout) for the mistakes review
+  /// (Phase 0, commit 9), the raised exponent included.
+  Future<SessionController> buildControllerWithMistakes() async {
+    const exercises = <Exercise>[
+      ArithmeticExercise(
+        operandA: 7,
+        operandB: 8,
+        operationType: OperationType.multiplication,
+      ),
+      ArithmeticExercise(
+        operandA: 12,
+        operandB: 9,
+        operationType: OperationType.addition,
+      ),
+      PowerExercise(base: 3, exponent: 4),
+      PercentageExercise(percent: 25, base: 80),
+    ];
+    void Function()? timeout;
+    final controller = SessionController(
+      config: SessionConfig(
+        seed: 1,
+        enabledTypes: const {
+          ExerciseType.addition,
+          ExerciseType.multiplication,
+          ExerciseType.power,
+          ExerciseType.percentage,
+        },
+        exerciseCount: exercises.length,
+        levels: const {
+          ExerciseType.addition: 12,
+          ExerciseType.multiplication: 12,
+          ExerciseType.power: 12,
+          ExerciseType.percentage: 12,
+        },
+      ),
+      exerciseSource: _FixedExerciseSource(exercises),
+      repository: InMemorySessionRepository(),
+      playerId: 'golden-player',
+      clock: () => DateTime(2026),
+      createTimer: (duration, callback) {
+        timeout = callback;
+        return _InertTimer();
+      },
+    );
+    controller.start();
+    controller.submitAnswer(54); // 7 × 8 = 56: wrong
+    controller.submitAnswer(21); // right
+    timeout!(); // 3⁴: timed out
+    controller.submitAnswer(20); // 25% of 80: right
+    await controller.pendingPersistence;
+    return controller;
+  }
 
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: mode.theme,
-          home: Scaffold(
-            body: ResultScreen(
-              controller: controller,
-              onPlayAgain: () {},
-              onExitToSelection: () {},
-              isRestarting: false,
-              restartError: null,
+  for (final (scenario, build) in [
+    ('', buildFinishedController),
+    ('_mistakes', buildControllerWithMistakes),
+  ]) {
+    for (final mode in [
+      (name: 'light', theme: buildLightTheme()),
+      (name: 'dark', theme: buildDarkTheme()),
+    ]) {
+      testWidgets('result screen$scenario — ${mode.name}', (tester) async {
+        await setGoldenSurfaceSize(tester);
+        final controller = await build();
+        addTearDown(controller.dispose);
+
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: mode.theme,
+            home: Scaffold(
+              body: ResultScreen(
+                controller: controller,
+                onPlayAgain: () {},
+                onExitToSelection: () {},
+                isRestarting: false,
+                restartError: null,
+              ),
             ),
           ),
-        ),
-      );
-      // Lets the level animation (600 ms) reach its final value — without it
-      // the capture would depend on real elapsed time, not reproducible.
-      await tester.pumpAndSettle();
+        );
+        // Lets the level animation (600 ms) reach its final value — without
+        // it the capture would depend on real elapsed time, not reproducible.
+        await tester.pumpAndSettle();
 
-      await expectLater(
-        find.byType(ResultScreen),
-        matchesGoldenFile('goldens/result_screen_${mode.name}.png'),
-      );
-    });
+        await expectLater(
+          find.byType(ResultScreen),
+          matchesGoldenFile(
+            'goldens/result_screen${scenario}_${mode.name}.png',
+          ),
+        );
+      });
+    }
   }
 }
