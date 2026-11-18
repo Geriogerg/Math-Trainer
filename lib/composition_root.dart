@@ -1,3 +1,5 @@
+import 'dart:async' show unawaited;
+
 import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -19,6 +21,7 @@ import 'core/state/session_controller.dart';
 import 'infrastructure/backend/supabase_account_repository.dart';
 import 'infrastructure/backend/supabase_profile_repository.dart';
 import 'infrastructure/persistence/database.dart';
+import 'infrastructure/persistence/persistent_storage.dart';
 import 'infrastructure/persistence/shared_preferences_player_id_provider.dart';
 import 'infrastructure/persistence/shared_preferences_theme_mode_store.dart';
 import 'infrastructure/persistence/shared_preferences_type_selection_store.dart';
@@ -166,6 +169,9 @@ Future<AppEnvironment> buildAppEnvironment() async {
     if (kIsWeb) throw WebStorageUnavailableException(e);
     rethrow;
   }
+  // Not awaited: the answer (or a Firefox prompt) must not delay the first
+  // frame, and a refusal changes nothing in how the app runs.
+  unawaited(requestPersistentStorage());
 
   await Supabase.initialize(
     url: _supabaseUrl,

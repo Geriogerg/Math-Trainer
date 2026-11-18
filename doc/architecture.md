@@ -33,7 +33,8 @@ lib/
   infrastructure/
     persistence/           # SqfliteSessionRepository, database.dart (schema, migrations, web
                            # engine), SharedPreferences{PlayerIdProvider,TypeSelectionStore,
-                           # ThemeModeStore} — the only place importing sqflite / shared_preferences
+                           # ThemeModeStore} — the only place importing sqflite / shared_preferences;
+                           # persistent_storage*.dart (navigator.storage.persist, conditional import)
     backend/               # Supabase{Account,Profile}Repository — the only place importing
                            # supabase_flutter (besides composition_root.dart)
   presentation/
@@ -141,6 +142,34 @@ are unknown.
 Known gap: `submitted_value` is declared `REAL` although every answer is an `int` (stored as a
 float, read back with `toInt()`). Harmless; changing a column type in SQLite means rebuilding the
 table, so it waits for a migration that is needed for another reason.
+
+## Web first load (measured Phase 0, commit 8)
+
+Release build (`flutter build web`, JS + CanvasKit), cold cache, headless Edge, served locally
+with gzip on text types only (a conservative stand-in for GitHub Pages), time to Flutter's
+`flutter-first-frame` event:
+
+| Network | First frame | Transferred by the page |
+|---|---|---|
+| none (localhost) | 1.4 s | 3.25 MiB |
+| Fast 4G (9 Mbit/s, 60 ms) | 5.1–5.6 s | 3.25 MiB |
+| Slow 4G (1.6 Mbit/s, 150 ms) | 19.4 s | 3.25 MiB |
+
+What loads before the first frame: CanvasKit `canvaskit.wasm` 1.5 MiB (fetched from Google's
+CDN `gstatic.com`, Flutter's default), `Inter.ttf` 856 KiB (not compressed by the local server;
+450 KiB gzipped), `main.dart.js` 2.8 MiB raw / 840 KiB gzipped, a Roboto font from
+`fonts.gstatic.com` (62 KiB), and in the SQLite shared worker — not counted above —
+`sqlite3.wasm` 731 KiB (351 KiB gzipped) and `sqflite_sw.js` 256 KiB (77 KiB gzipped). Whole
+`build/web`: 43 MB, of which 37 MB are CanvasKit variants the browser picks one of.
+
+Leads, none applied: subset Inter to Latin (most of its 856 KiB); bundle the Roboto fallback or
+stop it being requested (the fonts are meant to be bundled); serve CanvasKit from the site
+(`--no-web-resources-cdn`) if the third-party CDN becomes a concern; a loading screen with
+progress (plan, section 5).
+
+`navigator.storage.persist()` is requested at startup
+(`infrastructure/persistence/persistent_storage*.dart`); headless Edge on a fresh profile
+declines it, as Chrome's engagement heuristics predict.
 
 ## Dependencies
 

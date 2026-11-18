@@ -20,8 +20,9 @@ phase). Where another doc disagrees with `doc/plan.md`, the plan wins — report
 section 7. Repo: `github.com/Geriogerg/Math-Trainer` (public), branch `main`; preview
 `https://geriogerg.github.io/Math-Trainer/`. Done: 0 (docs), 1 (CI), 2 (preview deployment),
 4 (one timestamp per answer), 5 (`δ` checked: keep 0.07, owner to confirm), 6 (debug switch
-for the timeout), 7 (formatting, hooks, reviewer subagent). Parked: 3 (`material_ui` needs the
-owner's yes on a new dependency). Next: 8 (first-load size and time, persistent storage). Update
+for the timeout), 7 (formatting, hooks, reviewer subagent), 8 (first load measured, persistent
+storage). Parked: 3 (`material_ui` needs the owner's yes on a new dependency); preview check
+(GitHub Pages not enabled yet). Next: 9 *(C)* (correct answer on error, mistakes review). Update
 this block at every commit.
 
 ## Who you work with

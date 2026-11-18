@@ -109,6 +109,13 @@ State at the plan: 49 commits, 176 core tests / 328 in total.
   subagent `.claude/agents/reviewer.md` (read-only, CLAUDE.md rules as checklist). CI checks
   formatting. The hooks load only when Claude Code starts in `math_trainer/`; not yet seen
   running live (they load at session start).
+- **Commit 8** *(A)* — Persistent storage requested at startup, not awaited
+  (`requestPersistentStorage`, `dart:js_interop` behind a conditional import, a stub elsewhere;
+  no new dependency). First load measured locally (`doc/architecture.md`, "Web first load"):
+  3.25 MiB before the first frame plus ~1 MiB for the SQLite worker; first frame 1.4 s on
+  localhost, ~5.3 s on Fast 4G, 19.4 s on Slow 4G. Found: CanvasKit and a Roboto font come from
+  Google's servers at runtime; `Inter.ttf` is 856 KiB. To re-measure on the preview once it is
+  deployed.
 
 ### Remaining contradictions after commit 0
 
