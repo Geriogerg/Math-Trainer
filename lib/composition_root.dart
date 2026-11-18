@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/domain/account/account.dart';
@@ -236,5 +236,24 @@ Future<SessionController> buildSessionController(
     ),
     repository: environment.repository,
     playerId: environment.playerId,
+    questionTimeout: questionTimeoutFor(
+      isDebugBuild: kDebugMode,
+      noTimeoutRequested: _debugNoTimeout,
+    ),
   );
 }
+
+/// Debug switch: `flutter run --dart-define=DEBUG_NO_TIMEOUT=true` turns the
+/// per-question timeout off, for slow manual checks and screenshots.
+const _debugNoTimeout = bool.fromEnvironment('DEBUG_NO_TIMEOUT');
+
+/// The timeout a session gets. The switch only works in a debug build:
+/// `kDebugMode` is a compile-time `false` in profile and release builds, so
+/// there the switch is ignored whatever the build was given — the preview
+/// and every player always have the timeout.
+Duration? questionTimeoutFor({
+  required bool isDebugBuild,
+  required bool noTimeoutRequested,
+}) => isDebugBuild && noTimeoutRequested
+    ? null
+    : SessionController.defaultQuestionTimeout;

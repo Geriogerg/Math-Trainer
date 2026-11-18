@@ -95,6 +95,11 @@ State at the plan: 49 commits, 176 core tests / 328 in total.
   levels against ±1.5 designed; integer rounding, not `δ`, dominates the dead band; `δ` ≥ 0.133
   would freeze progress; convergence takes 45–90 sessions against a 10–20 target. Also: the last
   French column headers of `tool/recalibrate.dart` translated.
+- **Commit 6** *(A)* — Debug-only switch `--dart-define=DEBUG_NO_TIMEOUT=true`:
+  `SessionController.questionTimeout` becomes nullable (no timer, no abandonment interruption,
+  timer bar stays full). `questionTimeoutFor` in `composition_root.dart` honours the switch only
+  when `kDebugMode`, a compile-time `false` in profile and release builds; tests cover the four
+  cases, the controller without a timer and the full bar.
 
 ### Remaining contradictions after commit 0
 

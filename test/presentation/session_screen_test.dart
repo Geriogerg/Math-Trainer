@@ -174,4 +174,41 @@ void main() {
       expect(find.text('9999999'), findsOneWidget);
     });
   });
+
+  testWidgets('no timeout (debug switch): the timer bar stays full', (tester) async {
+    final controller = SessionController(
+      config: SessionConfig(
+        seed: 1,
+        enabledTypes: const {ExerciseType.addition},
+        exerciseCount: 2,
+        levels: const {ExerciseType.addition: 12},
+      ),
+      exerciseSource: _FixedExerciseSource(const [
+        ArithmeticExercise(operandA: 1, operandB: 1, operationType: OperationType.addition),
+        ArithmeticExercise(operandA: 2, operandB: 2, operationType: OperationType.addition),
+      ]),
+      repository: InMemorySessionRepository(),
+      playerId: 'test-player',
+      clock: () => DateTime(2026),
+      questionTimeout: null,
+    )..start();
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildLightTheme(),
+        home: Scaffold(
+          body: ListenableBuilder(
+            listenable: controller,
+            builder: (context, _) => SessionScreen(controller: controller),
+          ),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(seconds: 20));
+
+    final bar = tester.widget<LinearProgressIndicator>(find.byType(LinearProgressIndicator));
+    expect(bar.value, 1);
+    expect(controller.state.outcomes, isEmpty);
+  });
 }

@@ -58,10 +58,10 @@ class _SessionScreenState extends State<SessionScreen> with TickerProviderStateM
   @override
   void initState() {
     super.initState();
-    _chronoController = AnimationController(
-      vsync: this,
-      duration: widget.controller.questionTimeout,
-    )..forward();
+    // No timeout (debug switch): the bar stays full.
+    final timeout = widget.controller.questionTimeout;
+    _chronoController = AnimationController(vsync: this, duration: timeout ?? Duration.zero);
+    if (timeout != null) _chronoController.forward();
     // Actual duration set just before each .forward() (AppMotion.feedback,
     // read from the theme — unavailable here, before the first frame).
     _feedbackController = AnimationController(vsync: this, duration: Duration.zero);
@@ -74,7 +74,7 @@ class _SessionScreenState extends State<SessionScreen> with TickerProviderStateM
     // the next (only its internal state changes), so this is the only
     // reliable signal — comparing exercises by value could miss a restart if
     // the same operation comes up twice in a row.
-    _chronoController.forward(from: 0);
+    if (widget.controller.questionTimeout != null) _chronoController.forward(from: 0);
 
     // A timeout advances the session without going through _submit() (no
     // "submit" key pressed): without this check there would be no

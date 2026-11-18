@@ -19,9 +19,9 @@ phase). Where another doc disagrees with `doc/plan.md`, the plan wins — report
 **Phase 0 — Stabilise and build the web pipeline.** Commit list and exit test: `doc/plan.md`,
 section 7. Repo: `github.com/Geriogerg/Math-Trainer` (public), branch `main`; preview
 `https://geriogerg.github.io/Math-Trainer/`. Done: 0 (docs), 1 (CI), 2 (preview deployment),
-4 (one timestamp per answer), 5 (`δ` checked: keep 0.07, owner to confirm). Parked: 3
-(`material_ui` needs the owner's yes on a new dependency). Next: 6 (debug switch for the
-timeout). Update this block at every commit.
+4 (one timestamp per answer), 5 (`δ` checked: keep 0.07, owner to confirm), 6 (debug switch
+for the timeout). Parked: 3 (`material_ui` needs the owner's yes on a new dependency). Next: 7
+(hooks and reviewer subagent). Update this block at every commit.
 
 ## Who you work with
 
@@ -137,6 +137,8 @@ flutter test               # all tests
 flutter analyze
 flutter run -d edge --web-port=8080 --dart-define-from-file=dart_defines.json
 flutter build web --dart-define-from-file=dart_defines.json
+# debug build only: no per-question timeout (ignored in profile/release)
+flutter run -d edge --web-port=8080 --dart-define-from-file=dart_defines.json --dart-define=DEBUG_NO_TIMEOUT=true
 ```
 
 `dart_defines.json` (not versioned; template `dart_defines.example.json`) holds the Supabase URL

@@ -516,6 +516,32 @@ void main() {
       },
     );
 
+    test('no timeout (debug switch): no timer armed, the question waits', () {
+      final spy = _TimerSpy();
+      final controller = SessionController(
+        config: SessionConfig(
+          seed: 1,
+          enabledTypes: {ExerciseType.addition},
+          exerciseCount: 3,
+          levels: {ExerciseType.addition: 50},
+        ),
+        exerciseSource: _FixedExerciseSource(manyExercises(3)),
+        repository: InMemorySessionRepository(),
+        playerId: 'test-player',
+        clock: () => DateTime(2024),
+        createTimer: spy.create,
+        questionTimeout: null,
+      );
+
+      controller.start();
+      controller.submitAnswer(0);
+
+      expect(spy.created, isEmpty);
+      expect(controller.state.status, SessionStatus.inProgress);
+      expect(controller.state.outcomes, hasLength(1));
+      expect(controller.state.outcomes.single.isTimeout, isFalse);
+    });
+
     test('three consecutive timeouts without any activity interrupt the session', () {
       final spy = _TimerSpy();
       final controller = buildTimeoutController(spy: spy, exerciseCount: 10);

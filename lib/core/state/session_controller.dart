@@ -46,7 +46,7 @@ class SessionController extends ChangeNotifier {
     this.clock = DateTime.now,
     this.idGenerator = generateUuidV4,
     this.createTimer = Timer.new,
-    this.questionTimeout = const Duration(seconds: 15),
+    this.questionTimeout = defaultQuestionTimeout,
     LevelCacheOrchestrator? levelCacheOrchestrator,
   }) : levelCacheOrchestrator = levelCacheOrchestrator ?? LevelCacheOrchestrator();
 
@@ -62,7 +62,13 @@ class SessionController extends ChangeNotifier {
   /// Injectable for tests (same spirit as [clock]/[idGenerator]) — a real
   /// 15 s `Timer` must never run during a test.
   final Timer Function(Duration duration, void Function() callback) createTimer;
-  final Duration questionTimeout;
+
+  static const defaultQuestionTimeout = Duration(seconds: 15);
+
+  /// `null`: no timeout at all — only the debug switch of
+  /// `composition_root.dart` passes it (`questionTimeoutFor`); without
+  /// timeouts there is no abandonment interruption either.
+  final Duration? questionTimeout;
 
   /// Three consecutive timeouts without any key pressed interrupt the
   /// session (`doc/decisions.md`).
@@ -151,19 +157,23 @@ class SessionController extends ChangeNotifier {
   void _scheduleTimeout() {
     _timeoutTimer?.cancel();
     _hasActivityThisQuestion = false;
-    _timeoutTimer = createTimer(questionTimeout, _onTimeout);
+    final timeout = questionTimeout;
+    _timeoutTimer = timeout == null ? null : createTimer(timeout, _onTimeout);
   }
 
   void _onTimeout() {
     final exercise = _state.currentExercise;
-    if (_state.status != SessionStatus.inProgress || exercise == null) return;
+    final timeout = questionTimeout;
+    if (_state.status != SessionStatus.inProgress || exercise == null || timeout == null) {
+      return;
+    }
 
     final hadActivity = _hasActivityThisQuestion;
     _recordOutcome(
       exercise: exercise,
       submittedValue: timeoutSubmittedValue,
       isCorrect: false,
-      elapsedMs: questionTimeout.inMilliseconds,
+      elapsedMs: timeout.inMilliseconds,
       answeredAt: clock().toUtc(),
     );
 
