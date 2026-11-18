@@ -6,6 +6,8 @@
 > consistent with this plan (section 11).
 >
 > Version 1 — 18 November 2026, written from the project state of that date.
+> Version 1.1 — 18 November 2026: English-speaking audience, Android out of CI until Phase 8,
+> facts updated after Phase 0 commit 0 (edited by Claude Code at the owner's request).
 
 ---
 
@@ -24,7 +26,8 @@ Four pillars, in this order of priority:
 4. **Fair competition.** Rankings and duels computed by a server that trusts nothing the client
    claims.
 
-French-speaking audience first. Competitive tone, not a school exercise book.
+English-speaking audience first; everything is in English — interface, code, docs. Competitive
+tone, not a school exercise book.
 
 ## 2. Product principles
 
@@ -80,9 +83,9 @@ feedback only; it never ranks anyone — the level does.
 
 ### 3.4 Accounts and screens
 
-Supabase accounts (email and password, currently mandatory before playing), player name, Profil
+Supabase accounts (email and password, currently mandatory before playing), player name, Profile
 tab with overall level, 30-day curve, per-operation level and average time, recent games.
-Day and night themes. "En ligne" and "Classement" tabs are previews.
+Day and night themes. "Online" and "Leaderboard" tabs are previews.
 
 ## 4. Current state (18 November 2026)
 
@@ -90,6 +93,7 @@ Day and night themes. "En ligne" and "Classement" tabs are previews.
 - Web-only since 17 November: the Android emulator is unusable; mobile development is paused.
 - Web storage survives reloads (SQLite in WebAssembly).
 - 28 analyzer deprecation notices since Flutter 3.50 moved Material to `material_ui`.
+- Local branch `main`; no GitHub remote yet (section 10).
 
 | Weakness | Why it matters | Fixed in |
 |---|---|---|
@@ -100,7 +104,7 @@ Day and night themes. "En ligne" and "Classement" tabs are previews.
 | Level constants are guesses | The leaderboard would rank on unvalidated numbers | Phase 3 |
 | Stock components, generic name | Looks like a template; the name cannot be found or protected | Phase 5 |
 | No CI | Nothing checks the repo on a clean machine | Phase 0 |
-| `δ` possibly not widened when `n_min` went 8 → 4 | Levels jitter more than designed | Phase 0 |
+| `δ` widened 0.05 → 0.07 when `n_min` went 8 → 4, never checked or approved | Levels may jitter more or less than designed | Phase 0 |
 
 ## 5. Strategy: web-first, mobile-ready
 
@@ -125,9 +129,10 @@ build is the product.**
 - A Flutter web build downloads several megabytes before its first frame; load time is measured
   and a loading screen shows progress.
 
-**Guardrails that keep mobile cheap to return to.** CI compiles the Android APK on every push;
-web-specific code stays in the infrastructure layer; no dependency without Android and iOS
-support unless its mobile replacement is identified; touch-first input.
+**Guardrails that keep mobile cheap to return to.** Web-specific code stays in the infrastructure
+layer; no dependency without Android and iOS support unless its mobile replacement is identified;
+touch-first input. Android is not built or checked until Phase 8 (owner decision): CI is web-only,
+and Phase 8 accepts the cost of fixing whatever drifted.
 
 ## 6. Product direction
 
@@ -183,7 +188,7 @@ notation, layout and durations. Identity comes from four levers.
 - **A loop that feels alive**: key tick, a correct chime whose pitch rises with the streak, a low
   tone on error (on by default, one toggle); the streak counter and timer bar intensify at 5, 10
   and 20; a level-up moment with its own sound; haptics where the platform has them.
-- **A real name** before the public launch: short, easy to say in French and English, free as a
+- **A real name** before the public launch: short, easy to say in English and French, free as a
   domain and on both stores. "Math Trainer" describes the app but cannot be found or protected.
 
 ### 6.3 Accounts and first run
@@ -269,14 +274,16 @@ preview URL, then stopped until the owner has played it.
 
 0. *(C)* Docs: create `doc/progress.md`; bring `doc/online.md` and `doc/decisions.md` in line with
    this plan (anonymous-first, Glicko-2, ghost duels first, monorepo, web-first, no ads in v1),
-   each decision with its reason and a "reopen when"; list remaining contradictions.
-1. *(A)* CI on GitHub Actions: core tests, all tests, analyze, web build, Android debug build
-   (compile-only), on every push. Supabase settings from CI secrets.
+   each decision with its reason and a "reopen when"; list remaining contradictions. No preview
+   URL exists yet: this checkpoint is read, not played.
+1. *(A)* CI on GitHub Actions: core tests, all tests, analyze, web build, on every push. Supabase
+   settings from CI secrets. No Android build until Phase 8.
 2. *(A)* Preview deployment of the web build on every push to `main`, stable URL. Host proposed
    with its reason.
 3. *(A)* `material_ui` migration, zero analyzer notices afterwards.
 4. *(A)* One timestamp per answer. Schema migration only after asking.
-5. *(A)* Check `δ` against `n_min` = 4; any new value proposed, never applied without approval.
+5. *(A)* Check `δ` = 0.07 against `n_min` = 4; any new value proposed, never applied without
+   approval.
 6. *(A)* Debug-only switch disabling the timeout, proven inert in release builds.
 7. *(A)* Hooks refusing `assert(` in the core and unseeded `Random(`; formatting after edits;
    reviewer subagent checking diffs against the architecture rules.
@@ -374,7 +381,8 @@ email and keeps their history.
 
 **Entry:** the owner says mobile development is possible again.
 
-1. *(C)* Android on a device or emulator; fix what compile-only CI could not catch.
+1. *(C)* Android build added to CI; Android on a device or emulator; fix what drifted while it was
+   unbuilt.
 2. *(A)* Native haptics and sound behind the Phase 5 interfaces.
 3. *(A)* Store assets, data-safety form, account deletion link.
 4. *(C)* Google Play closed test, then production.
@@ -386,7 +394,7 @@ Claude Code proposes options with their consequences, then waits.
 
 | Decision | Needed before |
 |---|---|
-| `δ` value, if it was not widened | Phase 0, commit 5 |
+| `δ` value (0.07 in code, not yet approved) | Phase 0, commit 5 |
 | Preview host (accepted unless the owner objects) | Phase 0, commit 2 |
 | Anonymous-first design | Phase 1, commit 1 |
 | Server host and budget | Phase 2, commit 2 |
@@ -410,6 +418,7 @@ owner. Silence never turns a guess into the product.
 | Cheating in solo rankings | Server replay, timing flags; robust ratings come from duels |
 | Teen users and consent rules | Check before public sign-ups (P6) |
 | First iOS build on unknown ground | Budget time in P8; cloud Mac build service |
+| Android drifts while unbuilt until P8 | Mobile-supported dependencies only; fix cost accepted in P8 |
 | A single developer's bandwidth | Strict phase order; checkpoints kept few |
 
 ## 10. Owner actions outside the code

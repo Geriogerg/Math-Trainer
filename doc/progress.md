@@ -71,21 +71,15 @@ State at the plan: 49 commits, 176 core tests / 328 in total.
 - *Owner request, outside the plan* — Code comments, error messages, test names, tool,
   `supabase/profiles.sql` (policies renamed, old names dropped) and config comments in English.
 
-### Remaining contradictions after commit 0 (for the owner)
+- *Owner request* — `doc/plan.md` v1.1, edited at the owner's request: English-speaking audience,
+  Android out of CI until Phase 8, `δ` = 0.07 recorded as unapproved, commit 0 read rather than
+  played, no GitHub remote yet.
 
-Points where `doc/plan.md` and reality disagree; the plan is the owner's to update.
+### Remaining contradictions after commit 0
 
-1. **Language.** Section 1 says "French-speaking audience first" and the old `CLAUDE.md` said "UI
-   in French"; the owner has since chosen English everywhere, interface included.
-2. **`δ`.** Section 4 says "`δ` possibly not widened when `n_min` went 8 → 4". It was widened to
-   0.07 in `1f8b891`; what remains open is whether 0.07 is right (commit 5).
-3. **Branch.** Section 5 says "every push to `main`". The local branch has been renamed from
-   `master` to `main`; the repo has no GitHub remote yet (section 10, owner action), which blocks
-   commits 1 and 2.
-4. **Commit 0 as a checkpoint.** It is *(C)*, but no preview URL exists before commit 2; treated as
-   "the owner reads the docs".
-5. **Android in CI.** The owner does not care about Android for now; the plan keeps a compile-only
-   Android build in CI (commit 1) as a guardrail. Kept unless the owner drops it.
+The five plan/reality contradictions found at commit 0 (language, `δ`, branch and remote, commit 0
+as a checkpoint, Android in CI) are resolved by plan v1.1. Still open: the repo has no GitHub
+remote (owner action), which blocks commits 1 and 2.
 
 Code that does not yet follow the plan, already scheduled: mandatory sign-in versus "offline first"
 (Phase 1); one timestamp shared by all answers of a game (commit 4); correct answer not shown after

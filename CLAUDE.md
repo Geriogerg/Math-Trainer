@@ -33,8 +33,8 @@ Dart/Flutter idioms the first time only (`late`, `factory`, `sealed class`, enha
 
 Windows. **Web-first for now**: mobile development is paused (Android emulator unusable); the web
 build is the product and mobile web is the reference device. Android and iOS return in Phase 8;
-until then Android is not a concern (owner, 18 Nov 2026) beyond the compile-only CI build and
-rule 16. Never propose anything that needs Xcode locally.
+until then Android is not a concern (owner, 18 Nov 2026) beyond rule 16 — no Android build, in
+CI or locally. Never propose anything that needs Xcode locally.
 
 ## Architecture rules
 
