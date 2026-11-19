@@ -1,14 +1,19 @@
 import 'package:flutter/foundation.dart';
 
 import 'package:math_core/account/account_repository.dart';
+import 'package:math_core/account/display_name.dart';
 import 'package:math_core/account/profile_repository.dart';
 
-/// Longest player name — the `profiles.display_name` check constraint
-/// (`supabase/profiles.sql`).
-const maxDisplayNameLength = 30;
+export 'package:math_core/account/display_name.dart'
+    show DisplayNameProblem, maxDisplayNameLength;
 
 /// A problem found before anything is sent.
-enum AccountFormProblem { missingFields, nameTooLong }
+enum AccountFormProblem {
+  missingFields,
+
+  /// The player name breaks the name rule ([AccountFormController.nameProblem]).
+  invalidName,
+}
 
 enum SaveProgressOutcome {
   /// Email and password linked, player name saved.
@@ -51,6 +56,11 @@ class AccountFormController extends ChangeNotifier {
   /// Client-side reason of the last failure, `null` otherwise.
   AccountFormProblem? get problem => _problem;
 
+  DisplayNameProblem? _nameProblem;
+
+  /// What is wrong with the name when [problem] is `invalidName`.
+  DisplayNameProblem? get nameProblem => _nameProblem;
+
   /// Links [email] and [password] to the signed-in guest (same account id,
   /// so nothing moves), then saves [displayName]. Email trimmed: mobile
   /// keyboards often append a space.
@@ -60,11 +70,12 @@ class AccountFormController extends ChangeNotifier {
     required String displayName,
   }) async {
     final name = displayName.trim();
+    _nameProblem = name.isEmpty ? null : displayNameProblem(name);
     if (!_begin(
       email.trim().isEmpty || password.isEmpty || name.isEmpty
           ? AccountFormProblem.missingFields
-          : name.length > maxDisplayNameLength
-          ? AccountFormProblem.nameTooLong
+          : _nameProblem != null
+          ? AccountFormProblem.invalidName
           : null,
     )) {
       return SaveProgressOutcome.failed;

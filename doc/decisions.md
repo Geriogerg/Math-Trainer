@@ -653,6 +653,23 @@ length, after which a level means something; "Top N %" rounds up (the best playe
 of a 100-player board, never "Top 0 %").
 **Reopen when** the beta shows boards too empty (lower the bar) or noisy (raise it).
 
+## Player names: a charset the font draws, a short blocklist, reports (Phase 2, commit 9)
+
+The plan asked for a name filter "including a character set limited to what the bundled fonts
+cover" (no font is fetched at runtime, Phase 1 commit 3). Inter's character map, read from the
+font file, covers Latin (with Vietnamese), Greek and Cyrillic; the allowed set is a curated
+subset of that (letters people type in names, no symbols, no combining marks), and a test
+re-reads the font so a font change cannot silently break it. CJK, Arabic, Hebrew, Devanagari,
+emoji: refused with a message naming what is allowed — **owner decision** whether to bundle a
+font for more scripts later (megabytes on the first load).
+The rule lives in Dart (instant feedback) and in SQL (the enforcement, since the app writes
+`profiles` directly under row-level security); a parity test keeps them identical. The
+blocklist is deliberately short — a list never catches everything and false positives anger
+real players ("Draper" contains "rape": not in the list) — and **reports** cover the rest.
+**Provisional (owner to confirm)**: the allowed set, the word lists, and hiding a name after 3
+reports pending review.
+**Reopen when** the beta shows abuse the list misses, or players whose names are refused.
+
 ## Server host: Render free, prepared (Phase 2, commit 4) — owner decision pending
 
 The plan: host and monthly cost prepared, **not deployed until the owner confirms** (it costs

@@ -254,6 +254,28 @@ the reason in words, with the games still missing. Reloads every time the tab is
 → "Could not load the leaderboard." and Retry. State in `LeaderboardController`
 (`core/state/`); reads through `LeaderboardRepository` (Supabase RPC, no server hop).
 
+## Player names: filter and reports (Phase 2 commit 9)
+
+- **The rule** (`math_core/account/display_name.dart`, mirrored by `public.display_name_problem`
+  in SQL; a VM test checks the migration holds the same character class and word lists): 1–30
+  characters, no leading/trailing/double space, at least one letter or digit, only letters the
+  bundled Inter draws — Basic Latin, Latin-1, Latin Extended-A, Vietnamese, modern Greek, basic
+  Cyrillic — digits, space and `. _ ' -`; no blocked word (a short English/French list: long
+  words anywhere once separators are removed, short ones at the start of a word).
+  `app/test/presentation/name_charset_font_test.dart` reads Inter's character map and checks it
+  draws every allowed character.
+- **Enforced by the database**: `profiles_display_name_allowed`, a check constraint added
+  `NOT VALID` (names already stored stay; reports cover them). The app checks first for
+  immediate feedback (save-progress form, Profile name dialog); a database refusal (23514)
+  becomes `DisplayNameRefused` → "This name is not allowed."
+- **Reports**: a flag button on every other player's named row of the board → confirmation →
+  `report_player_name(player)` (`security definer`, signed-in players incl. guests, one report
+  per reporter and player, never oneself; stores the name reported). A name reported **as it
+  is now** by 3 different players reads "Player" on the boards (`public_display_name`) until
+  reviewed; changing the name starts clean. Board entries now carry the player id (already
+  public in `profiles`). `name_reports`: RLS on, no API access — the owner reviews in SQL
+  until the Phase 3 dashboard.
+
 ## Rankings (Phase 2)
 
 - Ranked on **level**: one overall board, one board per operation. Ordered on the continuous level

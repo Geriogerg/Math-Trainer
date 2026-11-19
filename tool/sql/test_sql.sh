@@ -16,6 +16,9 @@ root="$(cd "$(dirname "$0")/../.." && pwd)"
 db=mt_sql_test
 # Only warnings and errors: the idempotent migrations NOTICE every skip.
 export PGOPTIONS="-c client_min_messages=warning"
+# The SQL files are UTF-8; psql on Windows would otherwise read them in the
+# console's code page and mangle every accented letter.
+export PGCLIENTENCODING=UTF8
 
 # Same server, other database: replace the path of the admin URL.
 test_url="${admin_url%/*}/$db"

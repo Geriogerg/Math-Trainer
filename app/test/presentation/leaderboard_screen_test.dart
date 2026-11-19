@@ -17,6 +17,13 @@ class _FakeLeaderboard implements LeaderboardRepository {
   final tops = <LeaderboardBoard, List<LeaderboardEntry>>{};
   bool failing = false;
   int calls = 0;
+  final reported = <String>[];
+
+  @override
+  Future<void> reportName(String playerId) async {
+    if (failing) throw Exception('offline');
+    reported.add(playerId);
+  }
 
   @override
   Future<Standing> aroundMe(LeaderboardBoard board) async {
@@ -35,6 +42,7 @@ class _FakeLeaderboard implements LeaderboardRepository {
 
 LeaderboardEntry _entry(int rank, String? name, int level, {bool me = false}) =>
     LeaderboardEntry(
+      playerId: 'id-$rank',
       rank: rank,
       name: name,
       level: Level.whole(level),
@@ -161,5 +169,33 @@ void main() {
       ),
     );
     expect(find.textContaining('not available'), findsOneWidget);
+  });
+
+  testWidgets('report a name: confirm, sent, thanked; not mine, not "Player"', (
+    tester,
+  ) async {
+    leaderboard.standings[const LeaderboardBoard.overall()] = Ranked(
+      rank: 2,
+      total: 3,
+      topPercent: 67,
+      level: Level.whole(20),
+      neighbours: [
+        _entry(1, 'Rude Name', 30),
+        _entry(2, 'Ada', 20, me: true),
+        _entry(3, null, 10),
+      ],
+    );
+    await pump(tester);
+
+    // One report button: the named other player only.
+    expect(find.byTooltip('Report name'), findsOneWidget);
+    await tester.tap(find.byTooltip('Report name'));
+    await tester.pumpAndSettle();
+    expect(find.text('Report "Rude Name"?'), findsOneWidget);
+
+    await tester.tap(find.text('Report'));
+    await tester.pumpAndSettle();
+    expect(leaderboard.reported, ['id-1']);
+    expect(find.text('Reported — thank you.'), findsOneWidget);
   });
 }

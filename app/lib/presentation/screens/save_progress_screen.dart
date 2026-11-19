@@ -82,8 +82,9 @@ class _SaveProgressScreenState extends State<SaveProgressScreen> {
       return switch (problem) {
         AccountFormProblem.missingFields =>
           'Enter an email, a password and a player name.',
-        AccountFormProblem.nameTooLong =>
-          'Player name: $maxDisplayNameLength characters at most.',
+        AccountFormProblem.invalidName => describeNameProblem(
+          _controller.nameProblem!,
+        ),
       };
     }
     final failure = _controller.failure;

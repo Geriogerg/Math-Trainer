@@ -114,7 +114,24 @@ void main() {
         displayName: 'x' * (maxDisplayNameLength + 1),
       );
       expect(outcome, SaveProgressOutcome.failed);
-      expect(controller.problem, AccountFormProblem.nameTooLong);
+      expect(controller.problem, AccountFormProblem.invalidName);
+      expect(controller.nameProblem, DisplayNameProblem.tooLong);
+      expect(accounts.linkCalls, isEmpty);
+    });
+
+    test('a name the rule refuses sends nothing (Phase 2 commit 9)', () async {
+      for (final (name, problem) in [
+        ('李雷', DisplayNameProblem.charset),
+        ('Big Fucker', DisplayNameProblem.blocked),
+      ]) {
+        final outcome = await controller.saveProgress(
+          email: 'e@x.com',
+          password: 'p',
+          displayName: name,
+        );
+        expect(outcome, SaveProgressOutcome.failed);
+        expect(controller.nameProblem, problem);
+      }
       expect(accounts.linkCalls, isEmpty);
     });
 

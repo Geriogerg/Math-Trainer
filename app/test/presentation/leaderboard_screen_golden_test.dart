@@ -33,6 +33,7 @@ class _FixedLeaderboard implements LeaderboardRepository {
         'Hugo',
       ].indexed)
         LeaderboardEntry(
+          playerId: 'player-$i',
           rank: 37 + i,
           name: name,
           level: Level.whole(40 - (i ~/ 3)),
@@ -43,6 +44,9 @@ class _FixedLeaderboard implements LeaderboardRepository {
 
   @override
   Future<List<LeaderboardEntry>> top(LeaderboardBoard board) async => const [];
+
+  @override
+  Future<void> reportName(String playerId) async {}
 }
 
 void main() {

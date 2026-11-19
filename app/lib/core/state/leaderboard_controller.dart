@@ -55,6 +55,18 @@ class LeaderboardController extends ChangeNotifier {
     _notify();
   }
 
+  /// Reports [entry]'s name; `true` once the server has it.
+  Future<bool> report(LeaderboardEntry entry) async {
+    final id = entry.playerId;
+    if (id == null || entry.isMe) return false;
+    try {
+      await repository.reportName(id);
+      return true;
+    } on Exception catch (_) {
+      return false;
+    }
+  }
+
   void selectBoard(LeaderboardBoard board) {
     if (board == _board) return;
     _board = board;

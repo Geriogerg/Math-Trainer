@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:math_core/account/display_name.dart';
 import 'package:math_core/account/player_profile.dart';
 import 'package:math_core/account/profile_repository.dart';
 
@@ -47,6 +48,8 @@ class SupabaseProfileRepository implements ProfileRepository {
         'display_name': displayName,
       });
     } on PostgrestException catch (e) {
+      // 23514: a check constraint — the name rule (or its length).
+      if (e.code == '23514') throw const DisplayNameRefused();
       throw Exception(e.message);
     }
   }

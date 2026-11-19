@@ -32,7 +32,11 @@ class LeaderboardEntry {
     required this.name,
     required this.level,
     required this.isMe,
+    this.playerId,
   });
+
+  /// Who to report (`reportName`); public like the name it goes with.
+  final String? playerId;
 
   final int rank;
 
@@ -95,6 +99,10 @@ final class NotRanked extends Standing {
 abstract interface class LeaderboardRepository {
   Future<List<LeaderboardEntry>> top(LeaderboardBoard board);
   Future<Standing> aroundMe(LeaderboardBoard board);
+
+  /// Reports [playerId]'s current name (Phase 2 commit 9); a repeat
+  /// changes nothing. Throws on failure.
+  Future<void> reportName(String playerId);
 }
 
 /// `leaderboard_top`'s JSON. Throws [FormatException] on anything else.
@@ -128,7 +136,9 @@ Standing standingFromJson(Object? json) {
 LeaderboardEntry _entry(Object? e) {
   if (e is! Map) throw const FormatException('entry is not an object');
   final name = e['name'];
+  final playerId = e['playerId'];
   return LeaderboardEntry(
+    playerId: playerId is String ? playerId : null,
     rank: _int(e, 'rank'),
     name: name is String && name.trim().isNotEmpty ? name : null,
     level: _level(e['level']),

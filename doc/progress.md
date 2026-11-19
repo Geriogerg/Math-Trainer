@@ -298,6 +298,15 @@ Phase 0 closed in Phase 1 commit 0 (`material_ui`, `δ` recorded, preview, load)
   Widget tests, goldens (light/dark). **Played at phase end** — and only meaningful once the
   migrations are applied (owner's secrets) and the server deployed (owner's host decision):
   until then the preview's tab shows "Could not load the leaderboard.".
+- **Commit 9** *(A)* — Name filter and report action. Rule in core (`displayNameProblem`:
+  length, spaces, a character set inside Inter's coverage — Latin incl. Vietnamese, Greek,
+  Cyrillic — at least one letter/digit, a short EN/FR blocklist) and in SQL
+  (`display_name_problem`, a `NOT VALID` check on `profiles`); parity test (Dart reads the
+  migration); font test (reads Inter's `cmap`). Save-progress form and Profile dialog check
+  first and say why; a database refusal → "This name is not allowed." Reports: flag button on
+  other players' named rows, confirmation, `report_player_name` (one per reporter/player);
+  3 reports on the current name → shown as "Player". SQL tests (20 sample names, reports,
+  hiding, access). Also: the SQL runner sets `PGCLIENTENCODING=UTF8`.
 
 ### Remaining contradictions after commit 0
 

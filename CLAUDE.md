@@ -11,7 +11,7 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 ## Current phase
 
 **Phase 2 — Server and leaderboard** (`doc/plan.md`, section 7), run in **one pass**.
-Done: 0–8. Next commit: **9**. Waiting on the owner: the `SUPABASE_ACCESS_TOKEN` and
+Done: 0–9. Next commit: **10**. Waiting on the owner: the `SUPABASE_ACCESS_TOKEN` and
 `SUPABASE_DB_PASSWORD` secrets (CI skips the migrations until then — the Phase 1 test accounts
 go with them); the server host (Render free, prepared in `render.yaml`, not deployed). Update this block at every commit.
 
@@ -186,6 +186,12 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   the app's orchestrators and the server's validation. Never compute levels elsewhere.
 - `RejectionReason` and `ValidationFlag` names are stored server-side and sent to the app:
   renaming breaks both.
+- The name rule exists twice — `math_core/account/display_name.dart` and the SQL
+  `display_name_problem`; change both (a parity test fails otherwise). Allowed letters must stay
+  inside Inter's coverage (`name_charset_font_test.dart`).
+- SQL tests set `PGCLIENTENCODING=UTF8`: psql on Windows otherwise reads files in the console's
+  code page. Git Bash also mangles non-ASCII command-line arguments to Windows programs — put
+  such SQL in a file.
 - Rotation by sampling debt makes question order depend on past games: sessions store their
   type sequence (schema v6). Replay with `replaySessionQuestions`, never by re-running the
   strategy.

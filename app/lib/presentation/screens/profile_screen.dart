@@ -10,6 +10,8 @@ import 'package:math_core/persistence/level_cache_entry.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/persistence/persisted_session.dart';
 import '../../core/state/account_deletion_controller.dart';
+import 'package:math_core/account/display_name.dart';
+
 import '../account_messages.dart';
 import '../exercise_type_labels.dart';
 import 'package:math_core/leveling/overall_level.dart';
@@ -170,6 +172,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       await widget.environment.profileRepository.updateDisplayName(newName);
       if (mounted) setState(_loadProfile);
+    } on DisplayNameRefused {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('This name is not allowed.')),
+      );
     } catch (_) {
       // The old name stays shown; without this message, the player would
       // think the new name was saved (network down, `profiles` table missing).
@@ -482,28 +489,37 @@ class _DisplayNameDialogState extends State<_DisplayNameDialog> {
     super.dispose();
   }
 
+  String? _error;
+
+  /// Closes with the name only if it passes the name rule (the database
+  /// checks the same); otherwise says why, in place.
+  void _submit() {
+    final name = _controller.text.trim();
+    final problem = displayNameProblem(name);
+    if (problem != null) {
+      setState(() => _error = describeNameProblem(problem));
+      return;
+    }
+    Navigator.of(context).pop(name);
+  }
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
       title: const Text('Player name'),
-      // 30: same bound as the `check` constraint in `supabase/profiles.sql`,
-      // otherwise a longer name would be refused by the database with no
-      // visible feedback.
       content: TextField(
         controller: _controller,
         autofocus: true,
         maxLength: maxDisplayNameLength,
-        onSubmitted: (value) => Navigator.of(context).pop(value.trim()),
+        decoration: InputDecoration(errorText: _error, errorMaxLines: 3),
+        onSubmitted: (_) => _submit(),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Cancel'),
         ),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(_controller.text.trim()),
-          child: const Text('Save'),
-        ),
+        FilledButton(onPressed: _submit, child: const Text('Save')),
       ],
     );
   }

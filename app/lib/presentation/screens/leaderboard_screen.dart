@@ -116,7 +116,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     }
     return switch (controller.view) {
       LeaderboardView.aroundMe => switch (standing) {
-        Ranked() => _RankedView(standing: standing),
+        Ranked() => _RankedView(standing: standing, onReport: _report),
         NotRanked() => _NotRankedView(
           standing: standing,
           board: controller.board,
@@ -130,8 +130,43 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                   style: theme.textTheme.bodyMedium,
                 ),
               )
-            : _EntryList(entries: top),
+            : _EntryList(entries: top, onReport: _report),
     };
+  }
+
+  /// Confirm, report, say so. Names are public content (plan 6.4).
+  Future<void> _report(LeaderboardEntry entry) async {
+    final controller = _controller!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Report "${entry.name}"?'),
+        content: const Text(
+          'Report a name that is offensive or impersonates someone. A name '
+          'reported by several players is hidden until it is reviewed.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Report'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final sent = await controller.report(entry);
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          sent ? 'Reported — thank you.' : 'Could not send the report.',
+        ),
+      ),
+    );
   }
 }
 
@@ -164,9 +199,10 @@ class _BoardChips extends StatelessWidget {
 }
 
 class _RankedView extends StatelessWidget {
-  const _RankedView({required this.standing});
+  const _RankedView({required this.standing, required this.onReport});
 
   final Ranked standing;
+  final ValueChanged<LeaderboardEntry> onReport;
 
   @override
   Widget build(BuildContext context) {
@@ -182,7 +218,9 @@ class _RankedView extends StatelessWidget {
           style: theme.textTheme.bodyMedium,
         ),
         const SizedBox(height: 16),
-        Expanded(child: _EntryList(entries: standing.neighbours)),
+        Expanded(
+          child: _EntryList(entries: standing.neighbours, onReport: onReport),
+        ),
       ],
     );
   }
@@ -224,21 +262,24 @@ class _NotRankedView extends StatelessWidget {
 }
 
 class _EntryList extends StatelessWidget {
-  const _EntryList({required this.entries});
+  const _EntryList({required this.entries, required this.onReport});
 
   final List<LeaderboardEntry> entries;
+  final ValueChanged<LeaderboardEntry> onReport;
 
   @override
   Widget build(BuildContext context) => ListView.builder(
     itemCount: entries.length,
-    itemBuilder: (context, i) => _EntryRow(entry: entries[i]),
+    itemBuilder: (context, i) =>
+        _EntryRow(entry: entries[i], onReport: onReport),
   );
 }
 
 class _EntryRow extends StatelessWidget {
-  const _EntryRow({required this.entry});
+  const _EntryRow({required this.entry, required this.onReport});
 
   final LeaderboardEntry entry;
+  final ValueChanged<LeaderboardEntry> onReport;
 
   @override
   Widget build(BuildContext context) {
@@ -248,8 +289,9 @@ class _EntryRow extends StatelessWidget {
     final style = entry.isMe
         ? theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700)
         : theme.textTheme.bodyLarge;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+    // A fixed height: rows with and without a report button line up.
+    return SizedBox(
+      height: 44,
       child: Row(
         children: [
           SizedBox(width: 48, child: Text('${entry.rank}', style: style)),
@@ -263,6 +305,19 @@ class _EntryRow extends StatelessWidget {
             ),
           ),
           Text('Level ${entry.level.whole}', style: style),
+          // Another player's chosen name can be reported; a nameless row
+          // ("Player") or one's own cannot.
+          SizedBox(
+            width: 40,
+            child: entry.isMe || entry.name == null || entry.playerId == null
+                ? null
+                : IconButton(
+                    icon: const Icon(Icons.flag_outlined, size: 18),
+                    tooltip: 'Report name',
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () => onReport(entry),
+                  ),
+          ),
         ],
       ),
     );
