@@ -680,6 +680,13 @@ the app whenever it is open) in the last 30 days. Device side, a guest left for 
 keeps its hidden games 30 days (owner's Phase 1 decision: "deleted with the guest account").
 **Provisional (owner to confirm)**: the extra activity signal, the 03:17 UTC daily schedule.
 
+## Android: compile-only, weekly, outside the push pipeline (Phase 2, commit 12)
+
+Plan v2.2 §5 settles the Phase 0 question: a scheduled job compiles the APK once a week and on
+demand, not on every push. A separate workflow (`android.yml`) rather than a job in `ci.yml`:
+its failure never cancels or blocks a preview deployment, and a push never waits for Gradle.
+It also runs when its own file changes, so a change to it is checked at once.
+
 ## Server host: Render free, prepared (Phase 2, commit 4) — owner decision pending
 
 The plan: host and monthly cost prepared, **not deployed until the owner confirms** (it costs

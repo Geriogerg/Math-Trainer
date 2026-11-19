@@ -1,0 +1,43 @@
+# Android compile-only check (Phase 2 commit 12; plan section 5): mobile
+# development is paused until Phase 8, but the app must keep compiling for
+# Android so returning stays cheap. Not on every push (CI stays fast):
+# weekly, on demand (Actions → "Android build" → Run workflow), and when
+# this file changes. A failure here is a warning to fix before Phase 8, not
+# a reason to block the preview.
+name: Android build
+
+on:
+  schedule:
+    - cron: '0 4 * * 1' # Mondays, 04:00 UTC
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/android.yml
+
+env:
+  FLUTTER_VERSION: 3.50.0
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - run: flutter pub get
+      - name: Debug APK (compile only)
+        # No Supabase settings: the app would start on "Missing
+        # configuration"; it only has to compile.
+        run: flutter build apk --debug

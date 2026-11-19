@@ -318,6 +318,13 @@ Phase 0 closed in Phase 1 commit 0 (`material_ui`, `δ` recorded, preview, load)
   guest deleted out of five kinds). Device: `AuthGate` records a guest replaced by another
   account (`AbandonedGuestStore`, shared_preferences); `deleteAbandonedGuests` removes their
   hidden games 30 days later, run at every sign-in.
+- **Commit 12** *(A)* — Android compile-only CI: `.github/workflows/android.yml`, a debug APK
+  from `app/` with Java 17, every Monday 04:00 UTC, on demand (Actions → Android build → Run
+  workflow) and when the workflow file changes. Separate from `ci.yml`: never slows a push,
+  never blocks the preview. Its first local run caught real breakage: Flutter 3.50 refuses
+  Gradle 9.1.0 and Android Gradle Plugin 9.0.1 (minimums 9.3.1 / 9.1.1). Moved to the versions
+  Flutter recommends (Gradle 9.5.0, AGP 9.3.1, Kotlin 2.4.20); the full build is left to CI
+  (a local one takes over 12 minutes and did not finish here).
 
 ### Remaining contradictions after commit 0
 

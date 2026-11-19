@@ -11,7 +11,7 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 ## Current phase
 
 **Phase 2 — Server and leaderboard** (`doc/plan.md`, section 7), run in **one pass**.
-Done: 0–11. Next commit: **12**. Waiting on the owner: the `SUPABASE_ACCESS_TOKEN` and
+Done: 0–12, all commits. Next: the exit test and the **phase report**. Waiting on the owner: the `SUPABASE_ACCESS_TOKEN` and
 `SUPABASE_DB_PASSWORD` secrets (CI skips the migrations until then — the Phase 1 test accounts
 go with them); the server host (Render free, prepared in `render.yaml`, not deployed). Update this block at every commit.
 
@@ -130,7 +130,8 @@ rewrite working code; list files touched; no abstraction for a single use case.
 - On-screen keypad is the primary input; the native keyboard never appears during a game.
 
 **Before every commit**: core tests on VM and JS, `flutter test`, `flutter analyze` clean, CI
-green. Until Phase 8, CI's Android build is the only Android check — say so when it matters.
+green. Until Phase 8, the weekly "Android build" workflow (`.github/workflows/android.yml`,
+compile-only, also on demand) is the only Android check — say so when it matters.
 
 ## Commands
 
