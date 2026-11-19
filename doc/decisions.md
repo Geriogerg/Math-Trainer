@@ -451,22 +451,31 @@ stalls.
 - **CanvasKit from the site** (`flutter build web --no-web-resources-cdn`): no third-party CDN
   at runtime (privacy, availability, and one origin to measure). Cost: the build output keeps
   every CanvasKit variant (~43 MB on disk); the browser fetches one.
-- **Fonts from the site**: the engine always fetches Roboto as its default fallback, and Noto
-  fonts for glyphs a bundled font lacks, from `fonts.gstatic.com`. `fontFallbackBaseUrl:
-  'fonts/'` (in `web/flutter_bootstrap.js`) points it at `web/fonts/`, where Roboto sits at the
-  exact path the engine requests (`roboto/v32/KFOm….woff2`, from Google Fonts). No Noto font is
-  hosted: a walk of every screen and all seven exercise types requested none — Inter covers
-  + − × ÷ √ % and the rest. A glyph outside Inter would now 404 and render as a box instead of
-  silently reaching Google: **a new symbol in the UI must be checked** (network panel).
-- **Licences**: the OFL texts of Inter and Roboto ship next to the fonts (`web/fonts/*/OFL.txt`);
-  Inter's had been missing since step 5.
+- **Fonts from the site**: with local resources, Flutter ships its default fallback font itself
+  (`assets/fonts/fallback/Roboto-Regular.ttf`, 89 KiB on the wire). The engine still fetches
+  Noto fonts for glyphs no bundled font has, from `fontFallbackBaseUrl` — set to `'fonts/'`
+  in `web/flutter_bootstrap.js`, where nothing is hosted, so those requests 404 instead of
+  reaching Google. A walk of every screen and all seven exercise types requested none — Inter
+  covers + − × ÷ √ % and the rest. **Consequence**: a glyph outside Inter now renders as a box
+  — a new UI symbol must be checked (network panel), and **player names in scripts Inter lacks
+  (CJK, Arabic, Hebrew, Devanagari…) would show as boxes** once names of others appear
+  (Phase 2 leaderboard). Owner to decide there: restrict names to supported scripts (also
+  simpler moderation), host the Noto fonts needed, or allow Google for fallbacks only.
+- **Licences**: the OFL texts of Inter and Roboto (both served from the site now) ship in
+  `web/fonts/*/OFL.txt`; Inter's had been missing since step 5.
 - **Loading screen** in `web/index.html`, plain HTML/CSS painted before any script: palette of
   `doc/design.md`, the stored day/night choice, system font. The bar moves when each large file
   has actually arrived (resource timing, weighted by size), then through engine start; removed
   on Flutter's first frame. Not a byte counter: a 1.5 MB file moves the bar when it completes.
   Rejected: fetching the files ahead with a streamed byte count — with gzip, the size on the
   wire is unknown to the page, and a cache miss would download everything twice.
-- **Not done**: subsetting Inter (~450 KiB gzipped) — a lead if the slow-4G exit test fails.
+- **Measured cost of self-hosting** (preview, cold cache): 3.41 MiB before the first frame
+  against 2.86 MiB from Google's CDN; Fast 4G 4.6 s (was 3.6 s), Slow 4G 20.0 s (was 16.0 s).
+  Google serves `canvaskit.wasm` brotli-compressed (1.5 MiB), GitHub Pages only gzip
+  (2.0 MiB); Slow 4G is bandwidth-bound (3.41 MiB ≈ 18 s at 1.6 Mbit/s), so only bytes count.
+  Levers, none applied: a host serving brotli (Phase 6 production host — e.g. Cloudflare
+  Pages); subsetting Inter (451 KiB → roughly 100 KiB, about −1.7 s on Slow 4G, at the price
+  of the glyph coverage above).
 **Reopen when** a UI symbol needs a fallback font, or the Wasm renderer (`--wasm`, skwasm) is
 adopted.
 

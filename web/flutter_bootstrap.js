@@ -1,11 +1,11 @@
 // Custom Flutter bootstrap (Phase 1 commit 3). `flutter build web` fills
 // the two placeholders below; everything else is ours.
 //
-// - Every font the engine fetches comes from the app itself: Roboto, the
-//   engine's default fallback, is in web/fonts/roboto/ at the exact path
-//   the engine asks for; any Noto fallback would 404 there instead of
-//   reaching Google (the build checks no screen needs one). CanvasKit is
-//   local too (`--no-web-resources-cdn`).
+// - No request to Google: CanvasKit and Roboto (the engine's default
+//   fallback) ship with the build (`--no-web-resources-cdn`); Noto
+//   fallbacks, for glyphs no bundled font has, are looked up under fonts/,
+//   where none is hosted — they 404 instead of reaching Google (no screen
+//   needs one today; doc/decisions.md, "First load").
 // - The loading screen of index.html shows real progress: its bar moves
 //   when each large file has actually arrived (resource timing), then
 //   through the engine's start, and it is removed on Flutter's first frame.

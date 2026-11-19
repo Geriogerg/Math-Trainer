@@ -162,6 +162,13 @@ Phase 0 closed in Phase 1 commit 0 (`material_ui`, `δ` recorded, preview, load)
   sessions (was 45) — placement (commit 6) or Phase 3 constants. Result screen shows the change
   in hundredths (provisional). Bug caught by goldens: `levels[type] ?? 1` printed "level 1200".
 
+- **Commit 3** *(A)* — First load: CanvasKit from the site (`--no-web-resources-cdn`), fonts
+  from the site (Flutter's bundled Roboto; `fontFallbackBaseUrl` → `fonts/`, so Noto never
+  reaches Google), HTML/CSS loading screen with resource-driven progress, OFL licences shipped.
+  Preview: zero requests off-origin; first frame Fast 4G 4.6 s (was 3.6), Slow 4G 20.0 s (was
+  16.0): Pages gzips CanvasKit where Google served brotli (+0.55 MiB). Levers recorded, none
+  applied. Non-Latin player names would render as boxes (Phase 2 decision).
+
 ### Remaining contradictions after commit 0
 
 The five plan/reality contradictions found at commit 0 (language, `δ`, branch and remote, commit 0

@@ -179,6 +179,19 @@ numbers. Still fetched from Google at runtime: `canvaskit.wasm` 1.5 MiB and `can
 (`www.gstatic.com`), Roboto (`fonts.gstatic.com`) — Phase 1 commit 3. The measured first frame
 was the "Missing configuration" screen (CI secrets absent at the time); the bundle is the same.
 
+**Phase 1 commit 3** (self-hosted CanvasKit and fonts, loading screen; preview, same method):
+
+| Network | First frame | Transferred | vs commit 0 |
+|---|---|---|---|
+| none | 4.1–6.6 s (2 of 3 runs ~4.5 s) | 3.41 MiB | 2.7 s, 2.86 MiB |
+| Fast 4G | 4.6 s | 3.41 MiB | 3.6 s |
+| Slow 4G | 20.0 s | 3.41 MiB | 16.0 s |
+
+Every request now goes to the site: `canvaskit/chromium/canvaskit.wasm` 2046 KiB (gzip; Google
+served it brotli at 1531 KiB), `main.dart.js` 859 KiB, `Inter.ttf` 451 KiB,
+`assets/fonts/fallback/Roboto-Regular.ttf` 89 KiB, `canvaskit.js` 27 KiB. Trade-off and levers:
+`doc/decisions.md` ("First load"). The loading screen paints within ~150 ms of navigation.
+
 Leads, none applied: subset Inter to Latin (most of its 856 KiB); bundle the Roboto fallback or
 stop it being requested (the fonts are meant to be bundled); serve CanvasKit from the site
 (`--no-web-resources-cdn`) if the third-party CDN becomes a concern; a loading screen with

@@ -12,8 +12,9 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 
 **Phase 1 — First run and accounts** (`doc/plan.md`, section 7), run in **one pass**.
 Done: **0**, **1** (VM = JavaScript, 158/158), **2** (levels in hundredths, schema v4),
-**7 (1/2)** (SQL written; owner to run it). Waiting on the owner: `SUPABASE_PUBLISHABLE_KEY`
-secret still empty on the preview. Next commit: **3**. Update this block at every commit.
+**3** (self-hosted CanvasKit and fonts, loading screen), **7 (1/2)** (SQL written; owner to run
+it). Waiting on the owner: `SUPABASE_PUBLISHABLE_KEY`
+secret still empty on the preview. Next commit: **4**. Update this block at every commit.
 
 | # | Commit | Note |
 |---|---|---|
@@ -155,6 +156,9 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   create.
 - SQL files in `supabase/` are run by hand by the owner; nothing applies them automatically.
 - Browser storage can be evicted until server sync (Phase 2).
+- Fallback fonts are never fetched from Google (`fontFallbackBaseUrl: 'fonts/'`): a glyph
+  missing from Inter renders as a box. Check new UI symbols in the network panel.
+- Web builds use `--no-web-resources-cdn` (CanvasKit from the site), locally too.
 - Integer arithmetic for perfect squares, never floating-point `sqrt()`.
 - `test/domain/determinism/determinism_references.dart` is generated
   (`dart run tool/determinism_references.dart`) only by a change meant to alter sequences or
