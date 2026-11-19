@@ -301,6 +301,7 @@ class SqfliteSessionRepository implements SessionRepository {
               for (final name in (jsonDecode(typeSequence) as List))
                 ExerciseType.values.byName(name as String),
             ],
+      uploadRefused: row['upload_refused'] as String?,
     );
   }
 

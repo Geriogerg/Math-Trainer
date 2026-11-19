@@ -19,6 +19,7 @@ class PersistedSession {
     this.syncedAt,
     this.kind = SessionKind.game,
     this.typeSequence,
+    this.uploadRefused,
   }) {
     final sequence = typeSequence;
     if (sequence != null && sequence.length != exerciseCount) {
@@ -86,7 +87,17 @@ class PersistedSession {
   /// interrupted session has `null` and cannot be replayed.
   final List<ExerciseType>? typeSequence;
 
-  PersistedSession copyWith({String? playerId, Object? syncedAt = _unset}) {
+  /// Why the server refused this session (schema v7, `upload_refused`): a
+  /// `RejectionReason` name, or `notReplayable` decided on the device.
+  /// `null` while pending or once accepted. Set by
+  /// `SessionRepository.markUploadRefused`, never when recording.
+  final String? uploadRefused;
+
+  PersistedSession copyWith({
+    String? playerId,
+    Object? syncedAt = _unset,
+    Object? uploadRefused = _unset,
+  }) {
     return PersistedSession(
       id: id,
       playerId: playerId ?? this.playerId,
@@ -102,6 +113,9 @@ class PersistedSession {
           : syncedAt as DateTime?,
       kind: kind,
       typeSequence: typeSequence,
+      uploadRefused: identical(uploadRefused, _unset)
+          ? this.uploadRefused
+          : uploadRefused as String?,
     );
   }
 
@@ -147,7 +161,8 @@ class PersistedSession {
       other.overallLevelAfter == overallLevelAfter &&
       other.syncedAt == syncedAt &&
       other.kind == kind &&
-      other._typeSequenceEqual(typeSequence);
+      other._typeSequenceEqual(typeSequence) &&
+      other.uploadRefused == uploadRefused;
 
   @override
   int get hashCode => Object.hash(
@@ -167,5 +182,6 @@ class PersistedSession {
     syncedAt,
     kind,
     typeSequence == null ? null : Object.hashAll(typeSequence!),
+    uploadRefused,
   );
 }

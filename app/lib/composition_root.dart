@@ -19,6 +19,7 @@ import 'package:math_core/persistence/local_player_id_provider.dart';
 import 'package:math_core/leaderboard/leaderboard.dart';
 import 'package:math_core/persistence/abandoned_guest_cleanup.dart';
 import 'package:math_core/persistence/placement_skip_store.dart';
+import 'package:math_core/sync/server_levels.dart';
 import 'package:math_core/sync/session_upload_client.dart';
 import 'package:math_core/sync/session_upload_queue.dart';
 import 'package:math_core/persistence/session_repository.dart';
@@ -32,6 +33,7 @@ import 'infrastructure/backend/http_session_upload_client.dart';
 import 'infrastructure/backend/supabase_leaderboard_repository.dart';
 import 'infrastructure/backend/supabase_account_repository.dart';
 import 'infrastructure/backend/supabase_profile_repository.dart';
+import 'infrastructure/backend/supabase_server_levels_source.dart';
 import 'infrastructure/persistence/database.dart';
 import 'infrastructure/persistence/persistent_storage.dart';
 import 'infrastructure/persistence/shared_preferences_abandoned_guest_store.dart';
@@ -65,6 +67,7 @@ class AppEnvironment {
     this.uploadClient,
     this.uploadQueue,
     this.leaderboardRepository,
+    this.serverLevelsSource,
   });
 
   final SessionRepository repository;
@@ -117,6 +120,12 @@ class AppEnvironment {
   /// then says it is unavailable.
   final LeaderboardRepository? leaderboardRepository;
 
+  /// The player's server levels, read before each game
+  /// (`syncLevelsBeforeGame`, Phase 3a commit 2). `null` without
+  /// [uploadClient]: with no uploads the server knows nothing, and its empty
+  /// levels must never replace local progress.
+  final ServerLevelsSource? serverLevelsSource;
+
   AppEnvironment forPlayer(String playerId) => AppEnvironment(
     repository: repository,
     playerId: playerId,
@@ -128,6 +137,7 @@ class AppEnvironment {
     abandonedGuestStore: abandonedGuestStore,
     uploadClient: uploadClient,
     leaderboardRepository: leaderboardRepository,
+    serverLevelsSource: serverLevelsSource,
     uploadQueue: switch (uploadClient) {
       final client? => SessionUploadQueue(
         repository: repository,
@@ -248,6 +258,9 @@ Future<AppEnvironment> buildAppEnvironment() async {
             serverUrl: Uri.parse(_serverUrl),
             accessToken: accountRepository.accessToken,
           ),
+    serverLevelsSource: _serverUrl.isEmpty
+        ? null
+        : SupabaseServerLevelsSource(Supabase.instance.client),
   );
 }
 
@@ -268,6 +281,20 @@ Future<SessionController> buildSessionController(
   AppEnvironment environment,
   Set<ExerciseType> enabledTypes,
 ) async {
+  // A game starts from the server's levels when every local session is
+  // settled: after a game on another device, the local ones are behind and
+  // this game would be refused (plan v2.3, Phase 3a commit 2). At most 2 s;
+  // offline or pending uploads → the local levels, as before.
+  if ((environment.serverLevelsSource, environment.uploadQueue) case (
+    final source?,
+    _?,
+  )) {
+    await syncLevelsBeforeGame(
+      repository: environment.repository,
+      source: source,
+      playerId: environment.playerId,
+    );
+  }
   final priorLevels = await environment.repository.currentLevels(
     environment.playerId,
   );

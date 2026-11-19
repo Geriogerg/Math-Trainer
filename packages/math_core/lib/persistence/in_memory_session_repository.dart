@@ -11,10 +11,10 @@ class InMemorySessionRepository implements SessionRepository {
   final List<PersistedSession> _sessions = [];
   final List<PersistedAnswer> _answers = [];
   final Map<String, Map<ExerciseType, LevelCacheEntry>> _levelsByPlayer = {};
-  final Map<String, String> _refusals = {};
 
   /// Why the server refused [sessionId], if it did.
-  String? uploadRefusal(String sessionId) => _refusals[sessionId];
+  String? uploadRefusal(String sessionId) =>
+      _sessions.where((s) => s.id == sessionId).firstOrNull?.uploadRefused;
 
   @override
   Future<void> recordSession({
@@ -119,7 +119,7 @@ class InMemorySessionRepository implements SessionRepository {
             (s) =>
                 s.playerId == playerId &&
                 s.syncedAt == null &&
-                !_refusals.containsKey(s.id),
+                s.uploadRefused == null,
           )
           .toList()
         ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
@@ -139,8 +139,13 @@ class InMemorySessionRepository implements SessionRepository {
   }
 
   @override
-  Future<void> markUploadRefused(String sessionId, String reason) async =>
-      _refusals[sessionId] = reason;
+  Future<void> markUploadRefused(String sessionId, String reason) async {
+    for (var i = 0; i < _sessions.length; i++) {
+      if (_sessions[i].id == sessionId) {
+        _sessions[i] = _sessions[i].copyWith(uploadRefused: reason);
+      }
+    }
+  }
 
   @override
   Future<void> replaceLevelCache(

@@ -209,6 +209,21 @@ the move happens before the invitations.
   received_at, kind, payload jsonb): RLS on, no policy, API roles' grants revoked — only the
   server reads and writes it.
 
+## Server levels before each game (Phase 3a commit 2)
+
+`buildSessionController` first calls `syncLevelsBeforeGame` (`math_core/sync/server_levels.dart`)
+when the build has a server: if **no session waits to be uploaded**, it reads the player's server
+levels (`my_server_levels()`, Supabase, own rows only — not the Dart server, which may be asleep)
+and, if level or session count differ, replaces the local cache with them. At most 2 s; offline,
+slow or failing → the local levels, as before. With uploads pending it does nothing: those
+sessions chain from the local levels, and the server's would roll them back. Effect: a game on a
+second device starts where the other device left off and is accepted, instead of refused
+(`levelsMismatch`) and the levels adopted only afterwards.
+
+Refused sessions keep their reason (`sessions.upload_refused`, read into
+`PersistedSession.uploadRefused`); Profile's recent sessions say under such a game why it is not
+ranked (`presentation/upload_refusal_text.dart`, one sentence per `RejectionReason`).
+
 ## Replay and validation (Phase 2 commit 6)
 
 `validateSessionUpload` (`math_core/validation/`, pure, VM and JavaScript) decides every upload

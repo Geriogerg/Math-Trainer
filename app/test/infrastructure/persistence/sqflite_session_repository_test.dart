@@ -108,6 +108,13 @@ void main() {
             (await repository.answersForSession('early')).single.syncedAt,
             DateTime.utc(2026, 11, 20, 10),
           );
+          // The reason is read back with the session (Profile explains it).
+          final sessions = await repository.recentSessions('player-1');
+          expect(
+            sessions.firstWhere((s) => s.id == 'refused').uploadRefused,
+            'levelsMismatch',
+          );
+          expect(synced.uploadRefused, isNull);
         },
       );
 

@@ -14,6 +14,7 @@ import 'package:math_core/account/display_name.dart';
 
 import '../account_messages.dart';
 import '../exercise_type_labels.dart';
+import '../upload_refusal_text.dart';
 import 'package:math_core/leveling/overall_level.dart';
 import '../../core/state/account_form_controller.dart';
 import '../theme/app_theme.dart';
@@ -690,35 +691,51 @@ class _RecentSessionRow extends StatelessWidget {
         ? '—'
         : _formatDelta(after - previousAfter);
 
+    final row = Row(
+      children: [
+        Expanded(
+          child: Text(
+            _shortDate(session.createdAt),
+            style: theme.textTheme.bodyMedium,
+          ),
+        ),
+        Expanded(
+          child: Text(
+            // A placement's score means nothing; say what it was.
+            session.kind.isPlacement
+                ? 'Placement'
+                : 'Score ${session.totalScore}',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium,
+          ),
+        ),
+        Expanded(
+          child: Text(
+            variation,
+            textAlign: TextAlign.end,
+            style: theme.textTheme.bodyMedium,
+          ),
+        ),
+      ],
+    );
+    final refused = session.uploadRefused;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              _shortDate(session.createdAt),
-              style: theme.textTheme.bodyMedium,
+      child: refused == null
+          ? row
+          // The game stays in the history (and the curve); only the board
+          // ignores it — said in words, under the row (Phase 3a commit 2).
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                row,
+                const SizedBox(height: 2),
+                Text(
+                  uploadRefusalText(refused),
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
             ),
-          ),
-          Expanded(
-            child: Text(
-              // A placement's score means nothing; say what it was.
-              session.kind.isPlacement
-                  ? 'Placement'
-                  : 'Score ${session.totalScore}',
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium,
-            ),
-          ),
-          Expanded(
-            child: Text(
-              variation,
-              textAlign: TextAlign.end,
-              style: theme.textTheme.bodyMedium,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

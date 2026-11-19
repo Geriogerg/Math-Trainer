@@ -376,3 +376,9 @@ Plan v2.3 (19 Nov 2026). Entry: Phase 2 live. State at the start:
   deploys there, smoke-tests there and turns GitHub Pages into a redirect only when the
   repository variable `PREVIEW_HOST` is `cloudflare`; owner steps in `doc/online.md`.
   `render.yaml` allows the new origin. **Parked**: the move, then the slow-4G re-measure there.
+- **Commit 2** *(A)* — Server levels before each game: `syncLevelsBeforeGame` (core; 8 tests:
+  adopt, unchanged, pending uploads, failure, timeout…) called by `buildSessionController`, so
+  "Play again" is covered too; `my_server_levels()` migration + SQL test (own rows only, anon
+  refused); `SupabaseServerLevelsSource`. Refused games say why in Profile (reason stored since
+  schema v7, now read into `PersistedSession.uploadRefused`). Numbers: core 556 VM / 551 JS,
+  app 251, server 20, 6 SQL test files.

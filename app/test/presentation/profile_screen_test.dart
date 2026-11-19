@@ -227,6 +227,51 @@ void main() {
     });
   });
 
+  testWidgets('a refused game says why it is not ranked (Phase 3a commit 2)', (
+    WidgetTester tester,
+  ) async {
+    await setTallSurface(tester);
+    final repository = InMemorySessionRepository();
+    for (final (id, day) in [('accepted', 8), ('refused', 9)]) {
+      await repository.recordSession(
+        session: PersistedSession(
+          id: id,
+          playerId: 'test-player',
+          seed: 1,
+          enabledTypes: const {ExerciseType.addition},
+          exerciseCount: 8,
+          totalScore: 80,
+          levels: {ExerciseType.addition: Level.whole(1)},
+          createdAt: DateTime.utc(2026, 8, day),
+        ),
+        answers: const [],
+        levelUpdates: const {},
+      );
+    }
+    await repository.markSynced('accepted', DateTime.utc(2026, 8, 8, 1));
+    await repository.markUploadRefused('refused', 'levelsMismatch');
+    final environment = AppEnvironment(
+      repository: repository,
+      playerId: 'test-player',
+      accountRepository: FakeAccountRepository(),
+      profileRepository: FakeProfileRepository(),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildLightTheme(),
+        home: Scaffold(body: ProfileScreen(environment: environment)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Not ranked:'), findsOneWidget);
+    expect(
+      find.textContaining('levels the server did not have'),
+      findsOneWidget,
+    );
+  });
+
   testWidgets(
     'shows the 7 types, one known level and "Not played" for the others',
     (WidgetTester tester) async {

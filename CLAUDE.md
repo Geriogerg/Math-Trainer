@@ -11,8 +11,8 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 ## Current phase
 
 **Phase 3a — Build the beta** (`doc/plan.md`, section 7), run in **one pass**.
-Done: 0; 1 prepared, dormant until the owner's yes (`PREVIEW_HOST=cloudflare`). Next commit:
-**2**. Update this block at every commit.
+Done: 0, 2; 1 prepared, dormant until the owner's yes (`PREVIEW_HOST=cloudflare`). Next
+commit: **3**. Update this block at every commit.
 
 | # | Commit | Note |
 |---|---|---|
@@ -182,6 +182,8 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 - Browser storage can be evicted until server sync is live (a build with `SERVER_URL`).
 - Uploads go one at a time, oldest first: the server checks that levels chain. Never upload in
   parallel or skip a refused session's successors.
+- Adopt the server's levels only when no upload is pending (`syncLevelsBeforeGame`): pending
+  sessions chain from the local levels. Never without a server either — its levels are empty.
 - Level updates have one implementation: `gameLevelUpdates` / `placementLevelUpdates`, used by
   the app's orchestrators and the server's validation. Never compute levels elsewhere.
 - `RejectionReason` and `ValidationFlag` names are stored server-side and sent to the app:
