@@ -57,3 +57,5 @@ app.*.map.json
 # Smoke test failure screenshot (tool/smoke/preview_smoke.mjs)
 smoke-failure.png
 
+# The owner dashboard's database connection (password inside).
+/tool/dashboard/connection.txt

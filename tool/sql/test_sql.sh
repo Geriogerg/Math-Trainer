@@ -61,4 +61,20 @@ for file in "$root"/supabase/migrations/*.sql; do run "$file"; done
 # by hand before migrations existed).
 for file in "$root"/supabase/migrations/*.sql; do run "$file"; done
 for file in "$root"/supabase/tests/[1-9]*_test.sql; do run "$file"; done
+
+# The owner's dashboard script runs on what the tests left (Phase 3a commit
+# 6): every command must work against the migrated schema.
+dashboard() {
+  echo "-- dashboard.sh $*"
+  local out
+  if ! out=$(DASHBOARD_DB_URL="$test_url" bash "$root/tool/dashboard/dashboard.sh" "$@" 2>&1); then
+    fail "dashboard $1" "$out"
+  fi
+}
+dashboard report
+dashboard new-code "Zoé's group" 3
+dashboard codes
+dashboard disable-code dashtest
+dashboard approve-name 00000000-0000-0000-0000-0000000000d5
+dashboard feedback 5
 echo "SQL tests passed"

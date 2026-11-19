@@ -822,3 +822,16 @@ Codes are stored readable (not hashed): only the owner reads the table, and the 
 which code is whose. A build switch (`BETA_GATE`) rather than always on: the preview stays
 open while the beta is prepared, and the smoke test needs its own code first.
 **Reopen when** the public launch removes the gate (Phase 6), or someone gets in uninvited.
+
+## Owner dashboard: SQL views and a local script (Phase 3a, commit 6)
+
+The plan: "SQL views plus a script printing a report". The views live in a schema of their own
+that the API does not serve and the API roles cannot use, so no RLS policy can leak them. The
+script runs on the owner's machine with `psql` and the session-pooler connection string: a CI job
+(scheduled report) was the alternative, rejected because the repository is public and so are its
+job logs and annotations — the report holds testers' names and feedback. Review actions go
+through one function (`review_name`) instead of hand-written SQL, so the "never run SQL by hand"
+rule keeps its meaning for schema changes; the report still prints the SQL equivalent, as the
+plan asks. Answer times use games only and the level the session froze for that operation;
+placement answers move along a staircase within one session, so their level would mislead.
+**Reopen when** Phase 3b needs a view the report lacks, or the owner wants it in a browser.

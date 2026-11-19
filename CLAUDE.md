@@ -11,8 +11,8 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 ## Current phase
 
 **Phase 3a — Build the beta** (`doc/plan.md`, section 7), run in **one pass**.
-Done: 0, 2–5; 1 prepared, dormant until the owner's yes (`PREVIEW_HOST=cloudflare`).
-Next commit: **6**. Update this block at every commit.
+Done: 0, 2–6; 1 prepared, dormant until the owner's yes (`PREVIEW_HOST=cloudflare`).
+Next commit: **7**. Update this block at every commit.
 
 | # | Commit | Note |
 |---|---|---|
@@ -147,6 +147,7 @@ docker build -f server/Dockerfile .          # from the repo root
 dart format app/lib app/test packages server tool   # what CI checks
 node tool/smoke/preview_smoke.mjs <url> [chrome]   # smoke test; SMOKE_NETWORK=slow4g to time it
 bash tool/sql/test_sql.sh <postgres admin url>     # migrations (twice) + SQL tests, scratch DB
+bash tool/dashboard/dashboard.sh [command]        # owner report and chores (live DB, local only)
 ```
 
 `app/dart_defines.json` (not versioned) holds the Supabase URL and public key; in CI they come from
@@ -174,6 +175,8 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   create (the smoke test through "Delete my data", which needs `delete_my_account()`).
 - SQL goes in versioned migrations applied by CI (from commit 2); never run SQL by hand, never
   print the access token or database password.
+- The dashboard prints testers' data: run it locally only, never from CI (public logs). A new
+  view goes in `owner_dashboard`, never in `public` (the API serves `public`).
 - `supabase db push` needs `--remote`: newer CLIs (CI installs the latest) target a local stack
   by default and fail on `127.0.0.1:54322`.
 - SQL tests run on plain Postgres with `supabase/tests/00_supabase_stub.sql` standing in for

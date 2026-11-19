@@ -214,6 +214,29 @@ most 20 messages per player per 24 hours (`tooMany`). Not queued offline: a fail
 the text on screen. Players cannot read the table; it cascades with the account. The owner
 reads it with the dashboard script (commit 6); Phase 3b triages it.
 
+## Owner dashboard (Phase 3a commit 6)
+
+SQL views in the schema `owner_dashboard` (`…_owner_dashboard.sql`; the API never exposes it,
+the API roles cannot enter it), printed by `tool/dashboard/dashboard.sh` on the owner's
+machine — never in CI on live data (public logs). Sections of the report: Phase 3b readiness
+(~300 completed games from 10+ testers), active testers (1/7/30 days), sessions per day,
+testers by invitation code (and "(no code)"), answer times per operation and level band (median,
+quartiles, % right; games only — placement levels move within the session), interrupted games
+(7/30 days), refused uploads per reason, timing flags, names awaiting review, latest feedback,
+and the state of the `cleanup-stale-guests` cron job with its last runs.
+
+Chores: `new-code <label> [max uses]`, `codes`, `disable-code <code>`, `approve-name <id>` /
+`clear-name <id>` (`owner_dashboard.review_name`: an approved name is never hidden again —
+`name_reviews`, read by `public_display_name`; a cleared one is removed from the profile),
+`feedback [count]`. Every command is exercised by `tool/sql/test_sql.sh` on the scratch database.
+
+### Connecting — owner, once
+
+Supabase → **Connect** → *Session pooler* (works over IPv4) → copy the URI, put the database
+password in place of `[YOUR-PASSWORD]`, save it as the only line of
+`tool/dashboard/connection.txt` (git-ignored). Needs `psql` 15+ (installed with PostgreSQL on
+this machine). Then `bash tool/dashboard/dashboard.sh`.
+
 ## Session upload (Phase 2 commit 5)
 
 - **The queue is the local database**: `SessionRepository.pendingUploads(player)` — sessions

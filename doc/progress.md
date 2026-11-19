@@ -399,3 +399,10 @@ Plan v2.3 (19 Nov 2026). Entry: Phase 2 live. State at the start:
   stored with the version, 20 a day, unreadable by players, deleted with the account); core
   `feedback.dart`; `FeedbackController` + `FeedbackScreen` from Profile; the build's commit as
   `APP_VERSION` (CI). Tests: controller, repository, the flow from Profile.
+- **Commit 6** *(A)* — Owner dashboard: migration `owner_dashboard` (schema the API never
+  serves; views for readiness, active testers, sessions per day, testers by code, answer times
+  per operation and level band, interruptions, refusals, flags, names to review, feedback;
+  `name_reviews` + `review_name`, and `public_display_name` never hides an approved name). SQL
+  test 90 checks every count. `tool/dashboard/dashboard.sh` (report, new-code, codes,
+  disable-code, approve-name, clear-name, feedback), run by `test_sql.sh` on the scratch
+  database. **Not yet run on live data**: needs the owner's connection file.
