@@ -778,3 +778,31 @@ regenerated in the same commit.
 A corner button on the Play screen, persisted through `ThemeModeStore` (interface in
 `math_core/lib/`, `SharedPreferences` implementation in `infrastructure/`). Until something is stored,
 the system theme stays the default — the button only overrides it once used.
+
+## Preview host: Cloudflare Pages (Phase 3a, commit 1) — owner decision pending
+
+GitHub Pages sends gzip only. Measured on the live preview (19 Nov 2026, fresh browser, every
+file the app loads before its first question, re-compressed locally):
+
+| | Bytes on the wire | Transfer on slow 4G (1.6 Mbit/s) |
+|---|---|---|
+| GitHub Pages today (gzip) | 3,945 KB | 19.7 s |
+| Same files, brotli (quality 11) | 3,024 KB | 15.1 s |
+
+Brotli saves ~920 KB, **~4.6 s on slow 4G** (canvaskit.wasm alone: 2,046 → 1,515 KB; main.dart.js
+884 → 670 KB; Inter.ttf 451 → 356 KB; sqlite3.wasm 351 → 307 KB). The first question measured
+26.5 s on slow 4G (Phase 2); expected ~22 s after the move, to be re-measured there.
+
+| Host (free plan) | Brotli, checked on live sites | Limits | Trade-off |
+|---|---|---|---|
+| **Cloudflare Pages** — recommended | `.wasm` served `br` on a Flutter site behind Cloudflare (wonderous.app) | unlimited bandwidth and requests; 25 MiB per file (canvaskit.wasm 5.3 MB) | deploy from CI with an API token; `<project>.pages.dev` |
+| Netlify | `main.dart.js` served `br` on two Flutter sites; `.wasm` not confirmed (forum reports say it is not compressed) | credit-based free plan; bandwidth counts | same CI flow |
+| Firebase Hosting | brotli announced (2020) | small daily transfer quota on the free plan | a Google Cloud project |
+| GitHub Pages (today) | gzip only | — | nothing to change |
+
+Prepared, dormant: `ci.yml` builds for the root path, deploys with `wrangler pages deploy` and
+smoke-tests the new address only when the repository variable `PREVIEW_HOST` is `cloudflare`;
+GitHub Pages then serves a redirect page (`tool/preview_redirect/`). Browser storage belongs to
+an origin: a guest's progress at the old address does not follow (a linked player signs in again),
+which is why the plan wants the move **before any tester**.
+**Reopen when** a custom domain arrives (Phase 6): the preview then moves once more, onto it.

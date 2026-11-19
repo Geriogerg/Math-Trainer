@@ -368,3 +368,11 @@ Plan v2.3 (19 Nov 2026). Entry: Phase 2 live. State at the start:
   this file moved back; wrong "20 Nov" dates fixed. The migrations job's first live failure,
   read from its new annotation: the latest Supabase CLI pushes to a local stack unless given
   `--remote` (the link to the project worked) — now `db push --remote --yes`.
+  First live push of the migrations: **green** (commit 0's CI) — leaderboard functions, name rule
+  and server tables answer on the live project; the board is empty until the server runs.
+- **Commit 1** *(A)* — Preview host, **prepared, not moved** (the plan: move only after the
+  owner's yes). Measured on the live preview: 3,945 KB gzip → 3,024 KB brotli before the first
+  question, ~4.6 s less on slow 4G; Cloudflare Pages recommended (`doc/decisions.md`). `ci.yml`
+  deploys there, smoke-tests there and turns GitHub Pages into a redirect only when the
+  repository variable `PREVIEW_HOST` is `cloudflare`; owner steps in `doc/online.md`.
+  `render.yaml` allows the new origin. **Parked**: the move, then the slow-4G re-measure there.

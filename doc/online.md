@@ -133,11 +133,12 @@ The Supabase service-role key exists only on the server, never in the app nor in
 container (`server/Dockerfile`, built from the repo root). Configuration only from environment
 variables (`server/lib/src/config.dart`): `SUPABASE_URL`, `SUPABASE_SECRET_KEY` (refused if it is
 the publishable key; never printed), `PORT` (default 8080), `ALLOWED_ORIGINS` (web origins
-allowed by CORS — the preview's `https://geriogerg.github.io`). `GET /health` answers
+allowed by CORS — the preview's `https://geriogerg.github.io`, and `https://math-trainer.pages.dev`
+for the move of Phase 3a commit 1). `GET /health` answers
 `{"status":"ok"}`; errors are JSON, a 500 never carries details. CI (`server` job): analyzer,
 tests, and the image builds and answers `/health`.
 
-### Deploying the server — owner decision, prepared, not deployed
+### Deploying the server — decided by the owner: Render free (plan v2.3)
 
 `render.yaml` is a Render Blueprint, inert until the owner creates it in Render. Steps, once
 the owner says yes:
@@ -151,6 +152,32 @@ the owner says yes:
 3. Copy the service URL Render shows (`https://math-trainer-server-….onrender.com`) into a
    GitHub **repository variable** (not a secret: it is public) named `SERVER_URL` — the web
    build passes it to the app (commit 5).
+
+### Moving the preview to Cloudflare Pages (Phase 3a commit 1) — after the owner's yes
+
+Brotli instead of gzip: ~920 KB and ~4.6 s less on slow 4G (`doc/decisions.md`, "Preview
+host"). Prepared and dormant in `ci.yml`; nothing changes until step 4. Steps for the owner:
+
+1. dash.cloudflare.com → sign up (free). The account id is on the right of **Workers & Pages**
+   (or in the URL after `dash.cloudflare.com/`).
+2. My profile → **API Tokens** → Create token → template **Edit Cloudflare Workers** (it
+   includes Cloudflare Pages: Edit) → limit it to this account → create, copy once.
+3. GitHub → Settings → Secrets and variables → Actions:
+   - **Secrets**: `CLOUDFLARE_API_TOKEN` (step 2), `CLOUDFLARE_ACCOUNT_ID` (step 1).
+   - **Variables**: `PREVIEW_URL` = `https://math-trainer.pages.dev` (the address Cloudflare
+     gives the project; if CI reports another one, use that, and tell Claude to update
+     `ALLOWED_ORIGINS` in `render.yaml`).
+4. Variables: `PREVIEW_HOST` = `cloudflare`. **This is the switch**: the next push (or
+   Actions → CI → Run workflow on `main`) builds for the root path, creates the Cloudflare
+   project, deploys there, smoke-tests the new address, and turns GitHub Pages into a redirect.
+5. Supabase → Authentication → **URL Configuration**: Site URL = the new address; Redirect URLs:
+   add `https://math-trainer.pages.dev/**` (keep the GitHub one until no link points there).
+6. On Render (once deployed): the service's `ALLOWED_ORIGINS` already lists the new address
+   (`render.yaml`); nothing to do unless the project name differs.
+
+Your own progress on the old address stays in that browser for the old origin: if you saved it
+to an email, sign in at the new address; a guest starts over. No tester is affected as long as
+the move happens before the invitations.
 
 ## Session upload (Phase 2 commit 5)
 

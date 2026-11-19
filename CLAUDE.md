@@ -11,7 +11,8 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 ## Current phase
 
 **Phase 3a — Build the beta** (`doc/plan.md`, section 7), run in **one pass**.
-Done: 0. Next commit: **1**. Update this block at every commit.
+Done: 0; 1 prepared, dormant until the owner's yes (`PREVIEW_HOST=cloudflare`). Next commit:
+**2**. Update this block at every commit.
 
 | # | Commit | Note |
 |---|---|---|
@@ -25,7 +26,9 @@ Done: 0. Next commit: **1**. Update this block at every commit.
 | 7 | First game on a never-played type = short placement | played at phase end |
 | 8 | Data check for Phase 3b | — |
 
-Waiting on the owner (finish everything else meanwhile): host confirmation for commit 1.
+Waiting on the owner (finish everything else meanwhile): host confirmation for commit 1
+(`doc/online.md`, "Moving the preview"); the server on Render (`SERVER_URL`). Migrations are live
+since commit 0.
 Phase 3b (calibration) starts only when the dashboard shows ~300 sessions from 10+ testers.
 
 Preview: `https://geriogerg.github.io/Math-Trainer/`, deployed on every push to `main`.

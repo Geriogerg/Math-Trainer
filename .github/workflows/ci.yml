@@ -223,19 +223,42 @@ jobs:
             '{SUPABASE_URL: $url, SUPABASE_PUBLISHABLE_KEY: $key, SERVER_URL: $server}' \
             > dart_defines.json
       - name: Web build
-        # Served from https://<owner>.github.io/<repo>/: every URL in the build
-        # (bootstrap, assets, sqflite_sw.js, sqlite3.wasm) resolves against
-        # this base. --no-web-resources-cdn: CanvasKit comes from the site,
+        # Every URL in the build (bootstrap, assets, sqflite_sw.js,
+        # sqlite3.wasm) resolves against the base: https://<owner>.github.io/
+        # <repo>/ on GitHub Pages, the root on Cloudflare Pages (Phase 3a
+        # commit 1: repository variable PREVIEW_HOST=cloudflare, set by the
+        # owner). --no-web-resources-cdn: CanvasKit comes from the site,
         # never from Google's CDN (fonts too: web/flutter_bootstrap.js).
+        env:
+          BASE_HREF: ${{ vars.PREVIEW_HOST == 'cloudflare' && '/' || format('/{0}/', github.event.repository.name) }}
         run: >
           flutter build web --release --no-web-resources-cdn
-          --base-href "/${{ github.event.repository.name }}/"
+          --base-href "$BASE_HREF"
           --dart-define-from-file=dart_defines.json
-      - name: Upload the site
+      - name: Upload the site (Cloudflare Pages)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.PREVIEW_HOST == 'cloudflare'
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-site
+          path: app/build/web
+          if-no-files-found: error
+      - name: Redirect page for the old address
+        # Once the preview lives on Cloudflare, GitHub Pages only forwards
+        # old links (tool/preview_redirect/index.html).
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.PREVIEW_HOST == 'cloudflare'
+        env:
+          PREVIEW_URL: ${{ vars.PREVIEW_URL }}
+        working-directory: .
+        run: |
+          case "$PREVIEW_URL" in https://*) ;; *) echo "::error::PREVIEW_URL must be the https address of the Cloudflare preview"; exit 1 ;; esac
+          mkdir -p build/redirect
+          sed "s|__PREVIEW_URL__|${PREVIEW_URL%/}/|g" tool/preview_redirect/index.html > build/redirect/index.html
+          cp build/redirect/index.html build/redirect/404.html
+      - name: Upload the site (GitHub Pages)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@v3
         with:
-          path: app/build/web
+          path: ${{ vars.PREVIEW_HOST == 'cloudflare' && 'build/redirect' || 'app/build/web' }}
 
   deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -261,12 +284,46 @@ jobs:
       - id: deployment
         uses: actions/deploy-pages@v4
 
+  deploy-cloudflare:
+    # Phase 3a commit 1, dormant until the owner sets the repository variable
+    # PREVIEW_HOST=cloudflare (with PREVIEW_URL, and the secrets
+    # CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID): Cloudflare Pages serves
+    # brotli, GitHub Pages only gzip (doc/decisions.md, "Preview host").
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.PREVIEW_HOST == 'cloudflare'
+    needs: [core, server, test, web, migrations]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: cloudflare-pages
+      cancel-in-progress: false
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      PROJECT: ${{ vars.CLOUDFLARE_PROJECT || 'math-trainer' }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-site
+          path: site
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Deploy to Cloudflare Pages
+        run: |
+          # First deployment: the project does not exist yet.
+          npx --yes wrangler@4 pages project list | grep -q " $PROJECT "             || npx --yes wrangler@4 pages project create "$PROJECT" --production-branch=main
+          npx --yes wrangler@4 pages deploy site --project-name="$PROJECT" --branch=main --commit-dirty=true
+
   smoke:
     # The deployed preview, played like a new visitor (Phase 1 commit 8):
     # fresh browser, anonymous player, a full game, a reload, history kept,
     # then the account deletes itself. tool/smoke/preview_smoke.mjs.
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: deploy
+    # On Cloudflare once PREVIEW_HOST=cloudflare (the skipped deploy job
+    # must not skip this one: hence !failure()).
+    if: >
+      github.event_name == 'push' && github.ref == 'refs/heads/main'
+      && !failure() && !cancelled()
+    needs: [deploy, deploy-cloudflare]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -276,7 +333,9 @@ jobs:
           # Global WebSocket (no npm dependency) needs Node 22+.
           node-version: 22
       - name: Smoke test on the preview
-        run: node tool/smoke/preview_smoke.mjs "${{ needs.deploy.outputs.page_url }}" google-chrome
+        env:
+          APP_URL: ${{ vars.PREVIEW_HOST == 'cloudflare' && vars.PREVIEW_URL || needs.deploy.outputs.page_url }}
+        run: node tool/smoke/preview_smoke.mjs "$APP_URL" google-chrome
       - name: Screenshot of the failure
         if: failure()
         uses: actions/upload-artifact@v4
