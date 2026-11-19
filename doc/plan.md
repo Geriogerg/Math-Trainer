@@ -1,26 +1,27 @@
 # Math Trainer — Product Plan
-
+ 
 > **Owned by the product owner.** This file says *what* the app is, *why*, and *in what order* it
 > gets built. Claude Code reads it at the start of every phase and **never edits it**; changes come
 > from the owner. The day-to-day working rules live in `CLAUDE.md`, which must always stay
 > consistent with this plan (section 11).
 >
-> Version 2.2 — 19 November 2026: Phase 1 outcome, Phase 2 revised (self-contained sessions,
+> Version 2.3 — 19 November 2026: Phase 2 outcome; Phase 3 split into 3a (build the beta, one
+> pass) and 3b (calibrate on its data). Version 2.2 — Phase 1 outcome, Phase 2 revised (self-contained sessions,
 > SQL migrations from CI, name charset), English UI. Version 2.1 — phases run in one pass, owner review at the end (section 7
 > and 8). Version 2 — revised after the Phase 0 report. Changes from version 1:
 > Phase 1 rewritten (continuous levels, first-load work, cross-platform determinism check, placement
 > stored as a session, automated preview smoke test); CAPTCHA and email confirmation moved to
 > Phase 6; anonymous-player cleanup moved to Phase 2; owner decisions of Phases 0–1 recorded.
-
+ 
 ---
-
+ 
 ## 1. Vision
-
+ 
 A competitive mental-arithmetic game for teens and adults. Its promise: **get measurably faster at
 mental math, and prove it against other players.**
-
+ 
 Four pillars, in this order of priority:
-
+ 
 1. **Speed.** Sessions of 30 seconds to two minutes, no dead time, nothing between the player and
    the next question.
 2. **Visible progress.** A level per operation that honestly reflects skill, and that moves.
@@ -28,13 +29,12 @@ Four pillars, in this order of priority:
    weaknesses.
 4. **Fair competition.** Rankings and duels computed by a server that trusts nothing the client
    claims.
-
 Interface in English (owner decision, Phase 1); French-speaking players remain a key audience. Competitive tone, not a school exercise book.
-
+ 
 ## 2. Product principles
-
+ 
 These hold across every phase. A feature that contradicts one of them is redesigned, not shipped.
-
+ 
 - **The level measures skill, not effort.** It rises and falls with performance; it never decays
   with absence; it is never bought or chosen.
 - **Never punish absence.** Coming back after weeks costs nothing; the level re-adjusts faster for
@@ -49,11 +49,10 @@ These hold across every phase. A feature that contradicts one of them is redesig
 - **No signal relies on colour alone.**
 - **Every expected answer is a whole number.**
 - **No dark patterns**: no ads, no streak guilt, no fake urgency.
-
 ## 3. The game as it stands
-
+ 
 ### 3.1 Session
-
+ 
 - 7 exercise types: addition, subtraction (never negative), multiplication, division (exact),
   powers, square roots of perfect squares, whole-number percentages.
 - The player chooses which types are active (2 by default). Number of questions =
@@ -64,9 +63,8 @@ These hold across every phase. A feature that contradicts one of them is redesig
 - Custom on-screen keypad (digits, backspace, validate); physical keyboard on desktop.
 - Result screen: level change, score breakdown, right / wrong / timed out, best streak, types
   played. Replay at once with the same types, updated levels and a **new seed**.
-
 ### 3.2 Levels
-
+ 
 - One level per operation, 1 to 100; an overall level averaging all seven, unplayed counted as 1.
 - A level is an estimate of skill: after a session, performance (correctness weighted by speed) is
   compared with a target; the gap moves the level, up faster than down, inside a dead band, with a
@@ -77,24 +75,25 @@ These hold across every phase. A feature that contradicts one of them is redesig
 - Difficulty is derived from the level (operand bounds per operation).
 - About 20 constants govern this system; all are educated guesses until real data exists.
   Values and reasons: `doc/decisions.md`.
-
 ### 3.3 Scoring
-
+ 
 Base points, speed bonus, capped streak bonus, difficulty multiplier. The score is session
 feedback only; it never ranks anyone — the level does.
-
+ 
 ### 3.4 Accounts and screens
-
-Supabase accounts (anonymous-first since Phase 1, email linking), player name, Profil
+ 
+Supabase accounts (anonymous-first since Phase 1, email linking), player name, Profile
 tab with overall level, 30-day curve, per-operation level and average time, recent games.
-Day and night themes. "En ligne" and "Classement" tabs are previews.
-
-## 4. Current state (18 November 2026)
-
-- 49 commits, 176 core tests / 328 in total, steps 1 to 5 and step 6 slices 1–2 done.
-- Web-only since 17 November: the Android emulator is unusable; mobile development is paused.
-- Web storage survives reloads (SQLite in WebAssembly).
-
+Day and night themes. Tabs: Play, Online (preview), Profile, Leaderboard.
+ 
+## 4. Current state (19 November 2026, after Phase 2)
+ 
+- Phases 0–2 done: CI (VM and JavaScript, weekly Android compile), preview on GitHub Pages,
+  anonymous-first accounts, placement test, continuous levels, monorepo with `packages/math_core`,
+  Dart server with replay validation, leaderboard, SQL migrations applied by CI.
+- About 1,350 tests (core 548 VM / 541 JavaScript, app 242, server 20, tooling 10, 5 SQL).
+- First question on slow 4G from a fresh browser: 26.5 s on the preview.
+- Web-only: mobile development is paused.
 | Weakness | Why it matters | Fixed in |
 |---|---|---|
 | Login required before playing | Most first-time players leave before one question | Phase 1 |
@@ -105,21 +104,20 @@ Day and night themes. "En ligne" and "Classement" tabs are previews.
 | Stock components, generic name | Looks like a template; the name cannot be found or protected | Phase 5 |
 | No CI | Nothing checks the repo on a clean machine | Phase 0 |
 | `δ` possibly not widened when `n_min` went 8 → 4 | Levels jitter more than designed | Phase 0 |
-
+ 
 ## 5. Strategy: web-first, mobile-ready
-
+ 
 Android and iOS stay the long-term targets. **Until mobile development is possible again, the web
 build is the product.**
-
+ 
 **Why it is not a detour.**
-
+ 
 - A hosted URL opened in a phone browser lets real people play with no store review and no 14-day
   closed test.
 - An invite-only web beta produces the real sessions calibration has been waiting for.
 - The owner tests on his own phone by opening the preview URL.
-
 **What it changes.**
-
+ 
 - Mobile web (Chrome on Android, Safari on iPhone) is the reference device for every UI decision.
 - Every push to `main` deploys a preview URL; checkpoints are played there.
 - Native capabilities sit behind interfaces with a web implementation or a no-op: haptics (absent
@@ -128,20 +126,19 @@ build is the product.**
   is at risk. Persistent storage is requested where supported.
 - A Flutter web build downloads several megabytes before its first frame; load time is measured
   and a loading screen shows progress.
-
 **Guardrails that keep mobile cheap to return to.** A scheduled CI job compiles the Android APK
 once a week and on demand (not on every push, to keep CI fast);
 web-specific code stays in the infrastructure layer; no dependency without Android and iOS
 support unless its mobile replacement is identified; touch-first input.
-
+ 
 ## 6. Product direction
-
+ 
 ### 6.1 Mental math: from quiz to coach
-
+ 
 People get faster through instant recall of core facts, explicit strategies and immediate
 correction. All of it is built from data already stored, in the pure-Dart core, with no AI at
 runtime.
-
+ 
 - **Correct every error.** On a wrong answer or a timeout only, the correct answer stays visible
   about one second; correct answers keep the fast flow. The result screen lists the mistakes with
   their answers.
@@ -150,7 +147,6 @@ runtime.
   tracked by its own latency and errors, and slow facts come back more often (spaced repetition).
 - **Strategies, not just answers.** A detector picks the best move for a generated exercise and
   shows it as a one-line tip after an error or a slow answer:
-
   | Strategy | Example | Triggered when |
   |---|---|---|
   | Compensation | 47 + 68 = 47 + 70 − 2 | an operand ends in 7, 8 or 9 |
@@ -160,7 +156,6 @@ runtime.
   | Square near a base | 48² = 2500 − 200 + 4 | the base is near 50 or 100 |
   | Difference of squares | 47 × 53 = 50² − 3² | factors sit evenly around a round number |
   | Swap the percentage | 8% of 25 = 25% of 8 | the swapped form is a friendly percentage |
-
   Later, technique drills: sessions generated to train one strategy.
 - **Difficulty is structure, not size.** 47 + 38 is harder than 45 + 32 because of the carry.
   Generation gains structural features: carries or borrows, digits 6–9 in factors, distance from a
@@ -172,12 +167,11 @@ runtime.
 - **Placement test.** 60–90 seconds, adaptive, across three or four operations, sets the starting
   levels and doubles as onboarding.
 - **Timeout scaled to the level**, derived from measured response times.
-
 ### 6.2 Design: from a theme to an identity
-
+ 
 The "nuit électrique" direction (`doc/design.md`) stays the authority on palette, typography,
 notation, layout and durations. Identity comes from four levers.
-
+ 
 - **A display typeface for digits** — operations, answers, scores, levels — with Inter for
   interface text. Criteria: tabular figures, 1 and 7 unmistakable, 6/8/9/0 distinct at speed.
   Candidates: Space Grotesk, Sora, Manrope, JetBrains Mono. Bundled, never fetched at runtime.
@@ -190,9 +184,8 @@ notation, layout and durations. Identity comes from four levers.
   and 20; a level-up moment with its own sound; haptics where the platform has them.
 - **A real name** before the public launch: short, easy to say in French and English, free as a
   domain and on both stores. "Math Trainer" describes the app but cannot be found or protected.
-
 ### 6.3 Accounts and first run
-
+ 
 - **Anonymous-first.** On first launch the app silently creates a Supabase anonymous user and the
   player answers a question at once. No form, no name. Replaces the mandatory login of step 6
   slice 2. On web the first visit is online by nature; if the anonymous sign-in fails, a retry
@@ -204,7 +197,7 @@ notation, layout and durations. Identity comes from four levers.
   that this browser's guest progress will be replaced. No merging of two histories in v1.
 - **An anonymous player has no sign-out** (it would lose the account). They get "Delete my
   data" instead.
-- **Existing email accounts keep working**, with sign-in reachable from Profil.
+- **Existing email accounts keep working**, with sign-in reachable from Profile.
 - **In-app account deletion** for every player, anonymous included: account, profile, server data
   and local history. Done through a database function that deletes only the caller's own
   account, so no service key ever reaches the app.
@@ -215,9 +208,8 @@ notation, layout and durations. Identity comes from four levers.
 - **Email confirmation with a real SMTP sender** needs a sending domain, so it arrives with the
   domain in Phase 6. Until then, linked emails are unconfirmed — acceptable for an invite-only
   audience, not for a public one.
-
 ### 6.4 Rankings
-
+ 
 - Ranked on **level**, computed by the server. One overall board, one board per operation.
   Ordered on the continuous level value, displayed as an integer.
 - **Eligibility**: a minimum of sessions per operation and play within the last 30 days. Inactive
@@ -233,9 +225,8 @@ notation, layout and durations. Identity comes from four levers.
   timing (multi-digit answers under ~300 ms, unnaturally flat times) is flagged for review, never
   auto-banned.
 - **Player names are public content**: name filter and report action before the board opens.
-
 ### 6.5 Online play
-
+ 
 - **v1 — ghost duels.** Race a real player's recorded run, replayed live at its original pace.
   Needs nobody else online; the interface says so plainly ("Race Léa's best run").
 - **A duel is configured differently from solo**: fixed quotas per type, difficulty from the
@@ -247,9 +238,8 @@ notation, layout and durations. Identity comes from four levers.
 - **v2 — friend challenges**: a link, same seed, 48 hours to answer.
 - **v3 — live duels**, only when enough players are online together for queues under ~20 s. A
   player who drops is replaced by their recorded progress, then their ghost.
-
 ### 6.6 Business and legal
-
+ 
 - **No ads, payments or third-party analytics before online play ships.** Usage numbers come from
   the server's own tables. Monetisation is decided on retention data; candidates that do not
   distort the ranking: ad removal, detailed statistics, cosmetic themes. **Never** a paywall on an
@@ -260,35 +250,34 @@ notation, layout and durations. Identity comes from four levers.
 - **Stores, later**: Google Play requires a 12-tester, 14-day closed test for a new personal
   account; Apple requires in-app account deletion and a build signed on a Mac (cloud build
   service).
-
 ### 6.7 Permanently out of scope
-
+ 
 Fractions and Euclidean division (non-integer or composite answers).
-
+ 
 ### 6.8 Ideas kept for later, not planned
-
+ 
 Seasons (soft reset of rating uncertainty), tournaments, daily challenges, badges, leagues ranked
 on practice time (clearly separate from skill), technique courses, an explanation library for
 strategies. Each is reconsidered after Phase 7 against the principles of section 2.
-
+ 
 ## 7. Roadmap
-
+ 
 ```
-P0 Stabilise ─ P1 First run ─ P2 Server ─┬─ P3 Invite-only beta (data) ─┬─ P6 Public web ─ P7 Online
-                                          ├─ P4 Learning layer ─────────┤
-                                          └─ P5 Identity ────────────────┘
+P0 Stabilise ─ P1 First run ─ P2 Server ─ P3a Build beta ─┬─ beta runs 2–3 weeks ─ P3b Calibrate ─┬─ P6 Public ─ P7 Online
+                                                          ├─ P4 Learning layer ───────────────────┤
+                                                          └─ P5 Identity ─────────────────────────┘
 P8 Return to mobile: whenever mobile development is possible again (independent of P6 and P7).
 ```
-
+ 
 **Each phase runs in one pass** (from Phase 1 on): Claude Code works through all its commits
 without waiting, and the owner reviews once, at the end. *(A)* = judged by tests. *(C)* = judged by
 playing: deployed to the preview URL and played by the owner at the end of the phase, from the
 checklist in the phase report.
-
+ 
 ### Phase 0 — Stabilise and build the web pipeline
-
+ 
 **Goal:** a clean base, checked automatically, with a preview URL playable on a phone.
-
+ 
 0. *(C)* Docs: create `doc/progress.md`; bring `doc/online.md` and `doc/decisions.md` in line with
    this plan (anonymous-first, Glicko-2, ghost duels first, monorepo, web-first, no ads in v1),
    each decision with its reason and a "reopen when"; list remaining contradictions.
@@ -304,9 +293,8 @@ checklist in the phase report.
    reviewer subagent checking diffs against the architecture rules.
 8. *(A)* First-load size and time measured; persistent browser storage requested.
 9. *(C)* Correct answer shown on error or timeout; mistakes review on the result screen.
-
 **Exit:** CI green on every push; preview URL live; the owner plays 5 games on a phone browser.
-
+ 
 **Phase 0 outcome (19 November):** code done; CI green. Owner decisions taken: `material_ui`
 migration approved; `δ` stays 0.07. Still open when Phase 1 starts: GitHub Pages switched on,
 preview checked online, load time re-measured, the owner's 5 games. Two findings reshape
@@ -314,13 +302,13 @@ Phase 1: a new player needs 45–90 games to reach their real level (target 10�
 integer rounding of the level rather than by `δ`; and the first visit takes ~5 s on fast 4G and
 ~19 s on slow 4G with a blank screen, partly because CanvasKit and a font load from Google's
 servers.
-
+ 
 ### Phase 1 — First run and accounts
-
+ 
 **Goal:** a new player answers the first question within 30 seconds, with no form, and their
 level matches their skill within a few games.
 **Entry:** Phase 0 closed — the open items above are done (commit 0 below finishes them).
-
+ 
 0. *(C)* Close Phase 0: `material_ui` migration, `δ` = 0.07 recorded, preview verified online,
    load re-measured, the owner's 5 games.
 1. *(A)* **Cross-platform determinism.** The core tests also run compiled to JavaScript in CI. A
@@ -339,7 +327,7 @@ level matches their skill within a few games.
    load re-measured on fast and slow 4G profiles.
 4. *(A)* **Anonymous-first sign-in**, as designed in section 6.3. Local data keyed by the Supabase
    user id; existing email accounts unaffected and tested.
-5. *(C)* **Linking and account screens** in Profil: save progress (email, password, name), sign
+5. *(C)* **Linking and account screens** in Profile: save progress (email, password, name), sign
    in to an existing account with the replacement warning, no sign-out for anonymous players.
 6. *(C)* **Placement test**, offered on first launch with a "Passer" option, only to a player
    without history. 60–90 s on the four basic operations, one adaptive staircase per operation
@@ -351,18 +339,17 @@ level matches their skill within a few games.
    once in Supabase; local data wiped; a fresh anonymous player created afterwards.
 8. *(A)* **Automated smoke test** in CI after every preview deployment: fresh browser, anonymous
    start, a full game with the timeout switch off, a reload, history still there.
-
 **Exit:** on a throttled slow-4G profile from a fresh browser, the first question appears in under
 30 s; the smoke test is green; an anonymous player links an email and keeps their history; the
 rerun simulation shows a placed player at their level within about 10 games.
-
+ 
 ### Phase 1 outcome (19 November)
-
+ 
 All nine commits delivered; 637 tests; VM and JavaScript identical on 206 pinned cases. Placement
 brings a new player to their level in 5–19 games instead of 65–74. Open at the start of Phase 2:
 the publishable-key secret, the deletion SQL, the owner's play-through, the test accounts.
 Owner decisions on the provisional choices:
-
+ 
 - Placement parameters kept (start 35, first step 25, boost on 3 games), but **5 questions per
   operation** to bring it near 80 s, and the "fast" threshold **per operation** (from `t_rapide`),
   not a flat 3 s — a flat threshold places players lower on multiplication and division.
@@ -373,11 +360,10 @@ Owner decisions on the provisional choices:
 - Guest games kept hidden on the device after signing in elsewhere: accepted; they are deleted
   with the guest account (Phase 2 cleanup).
 - Player name required when saving progress: accepted.
-
 ### Phase 2 — Server and leaderboard
-
+ 
 **Goal:** every leaderboard row computed by the server from replayed answers.
-
+ 
 0. *(A)* **Close Phase 1**: the owner decisions above; the type-selection flash before the
    placement offer; test accounts deleted.
 1. *(A)* **Self-contained sessions.** Everything that decides the question order (the per-type
@@ -403,87 +389,118 @@ Owner decisions on the provisional choices:
 11. *(A)* Cleanup of anonymous players with no uploaded session for 30 days, with their hidden
     guest games.
 12. *(A)* Android compile-only CI job, weekly and on demand.
-
 **Exit:** rows reproduced by replay; forged upload rejected; the owner sees their rank on a phone.
-
-### Phase 3 — Invite-only web beta
-
-**Goal:** a few hundred validated real sessions and the first data-based calibration.
-**Entry:** Phase 2 done; testers invited by the owner (10–20 people).
-
-1. *(A)* Beta gate (invitation code or allow-list).
-2. *(A)* Owner dashboard from the server's own data: sessions per day, active players, median time
-   per operation, abandonment rate.
-3. *(A)* In-app feedback field.
-3b. *(A)* Preview moved to a host that serves brotli (first load); host choice confirmed by the
-    owner.
-4. *(C)* Recalibration with `tool/recalibrate.dart` on server data; new constants proposed with
-   evidence, applied after approval, documented.
-5. *(C)* Timeout derived from the level.
-6. *(C)* First game on a never-played type works as a short placement for that type: a new
-   player still needs ~65 games to climb from level 1 on powers, roots and percentages.
-
-**Exit:** constants updated with documented evidence. Phases 4 and 5 run meanwhile.
-
+ 
+### Phase 2 outcome (19 November)
+ 
+All 13 commits delivered, CI green, including the first Android compile (which caught an outdated
+Gradle setup). Proven by tests, not yet live: waiting on two owner actions (database secrets in
+GitHub, server deployed on Render). Owner decisions on the provisional choices:
+ 
+- Pass time per operation = 1.5 × `t_rapide`: kept; all equal (3 s) until Phase 3b gives each
+  operation its own `t_rapide`.
+- A session whose levels don't follow from the server's is refused and the app adopts the
+  server's levels: kept for the beta. Fix in 3a: the app fetches the server's levels before each
+  game when online, so a second device stops losing games.
+- Eligibility: played within 30 days, 3 counted games per operation (3 completed games overall):
+  kept.
+- Names: Latin, Greek, Cyrillic only; short English/French blocklist; 3 reports hide a name until
+  reviewed: kept for the beta. Wider alphabets reconsidered before Phase 6.
+- Guest cleanup also requires no session renewed in 30 days: kept.
+- Server host: Render free plan (sleeps after 15 min idle; uploads run in the background).
+### Phase 3a — Build the beta (one pass)
+ 
+**Goal:** everything invited testers need, before the first invitation goes out.
+**Entry:** Phase 2 live — secrets set, server on Render, the owner has seen their rank.
+ 
+0. *(A)* Close Phase 2: plan-alignment fixes; leaderboard board chips on one line on a phone.
+1. *(A)* **Move the preview to a free host that serves brotli** — proposed with measurements
+   (first question on slow 4G), applied after the owner confirms. **Must happen before any
+   tester arrives**: browser data and guest accounts are tied to the origin, so a later move
+   would lose every tester's local history and session. Supabase site URL and redirects updated.
+2. *(A)* **Server levels fetched before each game** when online; refused sessions explained in
+   the app.
+3. *(A)* **Beta gate**: an invitation code asked once, before the anonymous sign-in; codes in a
+   table, one per tester or group, with a use limit, so each tester's data can be followed.
+4. *(A)* **Short privacy notice** in the app: what is stored, why, how to delete it. Real people
+   are now giving data, even in a beta; the full legal pages stay in Phase 6.
+5. *(A)* **In-app feedback field**, stored server-side with the app version.
+6. *(A)* **Owner dashboard** as SQL views plus a script printing a report: sessions per day,
+   active testers, median time per operation and level band, abandonment rate, refused
+   sessions, names reported and awaiting review (with the SQL to approve or rename).
+7. *(C)* **First game on a never-played type acts as a short placement** for that type (powers,
+   roots and percentages otherwise take ~65 games to climb from level 1).
+8. *(A)* **Data check**: a script verifies that everything Phase 3b needs is stored per answer
+   (operation, level, time, correctness, structure of the exercise) and reports any gap.
+**Exit:** a fresh invited tester goes from the link to a ranked game on a phone; the dashboard
+report runs on live data; the owner sends the invitations.
+ 
+### Phase 3b — Calibrate on real data (after 2–3 weeks of beta)
+ 
+**Entry:** at least ~300 completed sessions from at least 10 testers (checked by the dashboard).
+ 
+1. *(C)* Recalibration with `tool/recalibrate.dart` on server data: new constants proposed with
+   evidence (before/after convergence, jitter, bias), applied only after approval, documented.
+2. *(C)* `t_rapide` per operation, then the timeout derived from the level, from measured times.
+3. *(A)* Server levels recomputed for every player with the new constants (levels are a cache).
+4. *(A)* Feedback triaged into a list for the owner.
+**Exit:** constants updated with documented evidence; testers' levels recomputed.
+Phases 4 and 5 run between 3a and 3b, while the beta collects data.
+ 
 ### Phase 4 — Learning layer
-
+ 
 1. *(A)* Strategy detector, one test per strategy of section 6.1.
 2. *(C)* Tips after an error or a slow answer.
 3. *(A)* Per-fact tracking and spaced resurfacing.
 4. *(A)* Structural difficulty features.
 5. *(C)* Technique drills.
-
 **Exit:** a report, from beta data, of whether players who saw tips got faster on targeted facts.
-
+ 
 ### Phase 5 — Identity
-
+ 
 **Entry:** the owner has chosen the digit typeface from mockups.
-
+ 
 1. *(A)* Bundled digit typeface, tabular figures everywhere.
 2. *(A)* Five-component kit, golden tests for each in both themes.
 3. *(A)* Operator icon system, favicon, web app icon.
 4. *(C)* Sound and haptics behind an interface; streak escalation; level-up moment.
 5. *(A)* Web app manifest for "add to home screen".
-
 **Exit:** golden tests on every kit component; the owner approves the feel on a phone.
-
+ 
 ### Phase 6 — Public web launch
-
+ 
 **Entry:** Phases 3–5 done; name chosen; domain bought.
-
+ 
 1. *(A)* Production deployment on the domain, separate from preview.
 2. *(A)* Privacy policy and legal notice pages, linked in the app.
 3. *(A)* CAPTCHA or Turnstile on anonymous sign-in and sign-up.
 4. *(A)* Email confirmation on, with a real SMTP sender on the domain and the site URL set.
 5. *(A)* Beta gate removed; abuse protections verified.
 6. *(C)* Launch checklist run on a phone from a fresh browser.
-
 ### Phase 7 — Online play
-
+ 
 1. *(A)* Duel configuration in the core, determinism tested.
 2. *(A)* Duel runs stored and validated by the server.
 3. *(A)* Glicko-2 on the server, provisional flag.
 4. *(C)* Ghost duel screen.
 5. *(C)* Friend challenges by link.
 6. Live duels when the owner decides concurrency allows it.
-
 ### Phase 8 — Return to mobile
-
+ 
 **Entry:** the owner says mobile development is possible again.
-
+ 
 1. *(C)* Android on a device or emulator; fix what compile-only CI could not catch.
 2. *(A)* Native haptics and sound behind the Phase 5 interfaces.
 3. *(A)* Store assets, data-safety form, account deletion link.
 4. *(C)* Google Play closed test, then production.
 5. *(C)* iOS through a cloud Mac build service; TestFlight, then App Store review.
-
 ## 8. Decisions that belong to the owner
-
+ 
 In one-pass mode Claude Code does not wait: it picks the best option with evidence, records it
 as **provisional** in `doc/decisions.md`, and the owner confirms or reverses it in the phase
 report. Exceptions — decisions that cost money or are hard to undo (server host and budget, app
 name and domain, ads or payments) are prepared but not applied until the owner confirms.
-
+ 
 | Decision | Needed before |
 |---|---|
 | ~~`δ` value~~ — decided: stays 0.07 | Phase 0 |
@@ -492,23 +509,25 @@ name and domain, ads or payments) are prepared but not applied until the owner c
 | ~~Anonymous-first design~~ — decided: section 6.3 | Phase 1 |
 | ~~Continuous levels in hundredths~~ — decided: yes, schema migration approved | Phase 1 |
 | Placement test start level and step sizes (proposal with simulation) | Phase 1, commit 6 |
-| Server host and budget | Phase 2, commit 2 |
+| ~~Server host and budget~~ — decided: Render free plan | Phase 2 |
+| Brotli preview host (free) | Phase 3a, commit 1 |
+| Wider name alphabets (bigger bundled font) | Before Phase 6 |
 | New level constants | Phase 3, commit 4 |
 | Digit typeface | Phase 5 |
 | App name and domain | Phase 6 |
 | Opening live duels | Phase 7, step 6 |
 | Ads, payments, analytics | After Phase 7 |
-
+ 
 Any gap Claude Code fills with its own choice is listed in the phase report and confirmed by the
 owner. Silence never turns a guess into the product.
-
+ 
 ## 9. Risks and open questions
-
+ 
 | Risk | Mitigation |
 |---|---|
 | Browser storage wiped before server sync exists | Persistent storage request (P0); server backup (P2) |
 | Too few beta testers for calibration | Recruit 10–20 people before Phase 3 starts |
-| Flutter web too slow on first load | Slow 4G: 20 s on the preview (P1). GitHub Pages lacks brotli; move to a brotli host by P3 |
+| Flutter web too slow on first load | Slow 4G: 26.5 s to first question on the preview (P2). GitHub Pages lacks brotli; move to a brotli host in P3a |
 | Player names in scripts Inter does not cover show as boxes | Name charset restricted to Inter's coverage (P2) |
 | Generation or level maths differ between web (JavaScript) and server (Dart VM) | Cross-platform determinism test in P1; levels in integer hundredths |
 | Levels take too long to settle | Continuous levels and placement test in P1; recalibration in P3 |
@@ -518,25 +537,24 @@ owner. Silence never turns a guess into the product.
 | Teen users and consent rules | Check before public sign-ups (P6) |
 | First iOS build on unknown ground | Budget time in P8; cloud Mac build service |
 | A single developer's bandwidth | Strict phase order; checkpoints kept few |
-
+ 
 ## 10. Owner actions outside the code
-
+ 
 - Keep the repo on GitHub (CI and preview deployment depend on it).
-- Recruit beta testers before Phase 3.
+- Recruit 10–20 beta testers now; invitations go out at the end of Phase 3a.
 - Choose the app name and buy the domain before Phase 6.
 - Choose the digit typeface before Phase 5.
 - Play the preview URL on a phone at every checkpoint.
-
 ## 11. Keeping CLAUDE.md aligned with this plan
-
+ 
 `CLAUDE.md` is the working file Claude Code reads every session and updates regularly. At the end
 of every phase, Claude Code checks it against this plan and reports, in the phase report, any of
 the following:
-
+ 
 - a rule in `CLAUDE.md` that contradicts a principle of section 2;
 - a current phase, goal or exit test that differs from section 7;
 - an owner decision of section 8 that `CLAUDE.md` treats as settled without the owner;
 - a direction of section 6 that the code or `CLAUDE.md` has drifted from;
 - anything in this plan that reality has made obsolete — for the owner to update.
-
 The owner reads that report and decides: fix `CLAUDE.md`, or update this plan.
+ 

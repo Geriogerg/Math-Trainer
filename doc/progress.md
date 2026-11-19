@@ -348,3 +348,15 @@ remote (owner action), which blocks commits 1 and 2.
 Code that does not yet follow the plan, already scheduled: mandatory sign-in versus "offline first"
 (Phase 1); one timestamp shared by all answers of a game (commit 4); correct answer not shown after
 an error (commit 9).
+
+## Phase 3a — Build the beta
+
+Plan v2.3 (19 Nov 2026). Entry: Phase 2 live. State at the start:
+
+- The migration secrets are set: the first `supabase db push` ran (CI, `a83e5f2`) and **failed
+  before applying any migration** — the live project still has only Phase 1's `profiles` and
+  `delete_my_account`. The reason is in the job log only (needs a signed-in reader): CI now
+  turns the CLI's last lines into an annotation, secrets redacted.
+- The smoke test failed once on CI (`9f48d0c`, reason in the log only) and passes locally on
+  the preview (first question 8.8 s): it now annotates its failure reason too.
+- Server not deployed yet (`SERVER_URL` unset).

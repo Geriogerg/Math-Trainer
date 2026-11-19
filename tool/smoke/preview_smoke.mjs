@@ -32,6 +32,23 @@ if (!appUrl) {
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/// On GitHub Actions the reason also becomes an annotation: job logs need
+/// a signed-in reader, annotations are public (doc/progress.md, Phase 3a).
+function annotate(message) {
+  if (!process.env.GITHUB_ACTIONS) return;
+  const escaped = message.replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A');
+  console.log(`::error title=Smoke test::${escaped}`);
+}
+// Anything thrown outside fail() (browser not starting, DevTools errors).
+for (const event of ['uncaughtException', 'unhandledRejection']) {
+  process.on(event, (error) => {
+    console.error(error);
+    annotate(`crashed: ${error?.message ?? error}`);
+    process.exit(1);
+  });
+}
+
 const profileDir = mkdtempSync(join(tmpdir(), 'mt-smoke-'));
 
 // --- browser ---------------------------------------------------------------
@@ -108,6 +125,7 @@ async function fail(message) {
   } catch (_) {}
   console.error(`SMOKE FAILED: ${message}`);
   if (consoleErrors.length) console.error('page exceptions:\n  ' + consoleErrors.join('\n  '));
+  annotate(message + (consoleErrors.length ? `\npage exceptions: ${consoleErrors.slice(0, 3).join(' | ')}` : ''));
   await shutdown(1);
 }
 

@@ -163,11 +163,33 @@ jobs:
       - name: Apply pending migrations
         if: steps.secrets.outputs.ready == 'true'
         # The project ref is the subdomain of the project URL.
+        # On failure the CLI's last lines also become an annotation: job
+        # logs need a signed-in reader, annotations don't. GitHub masks the
+        # secrets in both; the literal replacements below are a second guard.
         run: |
           ref="${SUPABASE_URL#https://}"
           ref="${ref%%.*}"
-          supabase link --project-ref "$ref"
-          supabase db push
+          supabase --version
+          run_cli() {
+            local what="$1"
+            shift
+            if "$@" > cli.log 2>&1; then
+              cat cli.log
+              return 0
+            fi
+            cat cli.log
+            local msg
+            msg="$(tail -n 12 cli.log)"
+            msg="${msg//"$SUPABASE_DB_PASSWORD"/***}"
+            msg="${msg//"$SUPABASE_ACCESS_TOKEN"/***}"
+            msg="${msg//'%'/%25}"
+            msg="${msg//$'\r'/}"
+            msg="${msg//$'\n'/%0A}"
+            echo "::error title=supabase ${what} failed::${msg}"
+            return 1
+          }
+          run_cli link supabase link --project-ref "$ref"
+          run_cli "db push" supabase db push
 
   web:
     runs-on: ubuntu-latest

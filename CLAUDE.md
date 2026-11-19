@@ -3,37 +3,30 @@
 Competitive mental-arithmetic game in Flutter, for teens and adults. UI, code, docs and commits
 in English.
 
-**`doc/plan.md` (version 2.2) is the product plan.** Read it at the start of every phase; never
+**`doc/plan.md` (version 2.3) is the product plan.** Read it at the start of every phase; never
 edit it. This file is the working file: keep it short, update it as the project moves, keep it
 consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/decisions.md`,
 `doc/design.md`, `doc/online.md`, `doc/progress.md`. The plan wins any conflict — report it.
 
 ## Current phase
 
-**Phase 2 — Server and leaderboard** (`doc/plan.md`, section 7), run in **one pass**.
-Done: 0–12, all commits; exit test run, phase report given. Waiting on the owner:
-the `SUPABASE_ACCESS_TOKEN` / `SUPABASE_DB_PASSWORD` secrets (CI skips the 8 migrations until
-then); the server host decision (`render.yaml`, not deployed) and the `SERVER_URL` variable;
-the play-through checklist of the report. Update this block at every commit.
+**Phase 3a — Build the beta** (`doc/plan.md`, section 7), run in **one pass**.
+Next commit: **0**. Update this block at every commit.
 
 | # | Commit | Note |
 |---|---|---|
-| 0 | Close Phase 1: owner decisions (plan, "Phase 1 outcome"), selection flash, test accounts | — |
-| 1 | Self-contained sessions: replay from (seed, stored config) alone | **before any server code** |
-| 2 | SQL migrations applied by CI; `supabase/` files become migrations | secrets: ask once, at start |
-| 3 | Core extracted to `packages/math_core`, monorepo | no behaviour change |
-| 4 | Dart server skeleton | host and cost **prepared, not deployed** until owner says yes |
-| 5 | Session upload: offline queue, idempotent, `syncedAt` | — |
-| 6 | Server replay and validation; forged upload rejected | — |
-| 7 | Tables and RLS: level per player and operation, rank, percentile | only the server writes |
-| 8 | Leaderboard screen | played at phase end |
-| 9 | Name filter, charset limited to bundled fonts; report action | — |
-| 10 | Leaderboard for linked players only | — |
-| 11 | Cleanup of stale anonymous players and their hidden guest games | — |
-| 12 | Android compile-only CI job, weekly and on demand | — |
+| 0 | Close Phase 2: plan-alignment fixes, leaderboard chips on one line on a phone | — |
+| 1 | Preview moved to a free brotli host | propose with measurements; **move only after owner's yes, and before any tester** |
+| 2 | Server levels fetched before each game; refused sessions explained | — |
+| 3 | Beta gate: invitation code before anonymous sign-in, codes table with use limit | — |
+| 4 | Short privacy notice in the app | — |
+| 5 | In-app feedback, stored with the app version | — |
+| 6 | Owner dashboard: SQL views + report script, name-review queue | — |
+| 7 | First game on a never-played type = short placement | played at phase end |
+| 8 | Data check for Phase 3b | — |
 
-If the server can't be deployed yet (host not confirmed), run it locally and in CI tests,
-finish everything else, and list what remains to deploy.
+Waiting on the owner (finish everything else meanwhile): host confirmation for commit 1.
+Phase 3b (calibration) starts only when the dashboard shows ~300 sessions from 10+ testers.
 
 Preview: `https://geriogerg.github.io/Math-Trainer/`, deployed on every push to `main`.
 
