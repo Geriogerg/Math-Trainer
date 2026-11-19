@@ -639,6 +639,20 @@ with sessions the server never saw).
 the timing-flag thresholds (300 ms, 40 ms spread) are guesses until Phase 3 data.
 **Reopen when** multi-device play matters (Phase 7): sync levels down at sign-in instead.
 
+## Leaderboard read path and eligibility (Phase 2, commit 7)
+
+The board is read from Supabase directly, through two `security definer` SQL functions that
+expose rank, name and level only; nothing about other players' sessions, answers or ids leaves
+the database. Through the Dart server instead: one more hop, and a free host's cold start would
+put a minute's spinner on the Leaderboard tab. Ranks are computed on each read (window
+functions over at most a few thousand rows during the beta) rather than stored: nothing to keep
+in sync, and "within 30 days" moves with the clock by itself.
+**Provisional (owner to confirm)**: eligibility = active within 30 days and ≥ 3 counted
+sessions on the operation (overall: ≥ 3 completed games) — 3 matches the calibration boost's
+length, after which a level means something; "Top N %" rounds up (the best player is "Top 1 %"
+of a 100-player board, never "Top 0 %").
+**Reopen when** the beta shows boards too empty (lower the bar) or noisy (raise it).
+
 ## Server host: Render free, prepared (Phase 2, commit 4) — owner decision pending
 
 The plan: host and monthly cost prepared, **not deployed until the owner confirms** (it costs

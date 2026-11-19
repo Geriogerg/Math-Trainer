@@ -284,6 +284,13 @@ Phase 0 closed in Phase 1 commit 0 (`material_ui`, `δ` recorded, preview, load)
   `player_server_state`, `apply_validated_session`, `record_rejected_upload` (service role);
   commit 5's `record_session_upload` dropped. **Forged uploads rejected by tests** (core,
   server); **rows reproduced by replay**: the app-side test above.
+- **Commit 7** *(A)* — Tables and access rules, rank and percentile. Migration: internal
+  `leaderboard_rows` (eligible players of a board, level, `rank()`, total), and the two public
+  readers `leaderboard_top` (≤ 100) and `leaderboard_around_me` (rank, total, top %, ±5
+  neighbours, or why not eligible and how many sessions are missing), `security definer`,
+  name/rank/level only. Server tables still closed to players; only the server writes. SQL
+  tests: 13 players — order, ranks, top %, neighbour windows, every ineligibility reason,
+  overall mean, access rules. Eligibility thresholds provisional.
 
 ### Remaining contradictions after commit 0
 

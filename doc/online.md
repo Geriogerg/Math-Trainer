@@ -227,6 +227,24 @@ server's levels equal the app's cache — level, sessions played, update time.
    rejected and flagged.
 4. The leaderboard reads only server-written levels; everyone reads it, only the server writes it.
 
+## Leaderboard data (Phase 2 commit 7)
+
+Read straight from Supabase by the app (no server hop: a sleeping server never slows a
+screen), through two `security definer` functions everyone may call — signed out included —
+which return only rank, player name and level; the tables themselves stay closed:
+
+- `leaderboard_top(board)`: at most 100 entries `{rank, name, level, isMe}`, best first;
+- `leaderboard_around_me(board)`: `{eligible: true, rank, total, topPercent, level,
+  neighbours}` (five above and five below, the caller included), or `{eligible: false, reason,
+  sessionsNeeded}` with `reason` ∈ `signedOut`, `noSessions`, `notEnoughSessions`, `inactive`.
+
+`board` is `overall` or an `ExerciseType` name. Ranked on the level in hundredths, descending
+(`rank()`: equal levels share a rank); displayed as a whole number. Overall level = mean of the
+seven, an unplayed one counting as level 1 (the app's `overallLevel`), rounded to hundredths.
+"Top N %" = ⌈100 × rank / total⌉. **Eligibility, provisional**: an accepted session within 30
+days; per operation, ≥ 3 counted sessions on it (`sessions_played`); overall, ≥ 3 completed
+games. Inactive players leave the board; their level never decays.
+
 ## Rankings (Phase 2)
 
 - Ranked on **level**: one overall board, one board per operation. Ordered on the continuous level
@@ -239,7 +257,8 @@ server's levels equal the app's cache — level, sessions played, update time.
   (multi-digit answers under ~300 ms, unnaturally flat times) is flagged for review, never
   auto-banned.
 
-Open, to settle in the Phase 2 plan: exact table schema, minimum sessions for eligibility.
+Settled in Phase 2 commits 6–7: the tables (above) and the eligibility thresholds
+(provisional).
 
 ## Online play (Phase 7)
 
