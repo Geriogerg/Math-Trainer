@@ -207,21 +207,25 @@ class _BoardChips extends StatelessWidget {
   final LeaderboardBoard selected;
   final ValueChanged<LeaderboardBoard> onSelected;
 
-  /// Wrapped, like the Play tab's chips: on a phone a sideways-scrolling
-  /// row would hide half the boards.
+  /// One line that scrolls sideways (owner, Phase 2 report): wrapped, the
+  /// eight boards took three lines on a phone and pushed the board itself
+  /// down. The chip cut off at the edge shows there is more.
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        for (final board in LeaderboardBoard.all)
-          ChoiceChip(
-            label: Text(boardLabel(board)),
-            selected: board == selected,
-            onSelected: (_) => onSelected(board),
-          ),
-      ],
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          for (final (i, board) in LeaderboardBoard.all.indexed) ...[
+            if (i > 0) const SizedBox(width: 8),
+            ChoiceChip(
+              label: Text(boardLabel(board)),
+              selected: board == selected,
+              onSelected: (_) => onSelected(board),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

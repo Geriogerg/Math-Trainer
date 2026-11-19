@@ -125,6 +125,16 @@ State at the plan: 49 commits, 176 core tests / 328 in total.
   session and result updated, correction and mistakes added (both themes). **Checkpoint: the
   owner plays 5 games on a phone** — not deployable until GitHub Pages is enabled.
 
+### Remaining contradictions after commit 0
+
+The five plan/reality contradictions found at commit 0 (language, `δ`, branch and remote, commit 0
+as a checkpoint, Android in CI) are resolved by plan v1.1. Still open: the repo has no GitHub
+remote (owner action), which blocks commits 1 and 2.
+
+Code that does not yet follow the plan, already scheduled: mandatory sign-in versus "offline first"
+(Phase 1); one timestamp shared by all answers of a game (commit 4); correct answer not shown after
+an error (commit 9).
+
 Phase 0 closed in Phase 1 commit 0 (`material_ui`, `δ` recorded, preview, load).
 
 ## Phase 1 — First run and accounts
@@ -326,7 +336,7 @@ Phase 0 closed in Phase 1 commit 0 (`material_ui`, `δ` recorded, preview, load)
   Flutter recommends (Gradle 9.5.0, AGP 9.3.1, Kotlin 2.4.20); the full build is left to CI
   (a local one takes over 12 minutes and did not finish here). First CI run: **APK built**.
 
-### Phase 2 exit test (20 Nov 2026)
+### Phase 2 exit test (19 Nov 2026)
 
 - Rows reproduced by replay: **by tests** — `app/test/state/server_replay_test.dart` (server
   levels after replaying six real sessions = the app's cache), the SQL write path, the
@@ -339,16 +349,6 @@ Phase 0 closed in Phase 1 commit 0 (`material_ui`, `δ` recorded, preview, load)
   question **26.5 s** from navigation (target < 30 s; 21.1 s on the local build). The smoke
   script now waits up to 60 s for Flutter (it gave up at 20 s on slow 4G).
 
-### Remaining contradictions after commit 0
-
-The five plan/reality contradictions found at commit 0 (language, `δ`, branch and remote, commit 0
-as a checkpoint, Android in CI) are resolved by plan v1.1. Still open: the repo has no GitHub
-remote (owner action), which blocks commits 1 and 2.
-
-Code that does not yet follow the plan, already scheduled: mandatory sign-in versus "offline first"
-(Phase 1); one timestamp shared by all answers of a game (commit 4); correct answer not shown after
-an error (commit 9).
-
 ## Phase 3a — Build the beta
 
 Plan v2.3 (19 Nov 2026). Entry: Phase 2 live. State at the start:
@@ -360,3 +360,11 @@ Plan v2.3 (19 Nov 2026). Entry: Phase 2 live. State at the start:
 - The smoke test failed once on CI (`9f48d0c`, reason in the log only) and passes locally on
   the preview (first question 8.8 s): it now annotates its failure reason too.
 - Server not deployed yet (`SERVER_URL` unset).
+
+- **Commit 0** *(A)* — Close Phase 2. Leaderboard board chips on one line that scrolls sideways
+  (a test pins one line at 360 px and the last board reachable; goldens updated). The owner's
+  Phase 2 decisions recorded in `doc/decisions.md` (still provisional: rejection/flag names and
+  timing thresholds, the 03:17 UTC cleanup schedule). A Phase 0 section stranded at the end of
+  this file moved back; wrong "20 Nov" dates fixed. The migrations job's first live failure,
+  read from its new annotation: the latest Supabase CLI pushes to a local stack unless given
+  `--remote` (the link to the project worked) — now `db push --remote --yes`.

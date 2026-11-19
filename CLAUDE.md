@@ -11,7 +11,7 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 ## Current phase
 
 **Phase 3a — Build the beta** (`doc/plan.md`, section 7), run in **one pass**.
-Next commit: **0**. Update this block at every commit.
+Done: 0. Next commit: **1**. Update this block at every commit.
 
 | # | Commit | Note |
 |---|---|---|
@@ -171,6 +171,8 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   create (the smoke test through "Delete my data", which needs `delete_my_account()`).
 - SQL goes in versioned migrations applied by CI (from commit 2); never run SQL by hand, never
   print the access token or database password.
+- `supabase db push` needs `--remote`: newer CLIs (CI installs the latest) target a local stack
+  by default and fail on `127.0.0.1:54322`.
 - SQL tests run on plain Postgres with `supabase/tests/00_supabase_stub.sql` standing in for
   Supabase: a migration using anything else of Supabase's must add it to the stub. Every
   migration must be idempotent (CI applies them twice).

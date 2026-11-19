@@ -342,7 +342,8 @@ replays with its own rules (both pinned in the determinism references).
   operation, and no data says how much slower × and ÷ are. The structure is per operation; the
   values diverge when Phase 3 gives `t_rapide` per operation from real answers. Lowering the bar
   for × and ÷ in the placement alone would place players above where their games then pull
-  them, since games score speed against the same flat `t_rapide`.
+  them, since games score speed against the same flat `t_rapide`. **Kept by the owner** (plan
+  v2.3, Phase 2 outcome) until Phase 3b gives each operation its own `t_rapide`.
 - **Offer**: on Play, to a player with **no completed session** (an interrupted session or
   placement does not count — it is offered again) who has not skipped it. A skip is remembered
   per player (`PlacementSkipStore`, `shared_preferences`); Profile keeps a "Find my level"
@@ -635,8 +636,11 @@ stay in the local history and the Profile, they only never reach the board.
 Alternatives rejected: trusting the client's frozen level (forgeable); recomputing every level
 from the whole uploaded history on each upload (same verdict, more work, and still nothing to do
 with sessions the server never saw).
-**Provisional (owner to confirm)**: rejection reasons and flags as listed in `doc/online.md`;
-the timing-flag thresholds (300 ms, 40 ms spread) are guesses until Phase 3 data.
+**Owner decision (plan v2.3, Phase 2 outcome)**: refusing and adopting the server's levels is
+kept for the beta; Phase 3a commit 2 fetches the server's levels before each game, so a second
+device stops losing games. Still provisional: the rejection reasons and flags listed in
+`doc/online.md`, and the timing-flag thresholds (300 ms, 40 ms spread) — guesses until Phase 3b
+data.
 **Reopen when** multi-device play matters (Phase 7): sync levels down at sign-in instead.
 
 ## Leaderboard read path and eligibility (Phase 2, commit 7)
@@ -647,8 +651,8 @@ the database. Through the Dart server instead: one more hop, and a free host's c
 put a minute's spinner on the Leaderboard tab. Ranks are computed on each read (window
 functions over at most a few thousand rows during the beta) rather than stored: nothing to keep
 in sync, and "within 30 days" moves with the clock by itself.
-**Provisional (owner to confirm)**: eligibility = active within 30 days and ≥ 3 counted
-sessions on the operation (overall: ≥ 3 completed games) — 3 matches the calibration boost's
+**Owner decision (plan v2.3, Phase 2 outcome)**: eligibility = active within 30 days and ≥ 3
+counted sessions on the operation (overall: ≥ 3 completed games), kept — 3 matches the calibration boost's
 length, after which a level means something; "Top N %" rounds up (the best player is "Top 1 %"
 of a 100-player board, never "Top 0 %").
 **Reopen when** the beta shows boards too empty (lower the bar) or noisy (raise it).
@@ -666,8 +670,9 @@ The rule lives in Dart (instant feedback) and in SQL (the enforcement, since the
 `profiles` directly under row-level security); a parity test keeps them identical. The
 blocklist is deliberately short — a list never catches everything and false positives anger
 real players ("Draper" contains "rape": not in the list) — and **reports** cover the rest.
-**Provisional (owner to confirm)**: the allowed set, the word lists, and hiding a name after 3
-reports pending review.
+**Owner decision (plan v2.3, Phase 2 outcome)**: the allowed set (Latin, Greek, Cyrillic), the
+short English/French blocklist and hiding a name after 3 reports are kept for the beta; wider
+alphabets (a bigger bundled font) are reconsidered before Phase 6.
 **Reopen when** the beta shows abuse the list misses, or players whose names are refused.
 
 ## Stale guests: activity = uploads or a renewed session (Phase 2, commit 11)
@@ -678,7 +683,8 @@ including ones who play every day — their progress would vanish behind a new g
 counts as active if it uploaded **or** renewed a sign-in session (`auth.sessions`, renewed by
 the app whenever it is open) in the last 30 days. Device side, a guest left for another account
 keeps its hidden games 30 days (owner's Phase 1 decision: "deleted with the guest account").
-**Provisional (owner to confirm)**: the extra activity signal, the 03:17 UTC daily schedule.
+**Owner decision (plan v2.3, Phase 2 outcome)**: the extra activity signal is kept. The 03:17
+UTC daily schedule was not discussed: provisional.
 
 ## Android: compile-only, weekly, outside the push pipeline (Phase 2, commit 12)
 
@@ -687,7 +693,7 @@ demand, not on every push. A separate workflow (`android.yml`) rather than a job
 its failure never cancels or blocks a preview deployment, and a push never waits for Gradle.
 It also runs when its own file changes, so a change to it is checked at once.
 
-## Server host: Render free, prepared (Phase 2, commit 4) — owner decision pending
+## Server host: Render free (Phase 2, commit 4) — decided by the owner (plan v2.3)
 
 The plan: host and monthly cost prepared, **not deployed until the owner confirms** (it costs
 money or has limits). What the server must do here is small: receive an upload after each game
@@ -702,7 +708,7 @@ go straight to Supabase, so a sleeping server never slows a screen.
 | Fly.io | ~2–5 $/month | Small always-on VM; no free tier for new accounts. |
 | Supabase Edge Functions | 0 | Deno only. The core could run there compiled to JavaScript (VM = JS is pinned), but the plan chose a Dart server; noted as a fallback. |
 
-**Provisional: Render free** — `render.yaml` and `server/Dockerfile` ready, nothing deployed.
+**Owner decision (plan v2.3)**: Render free plan, from `render.yaml` and `server/Dockerfile`.
 **Reopen when** the owner chooses, or uploads need to land immediately (live duels, Phase 7).
 
 ## SQL migrations applied by CI, tested on plain Postgres (Phase 2, commit 2)

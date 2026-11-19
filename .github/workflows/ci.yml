@@ -189,7 +189,10 @@ jobs:
             return 1
           }
           run_cli link supabase link --project-ref "$ref"
-          run_cli "db push" supabase db push
+          # `--remote`: newer CLIs push to a local stack unless told
+          # otherwise (the first live run failed on 127.0.0.1:54322).
+          # `--yes`: no one is there to answer the confirmation prompt.
+          run_cli "db push" supabase db push --remote --yes
 
   web:
     runs-on: ubuntu-latest

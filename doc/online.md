@@ -59,7 +59,7 @@ The old "slice 3" (leaderboard, sync, validation service) is Phase 2 of the plan
 - Supabase project settings this relies on: anonymous sign-ins **on** (owner, 19 Nov 2026);
   built-in rate limit on anonymous sign-ins (30 per hour per IP) until CAPTCHA (Phase 6);
   `delete_my_account()` (run by hand in Phase 1, a migration since Phase 2 commit 2). Checked
-  live: the CI smoke test's guest deletes itself through it (first green run 20 Nov 2026).
+  live: the CI smoke test's guest deletes itself through it (first green run 19 Nov 2026).
 - Email confirmation is **off** in the Supabase project for development: the default mailer only
   sends to organisation members. Phase 1 turns it on with a real SMTP sender and a site URL.
 

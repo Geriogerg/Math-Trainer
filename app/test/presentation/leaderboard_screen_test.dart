@@ -98,6 +98,29 @@ void main() {
     expect(find.text('Player'), findsOneWidget); // no name chosen
   });
 
+  testWidgets('board chips stay on one line on a phone (Phase 3a commit 0)', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(360, 740));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await pump(tester);
+    final chips = find.byType(ChoiceChip);
+    expect(chips, findsNWidgets(LeaderboardBoard.all.length));
+    final top = tester.getTopLeft(chips.first).dy;
+    for (final element in chips.evaluate()) {
+      expect(tester.getTopLeft(find.byWidget(element.widget)).dy, top);
+    }
+    // The last board is reachable by scrolling sideways.
+    await tester.ensureVisible(find.text('Percentages'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Percentages'));
+    await tester.pumpAndSettle();
+    final selected = tester.widget<ChoiceChip>(
+      find.widgetWithText(ChoiceChip, 'Percentages'),
+    );
+    expect(selected.selected, isTrue);
+  });
+
   testWidgets('top 100 view, and an empty board says so', (tester) async {
     leaderboard.tops[const LeaderboardBoard.overall()] = [
       _entry(1, 'Zoe', 61),
@@ -109,6 +132,7 @@ void main() {
     expect(find.text('Zoe'), findsOneWidget);
     expect(find.text('Level 61'), findsOneWidget);
 
+    await tester.ensureVisible(find.text('Division')); // one sideways line
     await tester.tap(find.text('Division'));
     await tester.pumpAndSettle();
     expect(find.text('Nobody on this board yet.'), findsOneWidget);
@@ -126,6 +150,9 @@ void main() {
     await pump(tester);
     expect(find.textContaining('Play a game to join'), findsOneWidget);
 
+    await tester.ensureVisible(
+      find.text('Multiplication'),
+    ); // one sideways line
     await tester.tap(find.text('Multiplication'));
     await tester.pumpAndSettle();
     expect(
