@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../core/state/beta_gate_controller.dart';
 import '../theme/app_theme.dart';
+import 'privacy_screen.dart';
 
 /// The invite-only beta's door (Phase 3a commit 3): shown by `AuthGate`
 /// on a device with no session and no accepted code, before any account
@@ -96,6 +97,15 @@ class _BetaGateScreenState extends State<BetaGateScreen> {
                       TextButton(
                         onPressed: checking ? null : widget.onSignIn,
                         child: const Text('I already have an account'),
+                      ),
+                      // Before giving any data (Phase 3a commit 4).
+                      TextButton(
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const PrivacyScreen(),
+                          ),
+                        ),
+                        child: const Text('Privacy'),
                       ),
                     ],
                   );

@@ -11,8 +11,8 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 ## Current phase
 
 **Phase 3a — Build the beta** (`doc/plan.md`, section 7), run in **one pass**.
-Done: 0, 2, 3; 1 prepared, dormant until the owner's yes (`PREVIEW_HOST=cloudflare`). Next
-commit: **4**. Update this block at every commit.
+Done: 0, 2, 3, 4; 1 prepared, dormant until the owner's yes (`PREVIEW_HOST=cloudflare`).
+Next commit: **5**. Update this block at every commit.
 
 | # | Commit | Note |
 |---|---|---|
@@ -184,6 +184,8 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   parallel or skip a refused session's successors.
 - Adopt the server's levels only when no upload is pending (`syncLevelsBeforeGame`): pending
   sessions chain from the local levels. Never without a server either — its levels are empty.
+- The privacy notice (`privacy_screen.dart`) states what is stored and that deletion removes it
+  all: a new table of player data must cascade from `auth.users` and be named there.
 - Level updates have one implementation: `gameLevelUpdates` / `placementLevelUpdates`, used by
   the app's orchestrators and the server's validation. Never compute levels elsewhere.
 - The beta gate is a build switch (`BETA_GATE=true`): with it on, the smoke test needs the

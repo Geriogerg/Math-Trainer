@@ -389,3 +389,9 @@ Plan v2.3 (19 Nov 2026). Entry: Phase 2 live. State at the start:
   `AuthGate` asks before creating the guest, redeems after (4 widget tests). Off until the
   owner sets `BETA_GATE=true` (and `SMOKE_BETA_CODE`); the smoke test enters the code when the
   gate is on — **not verified against a gated build yet** (needs a live code).
+- **Commit 4** *(A)* — Privacy notice: `PrivacyScreen` (what is stored, where, why, who sees
+  what, deleting it), linked from the gate screen (before any data) and from Profile, above
+  the deletion button. Every server table holding player data cascades from the account
+  (checked: profiles, uploaded_sessions, server_players, server_levels, upload_rejections,
+  upload_flags via sessions, name_reports, beta_code_uses). Tests: sections, the named buttons,
+  the 30-day guest retention equal to `abandonedGuestRetention`; goldens.

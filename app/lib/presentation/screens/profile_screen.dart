@@ -19,6 +19,7 @@ import 'package:math_core/leveling/overall_level.dart';
 import '../../core/state/account_form_controller.dart';
 import '../theme/app_theme.dart';
 import 'empty_state.dart';
+import 'privacy_screen.dart';
 import 'save_progress_screen.dart';
 import 'session_flow_screen.dart';
 import 'sign_in_screen.dart';
@@ -416,6 +417,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       : null,
                 ),
             const SizedBox(height: 32),
+            // What is stored and how to delete it (Phase 3a commit 4), right
+            // above the deletion it describes.
+            Center(
+              child: TextButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const PrivacyScreen(),
+                  ),
+                ),
+                child: const Text('Privacy'),
+              ),
+            ),
             // Last and quiet on purpose: irreversible, never next to the
             // everyday actions. Every player has it, guests included
             // (plan, section 6.3).
