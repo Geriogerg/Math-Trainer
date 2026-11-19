@@ -15,16 +15,39 @@ db=mt_sql_test
 # Only warnings and errors: the idempotent migrations NOTICE every skip.
 export PGOPTIONS="-c client_min_messages=warning"
 
-psql "$admin_url" -v ON_ERROR_STOP=1 -q -c "drop database if exists $db" \
-  -c "create database $db"
 # Same server, other database: replace the path of the admin URL.
 test_url="${admin_url%/*}/$db"
 
-run() {
-  echo "-- $1"
-  psql "$test_url" -v ON_ERROR_STOP=1 -q -X -f "$1" >/dev/null
+# On GitHub Actions a failure is also an annotation (readable without the
+# job log's permissions).
+fail() {
+  echo "$2" >&2
+  if [ -n "${GITHUB_ACTIONS:-}" ]; then
+    echo "::error title=SQL $1::$(printf '%s' "$2" | tail -n 4 | tr '\n' ' ')"
+  fi
+  exit 3
 }
 
+run() {
+  echo "-- $1"
+  local out
+  if ! out=$(psql "$test_url" -v ON_ERROR_STOP=1 -q -X -f "$1" 2>&1 >/dev/null); then
+    fail "${1##*/}" "$out"
+  fi
+}
+
+# A fresh Postgres container answers its health check during its first-run
+# setup, then restarts: wait for a real connection (up to 60 s).
+for attempt in $(seq 1 30); do
+  if psql "$admin_url" -q -c 'select 1' >/dev/null 2>&1; then break; fi
+  if [ "$attempt" = 30 ]; then
+    fail connection "$(psql "$admin_url" -c 'select 1' 2>&1)"
+  fi
+  sleep 2
+done
+
+psql "$admin_url" -v ON_ERROR_STOP=1 -q -c "drop database if exists $db" \
+  -c "create database $db"
 run "$root/supabase/tests/00_supabase_stub.sql"
 for file in "$root"/supabase/migrations/*.sql; do run "$file"; done
 # Twice: every migration must be safe to re-apply (the first ones were run
