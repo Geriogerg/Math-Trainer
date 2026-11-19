@@ -1,5 +1,5 @@
-/// In-app feedback (plan v2.3, Phase 3a commit 5): a free text sent to the
-/// server with the app version, read by the owner.
+// In-app feedback (plan v2.3, Phase 3a commit 5): a free text sent to the
+// server with the app version, read by the owner.
 
 /// Longest message the server stores (`feedback.message`, SQL).
 const maxFeedbackLength = 2000;

@@ -155,6 +155,8 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 
 ## Pitfalls (append new ones)
 
+- CI analyzes with `--fatal-infos` (core and tooling): run `dart analyze --fatal-infos` locally,
+  an info-level lint fails the build.
 - Never draw at random from a `Set` (insertion order); use a list sorted by enum `index`.
 - The useless `nextInt(1)` in `CompositeExerciseGenerator` stays: removing it changes every
   sequence.
