@@ -26,7 +26,7 @@ lost their account.
 **Reopen when** abuse of anonymous accounts costs more than the protections planned (CAPTCHA,
 cleanup).
 
-Gaps filled in commit 5 — **provisional, owner to confirm**:
+Gaps filled in commit 5 — **Confirmed by the owner (19 Nov 2026, after Phase 3a)**:
 - Signing in to another account from a guest **keeps** the guest's local games on the device
   (hidden, unmerged) rather than deleting them: "replaced" in the plan read as "no longer
   shown", the reversible option. Deleting them is commit 7's explicit "Delete my data".
@@ -638,9 +638,9 @@ from the whole uploaded history on each upload (same verdict, more work, and sti
 with sessions the server never saw).
 **Owner decision (plan v2.3, Phase 2 outcome)**: refusing and adopting the server's levels is
 kept for the beta; Phase 3a commit 2 fetches the server's levels before each game, so a second
-device stops losing games. Still provisional: the rejection reasons and flags listed in
-`doc/online.md`, and the timing-flag thresholds (300 ms, 40 ms spread) — guesses until Phase 3b
-data.
+device stops losing games. **Confirmed by the owner (19 Nov 2026, after Phase 3a)**: the rejection reasons and flags listed in
+`doc/online.md`, and the timing-flag thresholds (300 ms, 40 ms spread) — still guesses until
+Phase 3b data.
 **Reopen when** multi-device play matters (Phase 7): sync levels down at sign-in instead.
 
 ## Leaderboard read path and eligibility (Phase 2, commit 7)
@@ -684,7 +684,7 @@ counts as active if it uploaded **or** renewed a sign-in session (`auth.sessions
 the app whenever it is open) in the last 30 days. Device side, a guest left for another account
 keeps its hidden games 30 days (owner's Phase 1 decision: "deleted with the guest account").
 **Owner decision (plan v2.3, Phase 2 outcome)**: the extra activity signal is kept. The 03:17
-UTC daily schedule was not discussed: provisional.
+UTC daily schedule: **Confirmed by the owner (19 Nov 2026, after Phase 3a)**.
 
 ## Android: compile-only, weekly, outside the push pipeline (Phase 2, commit 12)
 
@@ -814,7 +814,7 @@ use limit, so each tester's data can be followed. The code is checked before the
 (`beta_code_status`, callable without a session), then tied to the guest right after its
 creation (`redeem_beta_code`). The device keeps the accepted code: "asked once" holds even
 after a sign-out of an email account. An existing account signs in without a code.
-**Provisional (owner to confirm)**: the gate lives in the app only — the Supabase API still
+**Confirmed by the owner (19 Nov 2026, after Phase 3a)**: the gate lives in the app only — the Supabase API still
 lets anyone create an anonymous user. Server-side enforcement (refusing uploads, hiding from the
 board without a code) would also lock out the owner's pre-beta account and needs a migration of
 existing players; for 10–20 invited testers, a "no code" bucket in the dashboard is enough.
@@ -850,7 +850,7 @@ so its Phase 1 result for 5 questions per staircase (placed error 4.8 / 6.9 leve
 5.6 / 20.0 games instead of 65.5 / 73.5) applies to each operation alike.
 Server: accepted only for operations the server has no level for (`typeAlreadyPlayed`
 otherwise), from the start level, replayed from the stored rotation; allowed after games.
-**Provisional (owner to confirm)**:
+**Confirmed by the owner (19 Nov 2026, after Phase 3a)**:
 - every never-played operation is placed this way, the four basic ones included — a player
   who skipped the placement test meets it in short form on their first Start;
 - the already-played operations of the selection sit out that first game (a session mixing a
@@ -859,17 +859,27 @@ otherwise), from the start level, replayed from the stored rotation; allowed aft
   levels have not been calibrated either (Phase 3b).
 **Reopen when** Phase 3b's data shows where type-placed players actually settle.
 
-## Data check: what Phase 3b needs is stored; three things are not (Phase 3a, commit 8)
+## Data check: what Phase 3b needs is stored (Phase 3a, commit 8, then owner decision)
 
 Every requirement the plan names — operation, level, time, correctness, structure of the
 exercise — is in each uploaded answer (`owner_dashboard.data_check`, and a format test on the
-app side). Three things that would matter to calibration are not stored anywhere; **owner
-decision**, none implemented here (each changes the upload format, a migration of the local
-schema and the server's strict parser):
+app side). Three things that would matter to calibration were not stored anywhere:
 - **Input device** (on-screen keypad or physical keyboard): desktop typing is faster, so
   `t_rapide` per operation would mix both. Recommended before the invitations go out, since
   answers already recorded cannot get it back.
 - **App version per session**: to set aside games of a buggy build. Recommended with it.
 - **The timeout in force**: constant (15 s) today; must be stored once Phase 3b makes it
   depend on the level — part of that change, not needed before.
-**Reopen when** the owner decides on the first two.
+
+**Owner decision (19 Nov 2026): record the first two, before the invitations.** Built as:
+- **Input device per answer**, not per session: times are per answer, and a player can switch
+  mid-game (a laptop with a touch screen). `InputDevice` (`keypad`, `keyboard`, `mixed`: both
+  within one answer), from every key of the question — digits, Backspace, submit. `null` only
+  for a timeout with no key pressed. Stored names, never renamed.
+- **App version per session**: `APP_VERSION` (the commit's first 7 characters from CI, `dev`
+  locally), as feedback already had.
+- Both **optional in the upload, same `formatVersion`**: sessions recorded before (local schema
+  v8 leaves them `null`) still upload; an older server ignores the fields. The server keeps the
+  validated payload, so no new column: the dashboard reads them from it
+  (`answer_times_by_input`, `app_versions`, two more `data_check` rows).
+**Reopen when** Phase 3b stores the timeout with the session.

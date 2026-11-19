@@ -5,6 +5,7 @@ import 'package:math_core/leveling/level.dart';
 import 'package:math_core/persistence/level_cache_entry.dart';
 import 'package:math_core/models/exercise.dart';
 import 'package:math_core/models/exercise_type.dart';
+import 'package:math_core/models/input_device.dart';
 import 'package:math_core/models/operation_type.dart';
 import 'package:math_core/models/session_config.dart';
 import 'package:math_core/persistence/in_memory_session_repository.dart';
@@ -1337,5 +1338,60 @@ void persistenceRobustnessTests() {
         expect(sessions.single.overallLevelAfter, isNull);
       },
     );
+  });
+
+  group('input device and app version (after Phase 3a)', () {
+    test('each answer records its keys, the session its build', () async {
+      final spy = _TimerSpy();
+      final repository = InMemorySessionRepository();
+      final controller = SessionController(
+        config: SessionConfig(
+          seed: 1,
+          enabledTypes: {ExerciseType.addition},
+          exerciseCount: 5,
+          levels: {ExerciseType.addition: Level.whole(50)},
+        ),
+        exerciseSource: _FixedExerciseSource([
+          for (var i = 0; i < 5; i++)
+            ArithmeticExercise(
+              operandA: i,
+              operandB: 0,
+              operationType: OperationType.addition,
+            ),
+        ]),
+        repository: repository,
+        playerId: 'test-player',
+        clock: () => DateTime(2024),
+        createTimer: spy.create,
+        appVersion: 'e9bd019',
+      )..start();
+
+      // On-screen keypad only.
+      controller.registerActivity(InputDevice.keypad);
+      controller.submitAnswer(0, device: InputDevice.keypad);
+      // Physical keyboard only.
+      controller.registerActivity(InputDevice.keyboard);
+      controller.submitAnswer(1, device: InputDevice.keyboard);
+      // Typed on the keyboard, submitted on the keypad.
+      controller.registerActivity(InputDevice.keyboard);
+      controller.submitAnswer(2, device: InputDevice.keypad);
+      // A key, then the time ran out: the key counts.
+      controller.registerActivity(InputDevice.keypad);
+      spy.latest.fire();
+      // Nothing pressed before the time ran out: unknown.
+      spy.latest.fire();
+      await controller.pendingPersistence;
+
+      final session = (await repository.recentSessions('test-player')).single;
+      expect(session.appVersion, 'e9bd019');
+      final answers = await repository.answersForSession(session.id);
+      expect(answers.map((a) => a.inputDevice), [
+        InputDevice.keypad,
+        InputDevice.keyboard,
+        InputDevice.mixed,
+        InputDevice.keypad,
+        null,
+      ]);
+    });
   });
 }

@@ -20,7 +20,17 @@ class PersistedSession {
     this.kind = SessionKind.game,
     this.typeSequence,
     this.uploadRefused,
+    this.appVersion,
   }) {
+    final version = appVersion;
+    if (version != null &&
+        (version.isEmpty || version.length > maxAppVersionLength)) {
+      throw ArgumentError.value(
+        version,
+        'appVersion',
+        'must be 1 to $maxAppVersionLength characters.',
+      );
+    }
     final sequence = typeSequence;
     if (sequence != null && sequence.length != exerciseCount) {
       throw ArgumentError.value(
@@ -93,6 +103,13 @@ class PersistedSession {
   /// `SessionRepository.markUploadRefused`, never when recording.
   final String? uploadRefused;
 
+  /// The build that played it (schema v8): the commit's first 7 characters
+  /// from CI, `dev` locally — to set aside games of a faulty build.
+  /// `null` for sessions stored before v8.
+  final String? appVersion;
+
+  static const maxAppVersionLength = 40;
+
   PersistedSession copyWith({
     String? playerId,
     Object? syncedAt = _unset,
@@ -116,6 +133,7 @@ class PersistedSession {
       uploadRefused: identical(uploadRefused, _unset)
           ? this.uploadRefused
           : uploadRefused as String?,
+      appVersion: appVersion,
     );
   }
 
@@ -162,7 +180,8 @@ class PersistedSession {
       other.syncedAt == syncedAt &&
       other.kind == kind &&
       other._typeSequenceEqual(typeSequence) &&
-      other.uploadRefused == uploadRefused;
+      other.uploadRefused == uploadRefused &&
+      other.appVersion == appVersion;
 
   @override
   int get hashCode => Object.hash(
@@ -183,5 +202,6 @@ class PersistedSession {
     kind,
     typeSequence == null ? null : Object.hashAll(typeSequence!),
     uploadRefused,
+    appVersion,
   );
 }

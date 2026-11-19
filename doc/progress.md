@@ -437,5 +437,24 @@ Plan v2.3 (19 Nov 2026). Entry: Phase 2 live. State at the start:
   live server validates it (server levels 65 s after opening, smoke test). Missing: the gate
   switched on (codes, `BETA_GATE`), and a linked account's three games for a rank — owner steps.
 - The dashboard report runs on live data: **not yet** — needs the owner's connection file.
-  Every command runs in CI on the scratch database.
+  Every command runs in CI on the scratch database. *(19 Nov, later: yes — the owner's
+  `data-check` ran on the live project; no real answer uploaded yet.)*
 - The owner sends the invitations: owner.
+
+### After the report (19 Nov 2026)
+
+Owner's answers: Cloudflare yes; every provisional decision confirmed (`doc/decisions.md`);
+input device and app version to be recorded before the invitations.
+
+- Preview moved (commit 1 above): `e7b9832` (a manual run deploys), `4093772` + `c25cdd9`
+  (CI checks the Cloudflare address; `math-trainer.pages.dev` is a stranger's), `44f202a`.
+- `e9bd019` Dashboard: the console switched to UTF-8 while psql prints (VS Code's terminal
+  showed "—" as garbage).
+- Input device per answer, app version per session: core `InputDevice`, `AnswerResult` /
+  `PersistedAnswer.inputDevice`, `PersistedSession.appVersion`, optional upload fields (same
+  `formatVersion`); app: `SessionScreen` reports each key's source, schema v8; SQL:
+  `answer_times_by_input` (replaces `answer_times`), `app_versions`, data check 8 rows.
+  Tests: core (combine, round-trip, old payloads, refusals, format test), app (controller,
+  keypad/keyboard/mixed in the screen, v8 round-trip and migration), SQL 95.
+  **Owner next**: codes, `SMOKE_BETA_CODE`, `BETA_GATE=true`, the phone checklist,
+  invitations.

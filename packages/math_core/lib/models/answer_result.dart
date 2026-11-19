@@ -1,4 +1,5 @@
 import 'exercise.dart';
+import 'input_device.dart';
 
 /// Sentinel for "no value typed, the question timed out". Never a real
 /// answer: the keypad has no `−` key and no operation produces a negative
@@ -15,6 +16,7 @@ class AnswerResult {
     required this.isCorrect,
     required this.elapsedMs,
     required this.answeredAt,
+    this.inputDevice,
   }) {
     if (!answeredAt.isUtc) {
       throw ArgumentError.value(
@@ -35,6 +37,10 @@ class AnswerResult {
   /// analysis need the time of each answer, not of its session.
   final DateTime answeredAt;
 
+  /// How it was typed; `null` when no key was pressed (a timeout without
+  /// input).
+  final InputDevice? inputDevice;
+
   bool get isTimeout => submittedValue == timeoutSubmittedValue;
 
   @override
@@ -44,9 +50,16 @@ class AnswerResult {
       other.submittedValue == submittedValue &&
       other.isCorrect == isCorrect &&
       other.elapsedMs == elapsedMs &&
-      other.answeredAt == answeredAt;
+      other.answeredAt == answeredAt &&
+      other.inputDevice == inputDevice;
 
   @override
-  int get hashCode =>
-      Object.hash(exercise, submittedValue, isCorrect, elapsedMs, answeredAt);
+  int get hashCode => Object.hash(
+    exercise,
+    submittedValue,
+    isCorrect,
+    elapsedMs,
+    answeredAt,
+    inputDevice,
+  );
 }

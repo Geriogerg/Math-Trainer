@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 
 import 'package:math_core/leveling/level.dart';
+import 'package:math_core/models/input_device.dart';
 import '../../core/state/session_controller.dart';
 import '../exercise_prompt.dart';
 import '../exercise_type_labels.dart';
@@ -119,9 +120,9 @@ class _SessionScreenState extends State<SessionScreen>
     super.dispose();
   }
 
-  void _appendDigit(String digit) {
+  void _appendDigit(String digit, InputDevice device) {
     if (widget.controller.state.isCorrecting) return;
-    widget.controller.registerActivity();
+    widget.controller.registerActivity(device);
     if (_typedDigits.length >= _maxTypedDigits) return;
     setState(() => _typedDigits += digit);
   }
@@ -134,34 +135,34 @@ class _SessionScreenState extends State<SessionScreen>
     if (event is KeyUpEvent) return KeyEventResult.ignored;
     final digit = _digitKeys[event.physicalKey];
     if (digit != null) {
-      _appendDigit(digit);
+      _appendDigit(digit, InputDevice.keyboard);
       return KeyEventResult.handled;
     }
     final key = event.logicalKey;
     if (key == LogicalKeyboardKey.backspace) {
-      _backspace();
+      _backspace(InputDevice.keyboard);
       return KeyEventResult.handled;
     }
     if (key == LogicalKeyboardKey.enter ||
         key == LogicalKeyboardKey.numpadEnter) {
       // No repeat: holding Enter must not submit the next question before it
       // is even read.
-      if (event is KeyDownEvent) _submit();
+      if (event is KeyDownEvent) _submit(InputDevice.keyboard);
       return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;
   }
 
-  void _backspace() {
+  void _backspace(InputDevice device) {
     if (widget.controller.state.isCorrecting) return;
-    widget.controller.registerActivity();
+    widget.controller.registerActivity(device);
     if (_typedDigits.isEmpty) return;
     setState(
       () => _typedDigits = _typedDigits.substring(0, _typedDigits.length - 1),
     );
   }
 
-  void _submit() {
+  void _submit(InputDevice device) {
     final exercise = widget.controller.state.currentExercise;
     if (exercise == null || widget.controller.state.isCorrecting) return;
     final value = int.tryParse(_typedDigits);
@@ -172,7 +173,7 @@ class _SessionScreenState extends State<SessionScreen>
     // flash to trigger. `submitAnswer` is called right after, with no delay —
     // the controller's internal timing (used for the score) stays exact.
     final isCorrect = exercise.isCorrectAnswer(value);
-    widget.controller.submitAnswer(value);
+    widget.controller.submitAnswer(value, device: device);
     _playFeedback(isCorrect);
   }
 
@@ -303,9 +304,9 @@ class _SessionScreenState extends State<SessionScreen>
             // never a ratio of the screen, see `AppMetrics`).
             height: metrics.keypadHeight,
             child: _NumericKeypad(
-              onDigit: _appendDigit,
-              onBackspace: _backspace,
-              onValidate: _submit,
+              onDigit: (digit) => _appendDigit(digit, InputDevice.keypad),
+              onBackspace: () => _backspace(InputDevice.keypad),
+              onValidate: () => _submit(InputDevice.keypad),
             ),
           ),
         ],

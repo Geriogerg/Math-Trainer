@@ -383,6 +383,7 @@ Future<SessionController> buildSessionController(
     repository: environment.repository,
     playerId: environment.playerId,
     correctionDelay: SessionController.defaultCorrectionDelay,
+    appVersion: appVersion,
     questionTimeout: questionTimeoutFor(
       isDebugBuild: kDebugMode,
       noTimeoutRequested: _debugNoTimeout,
@@ -435,6 +436,7 @@ SessionController buildTypePlacementController(
     repository: environment.repository,
     playerId: environment.playerId,
     correctionDelay: SessionController.defaultCorrectionDelay,
+    appVersion: appVersion,
     questionTimeout: questionTimeoutFor(
       isDebugBuild: kDebugMode,
       noTimeoutRequested: _debugNoTimeout,
@@ -463,6 +465,7 @@ SessionController buildPlacementController(AppEnvironment environment) {
     repository: environment.repository,
     playerId: environment.playerId,
     correctionDelay: SessionController.defaultCorrectionDelay,
+    appVersion: appVersion,
     questionTimeout: questionTimeoutFor(
       isDebugBuild: kDebugMode,
       noTimeoutRequested: _debugNoTimeout,

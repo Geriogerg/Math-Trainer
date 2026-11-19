@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:sqflite/sqflite.dart';
 
 import 'package:math_core/leveling/level.dart';
+import 'package:math_core/models/input_device.dart';
 import 'package:math_core/models/session_kind.dart';
 import 'package:math_core/persistence/level_cache_entry.dart';
 import 'package:math_core/models/exercise_type.dart';
@@ -268,6 +269,7 @@ class SqfliteSessionRepository implements SessionRepository {
           : jsonEncode([for (final t in session.typeSequence!) t.name]),
       'created_at': session.createdAt.toIso8601String(),
       'synced_at': session.syncedAt?.toIso8601String(),
+      'app_version': session.appVersion,
     };
   }
 
@@ -302,6 +304,7 @@ class SqfliteSessionRepository implements SessionRepository {
                 ExerciseType.values.byName(name as String),
             ],
       uploadRefused: row['upload_refused'] as String?,
+      appVersion: row['app_version'] as String?,
     );
   }
 
@@ -317,6 +320,7 @@ class SqfliteSessionRepository implements SessionRepository {
       'elapsed_ms': answer.elapsedMs,
       'created_at': answer.createdAt.toIso8601String(),
       'synced_at': answer.syncedAt?.toIso8601String(),
+      'input_device': answer.inputDevice?.name,
     };
   }
 
@@ -335,6 +339,10 @@ class SqfliteSessionRepository implements SessionRepository {
       elapsedMs: row['elapsed_ms'] as int,
       createdAt: DateTime.parse(row['created_at'] as String),
       syncedAt: syncedAt == null ? null : DateTime.parse(syncedAt),
+      inputDevice: switch (row['input_device'] as String?) {
+        null => null,
+        final name => InputDevice.values.byName(name),
+      },
     );
   }
 

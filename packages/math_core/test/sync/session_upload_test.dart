@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:math_core/leveling/level.dart';
 import 'package:math_core/models/exercise_type.dart';
+import 'package:math_core/models/input_device.dart';
 import 'package:math_core/models/session_kind.dart';
 import 'package:math_core/persistence/level_cache_entry.dart';
 import 'package:math_core/persistence/persisted_answer.dart';
@@ -145,6 +146,83 @@ void main() {
     final j = SessionUpload(session: placement, answers: const []).toJson();
     final back = SessionUpload.fromJson(jsonDecode(jsonEncode(j)));
     expect(back.session.typeSequence, placementTypeSequence(placementRulesV1));
+  });
+
+  group('app version and input device (after Phase 3a)', () {
+    final recorded = PersistedSession(
+      id: 'session-1',
+      playerId: 'player-1',
+      seed: 1,
+      enabledTypes: const {ExerciseType.addition},
+      exerciseCount: 3,
+      totalScore: 0,
+      levels: {ExerciseType.addition: Level.floor},
+      createdAt: DateTime.utc(2026, 11, 20),
+      typeSequence: const [
+        ExerciseType.addition,
+        ExerciseType.addition,
+        ExerciseType.addition,
+      ],
+      appVersion: 'e9bd019',
+    );
+    PersistedAnswer answer(String id, InputDevice? device) => PersistedAnswer(
+      id: id,
+      sessionId: 'session-1',
+      exerciseType: 'arithmetic',
+      operationType: 'addition',
+      operands: const {'operandA': 1, 'operandB': 2},
+      submittedValue: 3,
+      isCorrect: true,
+      elapsedMs: 900,
+      createdAt: DateTime.utc(2026, 11, 20),
+      inputDevice: device,
+    );
+    Map<String, Object?> upload() => jsonDecode(
+      jsonEncode(
+        SessionUpload(
+          session: recorded,
+          answers: [
+            answer('a', InputDevice.keypad),
+            answer('b', InputDevice.keyboard),
+            answer('c', null),
+          ],
+        ).toJson(),
+      ),
+    );
+
+    test('round-trip; an unknown device stays absent', () {
+      final j = upload();
+      expect((j['session']! as Map)['appVersion'], 'e9bd019');
+      final sent = (j['answers']! as List).cast<Map>();
+      expect(sent.map((a) => a['inputDevice']), ['keypad', 'keyboard', null]);
+      expect(sent[2].containsKey('inputDevice'), isFalse);
+      final back = SessionUpload.fromJson(j);
+      expect(back.session.appVersion, 'e9bd019');
+      expect(back.answers.map((a) => a.inputDevice), [
+        InputDevice.keypad,
+        InputDevice.keyboard,
+        null,
+      ]);
+    });
+
+    test('a session stored before them uploads and parses as before', () {
+      final j = json();
+      expect((j['session']! as Map).containsKey('appVersion'), isFalse);
+      final back = SessionUpload.fromJson(j);
+      expect(back.session.appVersion, isNull);
+      expect(back.answers.map((a) => a.inputDevice), everyElement(isNull));
+    });
+
+    test('refuses an unknown device or a malformed version', () {
+      final badDevice = upload();
+      ((badDevice['answers']! as List).first as Map)['inputDevice'] = 'mouse';
+      expect(() => SessionUpload.fromJson(badDevice), throwsFormatException);
+      for (final version in <Object>['', 42, 'x' * 41]) {
+        final bad = upload();
+        (bad['session']! as Map)['appVersion'] = version;
+        expect(() => SessionUpload.fromJson(bad), throwsFormatException);
+      }
+    });
   });
 
   test('server levels round-trip', () {

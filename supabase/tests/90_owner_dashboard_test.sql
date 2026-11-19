@@ -79,15 +79,15 @@ begin
   assert r.last_day = 2 and r.ever = 2, 'active testers: ' || row_to_json(r)::text;
 
   -- Games only: the placement's 99,999 ms answer is not counted.
-  select * into r from owner_dashboard.answer_times
-    where operation = 'addition' and level_band = '10–19';
+  select * into r from owner_dashboard.answer_times_by_input
+    where operation = 'addition' and level_band = '10–19' and input = '(unknown)';
   assert r.answers = 3, 'addition answers: ' || row_to_json(r)::text;
   assert r.median_ms = 2000, 'addition median: ' || r.median_ms;
   assert r.percent_right = 100.0, 'addition right';
-  select * into r from owner_dashboard.answer_times
-    where operation = 'division' and level_band = '1–9';
+  select * into r from owner_dashboard.answer_times_by_input
+    where operation = 'division' and level_band = '1–9' and input = '(unknown)';
   assert r.answers = 3 and r.percent_right = 66.7, 'division: ' || row_to_json(r)::text;
-  assert not exists (select from owner_dashboard.answer_times where median_ms > 50000),
+  assert not exists (select from owner_dashboard.answer_times_by_input where median_ms > 50000),
     'a placement answer leaked into the times';
 
   select * into r from owner_dashboard.abandonment where period = '7 days';

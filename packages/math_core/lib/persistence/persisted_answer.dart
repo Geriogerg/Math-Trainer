@@ -1,3 +1,5 @@
+import '../models/input_device.dart';
+
 /// Sentinel distinct from `null`, used by [PersistedAnswer.copyWith] to tell
 /// "parameter not given" from "parameter explicitly set to `null`" — a plain
 /// `field ?? this.field` can never set a nullable field back to `null` on
@@ -16,6 +18,7 @@ class PersistedAnswer {
     required this.elapsedMs,
     required this.createdAt,
     this.syncedAt,
+    this.inputDevice,
   }) {
     if (!createdAt.isUtc) {
       throw ArgumentError.value(
@@ -44,6 +47,10 @@ class PersistedAnswer {
   final DateTime createdAt;
   final DateTime? syncedAt;
 
+  /// How the answer was typed (schema v8). `null`: no key pressed (a
+  /// timeout without input), or an answer stored before v8.
+  final InputDevice? inputDevice;
+
   PersistedAnswer copyWith({Object? syncedAt = _unset}) {
     return PersistedAnswer(
       id: id,
@@ -58,6 +65,7 @@ class PersistedAnswer {
       syncedAt: identical(syncedAt, _unset)
           ? this.syncedAt
           : syncedAt as DateTime?,
+      inputDevice: inputDevice,
     );
   }
 
@@ -83,7 +91,8 @@ class PersistedAnswer {
       other.isCorrect == isCorrect &&
       other.elapsedMs == elapsedMs &&
       other.createdAt == createdAt &&
-      other.syncedAt == syncedAt;
+      other.syncedAt == syncedAt &&
+      other.inputDevice == inputDevice;
 
   @override
   int get hashCode => Object.hash(
@@ -96,5 +105,6 @@ class PersistedAnswer {
     elapsedMs,
     createdAt,
     syncedAt,
+    inputDevice,
   );
 }

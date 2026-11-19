@@ -24,8 +24,14 @@ select code, players, games_completed, to_char(last_session_at, 'YYYY-MM-DD HH24
 from owner_dashboard.testers_by_code;
 
 \echo
-\echo '== Answer times per operation and level band (games only)'
-select * from owner_dashboard.answer_times;
+\echo '== Answer times per operation, level band and input device (games only)'
+select * from owner_dashboard.answer_times_by_input;
+
+\echo
+\echo '== Games per app version (build)'
+select app_version, games, placements, players,
+  to_char(first_at, 'YYYY-MM-DD HH24:MI') as first, to_char(last_at, 'YYYY-MM-DD HH24:MI') as last
+from owner_dashboard.app_versions;
 
 \echo
 \echo '== Games interrupted before the end'

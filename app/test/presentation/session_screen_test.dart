@@ -8,6 +8,7 @@ import 'package:math_core/generation/exercise_source.dart';
 import 'package:math_core/leveling/level.dart';
 import 'package:math_core/models/exercise.dart';
 import 'package:math_core/models/exercise_type.dart';
+import 'package:math_core/models/input_device.dart';
 import 'package:math_core/models/operation_type.dart';
 import 'package:math_core/models/session_config.dart';
 import 'package:math_core/persistence/in_memory_session_repository.dart';
@@ -193,6 +194,42 @@ void main() {
       await tester.pump();
 
       expect(find.text('9999999'), findsOneWidget);
+    });
+
+    testWidgets('each answer records which keys typed it', (tester) async {
+      final controller = await pumpSession(tester);
+
+      // 6 + 6 on the on-screen keypad.
+      await tester.tap(find.text('1'));
+      await tester.pump();
+      await tester.tap(find.text('2'));
+      await tester.pump();
+      await tester.tap(find.byIcon(Icons.check));
+      await tester.pump();
+      // 1 + 1 typed on the keyboard, submitted on the keypad.
+      await tester.sendKeyEvent(LogicalKeyboardKey.digit2);
+      await tester.pump();
+      await tester.tap(find.byIcon(Icons.check));
+      await tester.pump();
+
+      expect(controller.state.outcomes.map((o) => o.inputDevice), [
+        InputDevice.keypad,
+        InputDevice.mixed,
+      ]);
+    });
+
+    testWidgets('keyboard only is recorded as keyboard', (tester) async {
+      final controller = await pumpSession(tester);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.digit1);
+      await tester.sendKeyEvent(LogicalKeyboardKey.digit2);
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+
+      expect(
+        controller.state.outcomes.single.inputDevice,
+        InputDevice.keyboard,
+      );
     });
   });
 

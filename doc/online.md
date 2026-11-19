@@ -254,14 +254,26 @@ operations.
 
 ## Data check for Phase 3b (Phase 3a commit 8)
 
-`owner_dashboard.data_check` (`…_data_check.sql`): every uploaded answer checked against what
-calibration needs — operation; level at the time (a game's frozen level, or a placement's seed
-and rotation to replay its staircase); response time (0–15 s); correctness and the typed value
-(−1 = timeout); structure (each operation's operands, integers); time answered. One row per
-requirement: answers checked, failing, one session to inspect. `dashboard.sh data-check` prints
-it with a verdict and what is **not stored at all** (input device, app version per session, the
-timeout in force) — owner decisions before Phase 3b. `math_core/test/sync/phase3b_fields_test.dart`
-holds the upload format to the same six requirements for all seven operations.
+`owner_dashboard.data_check` (`…_data_check.sql`, `…_input_device_app_version.sql`): every
+uploaded answer checked against what calibration needs — operation; level at the time (a game's
+frozen level, or a placement's seed and rotation to replay its staircase); response time
+(0–15 s); correctness and the typed value (−1 = timeout); structure (each operation's operands,
+integers); time answered; input device (none only for a timeout with no key pressed); the
+session's app version. One row per requirement: answers checked, failing, one session to
+inspect. `dashboard.sh data-check` prints it with a verdict and what is **not stored at all**
+(the timeout in force). `math_core/test/sync/phase3b_fields_test.dart` holds the upload format
+to the same eight requirements for all seven operations.
+
+### Input device and app version (owner decision after Phase 3a)
+
+Each answer stores how it was typed — `inputDevice`: `keypad` (on-screen), `keyboard`
+(physical), `mixed` (both in one answer), absent for a timeout with no key pressed; each session
+the build that played it — `appVersion`. App: `SessionScreen` tells the controller which source
+every key came from (`registerActivity`, `submitAnswer`), SQLite schema v8 (`answers.input_device`,
+`sessions.app_version`, `NULL` for what was played before). Upload: optional fields, same
+`formatVersion` (`SessionUpload`). Dashboard: answer times per operation, level band **and
+input device** (`answer_times_by_input`, replacing `answer_times`), games per build
+(`app_versions`).
 
 The smoke test also checks the whole online path when the build has a server: after its game it
 reads the guest's `my_server_levels()` until the server has validated the upload (≤ 150 s,

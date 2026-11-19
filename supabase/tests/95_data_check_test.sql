@@ -1,5 +1,6 @@
--- Data check (Phase 3a commit 8): well-formed answers pass every
--- requirement; each kind of gap is counted under its own.
+-- Data check (Phase 3a commit 8, then input device and app version):
+-- well-formed answers pass every requirement; each kind of gap is counted
+-- under its own. The first three sessions predate the last two fields.
 
 delete from auth.users;
 insert into auth.users (id, is_anonymous) values
@@ -56,6 +57,29 @@ begin
          "submittedValue": 1, "isCorrect": true, "elapsedMs": 900, "answeredAt": "later"}]}',
     '{}', array[]::text[]);
   assert r.outcome = 'applied', 'broken game';
+  -- A game from a build that records both: three good answers (a timeout
+  -- with no key pressed has no device), one with an unknown device.
+  select * into r from public.apply_validated_session(
+    '95000000-0000-0000-0000-000000000004',
+    '00000000-0000-0000-0000-0000000000b1', 3, now() - interval '30 minutes', 'game', true,
+    '{"session": {"seed": 3, "exerciseCount": 4, "levels": {"addition": 1000},
+                  "typeSequence": ["addition", "addition", "addition", "addition"],
+                  "appVersion": "e9bd019"},
+      "answers": [
+        {"operationType": "addition", "operands": {"operandA": 1, "operandB": 2},
+         "submittedValue": 3, "isCorrect": true, "elapsedMs": 900,
+         "answeredAt": "2026-11-21T13:00:01Z", "inputDevice": "keypad"},
+        {"operationType": "addition", "operands": {"operandA": 1, "operandB": 2},
+         "submittedValue": 3, "isCorrect": true, "elapsedMs": 900,
+         "answeredAt": "2026-11-21T13:00:02Z", "inputDevice": "keyboard"},
+        {"operationType": "addition", "operands": {"operandA": 1, "operandB": 2},
+         "submittedValue": -1, "isCorrect": false, "elapsedMs": 15000,
+         "answeredAt": "2026-11-21T13:00:17Z"},
+        {"operationType": "addition", "operands": {"operandA": 1, "operandB": 2},
+         "submittedValue": 3, "isCorrect": true, "elapsedMs": 900,
+         "answeredAt": "2026-11-21T13:00:18Z", "inputDevice": "mouse"}]}',
+    '{}', array[]::text[]);
+  assert r.outcome = 'applied', 'game with device and version';
 end;
 $$;
 reset role;
@@ -65,7 +89,7 @@ declare
   r record;
 begin
   for r in select * from owner_dashboard.data_check loop
-    assert r.checked = 8, r.requirement || ' checked ' || r.checked;
+    assert r.checked = 12, r.requirement || ' checked ' || r.checked;
     assert r.failing = case r.requirement
       when 'operation' then 1                              -- "modulo"
       when 'level at the time of the answer' then 2         -- division unfrozen, "modulo"
@@ -73,10 +97,24 @@ begin
       when 'correctness (and timeouts)' then 1              -- isCorrect missing
       when 'structure of the exercise (operands)' then 2    -- "12", "modulo"'s
       when 'time answered' then 1                           -- "later"
+      -- The 7 answers before the field that are not timeouts, and "mouse".
+      when 'input device' then 8
+      when 'app version' then 8                             -- sessions 1-3
     end, r.requirement || ': ' || r.failing;
-    assert r.failing = 0 or r.example_session = '95000000-0000-0000-0000-000000000003',
+    assert r.failing = 0 or r.example_session = case
+        when r.requirement in ('input device', 'app version') then r.example_session
+        else '95000000-0000-0000-0000-000000000003'::uuid end,
       r.requirement || ' example';
   end loop;
-  assert (select count(*) from owner_dashboard.data_check) = 6, 'six requirements';
+  assert (select count(*) from owner_dashboard.data_check) = 8, 'eight requirements';
+
+  -- Answer times per input device: session 4's three timed answers.
+  select * into r from owner_dashboard.answer_times_by_input
+    where operation = 'addition' and level_band = '10–19' and input = 'keypad';
+  assert r.answers = 1 and r.median_ms = 900, 'keypad: ' || row_to_json(r)::text;
+  select * into r from owner_dashboard.app_versions where app_version = 'e9bd019';
+  assert r.games = 1 and r.players = 1, 'app versions: ' || row_to_json(r)::text;
+  select * into r from owner_dashboard.app_versions where app_version = '(unknown)';
+  assert r.games = 2 and r.placements = 1, 'unknown versions: ' || row_to_json(r)::text;
 end;
 $$;

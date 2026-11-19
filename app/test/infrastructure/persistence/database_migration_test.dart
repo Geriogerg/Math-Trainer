@@ -350,6 +350,15 @@ void main() {
       [for (final row in await db.query('sessions')) row['upload_refused']],
       [null, null],
     );
+    // And v8: nothing played before says which build or which keys.
+    expect(
+      [for (final row in await db.query('sessions')) row['app_version']],
+      [null, null],
+    );
+    expect(
+      {for (final row in await db.query('answers')) row['input_device']},
+      {null},
+    );
     expect(await db.getVersion(), schemaVersion);
 
     await db.close();

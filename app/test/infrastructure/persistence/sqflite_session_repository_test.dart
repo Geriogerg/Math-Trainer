@@ -1,6 +1,7 @@
 import 'package:math_core/leveling/level.dart';
 import 'package:math_core/persistence/level_cache_entry.dart';
 import 'package:math_core/models/exercise_type.dart';
+import 'package:math_core/models/input_device.dart';
 import 'package:math_core/models/session_kind.dart';
 import 'package:math_core/persistence/persisted_answer.dart';
 import 'package:math_core/persistence/persisted_session.dart';
@@ -192,6 +193,48 @@ void main() {
       expect(stored.first, withSequence);
       expect(stored.first.typeSequence, sequence);
       expect(stored.last.typeSequence, isNull);
+    });
+
+    test('app version and input devices round-trip (schema v8)', () async {
+      final played = PersistedSession(
+        id: 'v8',
+        playerId: 'player-1',
+        seed: 42,
+        enabledTypes: const {ExerciseType.addition},
+        exerciseCount: 4,
+        totalScore: 0,
+        levels: {ExerciseType.addition: Level.whole(4)},
+        createdAt: DateTime.utc(2026, 11, 20),
+        appVersion: 'e9bd019',
+      );
+      final answers = [
+        for (final (i, device) in [
+          InputDevice.keypad,
+          InputDevice.keyboard,
+          InputDevice.mixed,
+          null,
+        ].indexed)
+          PersistedAnswer(
+            id: 'v8-$i',
+            sessionId: 'v8',
+            exerciseType: 'arithmetic',
+            operationType: 'addition',
+            operands: const {'operandA': 1, 'operandB': 1},
+            submittedValue: 2,
+            isCorrect: true,
+            elapsedMs: 900,
+            createdAt: DateTime.utc(2026, 11, 20),
+            inputDevice: device,
+          ),
+      ];
+      await repository.recordSession(
+        session: played,
+        answers: answers,
+        levelUpdates: const {},
+      );
+
+      expect((await repository.recentSessions('player-1')).single, played);
+      expect(await repository.answersForSession('v8'), answers);
     });
 
     test('answers come back in the order they were stored', () async {

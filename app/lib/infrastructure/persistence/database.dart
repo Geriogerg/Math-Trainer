@@ -8,7 +8,7 @@ import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart'
 
 /// Current schema version. Every change increments this value and adds a
 /// branch in [_onUpgrade] — never destructive, never retroactive.
-const schemaVersion = 7;
+const schemaVersion = 8;
 
 /// The app's database, where each platform expects it. On web: same schema
 /// and same SQL as elsewhere, SQLite compiled to WebAssembly
@@ -60,7 +60,9 @@ Future<Database> openMathTrainerDatabase(String path) {
           type_sequence TEXT,
           -- Why the server refused this session for good (schema v7);
           -- NULL: accepted (`synced_at` set) or still to upload.
-          upload_refused TEXT
+          upload_refused TEXT,
+          -- The build that played it (schema v8): commit or 'dev'.
+          app_version TEXT
         )
       ''');
       await db.execute('''
@@ -74,7 +76,9 @@ Future<Database> openMathTrainerDatabase(String path) {
           is_correct INTEGER NOT NULL,
           elapsed_ms INTEGER NOT NULL,
           created_at TEXT NOT NULL,
-          synced_at TEXT
+          synced_at TEXT,
+          -- `InputDevice.name` (schema v8); NULL: no key pressed.
+          input_device TEXT
         )
       ''');
       await db.execute(
@@ -136,6 +140,11 @@ Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
   if (oldVersion < 7) {
     // Uploads (Phase 2 commit 5): every existing session is still to send.
     await db.execute('ALTER TABLE sessions ADD COLUMN upload_refused TEXT');
+  }
+  if (oldVersion < 8) {
+    // After Phase 3a (owner decision): unknown for what was played before.
+    await db.execute('ALTER TABLE sessions ADD COLUMN app_version TEXT');
+    await db.execute('ALTER TABLE answers ADD COLUMN input_device TEXT');
   }
 }
 

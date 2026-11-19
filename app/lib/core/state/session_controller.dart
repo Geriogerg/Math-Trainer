@@ -9,6 +9,7 @@ import 'package:math_core/leveling/overall_level.dart';
 import 'package:math_core/models/answer_result.dart';
 import 'package:math_core/models/exercise.dart';
 import 'package:math_core/models/exercise_type.dart';
+import 'package:math_core/models/input_device.dart';
 import 'package:math_core/models/session_config.dart';
 import 'package:math_core/models/session_result.dart';
 import 'package:math_core/persistence/exercise_codec.dart';
@@ -49,6 +50,7 @@ class SessionController extends ChangeNotifier {
     this.createTimer = Timer.new,
     this.questionTimeout = defaultQuestionTimeout,
     this.correctionDelay,
+    this.appVersion,
     SessionLevelUpdates? levelCacheOrchestrator,
   }) : levelCacheOrchestrator =
            levelCacheOrchestrator ?? LevelCacheOrchestrator();
@@ -85,6 +87,10 @@ class SessionController extends ChangeNotifier {
   /// ends and the result screen lists the mistakes.
   final Duration? correctionDelay;
 
+  /// The build playing this session, stored with it
+  /// (`PersistedSession.appVersion`); `null` in tests that don't care.
+  final String? appVersion;
+
   /// Three consecutive timeouts without any key pressed interrupt the
   /// session (`doc/decisions.md`).
   static const _abandonThreshold = 3;
@@ -96,6 +102,9 @@ class SessionController extends ChangeNotifier {
   Timer? _timeoutTimer;
   Timer? _correctionTimer;
   bool _hasActivityThisQuestion = false;
+
+  /// The keys of the current question so far (`null`: none yet).
+  InputDevice? _inputThisQuestion;
   int _consecutiveTimeoutsWithoutActivity = 0;
   Future<void>? _pendingPersistence;
   Map<ExerciseType, LevelCacheEntry>? _lastLevelUpdates;
@@ -166,15 +175,20 @@ class SessionController extends ChangeNotifier {
   /// Called by the screen on every keypad key — digit *or* backspace, not
   /// only Submit. This is what tells "tried" from "touched nothing" for the
   /// abandonment interruption: a timeout after input that was never
-  /// submitted does not count as abandonment.
-  void registerActivity() {
+  /// submitted does not count as abandonment. [device]: where the key came
+  /// from, stored with the answer (`AnswerResult.inputDevice`).
+  void registerActivity([InputDevice? device]) {
     if (_state.isCorrecting) return;
     _hasActivityThisQuestion = true;
+    if (device != null) {
+      _inputThisQuestion = InputDevice.combine(_inputThisQuestion, device);
+    }
   }
 
   void _scheduleTimeout() {
     _timeoutTimer?.cancel();
     _hasActivityThisQuestion = false;
+    _inputThisQuestion = null;
     final timeout = questionTimeout;
     _timeoutTimer = timeout == null ? null : createTimer(timeout, _onTimeout);
   }
@@ -195,6 +209,7 @@ class SessionController extends ChangeNotifier {
       isCorrect: false,
       elapsedMs: timeout.inMilliseconds,
       answeredAt: clock().toUtc(),
+      inputDevice: _inputThisQuestion,
     );
 
     if (hadActivity) {
@@ -211,7 +226,9 @@ class SessionController extends ChangeNotifier {
     }
   }
 
-  void submitAnswer(int submittedValue) {
+  /// [device]: where the submit came from (the digits typed before it are
+  /// counted by [registerActivity]).
+  void submitAnswer(int submittedValue, {InputDevice? device}) {
     final exercise = _state.currentExercise;
     if (_state.status != SessionStatus.inProgress ||
         exercise == null ||
@@ -228,6 +245,9 @@ class SessionController extends ChangeNotifier {
       isCorrect: isCorrect,
       elapsedMs: now.difference(_questionStartedAt!).inMilliseconds,
       answeredAt: now.toUtc(),
+      inputDevice: device == null
+          ? _inputThisQuestion
+          : InputDevice.combine(_inputThisQuestion, device),
     );
   }
 
@@ -241,6 +261,7 @@ class SessionController extends ChangeNotifier {
     required bool isCorrect,
     required int elapsedMs,
     required DateTime answeredAt,
+    required InputDevice? inputDevice,
   }) {
     final nextStreak = isCorrect ? _state.currentStreak + 1 : 0;
 
@@ -250,6 +271,7 @@ class SessionController extends ChangeNotifier {
       isCorrect: isCorrect,
       elapsedMs: elapsedMs,
       answeredAt: answeredAt,
+      inputDevice: inputDevice,
     );
     // Before any `next()` below: an adaptive source (placement) picks the
     // next question from this answer.
@@ -388,6 +410,7 @@ class SessionController extends ChangeNotifier {
         isCorrect: outcome.isCorrect,
         elapsedMs: outcome.elapsedMs,
         createdAt: outcome.answeredAt,
+        inputDevice: outcome.inputDevice,
       );
     }).toList();
 
@@ -445,6 +468,7 @@ class SessionController extends ChangeNotifier {
       overallLevelAfter: overallLevelAfter,
       kind: config.kind,
       typeSequence: config.typeSequence,
+      appVersion: appVersion,
     );
 
     await _record((

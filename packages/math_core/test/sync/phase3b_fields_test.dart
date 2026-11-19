@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:math_core/generation/composite_exercise_generator.dart';
 import 'package:math_core/leveling/level.dart';
 import 'package:math_core/models/exercise_type.dart';
+import 'package:math_core/models/input_device.dart';
 import 'package:math_core/persistence/exercise_codec.dart';
 import 'package:math_core/persistence/persisted_answer.dart';
 import 'package:math_core/persistence/persisted_session.dart';
@@ -10,9 +11,11 @@ import 'package:math_core/sync/session_upload.dart';
 import 'package:test/test.dart';
 
 /// Phase 3a commit 8: what Phase 3b calibrates from must be in every
-/// uploaded answer. The same six requirements as the SQL view
-/// `owner_dashboard.data_check`, checked here on the format itself, for
-/// all seven operations — so a change to the upload cannot drop one.
+/// uploaded answer. The same requirements as the SQL view
+/// `owner_dashboard.data_check` — six, then the input device and the app
+/// version (owner decision after Phase 3a) — checked here on the format
+/// itself, for all seven operations, so a change to the upload cannot drop
+/// one.
 void main() {
   const expectedOperands = {
     ExerciseType.addition: {'operandA', 'operandB'},
@@ -25,7 +28,7 @@ void main() {
   };
 
   test('every operation uploads operation, level, time, correctness, '
-      'structure and time answered', () {
+      'structure, time answered, input device and app version', () {
     final at = DateTime.utc(2026, 11, 21, 10);
     final random = Random(3);
     final types = ExerciseType.values.toList();
@@ -44,6 +47,7 @@ void main() {
             isCorrect: true,
             elapsedMs: 1000 + i,
             createdAt: at,
+            inputDevice: InputDevice.values[i % InputDevice.values.length],
           );
         }(),
     ];
@@ -58,6 +62,7 @@ void main() {
         levels: {for (final t in types) t: Level.whole(40)},
         createdAt: at,
         typeSequence: types,
+        appVersion: 'e9bd019',
       ),
       answers: answers,
     ).toJson();
@@ -79,7 +84,13 @@ void main() {
         isNotNull,
         reason: 'time answered',
       );
+      expect(
+        InputDevice.values.map((d) => d.name),
+        contains(a['inputDevice']),
+        reason: 'input device',
+      );
     }
+    expect(session['appVersion'], 'e9bd019', reason: 'app version');
     // A placement's level is replayed from these.
     expect(session['seed'], isA<int>());
     expect(session['typeSequence'], hasLength(session['exerciseCount']));

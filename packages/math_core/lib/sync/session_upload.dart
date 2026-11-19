@@ -1,5 +1,6 @@
 import '../leveling/level.dart';
 import '../models/exercise_type.dart';
+import '../models/input_device.dart';
 import '../models/session_kind.dart';
 import '../persistence/persisted_answer.dart';
 import '../persistence/persisted_session.dart';
@@ -8,6 +9,10 @@ import '../placement/placement.dart';
 /// One stored session as the app uploads it and the server replays it
 /// (plan, Phase 2 commit 5): the session's stored fields and its answers in
 /// the order given. The same codec on both sides — a field cannot drift.
+///
+/// Optional, added after Phase 3a without a new [formatVersion]: the app
+/// version and each answer's input device — absent from sessions stored
+/// before (schema v8), ignored by an older server.
 ///
 /// Not uploaded: the score and the overall level after (the server
 /// computes what counts), `syncedAt` (the server's to set).
@@ -51,6 +56,7 @@ class SessionUpload {
       },
       'typeSequence': [for (final t in _typeSequenceOf(session)) t.name],
       'createdAt': session.createdAt.toIso8601String(),
+      'appVersion': ?session.appVersion,
     },
     'answers': [
       for (final a in answers)
@@ -63,6 +69,7 @@ class SessionUpload {
           'isCorrect': a.isCorrect,
           'elapsedMs': a.elapsedMs,
           'answeredAt': a.createdAt.toIso8601String(),
+          'inputDevice': ?a.inputDevice?.name,
         },
     ],
   };
@@ -100,6 +107,7 @@ class SessionUpload {
         typeSequence: [
           for (final name in _list(s, 'typeSequence')) _type(name),
         ],
+        appVersion: _optionalString(s, 'appVersion'),
       );
       final answers = [
         for (final (i, raw) in _list(root, 'answers').indexed)
@@ -137,6 +145,10 @@ PersistedAnswer _answer(Map<String, Object?> a, String sessionId) {
     isCorrect: _bool(a, 'isCorrect'),
     elapsedMs: _int(a, 'elapsedMs'),
     createdAt: _utc(a, 'answeredAt'),
+    inputDevice: switch (_optionalString(a, 'inputDevice')) {
+      null => null,
+      final name => _inputDevice(name),
+    },
   );
 }
 
@@ -156,6 +168,10 @@ String _string(Map<String, Object?> m, String key) {
   if (v is! String || v.isEmpty) throw FormatException('$key is not a string');
   return v;
 }
+
+/// Absent or `null`: not known (stored before the field existed).
+String? _optionalString(Map<String, Object?> m, String key) =>
+    m[key] == null ? null : _string(m, key);
 
 int _int(Map<String, Object?> m, String key) => _asInt(m[key], key);
 
@@ -190,4 +206,11 @@ SessionKind _kind(String name) {
     if (k.name == name) return k;
   }
   throw FormatException('unknown session kind $name');
+}
+
+InputDevice _inputDevice(String name) {
+  for (final d in InputDevice.values) {
+    if (d.name == name) return d;
+  }
+  throw FormatException('unknown input device $name');
 }

@@ -74,6 +74,7 @@ void main() {
     PersistedSession buildSession({
       DateTime? syncedAt,
       double? overallLevelAfter,
+      String? appVersion,
     }) {
       return PersistedSession(
         id: 'session-1',
@@ -89,6 +90,7 @@ void main() {
         createdAt: DateTime.utc(2026, 8, 8),
         overallLevelAfter: overallLevelAfter,
         syncedAt: syncedAt,
+        appVersion: appVersion,
       );
     }
 
@@ -221,6 +223,32 @@ void main() {
       expect(() => buildSession(overallLevelAfter: 100.5), throwsArgumentError);
       expect(buildSession(overallLevelAfter: 1).overallLevelAfter, 1);
       expect(buildSession(overallLevelAfter: 100).overallLevelAfter, 100);
+    });
+
+    test('the app version is kept by copyWith and part of equality', () {
+      final s = buildSession(appVersion: 'e9bd019');
+      expect(
+        s.copyWith(syncedAt: DateTime.utc(2026, 11, 20)).appVersion,
+        'e9bd019',
+      );
+      expect(s, isNot(buildSession(appVersion: 'dev')));
+      expect(buildSession().appVersion, isNull);
+    });
+
+    test('rejects an empty or overlong app version', () {
+      expect(() => buildSession(appVersion: ''), throwsArgumentError);
+      expect(
+        () => buildSession(
+          appVersion: 'x' * (PersistedSession.maxAppVersionLength + 1),
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        buildSession(
+          appVersion: 'x' * PersistedSession.maxAppVersionLength,
+        ).appVersion,
+        hasLength(PersistedSession.maxAppVersionLength),
+      );
     });
   });
 }

@@ -26,8 +26,9 @@ phase report given. Update this block at every commit.
 | 7 | First game on a never-played type = short placement | played at phase end |
 | 8 | Data check for Phase 3b | — |
 
-Waiting on the owner: the dashboard connection file; codes, `SMOKE_BETA_CODE` and `BETA_GATE=true`; the decisions of
-the report. Server (Render) and migrations are live.
+After the report: decisions confirmed, input device and app version recorded (schema v8),
+dashboard connected. Waiting on the owner: codes, `SMOKE_BETA_CODE` and `BETA_GATE=true`, the
+phone checklist, the invitations. Server (Render) and migrations are live.
 Phase 3b (calibration) starts only when the dashboard shows ~300 sessions from 10+ testers.
 
 Preview: `https://math-trainer-kjc.pages.dev/` (Cloudflare Pages), deployed on every push to
@@ -203,7 +204,10 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 - The beta gate is a build switch (`BETA_GATE=true`): with it on, the smoke test needs the
   `SMOKE_BETA_CODE` secret. Never put a real code in the repository — it is public.
 - `RejectionReason` and `ValidationFlag` names are stored server-side and sent to the app:
-  renaming breaks both.
+  renaming breaks both. Same for `InputDevice` names (answers, uploads).
+- Tests apply every migration twice: a later migration must not change the columns of a view
+  an earlier one creates (its `create or replace` fails on the second pass) — make a view
+  under a new name and drop the old one.
 - The name rule exists twice — `math_core/account/display_name.dart` and the SQL
   `display_name_problem`; change both (a parity test fails otherwise). Allowed letters must stay
   inside Inter's coverage (`name_charset_font_test.dart`).
