@@ -54,6 +54,7 @@ tool/
   recalibrate.dart         # replays stored answers to tune the leveling constants (Phase 3)
   delta_check.dart         # simulated players against LevelUpdater, compares δ / n_min settings
   placement_check.dart     # simulated players through the placement, then games (commit 6)
+  smoke/preview_smoke.mjs  # CI smoke test of the deployed preview (Node + Chrome, CDP)
   hooks/                   # Claude Code hooks (.claude/settings.json): edit_rules.dart (rules,
                            # tested), guard_edit.dart, format_edit.dart, run.sh (launcher)
 .claude/

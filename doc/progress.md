@@ -205,6 +205,16 @@ Phase 0 closed in Phase 1 commit 0 (`material_ui`, `δ` recorded, preview, load)
   app, and the probe accounts `8bec648d-…`, `e188e86d-…`, `fb154e14-…` (linked),
   `7969cb24-…`, `7ea74633-…`.
 
+- **Commit 8** *(A)* — Smoke test on the preview, `smoke` job after `deploy`
+  (`tool/smoke/preview_smoke.mjs`: Node 22 + the runner's Chrome over CDP, no dependency):
+  fresh browser → guest → skip placement → full 8-question game → reload → history in
+  Profile → "Delete my data". Finds widgets through Flutter's accessibility tree. Reports
+  the app's own failure message and any guest left behind; screenshot as CI artifact.
+  `SMOKE_NETWORK=slow4g` measures the exit test: **first question 21.1 s** from navigation on
+  emulated slow 4G, local gzip build (preview pending the key secret). Local runs left guests
+  `58c28fa0-…`, `c655e665-…`, `4d09177b-…` (deletion function not installed). **The job fails
+  until the owner adds `SUPABASE_PUBLISHABLE_KEY` and runs `supabase/delete_account.sql`.**
+
 ### Remaining contradictions after commit 0
 
 The five plan/reality contradictions found at commit 0 (language, `δ`, branch and remote, commit 0

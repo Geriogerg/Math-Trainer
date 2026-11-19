@@ -11,7 +11,7 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 ## Current phase
 
 **Phase 1 — First run and accounts** (`doc/plan.md`, section 7), run in **one pass**.
-Done: 0, 1, 2, 3, 4, 5 *(C)*, 6 *(C)*, 7 (details: `doc/progress.md`). Next commit: **8**.
+Done: 0–8, all commits (details: `doc/progress.md`). Next: the **phase report**.
 Waiting on the owner: the `SUPABASE_PUBLISHABLE_KEY` secret (preview still unconfigured);
 running `supabase/delete_account.sql` (commit 7's live check parked). At phase end the owner
 plays 5 games and checkpoints 5 and 6 on the preview. Update this block at every commit.
@@ -132,6 +132,7 @@ dart test test/domain -p node    # core compiled to JavaScript
 flutter test
 flutter analyze
 flutter run -d edge --web-port=8080 --dart-define-from-file=dart_defines.json
+node tool/smoke/preview_smoke.mjs <url> [chrome]   # smoke test; SMOKE_NETWORK=slow4g to time it
 ```
 
 `dart_defines.json` (not versioned) holds the Supabase URL and public key; in CI they come from
@@ -154,7 +155,7 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 - Always web port 8080 locally: session and settings live in `localStorage`, scoped by port.
 - Signing out an anonymous user loses the account — never offer it.
 - Anonymous sign-ins are rate-limited (30/hour/IP); automated tests delete the accounts they
-  create.
+  create (the smoke test through "Delete my data": it needs `delete_my_account()` installed).
 - SQL files in `supabase/` are run by hand by the owner; nothing applies them automatically.
 - Browser storage can be evicted until server sync (Phase 2).
 - Fallback fonts are never fetched from Google (`fontFallbackBaseUrl: 'fonts/'`): a glyph

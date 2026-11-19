@@ -95,6 +95,8 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
     # One deployment at a time; a newer push waits rather than cancelling one
     # half-way.
     concurrency:
@@ -103,3 +105,27 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  smoke:
+    # The deployed preview, played like a new visitor (Phase 1 commit 8):
+    # fresh browser, anonymous player, a full game, a reload, history kept,
+    # then the account deletes itself. tool/smoke/preview_smoke.mjs.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # Global WebSocket (no npm dependency) needs Node 22+.
+          node-version: 22
+      - name: Smoke test on the preview
+        run: node tool/smoke/preview_smoke.mjs "${{ needs.deploy.outputs.page_url }}" google-chrome
+      - name: Screenshot of the failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-failure
+          path: smoke-failure.png
+          if-no-files-found: ignore
