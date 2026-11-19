@@ -69,6 +69,18 @@ English. One language for the code, the docs and the product; it also removes tr
 prerequisite to a wider audience. Earlier commit messages stay in French.
 **Reopen when** a localisation layer (French and others) is planned.
 
+Confirmed on 19 Nov 2026 after plan v2 (which says "French-speaking audience first" and quotes
+French labels such as "Passer", "Sauvegarder ta progression", "Supprimer mes données"): **new
+screens stay in English** (owner). The plan's French labels are read as their English
+equivalents ("Skip", "Save your progress", "Delete my data").
+
+### Phases run in one pass
+
+Owner, 19 Nov 2026 (plan v2.1): a phase runs without stopping; checkpoints are played at the end
+of the phase. Stops only where necessary — the hard stops of `CLAUDE.md`, or a step that cannot
+proceed without the owner (then parked, the rest continues).
+**Reopen when** a phase shows that end-of-phase review lets a wrong direction run too long.
+
 ## `correctAnswer` typed `int`, not `num` (step 3)
 
 Originally `num`, with `/` for division — so a `double`. Rule 9 was then a documentary promise the

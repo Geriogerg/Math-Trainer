@@ -1,6 +1,7 @@
 # Math Trainer
 
-Competitive mental-arithmetic game in Flutter, for teens and adults. UI in French.
+Competitive mental-arithmetic game in Flutter, for teens and adults. UI, code, docs and commits
+in English (owner, 18 and 19 Nov 2026; the plan's French labels become English ones).
 
 **`doc/plan.md` (version 2) is the product plan.** Read it at the start of every phase; never
 edit it. This file is the working file: keep it short, update it as the project moves, keep it
@@ -10,10 +11,9 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 ## Current phase
 
 **Phase 1 — First run and accounts** (`doc/plan.md`, section 7), run in **one pass**.
-Done: **0** (`material_ui`, δ recorded, load re-measured; preview check passed on a local
-sub-path build only). **Stopped after 0** (owner's instruction): the owner adds the
-`SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY` repository secrets, then plays 5 games on the
-preview. Next commit: **1**, on the owner's go. Update this block at every commit.
+Done: **0** (`material_ui`, δ recorded, load re-measured). Owner's go received; secrets added;
+one pass from here (owner's 5 games at phase end). Next commit: **1**. Update this block at
+every commit.
 
 | # | Commit | Note |
 |---|---|---|
