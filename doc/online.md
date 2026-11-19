@@ -164,9 +164,12 @@ host"). Prepared and dormant in `ci.yml`; nothing changes until step 4. Steps fo
    includes Cloudflare Pages: Edit) → limit it to this account → create, copy once.
 3. GitHub → Settings → Secrets and variables → Actions:
    - **Secrets**: `CLOUDFLARE_API_TOKEN` (step 2), `CLOUDFLARE_ACCOUNT_ID` (step 1).
-   - **Variables**: `PREVIEW_URL` = `https://math-trainer.pages.dev` (the address Cloudflare
-     gives the project; if CI reports another one, use that, and tell Claude to update
-     `ALLOWED_ORIGINS` in `render.yaml`).
+   - **Variables**: `PREVIEW_URL` = the address Cloudflare gives the project. **Not**
+     `https://math-trainer.pages.dev`: that name belongs to someone else's site, so the project
+     gets a suffix (`https://math-trainer-….pages.dev`, shown in Workers & Pages → the project).
+     CI checks it against the project (job deploy-cloudflare, run summary and annotation) and
+     holds back the redirect and the smoke test until they match. Tell Claude the address:
+     `ALLOWED_ORIGINS` in `render.yaml` must list it.
 4. Variables: `PREVIEW_HOST` = `cloudflare`. **This is the switch**: the next push (or
    Actions → CI → Run workflow on `main`) builds for the root path, creates the Cloudflare
    project, deploys there, smoke-tests the new address, and turns GitHub Pages into a redirect.
