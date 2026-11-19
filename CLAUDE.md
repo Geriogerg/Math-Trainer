@@ -11,8 +11,8 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 ## Current phase
 
 **Phase 3a — Build the beta** (`doc/plan.md`, section 7), run in **one pass**.
-Done: 0, 2; 1 prepared, dormant until the owner's yes (`PREVIEW_HOST=cloudflare`). Next
-commit: **3**. Update this block at every commit.
+Done: 0, 2, 3; 1 prepared, dormant until the owner's yes (`PREVIEW_HOST=cloudflare`). Next
+commit: **4**. Update this block at every commit.
 
 | # | Commit | Note |
 |---|---|---|
@@ -186,6 +186,8 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   sessions chain from the local levels. Never without a server either — its levels are empty.
 - Level updates have one implementation: `gameLevelUpdates` / `placementLevelUpdates`, used by
   the app's orchestrators and the server's validation. Never compute levels elsewhere.
+- The beta gate is a build switch (`BETA_GATE=true`): with it on, the smoke test needs the
+  `SMOKE_BETA_CODE` secret. Never put a real code in the repository — it is public.
 - `RejectionReason` and `ValidationFlag` names are stored server-side and sent to the app:
   renaming breaks both.
 - The name rule exists twice — `math_core/account/display_name.dart` and the SQL

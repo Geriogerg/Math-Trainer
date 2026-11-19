@@ -1,4 +1,6 @@
 {
   "SUPABASE_URL": "https://<project-ref>.supabase.co",
-  "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_..."
+  "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_...",
+  "SERVER_URL": "",
+  "BETA_GATE": ""
 }

@@ -179,6 +179,32 @@ Your own progress on the old address stays in that browser for the old origin: i
 to an email, sign in at the new address; a guest starts over. No tester is affected as long as
 the move happens before the invitations.
 
+## Beta gate (Phase 3a commit 3)
+
+- **Tables** (`…_beta_codes.sql`): `beta_codes` (code, label — who it is for —, `max_uses`,
+  `disabled`) and `beta_code_uses` (one row per player who came in with a code; cascades with
+  the account, so a deleted account frees its use). Not exposed to the API.
+- **Functions**: `beta_code_status(code)` (no session needed: the gate screen asks it before the
+  guest exists) → `ok`/`unknown`/`full`/`disabled`; `redeem_beta_code(code)` (the new guest) →
+  `redeemed`/`already`/…, row-locked against two players racing for the last use;
+  `create_beta_code(label, max_uses)` for the owner only (random 8 characters from 32 easy ones).
+  Codes are compared upper-case without spaces or dashes.
+- **App**: built with `BETA_GATE=true` (CI: repository variable `BETA_GATE`), `AuthGate` shows
+  `BetaGateScreen` on a device with no session and no accepted code, *before* creating the guest;
+  "I already have an account" signs in without a code. The accepted code is kept on the device
+  (`BetaCodeStore`): a later guest on that device (after signing out of an email account) is not
+  asked again, and `redeemDeviceBetaCode` ties each new guest to it after sign-in.
+- **Not enforced server-side**: someone calling Supabase directly can create a guest without a
+  code; their data shows as "no code" in the dashboard. Enough for an invite-only beta
+  (`doc/decisions.md`).
+
+### Turning the gate on — owner, when sending the invitations
+
+1. Create the codes with the dashboard script (commit 6): one per tester or group.
+2. Create one more, labelled for the CI smoke test (its account deletes itself, which frees the
+   use: `max_uses` 2 is enough), and store it as the repository **secret** `SMOKE_BETA_CODE`.
+3. Repository **variable** `BETA_GATE` = `true`, then re-run CI: the next preview asks for a code.
+
 ## Session upload (Phase 2 commit 5)
 
 - **The queue is the local database**: `SessionRepository.pendingUploads(player)` — sessions

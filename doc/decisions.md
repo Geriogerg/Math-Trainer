@@ -806,3 +806,19 @@ GitHub Pages then serves a redirect page (`tool/preview_redirect/`). Browser sto
 an origin: a guest's progress at the old address does not follow (a linked player signs in again),
 which is why the plan wants the move **before any tester**.
 **Reopen when** a custom domain arrives (Phase 6): the preview then moves once more, onto it.
+
+## Beta gate: a code per device, enforced by the app (Phase 3a, commit 3)
+
+The plan: an invitation code asked once, before the anonymous sign-in; codes in a table with a
+use limit, so each tester's data can be followed. The code is checked before the guest exists
+(`beta_code_status`, callable without a session), then tied to the guest right after its
+creation (`redeem_beta_code`). The device keeps the accepted code: "asked once" holds even
+after a sign-out of an email account. An existing account signs in without a code.
+**Provisional (owner to confirm)**: the gate lives in the app only — the Supabase API still
+lets anyone create an anonymous user. Server-side enforcement (refusing uploads, hiding from the
+board without a code) would also lock out the owner's pre-beta account and needs a migration of
+existing players; for 10–20 invited testers, a "no code" bucket in the dashboard is enough.
+Codes are stored readable (not hashed): only the owner reads the table, and the dashboard shows
+which code is whose. A build switch (`BETA_GATE`) rather than always on: the preview stays
+open while the beta is prepared, and the smoke test needs its own code first.
+**Reopen when** the public launch removes the gate (Phase 6), or someone gets in uninvited.

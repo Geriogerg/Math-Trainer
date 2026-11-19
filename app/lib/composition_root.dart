@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:math_core/account/account.dart';
 import 'package:math_core/account/account_repository.dart';
+import 'package:math_core/account/beta_access.dart';
 import 'package:math_core/account/profile_repository.dart';
 import 'package:math_core/generation/composite_exercise_generator.dart';
 import 'package:math_core/generation/debt_aware_type_selection_strategy.dart';
@@ -30,6 +31,7 @@ import 'package:math_core/placement/placement_exercise_source.dart';
 import 'package:math_core/placement/placement_level_orchestrator.dart';
 import 'core/state/session_controller.dart';
 import 'infrastructure/backend/http_session_upload_client.dart';
+import 'infrastructure/backend/supabase_beta_code_repository.dart';
 import 'infrastructure/backend/supabase_leaderboard_repository.dart';
 import 'infrastructure/backend/supabase_account_repository.dart';
 import 'infrastructure/backend/supabase_profile_repository.dart';
@@ -37,6 +39,7 @@ import 'infrastructure/backend/supabase_server_levels_source.dart';
 import 'infrastructure/persistence/database.dart';
 import 'infrastructure/persistence/persistent_storage.dart';
 import 'infrastructure/persistence/shared_preferences_abandoned_guest_store.dart';
+import 'infrastructure/persistence/shared_preferences_beta_code_store.dart';
 import 'infrastructure/persistence/shared_preferences_placement_skip_store.dart';
 import 'infrastructure/persistence/shared_preferences_player_id_provider.dart';
 import 'infrastructure/persistence/shared_preferences_theme_mode_store.dart';
@@ -68,6 +71,8 @@ class AppEnvironment {
     this.uploadQueue,
     this.leaderboardRepository,
     this.serverLevelsSource,
+    this.betaCodes,
+    this.betaCodeStore = const SharedPreferencesBetaCodeStore(),
   });
 
   final SessionRepository repository;
@@ -126,6 +131,13 @@ class AppEnvironment {
   /// levels must never replace local progress.
   final ServerLevelsSource? serverLevelsSource;
 
+  /// The beta gate (Phase 3a commit 3): `null` when the build has it off
+  /// (`BETA_GATE`), and then no code is ever asked nor redeemed.
+  final BetaCodeRepository? betaCodes;
+
+  /// Same reasoning as `typeSelectionStore`.
+  final BetaCodeStore betaCodeStore;
+
   AppEnvironment forPlayer(String playerId) => AppEnvironment(
     repository: repository,
     playerId: playerId,
@@ -138,6 +150,8 @@ class AppEnvironment {
     uploadClient: uploadClient,
     leaderboardRepository: leaderboardRepository,
     serverLevelsSource: serverLevelsSource,
+    betaCodes: betaCodes,
+    betaCodeStore: betaCodeStore,
     uploadQueue: switch (uploadClient) {
       final client? => SessionUploadQueue(
         repository: repository,
@@ -183,6 +197,11 @@ const _supabasePublishableKey = String.fromEnvironment(
 /// The upload server (`server/`); empty until the owner deploys it — the
 /// app then keeps every session local and pending (plan: offline first).
 const _serverUrl = String.fromEnvironment('SERVER_URL');
+
+/// The invite-only beta's gate (Phase 3a commit 3), on when the build says
+/// `BETA_GATE=true` (CI: the repository variable of the same name, set by
+/// the owner when the invitations go out; removed at the public launch).
+const _betaGate = bool.fromEnvironment('BETA_GATE');
 
 /// Build started without `--dart-define-from-file=dart_defines.json` (see
 /// `dart_defines.example.json`). Without this check the app still started
@@ -261,6 +280,9 @@ Future<AppEnvironment> buildAppEnvironment() async {
     serverLevelsSource: _serverUrl.isEmpty
         ? null
         : SupabaseServerLevelsSource(Supabase.instance.client),
+    betaCodes: _betaGate
+        ? SupabaseBetaCodeRepository(Supabase.instance.client)
+        : null,
   );
 }
 

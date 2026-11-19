@@ -217,10 +217,13 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
           SERVER_URL: ${{ vars.SERVER_URL }}
+          # The beta gate (Phase 3a commit 3): "true" from the repository
+          # variable BETA_GATE once the owner sends the invitations.
+          BETA_GATE: ${{ vars.BETA_GATE }}
         run: |
           jq -n --arg url "$SUPABASE_URL" --arg key "$SUPABASE_PUBLISHABLE_KEY" \
-            --arg server "$SERVER_URL" \
-            '{SUPABASE_URL: $url, SUPABASE_PUBLISHABLE_KEY: $key, SERVER_URL: $server}' \
+            --arg server "$SERVER_URL" --arg gate "$BETA_GATE" \
+            '{SUPABASE_URL: $url, SUPABASE_PUBLISHABLE_KEY: $key, SERVER_URL: $server, BETA_GATE: $gate}' \
             > dart_defines.json
       - name: Web build
         # Every URL in the build (bootstrap, assets, sqflite_sw.js,
@@ -335,6 +338,8 @@ jobs:
       - name: Smoke test on the preview
         env:
           APP_URL: ${{ vars.PREVIEW_HOST == 'cloudflare' && vars.PREVIEW_URL || needs.deploy.outputs.page_url }}
+          # A code for the beta gate, when it is on (doc/online.md).
+          SMOKE_BETA_CODE: ${{ secrets.SMOKE_BETA_CODE }}
         run: node tool/smoke/preview_smoke.mjs "$APP_URL" google-chrome
       - name: Screenshot of the failure
         if: failure()

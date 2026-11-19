@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:math_trainer/composition_root.dart';
 import 'package:math_core/account/account.dart';
 import 'package:math_core/account/account_repository.dart';
+import 'package:math_core/account/beta_access.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/persistence/in_memory_session_repository.dart';
 import 'package:math_core/persistence/level_cache_entry.dart';
@@ -83,6 +84,32 @@ class _ControllableAccountRepository implements AccountRepository {
 
 const _guest = Account(id: 'guest-1', isAnonymous: true);
 
+class _MemoryBetaStore implements BetaCodeStore {
+  String? code;
+  String? player;
+  @override
+  Future<String?> acceptedCode() async => code;
+  @override
+  Future<void> saveAcceptedCode(String value) async => code = value;
+  @override
+  Future<String?> redeemedFor() async => player;
+  @override
+  Future<void> markRedeemedFor(String playerId) async => player = playerId;
+}
+
+/// Knows one code, `ABCD2345`; records redeems.
+class _FakeBetaCodes implements BetaCodeRepository {
+  final redeemed = <String>[];
+  @override
+  Future<BetaCodeStatus> status(String code) async =>
+      code == 'ABCD2345' ? BetaCodeStatus.ok : BetaCodeStatus.unknown;
+  @override
+  Future<BetaRedeemResult> redeem(String code) async {
+    redeemed.add(code);
+    return BetaRedeemResult.redeemed;
+  }
+}
+
 /// Accepts everything; records the session ids it was sent.
 class _RecordingUploadClient implements SessionUploadClient {
   final sent = <String>[];
@@ -101,13 +128,17 @@ void main() {
 
   Future<AppEnvironment> pumpGate(
     WidgetTester tester,
-    _ControllableAccountRepository accountRepository,
-  ) async {
+    _ControllableAccountRepository accountRepository, {
+    BetaCodeRepository? betaCodes,
+    BetaCodeStore? betaCodeStore,
+  }) async {
     final environment = AppEnvironment(
       repository: InMemorySessionRepository(),
       playerId: 'test-player',
       accountRepository: accountRepository,
       profileRepository: FakeProfileRepository(),
+      betaCodes: betaCodes,
+      betaCodeStore: betaCodeStore ?? _MemoryBetaStore(),
     );
     await tester.pumpWidget(
       MaterialApp(
@@ -420,5 +451,93 @@ void main() {
 
     final left = await environment.abandonedGuestStore.load();
     expect(left.keys, [_guest.id]);
+  });
+
+  group('beta gate (Phase 3a commit 3)', () {
+    /// A pending anonymous sign-in shows a spinner that never settles.
+    Future<void> settleWhileSigningIn(WidgetTester tester) async {
+      for (var i = 0; i < 5; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+    }
+
+    testWidgets('a new device is asked for a code before any guest exists', (
+      tester,
+    ) async {
+      final accounts = _ControllableAccountRepository();
+      final codes = _FakeBetaCodes();
+      final store = _MemoryBetaStore();
+      await pumpGate(tester, accounts, betaCodes: codes, betaCodeStore: store);
+      accounts.resolveSession(null);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Invitation code'), findsOneWidget);
+      expect(accounts.anonymousSignIns, 0);
+
+      await tester.enterText(find.byType(TextField), 'nope');
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('This code is not valid'), findsOneWidget);
+      expect(accounts.anonymousSignIns, 0);
+
+      // Lower case with a dash: the same code.
+      await tester.enterText(find.byType(TextField), 'abcd-2345');
+      await tester.tap(find.text('Continue'));
+      await settleWhileSigningIn(tester);
+      expect(store.code, 'ABCD2345');
+      expect(accounts.anonymousSignIns, 1);
+
+      accounts.completeAnonymous(_guest);
+      await tester.pumpAndSettle();
+      expect(find.text('Invitation code'), findsNothing);
+      expect(codes.redeemed, ['ABCD2345']);
+      expect(store.player, _guest.id);
+    });
+
+    testWidgets('a device that passed the gate is not asked again', (
+      tester,
+    ) async {
+      final accounts = _ControllableAccountRepository();
+      final store = _MemoryBetaStore()..code = 'ABCD2345';
+      await pumpGate(
+        tester,
+        accounts,
+        betaCodes: _FakeBetaCodes(),
+        betaCodeStore: store,
+      );
+      accounts.resolveSession(null);
+      await settleWhileSigningIn(tester);
+
+      expect(find.text('Invitation code'), findsNothing);
+      expect(accounts.anonymousSignIns, 1);
+    });
+
+    testWidgets('an existing account signs in without a code', (tester) async {
+      final accounts = _ControllableAccountRepository();
+      final codes = _FakeBetaCodes();
+      await pumpGate(tester, accounts, betaCodes: codes);
+      accounts.resolveSession(null);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('I already have an account'));
+      await tester.pumpAndSettle();
+      expect(find.text('Invitation code'), findsNothing);
+      // The account arrives: the gate closes, no guest, no redeem.
+      accounts.resolveSession(const Account(id: 'old', email: 'o@test.com'));
+      await tester.pumpAndSettle();
+      expect(accounts.anonymousSignIns, 0);
+      expect(codes.redeemed, isEmpty);
+    });
+
+    testWidgets('without a gate in the build, nothing is asked', (
+      tester,
+    ) async {
+      final accounts = _ControllableAccountRepository();
+      await pumpGate(tester, accounts);
+      accounts.resolveSession(null);
+      await settleWhileSigningIn(tester);
+      expect(find.text('Invitation code'), findsNothing);
+      expect(accounts.anonymousSignIns, 1);
+    });
   });
 }

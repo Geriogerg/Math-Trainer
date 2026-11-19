@@ -224,6 +224,30 @@ step(`open ${appUrl} in a fresh browser`);
 await send('Page.navigate', { url: appUrl });
 await enableSemantics();
 
+// The invite-only beta's gate (Phase 3a commit 3), when the build has it:
+// the code comes from SMOKE_BETA_CODE (a CI secret). The test account it
+// creates is deleted at the end, which frees the code's use.
+{
+  const end = Date.now() + 60000;
+  let gate = false;
+  while (Date.now() < end) {
+    if (await findText('Find my level')) break;
+    if (await findText('Invitation code')) {
+      gate = true;
+      break;
+    }
+    await sleep(300);
+  }
+  if (gate) {
+    step('beta gate: enter the invitation code');
+    const code = process.env.SMOKE_BETA_CODE;
+    if (!code) await fail('the build has the beta gate on, but SMOKE_BETA_CODE is not set');
+    await tapText('Invitation code');
+    await send('Input.insertText', { text: code });
+    await tapText('Continue', 10000, { exact: true });
+  }
+}
+
 step('a guest is created, no form: the placement offer appears');
 await waitForText('Find my level', 60000);
 const id = await guestId();

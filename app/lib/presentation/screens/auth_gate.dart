@@ -5,8 +5,12 @@ import 'package:material_ui/material_ui.dart';
 import '../../composition_root.dart';
 import 'package:math_core/account/account.dart';
 import 'package:math_core/account/account_repository.dart';
+import 'package:math_core/account/beta_access.dart';
 import 'package:math_core/persistence/abandoned_guest_cleanup.dart';
+import '../../core/state/beta_gate_controller.dart';
 import 'app_shell.dart';
+import 'beta_gate_screen.dart';
+import 'sign_in_screen.dart';
 import 'start_error_view.dart';
 
 /// The app's entry gate — **anonymous-first** (plan, section 6.3; Phase 1
@@ -20,6 +24,10 @@ import 'start_error_view.dart';
 /// Once signed in, everything (levels, history) is bound to the account id,
 /// not the device (`environmentForAccount`) — and linking an email later
 /// keeps that id.
+///
+/// During the invite-only beta (`AppEnvironment.betaCodes`, Phase 3a commit
+/// 3), a device that never passed the gate is asked for a code first; the
+/// guest it then creates is tied to that code.
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key, required this.environment, this.onToggleTheme});
 
@@ -48,6 +56,9 @@ class _AuthGateState extends State<AuthGate> {
   /// number of `null` states the auth stream emits meanwhile.
   Future<void>? _anonymousSignIn;
   AccountFailure? _startFailure;
+
+  /// Set while the beta gate asks this device for a code.
+  BetaGateController? _gate;
 
   AccountRepository get _accounts => widget.environment.accountRepository;
 
@@ -82,9 +93,10 @@ class _AuthGateState extends State<AuthGate> {
       _playerEnvironment = null;
     });
     if (account == null) {
-      _startAnonymousPlayer();
+      _startOrAskCode().ignore();
       return;
     }
+    _closeGate();
     final playerEnvironment = await environmentForAccount(
       widget.environment,
       account,
@@ -98,11 +110,64 @@ class _AuthGateState extends State<AuthGate> {
     setState(() => _playerEnvironment = playerEnvironment);
     // Whatever was played offline (or before a server existed) goes now.
     playerEnvironment.uploadQueue?.flush().ignore();
+    if (widget.environment.betaCodes case final codes?) {
+      redeemDeviceBetaCode(
+        store: widget.environment.betaCodeStore,
+        codes: codes,
+        account: account,
+      ).ignore();
+    }
     deleteAbandonedGuests(
       store: widget.environment.abandonedGuestStore,
       repository: widget.environment.repository,
       now: DateTime.now().toUtc(),
     ).ignore();
+  }
+
+  /// The beta gate first, unless the build has none or this device passed
+  /// it already (a sign-out of an email account is not a new visitor).
+  Future<void> _startOrAskCode() async {
+    final codes = widget.environment.betaCodes;
+    if (codes != null &&
+        await widget.environment.betaCodeStore.acceptedCode() == null) {
+      if (!mounted || _account != null) return;
+      setState(() {
+        _gate ??= BetaGateController(
+          codes: codes,
+          store: widget.environment.betaCodeStore,
+          onAccepted: _onCodeAccepted,
+        );
+      });
+      return;
+    }
+    _startAnonymousPlayer();
+  }
+
+  void _onCodeAccepted() {
+    _closeGate();
+    _startAnonymousPlayer();
+  }
+
+  void _closeGate() {
+    final gate = _gate;
+    if (gate == null) return;
+    setState(() => _gate = null);
+    // After the frame that removes the screen listening to it.
+    WidgetsBinding.instance.addPostFrameCallback((_) => gate.dispose());
+  }
+
+  /// An existing account needs no code: signing in emits it on
+  /// `authState`, which closes the gate.
+  void _signInFromGate() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => SignInScreen(
+          accountRepository: _accounts,
+          profileRepository: widget.environment.profileRepository,
+          isGuest: false,
+        ),
+      ),
+    );
   }
 
   void _startAnonymousPlayer() {
@@ -126,6 +191,7 @@ class _AuthGateState extends State<AuthGate> {
 
   @override
   void dispose() {
+    _gate?.dispose();
     _playerEnvironment?.uploadQueue?.dispose();
     _authSubscription.cancel();
     super.dispose();
@@ -136,6 +202,10 @@ class _AuthGateState extends State<AuthGate> {
     final account = _account;
     final playerEnvironment = _playerEnvironment;
     final startFailure = _startFailure;
+    final gate = _gate;
+    if (account == null && gate != null) {
+      return BetaGateScreen(controller: gate, onSignIn: _signInFromGate);
+    }
     if (_isResolved && account == null && startFailure != null) {
       return Scaffold(
         body: SafeArea(

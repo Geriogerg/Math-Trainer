@@ -382,3 +382,10 @@ Plan v2.3 (19 Nov 2026). Entry: Phase 2 live. State at the start:
   refused); `SupabaseServerLevelsSource`. Refused games say why in Profile (reason stored since
   schema v7, now read into `PersistedSession.uploadRefused`). Numbers: core 556 VM / 551 JS,
   app 251, server 20, 6 SQL test files.
+- **Commit 3** *(A)* — Beta gate: migration `beta_codes` (tables, `beta_code_status`,
+  `redeem_beta_code`, `create_beta_code`; SQL test 70: normalization, use limit, already,
+  disabled, nothing exposed, a deletion frees its use). Core `beta_access.dart`
+  (`redeemDeviceBetaCode`, 5 tests); `BetaGateController` + `BetaGateScreen` (goldens);
+  `AuthGate` asks before creating the guest, redeems after (4 widget tests). Off until the
+  owner sets `BETA_GATE=true` (and `SMOKE_BETA_CODE`); the smoke test enters the code when the
+  gate is on — **not verified against a gated build yet** (needs a live code).
