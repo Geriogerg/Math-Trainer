@@ -16,6 +16,7 @@ import 'package:math_core/leveling/leveling_rules.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/models/session_config.dart';
 import 'package:math_core/persistence/local_player_id_provider.dart';
+import 'package:math_core/leaderboard/leaderboard.dart';
 import 'package:math_core/persistence/placement_skip_store.dart';
 import 'package:math_core/sync/session_upload_client.dart';
 import 'package:math_core/sync/session_upload_queue.dart';
@@ -27,6 +28,7 @@ import 'package:math_core/placement/placement_exercise_source.dart';
 import 'package:math_core/placement/placement_level_orchestrator.dart';
 import 'core/state/session_controller.dart';
 import 'infrastructure/backend/http_session_upload_client.dart';
+import 'infrastructure/backend/supabase_leaderboard_repository.dart';
 import 'infrastructure/backend/supabase_account_repository.dart';
 import 'infrastructure/backend/supabase_profile_repository.dart';
 import 'infrastructure/persistence/database.dart';
@@ -59,6 +61,7 @@ class AppEnvironment {
     this.placementSkipStore = const SharedPreferencesPlacementSkipStore(),
     this.uploadClient,
     this.uploadQueue,
+    this.leaderboardRepository,
   });
 
   final SessionRepository repository;
@@ -103,6 +106,10 @@ class AppEnvironment {
   /// every session flow; disposed by `AuthGate` when the player changes.
   final SessionUploadQueue? uploadQueue;
 
+  /// The boards (Supabase); `null` in tests that do not care — the tab
+  /// then says it is unavailable.
+  final LeaderboardRepository? leaderboardRepository;
+
   AppEnvironment forPlayer(String playerId) => AppEnvironment(
     repository: repository,
     playerId: playerId,
@@ -112,6 +119,7 @@ class AppEnvironment {
     themeModeStore: themeModeStore,
     placementSkipStore: placementSkipStore,
     uploadClient: uploadClient,
+    leaderboardRepository: leaderboardRepository,
     uploadQueue: switch (uploadClient) {
       final client? => SessionUploadQueue(
         repository: repository,
@@ -223,6 +231,9 @@ Future<AppEnvironment> buildAppEnvironment() async {
     playerId: playerId,
     accountRepository: accountRepository,
     profileRepository: SupabaseProfileRepository(Supabase.instance.client),
+    leaderboardRepository: SupabaseLeaderboardRepository(
+      Supabase.instance.client,
+    ),
     uploadClient: _serverUrl.isEmpty
         ? null
         : HttpSessionUploadClient(

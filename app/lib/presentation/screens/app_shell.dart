@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../composition_root.dart';
 import '../theme/app_theme.dart';
 import 'coming_soon_screen.dart';
+import 'leaderboard_screen.dart';
 import 'play_tab.dart';
 import 'profile_screen.dart';
 
@@ -75,7 +76,7 @@ class _AppShellState extends State<AppShell>
       ),
       const ComingSoonScreen(label: 'Online'),
       ProfileScreen(environment: widget.environment, isActive: _index == 2),
-      const ComingSoonScreen(label: 'Leaderboard'),
+      LeaderboardScreen(environment: widget.environment, isActive: _index == 3),
     ];
 
     return Scaffold(

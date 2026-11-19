@@ -245,6 +245,15 @@ seven, an unplayed one counting as level 1 (the app's `overallLevel`), rounded t
 days; per operation, ≥ 3 counted sessions on it (`sessions_played`); overall, ≥ 3 completed
 games. Inactive players leave the board; their level never decays.
 
+### The Leaderboard tab (Phase 2 commit 8)
+
+`LeaderboardScreen` replaces the tab's placeholder: board chips (Overall and the seven), "Around
+me" (default: "Top N %", "Rank r of t · level L", the neighbours) and "Top 100". The player's own
+row is bold and labelled "(You)" (rule 14); a nameless player reads "Player". Not on the board:
+the reason in words, with the games still missing. Reloads every time the tab is shown; offline
+→ "Could not load the leaderboard." and Retry. State in `LeaderboardController`
+(`core/state/`); reads through `LeaderboardRepository` (Supabase RPC, no server hop).
+
 ## Rankings (Phase 2)
 
 - Ranked on **level**: one overall board, one board per operation. Ordered on the continuous level

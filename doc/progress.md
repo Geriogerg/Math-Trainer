@@ -291,6 +291,13 @@ Phase 0 closed in Phase 1 commit 0 (`material_ui`, `δ` recorded, preview, load)
   name/rank/level only. Server tables still closed to players; only the server writes. SQL
   tests: 13 players — order, ranks, top %, neighbour windows, every ineligibility reason,
   overall mean, access rules. Eligibility thresholds provisional.
+- **Commit 8** *(C)* — Leaderboard screen: the tab's placeholder replaced by
+  `LeaderboardScreen` (board chips, "Around me" with "Top N %", rank and ±5 neighbours, "Top
+  100", the player's row bold and "(You)", reasons when not on a board, Retry offline, reload
+  on every visit), `LeaderboardController`, core models and JSON parsing, Supabase repository.
+  Widget tests, goldens (light/dark). **Played at phase end** — and only meaningful once the
+  migrations are applied (owner's secrets) and the server deployed (owner's host decision):
+  until then the preview's tab shows "Could not load the leaderboard.".
 
 ### Remaining contradictions after commit 0
 

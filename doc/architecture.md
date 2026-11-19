@@ -24,6 +24,8 @@ packages/math_core/        # pure Dart, no dependency — imported by path by ap
                            # (overall level, also stored per session)
     replay/                # replaySessionQuestions: a stored session's questions from what it
                            # stores alone (seed, kind, frozen levels, type sequence)
+    leaderboard/           # LeaderboardBoard, LeaderboardEntry, Standing (Ranked/NotRanked),
+                           # LeaderboardRepository (interface), JSON parsing
     sync/                  # SessionUpload (JSON codec shared with the server),
                            # SessionUploadClient (interface), SessionUploadQueue (offline, ordered)
     validation/            # validateSessionUpload: the server's replay and checks (pure);
@@ -48,7 +50,7 @@ app/                       # the Flutter app (package `math_trainer`), web first
     app.dart               # MaterialApp, theme (light/dark/persisted toggle), AuthGate at the root
     composition_root.dart  # the only file choosing concrete implementations (AppEnvironment)
     core/state/            # SessionController (ChangeNotifier), SessionState, account form and
-                           # deletion controllers — Flutter's foundation.dart only
+                           # deletion controllers, LeaderboardController — foundation.dart only
     infrastructure/
       persistence/         # SqfliteSessionRepository, database.dart (schema, migrations, web
                            # engine), SharedPreferences{PlayerIdProvider,TypeSelectionStore,
@@ -56,14 +58,15 @@ app/                       # the Flutter app (package `math_trainer`), web first
                            # sqflite / shared_preferences; persistent_storage*.dart
       backend/             # Supabase{Account,Profile}Repository — the only place importing
                            # supabase_flutter (besides composition_root.dart);
-                           # HttpSessionUploadClient (package http)
+                           # HttpSessionUploadClient (package http),
+                           # SupabaseLeaderboardRepository (the two board functions)
     presentation/
       theme/               # app_theme.dart — light/dark ColorScheme, AppPalette/AppMotion/AppMetrics
       screens/             # AuthGate (anonymous-first), AppShell (tabbed shell, IndexedStack),
                            # PlayTab (placement offer or type selection), SessionFlowScreen/
                            # SessionScreen (full-screen session), ResultScreen, ProfileScreen,
-                           # SaveProgressScreen, SignInScreen, ComingSoonScreen, EmptyState,
-                           # ConfigErrorApp
+                           # SaveProgressScreen, SignInScreen, LeaderboardScreen,
+                           # ComingSoonScreen (Online tab), EmptyState, ConfigErrorApp
       exercise_prompt.dart # builds the displayed operation from the exercise's fields
       exercise_type_labels.dart
   test/
