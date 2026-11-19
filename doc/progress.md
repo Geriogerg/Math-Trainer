@@ -420,3 +420,14 @@ Plan v2.3 (19 Nov 2026). Entry: Phase 2 live. State at the start:
   owner decisions, `doc/decisions.md`); a core format test for all seven operations. The smoke
   test now proves the live online path when the build has a server: first run, server levels
   27 s after opening the page (server on Render, found live: the owner deployed it).
+
+### Phase 3a exit test (19 Nov 2026)
+
+- A fresh invited tester goes from the link to a ranked game on a phone: **not yet**. Proven
+  without the gate and without ranking: a fresh browser at phone size, on slow 4G, reaches its
+  first question in **23.1 s** (26.5 s in Phase 2), plays the first-game type placement, and the
+  live server validates it (server levels 65 s after opening, smoke test). Missing: the gate
+  switched on (codes, `BETA_GATE`), and a linked account's three games for a rank — owner steps.
+- The dashboard report runs on live data: **not yet** — needs the owner's connection file.
+  Every command runs in CI on the scratch database.
+- The owner sends the invitations: owner.
