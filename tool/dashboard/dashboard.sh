@@ -32,6 +32,17 @@ command -v psql > /dev/null || { echo "psql not found: install the PostgreSQL cl
 # psql on Windows reads input in the console's code page otherwise.
 export PGCLIENTENCODING=UTF8
 
+# ...and a Windows console (VS Code's terminal, Windows Terminal) decodes
+# psql's UTF-8 output with its own code page (850 or 1252 on a French
+# Windows): "—" and accented names come out garbled. Switch the console to
+# UTF-8 for this run, then back. No console (mintty, CI): chcp fails, skip.
+if command -v chcp.com > /dev/null 2>&1; then
+  old_cp="$( (chcp.com 2> /dev/null || true) | tr -dc '0-9')"
+  if [ -n "$old_cp" ] && [ "$old_cp" != 65001 ] && chcp.com 65001 > /dev/null 2>&1; then
+    trap 'chcp.com "$old_cp" > /dev/null 2>&1 || true' EXIT
+  fi
+fi
+
 # SQL goes through stdin, never the command line: Git Bash hands
 # non-ASCII arguments to Windows programs in the wrong encoding.
 run() { psql "$url" -X -q -v ON_ERROR_STOP=1 -P pager=off -P footer=off; }
