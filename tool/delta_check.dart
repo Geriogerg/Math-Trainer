@@ -11,16 +11,14 @@ import 'package:math_trainer/core/domain/leveling/level_updater.dart';
 import 'package:math_trainer/core/domain/leveling/leveling_rules.dart';
 import 'package:math_trainer/core/domain/persistence/level_cache_entry.dart';
 
+import 'src/player_model.dart';
+
 /// Phase 0 commit 5: is `δ` right for `n_min` = 4? Simulated players run the
 /// real [LevelUpdater] against a logistic performance model — a model, not
 /// data: it compares settings with each other, it does not calibrate them
 /// (that is Phase 3, on real sessions).
 ///
-/// Player model, for a question at level `L` and a true skill `S`
-/// (`g = L − S`, positive when too hard):
-/// - right with probability `1 / (1 + e^(g / w))`;
-/// - if right, a log-normal response time of median `2.5 s · e^(g / 15)`,
-///   σ = 0.4 (harder questions take longer).
+/// Player model: `tool/src/player_model.dart`.
 ///
 /// The reference is the original design: `n_min` = 8, `δ` = 0.05, 8
 /// answers per operation and session. Each candidate plays 4 answers per
@@ -33,7 +31,7 @@ import 'package:math_trainer/core/domain/persistence/level_cache_entry.dart';
 /// Usage: `dart run tool/delta_check.dart`
 void main() {
   for (final w in [6.0, 10.0]) {
-    final model = _Model(skill: 50, w: w);
+    final model = PlayerModel(skill: 50, w: w);
     final target = model.equilibriumLevel(LevelingRules());
     print(
       '== Model w = $w: level where E[p] = p_cible is ${target.toStringAsFixed(1)} ==',
@@ -77,64 +75,6 @@ void main() {
   );
 }
 
-class _Model {
-  _Model({required this.skill, required this.w});
-
-  final double skill;
-  final double w;
-
-  AnswerOutcome answer(int level, math.Random random) {
-    final g = level - skill;
-    final pRight = 1 / (1 + math.exp(g / w));
-    if (random.nextDouble() >= pRight) {
-      return const AnswerOutcome(isCorrect: false, elapsedMs: 15000);
-    }
-    final median = 2500 * math.exp(g / 15);
-    final ms = median * math.exp(0.4 * _gaussian(random));
-    return AnswerOutcome(isCorrect: true, elapsedMs: ms.round());
-  }
-
-  /// Level (interpolated) where the expected `p` crosses `p_cible`.
-  double equilibriumLevel(LevelingRules rules) {
-    final random = math.Random(7);
-    double expectedP(int level) {
-      var sum = 0.0;
-      const samples = 20000;
-      for (var i = 0; i < samples; i++) {
-        sum += _p(answer(level, random), rules);
-      }
-      return sum / samples;
-    }
-
-    var previous = expectedP(1);
-    for (var level = 2; level <= 100; level++) {
-      final current = expectedP(level);
-      if (previous >= rules.pCible && current < rules.pCible) {
-        return level - 1 + (previous - rules.pCible) / (previous - current);
-      }
-      previous = current;
-    }
-    throw StateError('no equilibrium level in 1..100');
-  }
-}
-
-double _p(AnswerOutcome a, LevelingRules rules) {
-  if (!a.isCorrect) return 0;
-  final t = a.elapsedMs;
-  final speed = t <= rules.tRapideMs
-      ? 1.0
-      : t >= rules.tLentMs
-      ? 0.0
-      : 1 - (t - rules.tRapideMs) / (rules.tLentMs - rules.tRapideMs);
-  return rules.f + (1 - rules.f) * speed;
-}
-
-double _gaussian(math.Random random) {
-  final u1 = 1 - random.nextDouble();
-  final u2 = random.nextDouble();
-  return math.sqrt(-2 * math.log(u1)) * math.cos(2 * math.pi * u2);
-}
-
 class _Metrics {
   _Metrics(
     this.convergence,
@@ -151,7 +91,7 @@ class _Metrics {
 }
 
 _Metrics _simulate(
-  _Model model,
+  PlayerModel model,
   LevelingRules rules, {
   required int answersPerSession,
   required double target,

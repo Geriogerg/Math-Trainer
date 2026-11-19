@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../composition_root.dart';
 import '../../core/domain/models/exercise_type.dart';
 import '../../core/domain/persistence/level_cache_entry.dart';
+import '../../core/domain/persistence/persisted_session.dart';
 import '../../core/state/session_controller.dart';
 import '../exercise_type_labels.dart';
 import '../../core/domain/leveling/overall_level.dart';
@@ -45,6 +46,12 @@ class _PlayTabState extends State<PlayTab> {
   double? _globalLevel;
   bool _hasHistory = false;
 
+  /// No session stored at all (not even an interrupted one): the placement
+  /// test is offered instead of the type selection, until played or
+  /// skipped. Skipping is not stored: a player who skips and leaves without
+  /// playing is offered it again next time — still a new player.
+  bool _offerPlacement = false;
+
   @override
   void initState() {
     super.initState();
@@ -62,14 +69,20 @@ class _PlayTabState extends State<PlayTab> {
         widget.environment.repository.currentLevels(
           widget.environment.playerId,
         ),
+        widget.environment.repository.recentSessions(
+          widget.environment.playerId,
+          limit: 1,
+        ),
       ]);
       if (!mounted) return;
       final storedSelection = results[0] as Set<ExerciseType>?;
       final levels = results[1] as Map<ExerciseType, LevelCacheEntry>;
+      final anySession = (results[2] as List<PersistedSession>).isNotEmpty;
       setState(() {
         if (storedSelection != null) _selectedTypes = storedSelection;
         _hasHistory = levels.isNotEmpty;
         _globalLevel = levels.isEmpty ? null : overallLevel(levels);
+        _offerPlacement = !anySession;
       });
     } on Exception catch (_) {
       // Stay on the default already shown — no error state on the main
@@ -84,17 +97,20 @@ class _PlayTabState extends State<PlayTab> {
     widget.environment.typeSelectionStore.save(types).ignore();
   }
 
-  Future<void> _startSession() async {
+  Future<void> _startSession() =>
+      _run(() => buildSessionController(widget.environment, _selectedTypes));
+
+  Future<void> _startPlacement() =>
+      _run(() async => buildPlacementController(widget.environment));
+
+  Future<void> _run(Future<SessionController> Function() build) async {
     setState(() {
       _isStarting = true;
       _startError = null;
     });
     final SessionController controller;
     try {
-      controller = await buildSessionController(
-        widget.environment,
-        _selectedTypes,
-      );
+      controller = await build();
     } catch (_) {
       if (!mounted) return;
       // The "Start" button becomes active again: it is the retry action, no
@@ -130,6 +146,17 @@ class _PlayTabState extends State<PlayTab> {
 
   @override
   Widget build(BuildContext context) {
+    if (_offerPlacement) {
+      return _ThemeToggleOverlay(
+        onToggleTheme: widget.onToggleTheme,
+        child: _PlacementOfferView(
+          onStart: _isStarting ? null : _startPlacement,
+          onSkip: () => setState(() => _offerPlacement = false),
+          isStarting: _isStarting,
+          startError: _startError,
+        ),
+      );
+    }
     return _TypeSelectionView(
       selectedTypes: _selectedTypes,
       onChanged: _updateSelection,
@@ -181,66 +208,83 @@ class _TypeSelectionView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    return Stack(
-      children: [
-        Center(
-          child: Padding(
-            padding: theme.extension<AppMetrics>()!.rootPadding,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text('Math Trainer', style: theme.textTheme.titleMedium),
+    return _ThemeToggleOverlay(
+      onToggleTheme: onToggleTheme,
+      child: Center(
+        child: Padding(
+          padding: theme.extension<AppMetrics>()!.rootPadding,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Math Trainer', style: theme.textTheme.titleMedium),
+              const SizedBox(height: 8),
+              Text(
+                hasHistory
+                    ? 'Overall level: ${globalLevel?.round() ?? '—'}'
+                    : 'Difficulty adapts to your answers.',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.extension<AppPalette>()!.textMuted,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                alignment: WrapAlignment.center,
+                children: [
+                  for (final type in ExerciseType.values)
+                    FilterChip(
+                      label: Text(exerciseTypeLabel(type)),
+                      selected: selectedTypes.contains(type),
+                      onSelected: (selected) => _toggle(type, selected),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              FilledButton(
+                onPressed: onStart,
+                child: isStarting
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Start'),
+              ),
+              if (selectedTypes.isEmpty) ...[
+                const SizedBox(height: 8),
+                Text('No type selected.', style: theme.textTheme.bodyMedium),
+              ] else if (startError != null) ...[
                 const SizedBox(height: 8),
                 Text(
-                  hasHistory
-                      ? 'Overall level: ${globalLevel?.round() ?? '—'}'
-                      : 'Difficulty adapts to your answers.',
+                  startError!,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.extension<AppPalette>()!.textMuted,
+                    color: theme.colorScheme.error,
                   ),
                 ),
-                const SizedBox(height: 24),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  alignment: WrapAlignment.center,
-                  children: [
-                    for (final type in ExerciseType.values)
-                      FilterChip(
-                        label: Text(exerciseTypeLabel(type)),
-                        selected: selectedTypes.contains(type),
-                        onSelected: (selected) => _toggle(type, selected),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                FilledButton(
-                  onPressed: onStart,
-                  child: isStarting
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Start'),
-                ),
-                if (selectedTypes.isEmpty) ...[
-                  const SizedBox(height: 8),
-                  Text('No type selected.', style: theme.textTheme.bodyMedium),
-                ] else if (startError != null) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    startError!,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.error,
-                    ),
-                  ),
-                ],
               ],
-            ),
+            ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// The day/night button in the corner of the Play screens (selection and
+/// placement offer alike).
+class _ThemeToggleOverlay extends StatelessWidget {
+  const _ThemeToggleOverlay({required this.onToggleTheme, required this.child});
+
+  final VoidCallback? onToggleTheme;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Stack(
+      children: [
+        child,
         Positioned(
           top: 8,
           right: 8,
@@ -253,6 +297,74 @@ class _TypeSelectionView extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// First screen of a new player: find their level in about a minute, or
+/// skip straight to the type selection (plan, section 6.1 and Phase 1
+/// commit 6).
+class _PlacementOfferView extends StatelessWidget {
+  const _PlacementOfferView({
+    required this.onStart,
+    required this.onSkip,
+    required this.isStarting,
+    required this.startError,
+  });
+
+  final VoidCallback? onStart;
+  final VoidCallback onSkip;
+  final bool isStarting;
+  final String? startError;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      child: Padding(
+        padding: theme.extension<AppMetrics>()!.rootPadding,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('Math Trainer', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 24),
+            Text(
+              'Find your level',
+              style: theme.textTheme.titleLarge,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'About a minute of + − × ÷. Each question adapts to your last '
+              'answer, so your first games start at the right difficulty.',
+              style: theme.textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            FilledButton(
+              onPressed: onStart,
+              child: isStarting
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Find my level'),
+            ),
+            const SizedBox(height: 8),
+            TextButton(onPressed: onSkip, child: const Text('Skip')),
+            if (startError != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                startError!,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.error,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

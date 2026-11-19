@@ -212,6 +212,11 @@ class _SessionScreenState extends State<SessionScreen>
     // interpolating it directly would print 1200 for level 12).
     final level =
         (widget.controller.config.levels[exercise.type] ?? Level.floor).whole;
+    // A placement's questions move with the answers: the frozen level would
+    // be wrong, and showing the level being probed would steer the player.
+    final levelText = widget.controller.config.kind.isPlacement
+        ? 'finding your level'
+        : 'level $level';
     final correction = state.correction;
     // During the correction pause the answer field shows the correct
     // answer; the caption says what was given instead.
@@ -246,8 +251,8 @@ class _SessionScreenState extends State<SessionScreen>
                     // first question (`doc/decisions.md` — currentStreak shown
                     // during the session).
                     state.currentStreak > 0
-                        ? '${exerciseTypeLabel(exercise.type)} · level $level · streak ${state.currentStreak}'
-                        : '${exerciseTypeLabel(exercise.type)} · level $level',
+                        ? '${exerciseTypeLabel(exercise.type)} · $levelText · streak ${state.currentStreak}'
+                        : '${exerciseTypeLabel(exercise.type)} · $levelText',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.extension<AppPalette>()!.textMuted,
                     ),

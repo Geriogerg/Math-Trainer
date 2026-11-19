@@ -149,8 +149,8 @@ void main() {
     },
   );
 
-  test('an existing v3 database migrates to v4: every level ×100, nothing '
-      'else touched', () async {
+  test('an existing v3 database migrates to v4 and v5: every level ×100, '
+      'every session a game, nothing else touched', () async {
     const path = 'migration_v3_test.db';
     await databaseFactory.deleteDatabase(path);
 
@@ -229,8 +229,10 @@ void main() {
     // Overall level stays in level units, untouched.
     expect(sessions['s1']!['overall_level_after'], 9.857142857142858);
     expect(sessions['s1']!['seed'], 7);
+    // Through v5 as well: every older session is a game.
+    expect(sessions['s1']!['kind'], 'game');
     expect(levels, {'addition': 4300, 'division': 10000});
-    expect(await v4db.getVersion(), 4);
+    expect(await v4db.getVersion(), schemaVersion);
 
     await v4db.close();
     await databaseFactory.deleteDatabase(path);

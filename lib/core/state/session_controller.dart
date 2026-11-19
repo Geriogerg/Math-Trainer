@@ -49,13 +49,15 @@ class SessionController extends ChangeNotifier {
     this.createTimer = Timer.new,
     this.questionTimeout = defaultQuestionTimeout,
     this.correctionDelay,
-    LevelCacheOrchestrator? levelCacheOrchestrator,
+    SessionLevelUpdates? levelCacheOrchestrator,
   }) : levelCacheOrchestrator =
            levelCacheOrchestrator ?? LevelCacheOrchestrator();
 
   final SessionConfig config;
   final ExerciseSource exerciseSource;
-  final LevelCacheOrchestrator levelCacheOrchestrator;
+
+  /// A game's level updates by default; a placement passes its own.
+  final SessionLevelUpdates levelCacheOrchestrator;
   final SessionRepository repository;
   final String playerId;
   final Scorer scorer;
@@ -249,6 +251,9 @@ class SessionController extends ChangeNotifier {
       elapsedMs: elapsedMs,
       answeredAt: answeredAt,
     );
+    // Before any `next()` below: an adaptive source (placement) picks the
+    // next question from this answer.
+    exerciseSource.onAnswered(outcome);
     final points = scorer.pointsFor(
       outcome,
       currentStreak: nextStreak,
@@ -438,6 +443,7 @@ class SessionController extends ChangeNotifier {
       levels: config.levels,
       createdAt: createdAt,
       overallLevelAfter: overallLevelAfter,
+      kind: config.kind,
     );
 
     await _record((

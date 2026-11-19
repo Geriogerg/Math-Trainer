@@ -37,6 +37,21 @@ void main() {
     }
   });
 
+  group('placement sequences (adaptive)', () {
+    for (final pattern in placementPatterns.keys) {
+      for (final seed in determinismSeeds) {
+        final key = '$pattern | $seed';
+        test(key, () {
+          expect(
+            placementSequence(seed, pattern),
+            placementSequenceReferences[key],
+            reason: 'reference missing or sequence changed',
+          );
+        });
+      }
+    }
+  });
+
   test('level update grid', () {
     expect(levelUpdateGrid(), levelUpdateGridReference);
   });

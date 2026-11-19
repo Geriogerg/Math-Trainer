@@ -20,6 +20,7 @@ import 'package:math_trainer/core/domain/leveling/leveling_rules.dart';
 import 'package:math_trainer/core/domain/models/exercise.dart';
 import 'package:math_trainer/core/domain/models/exercise_type.dart';
 import 'package:math_trainer/core/domain/persistence/exercise_codec.dart';
+import 'package:math_trainer/core/domain/placement/placement_exercise_source.dart';
 
 /// Seeds the app really produces (`DateTime.now().millisecondsSinceEpoch`,
 /// about 2^41) and edge values of `Random(seed)`: 0, negative, around 2^32
@@ -139,6 +140,22 @@ String _describe(Exercise exercise) {
   final d = describeExerciseForStorage(exercise);
   return '${d.operationType}:${d.operands.values.join(',')}';
 }
+
+/// Answer patterns for the placement test (Phase 1 commit 6): its questions
+/// depend on the seed **and** the answers so far, so both vary.
+final placementPatterns = <String, PlacementAnswer Function(int i)>{
+  'all pass': (_) => (isCorrect: true, elapsedMs: 1200),
+  'all fail': (_) => (isCorrect: false, elapsedMs: 15000),
+  'alternate': (i) => (isCorrect: i.isEven, elapsedMs: 2000),
+  'slow right': (i) => (isCorrect: true, elapsedMs: 2500 + i * 61),
+};
+
+/// A full placement's questions, regenerated as the server will
+/// (`replayPlacementQuestions`).
+String placementSequence(int seed, String pattern) => replayPlacementQuestions(
+  seed: seed,
+  answers: [for (var i = 0; i < 24; i++) placementPatterns[pattern]!(i)],
+).map(_describe).join(';');
 
 /// Level updates over a grid of synthetic sessions: correctness patterns ×
 /// elapsed times × lengths × confidence × starting levels. Exercises the

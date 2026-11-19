@@ -282,6 +282,47 @@ still visibly counts (pillar 2). The plan says only "displayed as a whole number
 the whole level and a continuous progress bar.
 **Reopen when** Phase 3 recalibrates the constants, or players read the hundredths as noise.
 
+## Placement test (Phase 1, commit 6)
+
+24 questions, the four basic operations in turn, one **staircase** per operation (6 answers
+each): a pass (right **and** within the time limit) moves the level up by the step, a fail
+down, then the step halves (`~/ 2`, integer hundredths). The final level of each staircase is
+the starting level (`placementLevels`, pure, replayable). Stored as a session of kind
+`placementV1` (schema v5, `sessions.kind`); the kind carries the rules' version, since a stored
+placement replays only with its own rules. Powers, roots and percentages are not placed.
+
+**Parameters — provisional, chosen by `tool/placement_check.dart`** (the owner decides;
+plan section 8). Simulated players (skill uniform 15–95, the `delta_check` model, 2,000 per
+setting, both steepnesses), real staircase and real `LevelUpdater`:
+
+| Setting | Placed error (mean, w 6 / w 10) | Games to ±3 (mean, w 6 / w 10) |
+|---|---|---|
+| no placement (from level 1) | — | 65.5 / 73.5 |
+| **start 35, first step 25 levels, pass ≤ 3 s, sessionsPlayed 0** | **4.6 / 6.7** | **5.5 / 18.9** |
+| start 50, step 20, pass ≤ 3 s | 4.5 / 6.6 | 5.5 / 20.8 |
+| start 25, step 32, pass ≤ 3 s | 4.6 / 6.7 | 5.7 / 19.7 |
+
+- **Pass ≤ 3 s** beats 4, 5 and 6 s in every row: a staircase converges where half the answers
+  pass, and a stricter pass puts that point near the level's own target (right and fast,
+  `p_cible` 0.70).
+- **sessionsPlayed 0 after placement** (the next three games keep the ×4 calibration boost)
+  beats 1 and 3 everywhere: the boost corrects a placement error fast.
+- **Start 35** is as accurate as 50 and shorter (modelled median ~100 s against ~112 s).
+- The plan's exit test ("a placed player at their level within about 10 games") holds for the
+  steeper model (5.5 games, p90 20) but **not for the noisier one** (18.9, p90 53): there the
+  game updates themselves are slow (0.69 level per game at most outside calibration — commit
+  2's finding). That is the Phase 3 constants decision, not the placement's.
+- **Duration**: modelled median ~100 s, above the plan's 60–90 s — the model gives a wrong
+  answer ~9 s (thought + correction pause), and a staircase is built to fail about half of its
+  last questions. To check on the owner's phone; 5 questions per operation is the lever.
+
+Gaps filled — **provisional**: offered to a player with **no stored session at all** (a
+skipped offer is not remembered; an interrupted placement counts as history, so it is not
+offered again); the session screen says "finding your level" instead of a level; the result
+screen shows the starting levels and the mistakes, no score, and a single "Play".
+**Reopen when** real placements exist (Phase 3): compare placed levels with the levels the
+same players settle at.
+
 ## The number of questions is derived, not chosen
 
 `exerciseCount = n_min × active types`, capped at 24 (a target of ~90 s). With `n_min = 4`: one

@@ -27,10 +27,13 @@ class _FakeTypeSelectionStore implements TypeSelectionStore {
 }
 
 void main() {
+  /// [skipPlacement]: a player with no session first sees the placement
+  /// offer; the selection tests go past it like the player would.
   Future<void> pumpPlayTab(
     WidgetTester tester,
-    AppEnvironment environment,
-  ) async {
+    AppEnvironment environment, {
+    bool skipPlacement = true,
+  }) async {
     await tester.pumpWidget(
       MaterialApp(
         theme: buildLightTheme(),
@@ -38,7 +41,93 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    if (skipPlacement && find.text('Skip').evaluate().isNotEmpty) {
+      await tester.tap(find.text('Skip'));
+      await tester.pumpAndSettle();
+    }
   }
+
+  AppEnvironment environmentWith(InMemorySessionRepository repository) =>
+      AppEnvironment(
+        repository: repository,
+        playerId: 'test-player',
+        accountRepository: FakeAccountRepository(),
+        profileRepository: FakeProfileRepository(),
+        typeSelectionStore: _FakeTypeSelectionStore(),
+      );
+
+  group('placement offer', () {
+    testWidgets('a player with no session is offered the placement first', (
+      tester,
+    ) async {
+      await pumpPlayTab(
+        tester,
+        environmentWith(InMemorySessionRepository()),
+        skipPlacement: false,
+      );
+
+      expect(find.text('Find your level'), findsOneWidget);
+      expect(find.text('Find my level'), findsOneWidget);
+      expect(find.byType(FilterChip), findsNothing);
+    });
+
+    testWidgets('Skip goes to the type selection', (tester) async {
+      await pumpPlayTab(
+        tester,
+        environmentWith(InMemorySessionRepository()),
+        skipPlacement: false,
+      );
+
+      await tester.tap(find.text('Skip'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(FilterChip), findsNWidgets(7));
+    });
+
+    testWidgets('any stored session, even interrupted, means no offer', (
+      tester,
+    ) async {
+      final repository = InMemorySessionRepository();
+      await repository.recordSession(
+        session: PersistedSession(
+          id: 'interrupted',
+          playerId: 'test-player',
+          seed: 1,
+          enabledTypes: const {ExerciseType.addition},
+          exerciseCount: 4,
+          totalScore: 0,
+          levels: {ExerciseType.addition: Level.floor},
+          createdAt: DateTime.utc(2026, 11, 1),
+        ),
+        answers: const [],
+        levelUpdates: const {},
+      );
+
+      await pumpPlayTab(
+        tester,
+        environmentWith(repository),
+        skipPlacement: false,
+      );
+
+      expect(find.text('Find my level'), findsNothing);
+      expect(find.byType(FilterChip), findsNWidgets(7));
+    });
+
+    testWidgets('Find my level starts the placement session', (tester) async {
+      await pumpPlayTab(
+        tester,
+        environmentWith(InMemorySessionRepository()),
+        skipPlacement: false,
+      );
+
+      await tester.tap(find.text('Find my level'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+
+      expect(find.textContaining('finding your level'), findsOneWidget);
+      expect(find.text('1 / 24'), findsOneWidget);
+    });
+  });
 
   testWidgets('an already saved selection replaces the default at start', (
     tester,

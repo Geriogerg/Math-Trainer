@@ -4,7 +4,7 @@ import '../models/exercise.dart';
 import 'exercise_generator.dart';
 import 'exercise_source.dart';
 
-class LocalExerciseSource implements ExerciseSource {
+class LocalExerciseSource extends ExerciseSource {
   LocalExerciseSource({required this.generator, required int seed})
     : _random = Random(seed);
 

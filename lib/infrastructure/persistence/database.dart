@@ -8,7 +8,7 @@ import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart'
 
 /// Current schema version. Every change increments this value and adds a
 /// branch in [_onUpgrade] — never destructive, never retroactive.
-const schemaVersion = 4;
+const schemaVersion = 5;
 
 /// The app's database, where each platform expects it. On web: same schema
 /// and same SQL as elsewhere, SQLite compiled to WebAssembly
@@ -53,7 +53,9 @@ Future<Database> openMathTrainerDatabase(String path) {
           -- Overall level in level units (37.42), not hundredths.
           overall_level_after REAL,
           created_at TEXT NOT NULL,
-          synced_at TEXT
+          synced_at TEXT,
+          -- `SessionKind.name`: 'game' or 'placementV1' (schema v5).
+          kind TEXT NOT NULL DEFAULT 'game'
         )
       ''');
       await db.execute('''
@@ -115,6 +117,12 @@ Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
   }
   if (oldVersion < 4) {
     await migrateLevelsToHundredths(db);
+  }
+  if (oldVersion < 5) {
+    // Placement test (Phase 1 commit 6): every session so far is a game.
+    await db.execute(
+      "ALTER TABLE sessions ADD COLUMN kind TEXT NOT NULL DEFAULT 'game'",
+    );
   }
 }
 

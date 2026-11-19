@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:sqflite/sqflite.dart';
 
 import '../../core/domain/leveling/level.dart';
+import '../../core/domain/models/session_kind.dart';
 import '../../core/domain/persistence/level_cache_entry.dart';
 import '../../core/domain/models/exercise_type.dart';
 import '../../core/domain/persistence/persisted_answer.dart';
@@ -166,6 +167,7 @@ class SqfliteSessionRepository implements SessionRepository {
         ),
       ),
       'overall_level_after': session.overallLevelAfter,
+      'kind': session.kind.name,
       'created_at': session.createdAt.toIso8601String(),
       'synced_at': session.syncedAt?.toIso8601String(),
     };
@@ -192,6 +194,7 @@ class SqfliteSessionRepository implements SessionRepository {
       ),
       createdAt: DateTime.parse(row['created_at'] as String),
       overallLevelAfter: (row['overall_level_after'] as num?)?.toDouble(),
+      kind: SessionKind.values.byName(row['kind'] as String),
       syncedAt: syncedAt == null ? null : DateTime.parse(syncedAt),
     );
   }

@@ -7,11 +7,24 @@ import 'confidence.dart';
 import 'level.dart';
 import 'level_updater.dart';
 
-/// Computes the level cache updates at the end of a session. Taken out of
+/// How a finished session turns into level cache updates — a game
+/// ([LevelCacheOrchestrator]) or a placement (`PlacementLevelOrchestrator`).
+/// `SessionController` only knows this.
+abstract interface class SessionLevelUpdates {
+  Future<Map<ExerciseType, LevelCacheEntry>> computeUpdates({
+    required List<AnswerResult> outcomes,
+    required Map<ExerciseType, Level> frozenLevels,
+    required SessionRepository repository,
+    required String playerId,
+    required DateTime now,
+  });
+}
+
+/// Computes the level cache updates at the end of a game. Taken out of
 /// `SessionController` (step 4.1, commit D) to stay pure Dart, runnable
 /// server-side (rule 1) — exactly what revalidating a duel will one day
 /// have to redo.
-class LevelCacheOrchestrator {
+class LevelCacheOrchestrator implements SessionLevelUpdates {
   LevelCacheOrchestrator({LevelUpdater? levelUpdater})
     : levelUpdater = levelUpdater ?? LevelUpdater();
 
@@ -21,6 +34,7 @@ class LevelCacheOrchestrator {
   /// session (the others are a noise sample, see `doc/decisions.md` — their
   /// cache is left untouched). [frozenLevels] is the level that actually
   /// generated the session, never re-read from the cache at this point.
+  @override
   Future<Map<ExerciseType, LevelCacheEntry>> computeUpdates({
     required List<AnswerResult> outcomes,
     required Map<ExerciseType, Level> frozenLevels,

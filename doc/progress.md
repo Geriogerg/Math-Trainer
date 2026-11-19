@@ -185,6 +185,17 @@ Phase 0 closed in Phase 1 commit 0 (`material_ui`, `δ` recorded, preview, load)
   (`fb154e14-…` now linked to `mt-link-check-…@example.com`, `7969cb24-…`), to delete with
   commit 7. **Played by the owner at phase end.**
 
+- **Commit 6** *(C)* — Placement test: `core/domain/placement/` (staircases in integer
+  hundredths, `placementLevels`, `PlacementExerciseSource` adaptive and deterministic,
+  `replayPlacementQuestions` for the server, `PlacementLevelOrchestrator`); schema v5
+  `sessions.kind`; offered on Play to a player with no session ("Find my level" / "Skip");
+  "finding your level" during it; starting levels on the result. Parameters chosen by
+  `tool/placement_check.dart`, provisional: start 35, first step 25, pass ≤ 3 s, calibration
+  kept. Placed player at level in 5.5 games (w 6) / 18.9 (w 10) against 65.5 / 73.5 without.
+  48 placement sequences pinned VM = JavaScript. `ExerciseSource.onAnswered`,
+  `SessionLevelUpdates` interface, `exerciseGeneratorFor` made public (no sequence changed).
+  Walked in a release build (guest `7ea74633-…` created). **Played by the owner at phase end.**
+
 ### Remaining contradictions after commit 0
 
 The five plan/reality contradictions found at commit 0 (language, `δ`, branch and remote, commit 0

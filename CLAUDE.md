@@ -12,9 +12,9 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 
 **Phase 1 — First run and accounts** (`doc/plan.md`, section 7), run in **one pass**.
 Done: **0**, **1** (VM = JavaScript, 158/158), **2** (levels in hundredths, schema v4),
-**3** (self-hosted CanvasKit and fonts, loading screen), **4** (anonymous-first), **5** (linking, account screens; to play), **7 (1/2)** (SQL written; owner to run
+**3** (self-hosted CanvasKit and fonts, loading screen), **4** (anonymous-first), **5** (linking, account screens; to play), **6** (placement test; to play), **7 (1/2)** (SQL written; owner to run
 it). Waiting on the owner: `SUPABASE_PUBLISHABLE_KEY`
-secret still empty on the preview. Next commit: **6**. Update this block at every commit.
+secret still empty on the preview. Next commit: **7 (2/2)**. Update this block at every commit.
 
 | # | Commit | Note |
 |---|---|---|
@@ -142,7 +142,8 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 - Never draw at random from a `Set` (insertion order); use a list sorted by enum `index`.
 - The useless `nextInt(1)` in `CompositeExerciseGenerator` stays: removing it changes every
   sequence.
-- `ExerciseType` names are the stored discriminant; renaming breaks history.
+- `ExerciseType` and `SessionKind` names are stored discriminants; renaming breaks history.
+- Changing `placementRulesV1` changes stored placements' replay: add a `placementV2` instead.
 - `dart test` without the `test/domain` scope fails.
 - Integer levels round small steps to zero — never round before storing hundredths.
 - `Level` is an `int` at runtime: string interpolation prints hundredths, and `level ?? 1`

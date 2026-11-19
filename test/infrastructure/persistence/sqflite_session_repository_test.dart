@@ -1,6 +1,7 @@
 import 'package:math_trainer/core/domain/leveling/level.dart';
 import 'package:math_trainer/core/domain/persistence/level_cache_entry.dart';
 import 'package:math_trainer/core/domain/models/exercise_type.dart';
+import 'package:math_trainer/core/domain/models/session_kind.dart';
 import 'package:math_trainer/core/domain/persistence/persisted_answer.dart';
 import 'package:math_trainer/core/domain/persistence/persisted_session.dart';
 import 'package:math_trainer/infrastructure/persistence/database.dart';
@@ -69,6 +70,34 @@ void main() {
   }
 
   group('SqfliteSessionRepository', () {
+    test('a placement keeps its kind; a game is a game', () async {
+      final game = session('game-1', createdAt: DateTime.utc(2026, 11, 1));
+      final placement = PersistedSession(
+        id: 'placement-1',
+        playerId: 'player-1',
+        seed: 7,
+        enabledTypes: const {ExerciseType.addition},
+        exerciseCount: 24,
+        totalScore: 0,
+        levels: {ExerciseType.addition: Level.whole(35)},
+        createdAt: DateTime.utc(2026, 11, 2),
+        kind: SessionKind.placementV1,
+      );
+      for (final s in [game, placement]) {
+        await repository.recordSession(
+          session: s,
+          answers: const [],
+          levelUpdates: const {},
+        );
+      }
+
+      final stored = {
+        for (final s in await repository.recentSessions('player-1')) s.id: s,
+      };
+      expect(stored['game-1']!.kind, SessionKind.game);
+      expect(stored['placement-1'], placement);
+    });
+
     test(
       'recordSession persists the session and answers, readable afterwards',
       () async {

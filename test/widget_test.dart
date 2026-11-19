@@ -111,6 +111,10 @@ void main() {
     // one more frame is needed before the real content (here `AppShell`)
     // replaces the initial spinner.
     await tester.pump();
+    // A new player first sees the placement offer (Phase 1 commit 6).
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Skip'));
+    await tester.pumpAndSettle();
 
     // Untick the 2 types selected by default (step 4.1, commit A).
     for (final label in ['Addition', 'Subtraction']) {
@@ -136,6 +140,10 @@ void main() {
     // one more frame is needed before the real content (here `AppShell`)
     // replaces the initial spinner.
     await tester.pump();
+    // A new player first sees the placement offer (Phase 1 commit 6).
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Skip'));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Subtraction'));
     await tester.pump();

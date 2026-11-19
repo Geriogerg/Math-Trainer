@@ -14,10 +14,14 @@ import 'core/domain/leveling/level.dart';
 import 'core/domain/leveling/leveling_rules.dart';
 import 'core/domain/models/exercise_type.dart';
 import 'core/domain/models/session_config.dart';
+import 'core/domain/models/session_kind.dart';
 import 'core/domain/persistence/local_player_id_provider.dart';
 import 'core/domain/persistence/session_repository.dart';
 import 'core/domain/persistence/theme_mode_store.dart';
 import 'core/domain/persistence/type_selection_store.dart';
+import 'core/domain/placement/placement.dart';
+import 'core/domain/placement/placement_exercise_source.dart';
+import 'core/domain/placement/placement_level_orchestrator.dart';
 import 'core/state/session_controller.dart';
 import 'infrastructure/backend/supabase_account_repository.dart';
 import 'infrastructure/backend/supabase_profile_repository.dart';
@@ -242,6 +246,36 @@ Future<SessionController> buildSessionController(
       ),
       seed: seed,
     ),
+    repository: environment.repository,
+    playerId: environment.playerId,
+    correctionDelay: SessionController.defaultCorrectionDelay,
+    questionTimeout: questionTimeoutFor(
+      isDebugBuild: kDebugMode,
+      noTimeoutRequested: _debugNoTimeout,
+    ),
+  );
+}
+
+/// The placement test (plan, Phase 1 commit 6): the four basic operations
+/// in turn, each on its own adaptive staircase, then starting levels from
+/// `placementLevels`. Offered by `PlayTab` to a player with no history.
+SessionController buildPlacementController(AppEnvironment environment) {
+  const rules = placementRulesV1;
+  final seed = DateTime.now().millisecondsSinceEpoch;
+  return SessionController(
+    config: SessionConfig(
+      seed: seed,
+      enabledTypes: placementTypes.toSet(),
+      exerciseCount: rules.questionCount,
+      // The staircases' common start, recorded with the session; the level
+      // of each question follows the answers (`PlacementExerciseSource`).
+      levels: {
+        for (final t in placementTypes) t: Level.whole(rules.startLevel),
+      },
+      kind: SessionKind.placementV1,
+    ),
+    exerciseSource: PlacementExerciseSource(seed: seed, rules: rules),
+    levelCacheOrchestrator: const PlacementLevelOrchestrator(rules: rules),
     repository: environment.repository,
     playerId: environment.playerId,
     correctionDelay: SessionController.defaultCorrectionDelay,

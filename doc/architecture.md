@@ -21,6 +21,8 @@ lib/
                            # OperandRange, ExerciseSource, LocalExerciseSource,
                            # DebtAwareTypeSelectionStrategy, session_length.dart
       difficulty/          # level → operand bounds per type (arithmetic/power/square_root/percentage)
+      placement/           # placement test: staircases, placementLevels (pure), its exercise
+                           # source (adaptive, deterministic), PlacementLevelOrchestrator
       leveling/            # LevelUpdater, LevelCacheOrchestrator, LevelingRules, Confidence,
                            # AnswerOutcome — recompute levels from history; overall_level.dart
                            # (overall level, also stored per session)
@@ -51,6 +53,7 @@ supabase/
 tool/
   recalibrate.dart         # replays stored answers to tune the leveling constants (Phase 3)
   delta_check.dart         # simulated players against LevelUpdater, compares δ / n_min settings
+  placement_check.dart     # simulated players through the placement, then games (commit 6)
   hooks/                   # Claude Code hooks (.claude/settings.json): edit_rules.dart (rules,
                            # tested), guard_edit.dart, format_edit.dart, run.sh (launcher)
 .claude/
@@ -126,11 +129,11 @@ The expected answer comes from the domain, never recomputed by the UI or the `Sc
 Storage goes through `operands_json`, which absorbs the variants without schema migration. The
 stored discriminant is the `ExerciseType` value name.
 
-## Local schema (version 4)
+## Local schema (version 5)
 
 | Table | Content |
 |---|---|
-| `sessions` | id, player_id, seed, operation_types, exercise_count, total_score, levels_json (levels frozen at start, in hundredths), overall_level_after (nullable, in level units: 37.42), created_at, synced_at |
+| `sessions` | id, player_id, seed, operation_types, exercise_count, total_score, levels_json (levels frozen at start, in hundredths), overall_level_after (nullable, in level units: 37.42), created_at, synced_at, kind (`SessionKind.name`: `game` or `placementV1`, schema v5) |
 | `answers` | id, session_id, exercise_type, operation_type, operands_json, submitted_value, is_correct, elapsed_ms, created_at, synced_at |
 | `player_levels` | (player_id, exercise_type), level (in hundredths), sessions_played, updated_at — the level cache |
 

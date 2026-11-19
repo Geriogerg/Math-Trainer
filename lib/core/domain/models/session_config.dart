@@ -1,5 +1,6 @@
 import '../leveling/level.dart';
 import 'exercise_type.dart';
+import 'session_kind.dart';
 
 class SessionConfig {
   const SessionConfig({
@@ -7,6 +8,7 @@ class SessionConfig {
     required this.enabledTypes,
     required this.exerciseCount,
     required this.levels,
+    this.kind = SessionKind.game,
   });
 
   final int seed;
@@ -18,4 +20,8 @@ class SessionConfig {
   /// server-side, see `doc/decisions.md`). In hundredths; generation reads
   /// the whole part.
   final Map<ExerciseType, Level> levels;
+
+  /// A placement's levels move with its answers: [levels] then holds the
+  /// staircases' starting levels, for the record.
+  final SessionKind kind;
 }

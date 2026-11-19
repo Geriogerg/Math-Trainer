@@ -4,6 +4,7 @@ import '../../core/domain/leveling/level.dart';
 import '../../core/domain/models/answer_result.dart';
 import '../../core/domain/models/exercise_type.dart';
 import '../../core/domain/persistence/level_cache_entry.dart';
+import '../../core/domain/placement/placement.dart';
 import '../../core/state/session_controller.dart';
 import '../../core/state/session_state.dart';
 import '../exercise_prompt.dart';
@@ -38,9 +39,11 @@ class ResultScreen extends StatelessWidget {
     final theme = Theme.of(context);
     final result = controller.result;
     final status = controller.state.status;
-    final title = status == SessionStatus.interrupted
-        ? 'Session interrupted'
-        : 'Session complete';
+    final isPlacement = controller.config.kind.isPlacement;
+    final interrupted = status == SessionStatus.interrupted;
+    final title = isPlacement
+        ? (interrupted ? 'Placement interrupted' : 'Your starting levels')
+        : (interrupted ? 'Session interrupted' : 'Session complete');
     final breakdown = result.scoreBreakdown;
     final labelStyle = theme.textTheme.bodyMedium;
     final mistakes = result.outcomes.where((o) => !o.isCorrect).toList();
@@ -64,7 +67,29 @@ class ResultScreen extends StatelessWidget {
                 // No level change for an interrupted session — countsForLevels
                 // stayed false, lastLevelUpdates is never set
                 // (`doc/decisions.md`).
-                if (status == SessionStatus.finished) ...[
+                // A placement shows where the player starts, not a change
+                // from the staircases' common start; no score (it measures
+                // nothing there).
+                if (isPlacement) ...[
+                  if (interrupted)
+                    Text(
+                      'Levels unchanged. You can play right away — the '
+                      'difficulty will adapt as you go.',
+                      textAlign: TextAlign.center,
+                      style: labelStyle,
+                    )
+                  else
+                    for (final type in placementTypes)
+                      Text(
+                        controller.lastLevelUpdates?[type] == null
+                            ? '${exerciseTypeLabel(type)} — …'
+                            : '${exerciseTypeLabel(type)} — level '
+                                  '${controller.lastLevelUpdates![type]!.level.whole}',
+                        textAlign: TextAlign.center,
+                        style: labelStyle,
+                      ),
+                  const SizedBox(height: 16),
+                ] else if (status == SessionStatus.finished) ...[
                   for (final type in controller.config.enabledTypes)
                     _LevelChangeRow(
                       label: exerciseTypeLabel(type),
@@ -74,37 +99,39 @@ class ResultScreen extends StatelessWidget {
                     ),
                   const SizedBox(height: 16),
                 ],
-                Text(
-                  'Score: ${result.totalScore}',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.titleLarge,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Base: ${breakdown.base}',
-                  textAlign: TextAlign.center,
-                  style: labelStyle,
-                ),
-                Text(
-                  'Speed bonus: ${breakdown.speedBonus}',
-                  textAlign: TextAlign.center,
-                  style: labelStyle,
-                ),
-                Text(
-                  'Streak bonus: ${breakdown.streakBonus}',
-                  textAlign: TextAlign.center,
-                  style: labelStyle,
-                ),
-                // 0 for every player below a meaningful level
-                // (`_difficultyMultiplier(1) == 1`) — a line at 0 for most
-                // sessions of the first weeks teaches nothing.
-                if (breakdown.difficultyBonus != 0)
+                if (!isPlacement) ...[
                   Text(
-                    'Difficulty bonus: ${breakdown.difficultyBonus}',
+                    'Score: ${result.totalScore}',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Base: ${breakdown.base}',
                     textAlign: TextAlign.center,
                     style: labelStyle,
                   ),
-                const SizedBox(height: 16),
+                  Text(
+                    'Speed bonus: ${breakdown.speedBonus}',
+                    textAlign: TextAlign.center,
+                    style: labelStyle,
+                  ),
+                  Text(
+                    'Streak bonus: ${breakdown.streakBonus}',
+                    textAlign: TextAlign.center,
+                    style: labelStyle,
+                  ),
+                  // 0 for every player below a meaningful level
+                  // (`_difficultyMultiplier(1) == 1`) — a line at 0 for most
+                  // sessions of the first weeks teaches nothing.
+                  if (breakdown.difficultyBonus != 0)
+                    Text(
+                      'Difficulty bonus: ${breakdown.difficultyBonus}',
+                      textAlign: TextAlign.center,
+                      style: labelStyle,
+                    ),
+                  const SizedBox(height: 16),
+                ],
                 // Raw count, never a percentage presented as progress
                 // (`doc/design.md`): accuracy converges to p_cible by
                 // construction, it measures nothing (`doc/decisions.md`).
@@ -188,26 +215,33 @@ class ResultScreen extends StatelessWidget {
               // Centred (`doc/design.md`) — Play again stays visually
               // dominant through its filled style (`FilledButton`), not its
               // position.
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  TextButton(
-                    onPressed: onExitToSelection,
-                    child: const Text('New selection'),
-                  ),
-                  const SizedBox(width: 16),
-                  FilledButton(
-                    onPressed: isRestarting ? null : onPlayAgain,
-                    child: isRestarting
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text('Play again'),
-                  ),
-                ],
-              ),
+              // After a placement, the next step is choosing what to play.
+              if (isPlacement)
+                FilledButton(
+                  onPressed: onExitToSelection,
+                  child: const Text('Play'),
+                )
+              else
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    TextButton(
+                      onPressed: onExitToSelection,
+                      child: const Text('New selection'),
+                    ),
+                    const SizedBox(width: 16),
+                    FilledButton(
+                      onPressed: isRestarting ? null : onPlayAgain,
+                      child: isRestarting
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text('Play again'),
+                    ),
+                  ],
+                ),
               if (restartError != null) ...[
                 const SizedBox(height: 8),
                 Text(

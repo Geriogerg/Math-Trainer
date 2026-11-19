@@ -249,7 +249,8 @@ void main() {
 
     const accountA = Account(id: 'compte-a', email: 'a@test.com');
     const accountB = Account(id: 'compte-b', email: 'b@test.com');
-    const welcome = 'Difficulty adapts to your answers.';
+    // What a player with no session sees first (Phase 1 commit 6).
+    const welcome = 'Find your level';
 
     /// Game played under the device's local id (`test-player`, the one of
     /// `pumpGate`), as before accounts. Addition at level 43, the six other

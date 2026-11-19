@@ -15,7 +15,7 @@ import 'package:math_trainer/core/state/session_controller.dart';
 import 'package:math_trainer/core/state/session_state.dart';
 import 'package:test/test.dart';
 
-class _FixedExerciseSource implements ExerciseSource {
+class _FixedExerciseSource extends ExerciseSource {
   _FixedExerciseSource(this._exercises);
 
   final List<Exercise> _exercises;

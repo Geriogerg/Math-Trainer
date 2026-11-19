@@ -20,7 +20,7 @@ import 'package:math_trainer/presentation/theme/app_theme.dart';
 
 /// Same double as the other controller/golden tests — no shared test
 /// infrastructure for a single class of a few lines (project convention).
-class _FixedExerciseSource implements ExerciseSource {
+class _FixedExerciseSource extends ExerciseSource {
   _FixedExerciseSource(this._exercises);
 
   final List<Exercise> _exercises;

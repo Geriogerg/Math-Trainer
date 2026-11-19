@@ -545,7 +545,10 @@ class _RecentSessionRow extends StatelessWidget {
           ),
           Expanded(
             child: Text(
-              'Score ${session.totalScore}',
+              // A placement's score means nothing; say what it was.
+              session.kind.isPlacement
+                  ? 'Placement'
+                  : 'Score ${session.totalScore}',
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium,
             ),

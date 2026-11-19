@@ -38,6 +38,17 @@ void main() {
   out
     ..writeln('};')
     ..writeln()
+    ..writeln('const placementSequenceReferences = <String, String>{');
+  for (final pattern in placementPatterns.keys) {
+    for (final seed in determinismSeeds) {
+      out.writeln(
+        "  ${_quote('$pattern | $seed')}: ${_quote(placementSequence(seed, pattern))},",
+      );
+    }
+  }
+  out
+    ..writeln('};')
+    ..writeln()
     ..writeln('const levelUpdateGridReference = ${_quote(levelUpdateGrid())};');
   const path = 'test/domain/determinism/determinism_references.dart';
   File(path).writeAsStringSync(out.toString());

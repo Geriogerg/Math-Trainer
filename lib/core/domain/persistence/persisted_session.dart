@@ -1,5 +1,6 @@
 import '../leveling/level.dart';
 import '../models/exercise_type.dart';
+import '../models/session_kind.dart';
 
 /// See [PersistedAnswer] for why this sentinel exists.
 const _unset = Object();
@@ -16,6 +17,7 @@ class PersistedSession {
     required this.createdAt,
     this.overallLevelAfter,
     this.syncedAt,
+    this.kind = SessionKind.game,
   }) {
     final overall = overallLevelAfter;
     if (overall != null && (overall < 1 || overall > 100)) {
@@ -66,6 +68,9 @@ class PersistedSession {
 
   final DateTime? syncedAt;
 
+  /// Game or placement (schema v5; older rows are games).
+  final SessionKind kind;
+
   PersistedSession copyWith({String? playerId, Object? syncedAt = _unset}) {
     return PersistedSession(
       id: id,
@@ -80,6 +85,7 @@ class PersistedSession {
       syncedAt: identical(syncedAt, _unset)
           ? this.syncedAt
           : syncedAt as DateTime?,
+      kind: kind,
     );
   }
 
@@ -113,7 +119,8 @@ class PersistedSession {
       other._levelsEqual(levels) &&
       other.createdAt == createdAt &&
       other.overallLevelAfter == overallLevelAfter &&
-      other.syncedAt == syncedAt;
+      other.syncedAt == syncedAt &&
+      other.kind == kind;
 
   @override
   int get hashCode => Object.hash(
@@ -131,5 +138,6 @@ class PersistedSession {
     createdAt,
     overallLevelAfter,
     syncedAt,
+    kind,
   );
 }

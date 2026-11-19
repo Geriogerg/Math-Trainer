@@ -38,7 +38,10 @@ class CompositeExerciseGenerator implements ExerciseGenerator {
            // Generation reads the whole part of a level (plan, Phase 1
            // commit 2): 37.99 generates exactly like 37.00, so sequences
            // from before continuous levels replay unchanged.
-           type: _buildGenerator(type, levels?[type]?.whole ?? _defaultLevel),
+           type: exerciseGeneratorFor(
+             type,
+             levels?[type]?.whole ?? _defaultLevel,
+           ),
        } {
     if (enabledTypes.isEmpty) {
       throw ArgumentError.value(
@@ -76,33 +79,36 @@ class CompositeExerciseGenerator implements ExerciseGenerator {
     }
     return _generators[type]!.next(random);
   }
-
-  static ExerciseGenerator _buildGenerator(ExerciseType type, int level) =>
-      switch (type) {
-        ExerciseType.addition => ArithmeticExerciseGenerator(
-          operationTypes: [type.operationType!],
-          operandRange: additionDifficulty.operandRangeFor(level),
-        ),
-        ExerciseType.subtraction => ArithmeticExerciseGenerator(
-          operationTypes: [type.operationType!],
-          operandRange: subtractionDifficulty.operandRangeFor(level),
-        ),
-        ExerciseType.multiplication => ArithmeticExerciseGenerator(
-          operationTypes: [type.operationType!],
-          operandRange: multiplicationDifficulty.operandRangeFor(level),
-        ),
-        ExerciseType.division => ArithmeticExerciseGenerator(
-          operationTypes: [type.operationType!],
-          operandRange: divisionDifficulty.operandRangeFor(level),
-        ),
-        ExerciseType.power => PowerExerciseGenerator(
-          exponentRange: powerDifficulty.exponentRangeFor(level),
-        ),
-        ExerciseType.squareRoot => SquareRootExerciseGenerator(
-          rootRange: squareRootDifficulty.rootRangeFor(level),
-        ),
-        ExerciseType.percentage => PercentageExerciseGenerator(
-          percentRange: percentageDifficulty.percentRangeFor(level),
-        ),
-      };
 }
+
+/// The generator of one exercise type at a whole [level] — shared by games
+/// (`CompositeExerciseGenerator`) and the placement test, so both draw a
+/// given type at a given level identically.
+ExerciseGenerator exerciseGeneratorFor(ExerciseType type, int level) =>
+    switch (type) {
+      ExerciseType.addition => ArithmeticExerciseGenerator(
+        operationTypes: [type.operationType!],
+        operandRange: additionDifficulty.operandRangeFor(level),
+      ),
+      ExerciseType.subtraction => ArithmeticExerciseGenerator(
+        operationTypes: [type.operationType!],
+        operandRange: subtractionDifficulty.operandRangeFor(level),
+      ),
+      ExerciseType.multiplication => ArithmeticExerciseGenerator(
+        operationTypes: [type.operationType!],
+        operandRange: multiplicationDifficulty.operandRangeFor(level),
+      ),
+      ExerciseType.division => ArithmeticExerciseGenerator(
+        operationTypes: [type.operationType!],
+        operandRange: divisionDifficulty.operandRangeFor(level),
+      ),
+      ExerciseType.power => PowerExerciseGenerator(
+        exponentRange: powerDifficulty.exponentRangeFor(level),
+      ),
+      ExerciseType.squareRoot => SquareRootExerciseGenerator(
+        rootRange: squareRootDifficulty.rootRangeFor(level),
+      ),
+      ExerciseType.percentage => PercentageExerciseGenerator(
+        percentRange: percentageDifficulty.percentRangeFor(level),
+      ),
+    };
