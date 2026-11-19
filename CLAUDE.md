@@ -11,10 +11,10 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 ## Current phase
 
 **Phase 1 — First run and accounts** (`doc/plan.md`, section 7), run in **one pass**.
-Done: **0**, **1** (VM = JavaScript, 158/158), **2** (levels in hundredths, schema v4),
-**3** (self-hosted CanvasKit and fonts, loading screen), **4** (anonymous-first), **5** (linking, account screens; to play), **6** (placement test; to play), **7 (1/2)** (SQL written; owner to run
-it). Waiting on the owner: `SUPABASE_PUBLISHABLE_KEY`
-secret still empty on the preview. Next commit: **7 (2/2)**. Update this block at every commit.
+Done: 0, 1, 2, 3, 4, 5 *(C)*, 6 *(C)*, 7 (details: `doc/progress.md`). Next commit: **8**.
+Waiting on the owner: the `SUPABASE_PUBLISHABLE_KEY` secret (preview still unconfigured);
+running `supabase/delete_account.sql` (commit 7's live check parked). At phase end the owner
+plays 5 games and checkpoints 5 and 6 on the preview. Update this block at every commit.
 
 | # | Commit | Note |
 |---|---|---|

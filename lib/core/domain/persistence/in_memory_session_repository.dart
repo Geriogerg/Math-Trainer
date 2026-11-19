@@ -100,4 +100,15 @@ class InMemorySessionRepository implements SessionRepository {
     final levels = _levelsByPlayer.remove(fromPlayerId);
     if (levels != null) _levelsByPlayer[toPlayerId] = levels;
   }
+
+  @override
+  Future<void> deletePlayerData(String playerId) async {
+    final ids = {
+      for (final s in _sessions)
+        if (s.playerId == playerId) s.id,
+    };
+    _answers.removeWhere((a) => ids.contains(a.sessionId));
+    _sessions.removeWhere((s) => s.playerId == playerId);
+    _levelsByPlayer.remove(playerId);
+  }
 }

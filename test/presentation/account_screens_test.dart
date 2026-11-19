@@ -10,6 +10,8 @@ import 'package:math_trainer/presentation/theme/app_theme.dart';
 import '../fake_profile_repository.dart';
 
 class _Accounts implements AccountRepository {
+  @override
+  Future<void> deleteAccount() => throw UnimplementedError();
   AccountException? linkError;
   int signIns = 0;
 

@@ -22,6 +22,8 @@ import '../fake_profile_repository.dart';
 /// (`test/fake_account_repository.dart`), which starts signed in and only
 /// serves tests that do not care about the gate itself.
 class _ControllableAccountRepository implements AccountRepository {
+  @override
+  Future<void> deleteAccount() => throw UnimplementedError();
   final _controller = StreamController<Account?>.broadcast();
 
   /// Simulates resolving the local session (persisted or absent) —

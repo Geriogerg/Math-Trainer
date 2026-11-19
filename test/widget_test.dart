@@ -18,6 +18,8 @@ import 'fake_profile_repository.dart';
 
 class _ThrowingSessionRepository implements SessionRepository {
   @override
+  Future<void> deletePlayerData(String playerId) => throw UnimplementedError();
+  @override
   Future<void> recordSession({
     required PersistedSession session,
     required List<PersistedAnswer> answers,

@@ -151,6 +151,21 @@ class SqfliteSessionRepository implements SessionRepository {
     });
   }
 
+  @override
+  Future<void> deletePlayerData(String playerId) async {
+    await _database.transaction((txn) async {
+      // Answers first: they reference their session (`session_id`).
+      await txn.rawDelete(
+        'DELETE FROM answers WHERE session_id IN '
+        '(SELECT id FROM sessions WHERE player_id = ?)',
+        [playerId],
+      );
+      for (final table in ['sessions', 'player_levels']) {
+        await txn.delete(table, where: 'player_id = ?', whereArgs: [playerId]);
+      }
+    });
+  }
+
   Map<String, Object?> _sessionToRow(PersistedSession session) {
     return {
       'id': session.id,

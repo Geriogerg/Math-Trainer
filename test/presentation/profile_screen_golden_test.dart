@@ -21,6 +21,8 @@ import 'golden_test_utils.dart';
 /// the curve relative to "now", hard-coded dates would drift out of the
 /// 30-day window over time and make the golden non-reproducible.
 class _FixedLevelsRepository implements SessionRepository {
+  @override
+  Future<void> deletePlayerData(String playerId) => throw UnimplementedError();
   _FixedLevelsRepository(DateTime now)
     : _windowSessions = [
         _session(

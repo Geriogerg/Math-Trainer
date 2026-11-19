@@ -46,8 +46,19 @@ The old "slice 3" (leaderboard, sync, validation service) is Phase 2 of the plan
   user stays until Phase 2's cleanup of stale guests.
 - Sign-up from scratch no longer exists (`signUp` and `AuthForm` removed): a new player is a
   guest, and saving their progress replaces sign-up.
+- **Account deletion** (commit 7), every player, guests included: Profile → "Delete my
+  data" (guest) / "Delete my account", after a confirmation. `AccountDeletionController`:
+  1. `AccountRepository.deleteAccount()` — RPC `delete_my_account()`
+     (`supabase/delete_account.sql`, `security definer`, deletes only `auth.uid()`; the
+     profile and Supabase's sessions follow by cascade). If it fails, **nothing** is touched;
+  2. `SessionRepository.deletePlayerData(id)` — this player's sessions, answers and level
+     cache on this device, atomically; other players on the device untouched;
+  3. local sign-out → `AuthGate` creates a fresh guest.
+  If the local wipe fails after the server deletion, the player is still signed out and told
+  that data stayed on the device. Device settings (theme, type selection) are kept.
 - Supabase project settings this relies on: anonymous sign-ins **on** (owner, 19 Nov 2026);
-  built-in rate limit on anonymous sign-ins (30 per hour per IP) until CAPTCHA (Phase 6).
+  built-in rate limit on anonymous sign-ins (30 per hour per IP) until CAPTCHA (Phase 6);
+  `delete_my_account()` installed by the owner from `supabase/delete_account.sql`.
 - Email confirmation is **off** in the Supabase project for development: the default mailer only
   sends to organisation members. Phase 1 turns it on with a real SMTP sender and a site URL.
 

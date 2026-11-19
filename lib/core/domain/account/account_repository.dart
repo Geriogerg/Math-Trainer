@@ -35,6 +35,16 @@ abstract class AccountRepository {
   /// disabled in the project).
   Future<Account> signInAnonymously();
 
+  /// Deletes the signed-in account on the server — the auth user and,
+  /// by cascade, its profile and every server row of this player — through
+  /// a database function that only ever deletes the caller
+  /// (`supabase/delete_account.sql`): no service key in the app. Works for a
+  /// guest too. Does **not** sign out: the caller wipes local data first,
+  /// then signs out (`AccountDeletionController`). Throws an
+  /// `AccountException` if the server deletion failed (`network`, `unknown`
+  /// — e.g. the SQL function is not installed): nothing was deleted then.
+  Future<void> deleteAccount();
+
   /// Signs out locally in every case, even offline — never throws. Never
   /// offered to an anonymous player (`Account.isAnonymous`): their account
   /// would be lost.

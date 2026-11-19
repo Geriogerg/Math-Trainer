@@ -57,4 +57,9 @@ abstract class SessionRepository {
     required String fromPlayerId,
     required String toPlayerId,
   });
+
+  /// Deletes everything stored here for [playerId] — sessions, their
+  /// answers, the level cache — in one atomic operation (account deletion,
+  /// plan section 6.3). Other players on this device are untouched.
+  Future<void> deletePlayerData(String playerId);
 }

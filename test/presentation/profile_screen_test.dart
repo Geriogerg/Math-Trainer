@@ -20,6 +20,8 @@ import '../fake_profile_repository.dart';
 /// Fails while [shouldFail] is true, succeeds afterwards — simulates a
 /// network/disk that recovers, to test the "Retry" button.
 class _FlakySessionRepository implements SessionRepository {
+  @override
+  Future<void> deletePlayerData(String playerId) => throw UnimplementedError();
   bool shouldFail = true;
 
   @override
@@ -94,6 +96,12 @@ class _RecordingAccountRepository implements AccountRepository {
   Future<Account> signInAnonymously() => throw UnimplementedError();
 
   bool signOutCalled = false;
+  bool deleteCalled = false;
+
+  @override
+  Future<void> deleteAccount() async {
+    deleteCalled = true;
+  }
 
   @override
   Stream<Account?> get authState => Stream.value(account);
@@ -604,6 +612,77 @@ void main() {
     await tester.tap(find.text('Save your progress'));
     await tester.pumpAndSettle();
     expect(find.text('Player name'), findsOneWidget);
+  });
+
+  group('deletion', () {
+    Future<_RecordingAccountRepository> pumpProfile(
+      WidgetTester tester,
+      Account account,
+    ) async {
+      await setTallSurface(tester);
+      final accounts = _RecordingAccountRepository(account: account);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildLightTheme(),
+          home: Scaffold(
+            body: ProfileScreen(
+              environment: AppEnvironment(
+                repository: InMemorySessionRepository(),
+                playerId: account.id,
+                accountRepository: accounts,
+                profileRepository: FakeProfileRepository(),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      return accounts;
+    }
+
+    testWidgets('a guest deletes their data after confirming', (tester) async {
+      final accounts = await pumpProfile(
+        tester,
+        const Account(id: 'guest-1', isAnonymous: true),
+      );
+
+      await tester.ensureVisible(find.text('Delete my data'));
+      await tester.tap(find.text('Delete my data'));
+      await tester.pumpAndSettle();
+      expect(find.text('Delete your data?'), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(TextButton, 'Delete'));
+      await tester.pumpAndSettle();
+
+      expect(accounts.deleteCalled, isTrue);
+      expect(accounts.signOutCalled, isTrue);
+      expect(find.text('Your data was deleted.'), findsOneWidget);
+    });
+
+    testWidgets('Cancel deletes nothing', (tester) async {
+      final accounts = await pumpProfile(
+        tester,
+        const Account(id: 'guest-1', isAnonymous: true),
+      );
+
+      await tester.ensureVisible(find.text('Delete my data'));
+      await tester.tap(find.text('Delete my data'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(accounts.deleteCalled, isFalse);
+      expect(accounts.signOutCalled, isFalse);
+    });
+
+    testWidgets('an email account reads "Delete my account"', (tester) async {
+      await pumpProfile(
+        tester,
+        const Account(id: 'a', email: 'player@test.com'),
+      );
+      expect(find.text('Delete my account'), findsOneWidget);
+      expect(find.text('Delete my data'), findsNothing);
+    });
   });
 }
 

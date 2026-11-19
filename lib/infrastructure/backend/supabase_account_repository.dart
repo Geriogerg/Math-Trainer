@@ -119,6 +119,23 @@ class SupabaseAccountRepository implements AccountRepository {
     }
   }
 
+  @override
+  Future<void> deleteAccount() async {
+    try {
+      await _client.rpc<void>('delete_my_account');
+    } on AuthException catch (e) {
+      throw _toAccountException(e);
+    } on PostgrestException catch (e) {
+      // PGRST202: the function is not installed (the SQL was never run);
+      // anything else from PostgREST is equally unexpected here.
+      throw AccountException(AccountFailure.unknown, detail: e.message);
+    } on Exception catch (e) {
+      // `http.ClientException` and the like: the request never went
+      // through.
+      throw AccountException(AccountFailure.network, detail: '$e');
+    }
+  }
+
   /// gotrue clears the local session and emits `signedOut` *before*
   /// notifying the server: offline, the player is indeed signed out, only
   /// the server-side revocation fails (the token will expire on its own).

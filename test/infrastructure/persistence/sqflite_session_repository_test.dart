@@ -70,6 +70,36 @@ void main() {
   }
 
   group('SqfliteSessionRepository', () {
+    test('deletePlayerData removes the sessions, answers and levels of one '
+        'player only', () async {
+      for (final player in ['me', 'other']) {
+        await repository.recordSession(
+          session: session(
+            's-$player',
+            createdAt: DateTime.utc(2026, 11, 1),
+            playerId: player,
+          ),
+          answers: [answer('a-$player', 's-$player')],
+          levelUpdates: {
+            ExerciseType.addition: LevelCacheEntry(
+              level: Level.whole(20),
+              sessionsPlayed: 1,
+              updatedAt: DateTime.utc(2026, 11, 1),
+            ),
+          },
+        );
+      }
+
+      await repository.deletePlayerData('me');
+
+      expect(await repository.recentSessions('me'), isEmpty);
+      expect(await repository.answersForSession('s-me'), isEmpty);
+      expect(await repository.currentLevels('me'), isEmpty);
+      expect(await repository.recentSessions('other'), hasLength(1));
+      expect(await repository.answersForSession('s-other'), hasLength(1));
+      expect(await repository.currentLevels('other'), hasLength(1));
+    });
+
     test('a placement keeps its kind; a game is a game', () async {
       final game = session('game-1', createdAt: DateTime.utc(2026, 11, 1));
       final placement = PersistedSession(

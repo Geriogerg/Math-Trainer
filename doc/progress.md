@@ -196,6 +196,15 @@ Phase 0 closed in Phase 1 commit 0 (`material_ui`, `δ` recorded, preview, load)
   `SessionLevelUpdates` interface, `exerciseGeneratorFor` made public (no sequence changed).
   Walked in a release build (guest `7ea74633-…` created). **Played by the owner at phase end.**
 
+- **Commit 7 (2/2)** *(A)* — Account deletion, app side: `deleteAccount` (RPC),
+  `deletePlayerData` (SQLite and in-memory, atomic), `AccountDeletionController` (server →
+  device → sign-out; nothing touched if the server refuses), Profile "Delete my data" /
+  "Delete my account" with confirmation. Unit- and widget-tested. **Parked: live check** —
+  `delete_my_account()` not installed in the project yet (PGRST202 on 19 Nov 2026); once the
+  owner has run `supabase/delete_account.sql`: delete one of the throwaway guests through the
+  app, and the probe accounts `8bec648d-…`, `e188e86d-…`, `fb154e14-…` (linked),
+  `7969cb24-…`, `7ea74633-…`.
+
 ### Remaining contradictions after commit 0
 
 The five plan/reality contradictions found at commit 0 (language, `δ`, branch and remote, commit 0

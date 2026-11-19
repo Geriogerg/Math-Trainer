@@ -176,6 +176,64 @@ void main() {
     });
   });
 
+  group('deleteAccount', () {
+    test('calls delete_my_account as the signed-in user', () async {
+      final client = SupabaseTestClient(
+        restHandler: (_) async => http.Response('', 204),
+      );
+      addTearDown(client.client.dispose);
+      await client.signIn();
+
+      await SupabaseAccountRepository(client.client).deleteAccount();
+
+      final call = client.restRequests.single;
+      expect(call.method, 'POST');
+      expect(call.url.path, '/rest/v1/rpc/delete_my_account');
+      expect(call.headers['Authorization'], startsWith('Bearer '));
+    });
+
+    test(
+      'function not installed (PGRST202) → unknown, with the detail',
+      () async {
+        final client = SupabaseTestClient(
+          restHandler: (_) async => http.Response(
+            jsonEncode({
+              'code': 'PGRST202',
+              'message': 'Could not find the function public.delete_my_account',
+            }),
+            404,
+            headers: {'content-type': 'application/json'},
+          ),
+        );
+        addTearDown(client.client.dispose);
+        await client.signIn();
+
+        try {
+          await SupabaseAccountRepository(client.client).deleteAccount();
+          fail('AccountException expected');
+        } on AccountException catch (e) {
+          expect(e.failure, AccountFailure.unknown);
+          expect(e.detail, contains('delete_my_account'));
+        }
+      },
+    );
+
+    test('offline → network', () async {
+      final client = SupabaseTestClient(
+        restHandler: (_) async => throw http.ClientException('offline'),
+      );
+      addTearDown(client.client.dispose);
+      await client.signIn();
+
+      try {
+        await SupabaseAccountRepository(client.client).deleteAccount();
+        fail('AccountException expected');
+      } on AccountException catch (e) {
+        expect(e.failure, AccountFailure.network);
+      }
+    });
+  });
+
   group('errors mapped to AccountException', () {
     /// Current Supabase Auth format: API version header, code in `code`
     /// (before 2024: `error_code`).

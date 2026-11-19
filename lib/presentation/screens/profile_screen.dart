@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 
 import '../../composition_root.dart';
@@ -7,6 +9,8 @@ import '../../core/domain/leveling/level.dart';
 import '../../core/domain/persistence/level_cache_entry.dart';
 import '../../core/domain/models/exercise_type.dart';
 import '../../core/domain/persistence/persisted_session.dart';
+import '../../core/state/account_deletion_controller.dart';
+import '../account_messages.dart';
 import '../exercise_type_labels.dart';
 import '../../core/domain/leveling/overall_level.dart';
 import '../../core/state/account_form_controller.dart';
@@ -203,6 +207,74 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  /// Confirm, then delete on the server, wipe this device's data, sign out
+  /// (`AccountDeletionController`); `AuthGate` then starts a fresh guest.
+  Future<void> _deleteData(Account account) async {
+    final guest = account.isAnonymous;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(guest ? 'Delete your data?' : 'Delete your account?'),
+        content: Text(
+          guest
+              ? 'Your levels, your history and your guest account are '
+                    'deleted from this device and from the server. You start '
+                    'again as a new player. This cannot be undone.'
+              : 'Your account, levels, history and player name are deleted '
+                    'from this device and from the server. This cannot be '
+                    'undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(dialogContext).colorScheme.error,
+            ),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    final environment = widget.environment;
+    final deletion = AccountDeletionController(
+      accounts: environment.accountRepository,
+      repository: environment.repository,
+      playerId: environment.playerId,
+    );
+    // Captured now: on success `AuthGate` replaces this whole screen.
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    unawaited(
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const PopScope(
+          canPop: false,
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      ),
+    );
+    final outcome = await deletion.delete();
+    navigator.pop(); // the progress indicator
+    deletion.dispose();
+    final message = switch (outcome) {
+      AccountDeletionOutcome.deleted =>
+        guest ? 'Your data was deleted.' : 'Your account was deleted.',
+      AccountDeletionOutcome.deletedButLocalDataKept =>
+        'Deleted from the server; some data could not be removed from this '
+            'device.',
+      AccountDeletionOutcome.failed =>
+        'Nothing was deleted. ${describeAccountFailure(deletion.failure!, detail: deletion.failureDetail)}',
+    };
+    messenger.showSnackBar(SnackBar(content: Text(message)));
+  }
+
   /// Sign in to an existing account; `AuthGate` swaps the whole shell on
   /// success, so nothing to reload here.
   void _signInExisting(bool isGuest, bool hasProgress) {
@@ -312,6 +384,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ? data.recentSessions[i + 1]
                       : null,
                 ),
+            const SizedBox(height: 32),
+            // Last and quiet on purpose: irreversible, never next to the
+            // everyday actions. Every player has it, guests included
+            // (plan, section 6.3).
+            Center(
+              child: TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: theme.colorScheme.error,
+                ),
+                onPressed: () => _deleteData(data.account),
+                child: Text(
+                  data.account.isAnonymous
+                      ? 'Delete my data'
+                      : 'Delete my account',
+                ),
+              ),
+            ),
           ],
         );
       },

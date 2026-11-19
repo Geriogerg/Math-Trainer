@@ -6,6 +6,8 @@ import 'package:math_trainer/core/domain/account/profile_repository.dart';
 import 'package:math_trainer/core/state/account_form_controller.dart';
 
 class _Accounts implements AccountRepository {
+  @override
+  Future<void> deleteAccount() => throw UnimplementedError();
   AccountException? linkError;
   AccountException? signInError;
   bool pendingConfirmation = false;
