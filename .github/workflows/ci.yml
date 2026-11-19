@@ -31,6 +31,12 @@ jobs:
           channel: stable
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
+      - name: Dependencies of every package
+        # The formatter reads each package's language version from its
+        # package config: without it, it formats differently.
+        run: |
+          (cd app && flutter pub get)
+          for dir in packages/math_core server tool; do (cd "$dir" && dart pub get); done
       - name: Formatting
         run: dart format --output=none --set-exit-if-changed app/lib app/test packages server tool
       - name: Core — analyzer

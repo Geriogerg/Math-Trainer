@@ -11,7 +11,7 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 ## Current phase
 
 **Phase 2 — Server and leaderboard** (`doc/plan.md`, section 7), run in **one pass**.
-Done: 0–5. Next commit: **6**. Waiting on the owner: the `SUPABASE_ACCESS_TOKEN` and
+Done: 0–6. Next commit: **7**. Waiting on the owner: the `SUPABASE_ACCESS_TOKEN` and
 `SUPABASE_DB_PASSWORD` secrets (CI skips the migrations until then — the Phase 1 test accounts
 go with them); the server host (Render free, prepared in `render.yaml`, not deployed). Update this block at every commit.
 
@@ -182,6 +182,10 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 - Browser storage can be evicted until server sync is live (a build with `SERVER_URL`).
 - Uploads go one at a time, oldest first: the server checks that levels chain. Never upload in
   parallel or skip a refused session's successors.
+- Level updates have one implementation: `gameLevelUpdates` / `placementLevelUpdates`, used by
+  the app's orchestrators and the server's validation. Never compute levels elsewhere.
+- `RejectionReason` and `ValidationFlag` names are stored server-side and sent to the app:
+  renaming breaks both.
 - Rotation by sampling debt makes question order depend on past games: sessions store their
   type sequence (schema v6). Replay with `replaySessionQuestions`, never by re-running the
   strategy.

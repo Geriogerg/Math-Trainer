@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:math_core/sync/session_upload.dart';
+import 'package:math_core/sync/session_upload_client.dart';
+import 'package:math_core/validation/session_validation.dart';
 import 'package:shelf/shelf.dart';
 
 import 'http_app.dart';
@@ -9,8 +11,8 @@ import 'supabase_gateway.dart';
 /// Largest accepted body: a 24-question session is about 6 KB.
 const maxUploadBytes = 256 * 1024;
 
-/// `POST /v1/sessions` (plan, Phase 2 commit 5): one uploaded session,
-/// idempotent on its id. Answers:
+/// `POST /v1/sessions` (plan, Phase 2 commits 5 and 6): one uploaded
+/// session, replayed and validated, idempotent on its id. Answers:
 /// - 200 `{status: accepted, syncedAt, duplicate}` — stored now or before;
 /// - 400 / 409 `{status: refused, reason}` — malformed or refused for good:
 ///   the app records it and never resends;
@@ -64,34 +66,113 @@ class SessionEndpoint {
     }
   }
 
-  /// Records [upload] once (`record_session_upload`, idempotent on the id).
+  /// Decides [upload] once and for all (plan 6.4): an id already decided
+  /// gets the same answer again (idempotence); otherwise the server reads
+  /// the player's state, replays the session with math_core
+  /// (`validateSessionUpload`) and applies or records the verdict. A
+  /// concurrent upload of the same player makes the apply "stale": read
+  /// and validate again, up to [maxAttempts] times.
   Future<Response> store(
     SessionUpload upload, {
     required DateTime receivedAt,
   }) async {
     final session = upload.session;
-    final result = await gateway.rpc('record_session_upload', {
-      'p_session_id': session.id,
-      'p_player_id': session.playerId,
-      'p_created_at': session.createdAt.toIso8601String(),
-      'p_kind': session.kind.name,
-      'p_payload': upload.toJson(),
-    });
-    final row = _firstRow(result);
-    switch (row['outcome']) {
-      case 'inserted':
-      case 'duplicate':
-        return jsonResponse(200, {
-          'status': 'accepted',
-          'syncedAt': row['received_at'],
-          'duplicate': row['outcome'] == 'duplicate',
-        });
-      case 'conflict':
-        // The id is taken by another player's session: never this one's.
+    final known = _rows(
+      await gateway.rpc('upload_status', {'p_session_id': session.id}),
+    );
+    if (known.isNotEmpty) {
+      final row = known.first;
+      if (row['player_id'] != session.playerId) {
         return refused(409, 'idConflict');
+      }
+      if (row['state'] == 'accepted') {
+        return accepted(row['received_at'], duplicate: true);
+      }
+      return refused(409, '${row['reason']}');
     }
-    throw StateError('record_session_upload answered ${row['outcome']}');
+
+    for (var attempt = 0; attempt < maxAttempts; attempt++) {
+      final (version, state) = parseServerState(
+        await gateway.rpc('player_server_state', {
+          'p_player_id': session.playerId,
+        }),
+      );
+      final verdict = validateSessionUpload(
+        upload: upload,
+        callerId: session.playerId,
+        state: state,
+        receivedAt: receivedAt,
+      );
+      switch (verdict) {
+        case Rejected(:final reason, :final detail):
+          await gateway.rpc('record_rejected_upload', {
+            'p_session_id': session.id,
+            'p_player_id': session.playerId,
+            'p_reason': reason.name,
+            'p_detail': detail,
+            'p_payload': upload.toJson(),
+          });
+          return refused(
+            409,
+            reason.name,
+            // The app adopts these so its next games chain again.
+            levels: reason == RejectionReason.levelsMismatch
+                ? levelCacheToJson(state.levels)
+                : null,
+          );
+        case Accepted(:final completed, :final levelUpdates, :final flags):
+          final row = _rows(
+            await gateway.rpc('apply_validated_session', {
+              'p_session_id': session.id,
+              'p_player_id': session.playerId,
+              'p_expected_version': version,
+              'p_created_at': session.createdAt.toIso8601String(),
+              'p_kind': session.kind.name,
+              'p_completed': completed,
+              'p_payload': upload.toJson(),
+              'p_level_updates': levelCacheToJson(levelUpdates),
+              'p_flags': [for (final f in flags) f.name],
+            }),
+          ).first;
+          switch (row['outcome']) {
+            case 'applied':
+              return accepted(row['received_at']);
+            case 'duplicate':
+              return accepted(row['received_at'], duplicate: true);
+            case 'conflict':
+              return refused(409, 'idConflict');
+            case 'stale':
+              continue;
+          }
+          throw StateError('apply_validated_session: ${row['outcome']}');
+      }
+    }
+    // The player's state kept moving: let the app retry later.
+    return jsonResponse(503, {'error': 'busy'});
   }
+
+  static const maxAttempts = 3;
+}
+
+Response accepted(Object? receivedAt, {bool duplicate = false}) => jsonResponse(
+  200,
+  {'status': 'accepted', 'syncedAt': receivedAt, 'duplicate': duplicate},
+);
+
+/// `player_server_state`'s JSON as (version, math_core state).
+(int, ServerPlayerState) parseServerState(Object? json) {
+  if (json is! Map) throw StateError('player_server_state: $json');
+  final version = json['version'];
+  final last = json['lastSessionAt'];
+  if (version is! int) throw StateError('player_server_state: version');
+  return (
+    version,
+    ServerPlayerState(
+      levels: levelCacheFromJson(json['levels'] ?? const {}),
+      lastSessionAt: last == null ? null : DateTime.parse('$last').toUtc(),
+      hasCompletedSession: json['hasCompletedSession'] == true,
+    ),
+  );
 }
 
 /// A final refusal the app records and never resends.
@@ -107,8 +188,11 @@ Response refused(
   'levels': ?levels,
 });
 
-Map<String, Object?> _firstRow(Object? result) {
-  final row = result is List && result.isNotEmpty ? result.first : result;
-  if (row is! Map) throw StateError('unexpected rpc result: $result');
-  return row.cast<String, Object?>();
-}
+List<Map<String, Object?>> _rows(Object? result) => switch (result) {
+  final List<Object?> list => [
+    for (final row in list)
+      if (row is Map) row.cast<String, Object?>(),
+  ],
+  final Map<Object?, Object?> row => [row.cast<String, Object?>()],
+  _ => const [],
+};

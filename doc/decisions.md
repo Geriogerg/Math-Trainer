@@ -622,6 +622,23 @@ replay's verdict). The server's verdict carries `received_at`, stored as `synced
 than checking the JWT locally: no JWT library, works with Supabase's rotating signing keys, and
 catches revoked sessions — one HTTP call per upload, negligible here.
 
+## Validation: the chain of levels, and adopting the server's (Phase 2, commit 6)
+
+Replaying questions and answers alone would let a forger claim **easier frozen levels** (level 1
+questions, answered perfectly) and climb. So each game must start from the levels the server
+itself produced from the player's previous accepted session — the server never takes a level
+from the client. Its cost: a session played on another device, or local history from before
+uploads (whole-number levels until Phase 1, never replayable to the same values), does not
+chain and is refused (`levelsMismatch`). Rather than leave that player stuck, the refusal carries
+the server's levels and the app adopts them: its next games chain again. The refused sessions
+stay in the local history and the Profile, they only never reach the board.
+Alternatives rejected: trusting the client's frozen level (forgeable); recomputing every level
+from the whole uploaded history on each upload (same verdict, more work, and still nothing to do
+with sessions the server never saw).
+**Provisional (owner to confirm)**: rejection reasons and flags as listed in `doc/online.md`;
+the timing-flag thresholds (300 ms, 40 ms spread) are guesses until Phase 3 data.
+**Reopen when** multi-device play matters (Phase 7): sync levels down at sign-in instead.
+
 ## Server host: Render free, prepared (Phase 2, commit 4) — owner decision pending
 
 The plan: host and monthly cost prepared, **not deployed until the owner confirms** (it costs

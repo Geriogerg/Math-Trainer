@@ -182,6 +182,40 @@ the owner says yes:
   received_at, kind, payload jsonb): RLS on, no policy, API roles' grants revoked — only the
   server reads and writes it.
 
+## Replay and validation (Phase 2 commit 6)
+
+`validateSessionUpload` (`math_core/validation/`, pure, VM and JavaScript) decides every upload
+from the server's own state (`ServerPlayerState`: level cache, last accepted session, whether
+one was completed):
+
+1. the caller is the session's player; `createdAt` not after reception + 5 min, not before the
+   last accepted session; 1 to `exerciseCount` answers, each 0–15 s;
+2. **every question regenerated** with `replaySessionQuestions` and compared with the stored
+   one; **correctness recomputed** from the submitted value (a placement's next question
+   depends on it, so in order);
+3. **the chain**: a game's frozen levels must be the server's current levels (level 1 for a
+   type never played); a placement's, its rules' starting level; a completed placement only
+   before any completed session;
+4. level updates **replayed with the app's own functions** (`gameLevelUpdates`,
+   `placementLevelUpdates`), with the session's `createdAt` as "now"; an interrupted session
+   is stored, no level moves;
+5. implausible timing flagged, never refused: ≥ 2 right multi-digit answers under 300 ms
+   (`implausiblyFast`), or response-time spread under 40 ms over ≥ 8 right answers
+   (`flatTimes`).
+
+Refused → `upload_rejections` (once per id; a resend gets the same verdict) and 409
+`{status: refused, reason}`; for `levelsMismatch` the answer carries the server's levels and
+the app **adopts them** (`replaceLevelCache`), so its next games chain again — the refused
+session stays in local history, off the board. Accepted → `apply_validated_session`, one
+transaction: the session (`uploaded_sessions`), its level updates (`server_levels`), its
+flags (`upload_flags`), the player's version (`server_players`) — optimistic lock: a
+concurrent upload makes it "stale", the server re-reads and re-validates (3 tries, then 503).
+All four tables: RLS on, API grants revoked; the four functions are the service role's only.
+
+Exit-test evidence: `app/test/state/server_replay_test.dart` plays a placement, four games and
+an interrupted game through the app's builders, then validates the six uploads in order: the
+server's levels equal the app's cache — level, sessions played, update time.
+
 ## Data flow (Phase 2)
 
 1. The player plays solo exactly as today; local storage stays the source of truth for solo play.

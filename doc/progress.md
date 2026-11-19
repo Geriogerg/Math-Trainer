@@ -273,6 +273,17 @@ Phase 0 closed in Phase 1 commit 0 (`material_ui`, `δ` recorded, preview, load)
   migration `uploaded_sessions` + `record_session_upload` (idempotent; service role only), SQL
   tests. No server deployed yet: nothing is uploaded by the preview until the owner's host
   decision.
+- **Commit 6** *(A)* — Server replay and validation. Core: `validateSessionUpload` (player,
+  timestamps, answer count and times, every question regenerated, correctness recomputed, the
+  chain of levels, placement rules; level updates replayed; timing flags), level updates
+  extracted to `gameLevelUpdates` / `placementLevelUpdates` (the app's orchestrators use them —
+  one implementation). Server endpoint: known id → same verdict; state → validate → apply
+  (optimistic version, 3 tries) or record the rejection; `levelsMismatch` returns the
+  server's levels, which the app adopts. Migration: `server_players`, `server_levels`,
+  `upload_rejections`, `upload_flags` (RLS on, no API access), `upload_status`,
+  `player_server_state`, `apply_validated_session`, `record_rejected_upload` (service role);
+  commit 5's `record_session_upload` dropped. **Forged uploads rejected by tests** (core,
+  server); **rows reproduced by replay**: the app-side test above.
 
 ### Remaining contradictions after commit 0
 

@@ -24,12 +24,21 @@ class PlacementLevelOrchestrator implements SessionLevelUpdates {
     required SessionRepository repository,
     required String playerId,
     required DateTime now,
-  }) async {
-    final levels = placementLevels([
+  }) async => placementLevelUpdates(outcomes: outcomes, rules: rules, now: now);
+}
+
+/// Level cache entries of a **completed** placement — pure, shared with
+/// the server's validation: the staircases' final levels
+/// (`placementLevels`), `sessionsPlayed` from the rules.
+Map<ExerciseType, LevelCacheEntry> placementLevelUpdates({
+  required List<AnswerResult> outcomes,
+  required PlacementRules rules,
+  required DateTime now,
+}) =>
+    placementLevels([
       for (final o in outcomes)
         (isCorrect: o.isCorrect, elapsedMs: o.elapsedMs),
-    ], rules);
-    return levels.map(
+    ], rules).map(
       (type, level) => MapEntry(
         type,
         LevelCacheEntry(
@@ -39,5 +48,3 @@ class PlacementLevelOrchestrator implements SessionLevelUpdates {
         ),
       ),
     );
-  }
-}

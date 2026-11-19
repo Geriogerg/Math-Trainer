@@ -2,10 +2,9 @@ import '../models/answer_result.dart';
 import '../models/exercise_type.dart';
 import '../persistence/level_cache_entry.dart';
 import '../persistence/session_repository.dart';
-import 'answer_outcome.dart';
-import 'confidence.dart';
 import 'level.dart';
 import 'level_updater.dart';
+import 'level_updates.dart';
 
 /// How a finished session turns into level cache updates — a game
 /// ([LevelCacheOrchestrator]) or a placement (`PlacementLevelOrchestrator`).
@@ -41,47 +40,11 @@ class LevelCacheOrchestrator implements SessionLevelUpdates {
     required SessionRepository repository,
     required String playerId,
     required DateTime now,
-  }) async {
-    final outcomesByType = <ExerciseType, List<AnswerOutcome>>{};
-    for (final outcome in outcomes) {
-      outcomesByType
-          .putIfAbsent(outcome.exercise.type, () => [])
-          .add(
-            AnswerOutcome(
-              isCorrect: outcome.isCorrect,
-              elapsedMs: outcome.elapsedMs,
-            ),
-          );
-    }
-
-    final priorLevels = await repository.currentLevels(playerId);
-    final updates = <ExerciseType, LevelCacheEntry>{};
-
-    for (final entry in outcomesByType.entries) {
-      final type = entry.key;
-      final answers = entry.value;
-      if (answers.length < levelUpdater.rules.nMin) continue;
-
-      final prior = priorLevels[type];
-      final currentLevel = frozenLevels[type] ?? Level.floor;
-      final confidence = confidenceFor(
-        entry: prior,
-        now: now,
-        rules: levelUpdater.rules,
-      );
-      final newLevel = levelUpdater.update(
-        currentLevel: currentLevel,
-        answers: answers,
-        confidence: confidence,
-      );
-
-      updates[type] = LevelCacheEntry(
-        level: newLevel,
-        sessionsPlayed: (prior?.sessionsPlayed ?? 0) + 1,
-        updatedAt: now,
-      );
-    }
-
-    return updates;
-  }
+  }) async => gameLevelUpdates(
+    outcomes: outcomes,
+    frozenLevels: frozenLevels,
+    priorLevels: await repository.currentLevels(playerId),
+    now: now,
+    levelUpdater: levelUpdater,
+  );
 }

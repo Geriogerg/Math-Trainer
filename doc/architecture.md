@@ -26,6 +26,8 @@ packages/math_core/        # pure Dart, no dependency — imported by path by ap
                            # stores alone (seed, kind, frozen levels, type sequence)
     sync/                  # SessionUpload (JSON codec shared with the server),
                            # SessionUploadClient (interface), SessionUploadQueue (offline, ordered)
+    validation/            # validateSessionUpload: the server's replay and checks (pure);
+                           # ServerPlayerState, RejectionReason, ValidationFlag
     scoring/               # Scorer, ScoringRules
     persistence/           # SessionRepository, LocalPlayerIdProvider, TypeSelectionStore,
                            # ThemeModeStore, PlacementSkipStore (interfaces), PersistedSession/
@@ -88,7 +90,8 @@ server/                    # Dart server (shelf + http, math_core by path) — d
   bin/server.dart          # entry point: config from the environment, serve
   lib/src/                 # config.dart (env, secret never printed), http_app.dart (routes, CORS,
                            # JSON errors), supabase_gateway.dart (auth check, database functions),
-                           # session_endpoint.dart (POST /v1/sessions)
+                           # session_endpoint.dart (POST /v1/sessions: status, state, validate,
+                           # apply or reject)
   test/                    # `dart test`
   Dockerfile               # AOT binary in a scratch image; build from the repo root
 render.yaml                # Render Blueprint for the server — prepared, inert until the owner acts
