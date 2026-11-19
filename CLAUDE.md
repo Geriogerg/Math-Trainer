@@ -181,6 +181,8 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   print the access token or database password.
 - The dashboard prints testers' data: run it locally only, never from CI (public logs). A new
   view goes in `owner_dashboard`, never in `public` (the API serves `public`).
+- Deploy jobs run on a push **or** a manual run on `main` (`event_name != 'pull_request'`):
+  owner steps that say "Run workflow" rely on it.
 - `supabase db push` needs `--remote`: newer CLIs (CI installs the latest) target a local stack
   by default and fail on `127.0.0.1:54322`.
 - SQL tests run on plain Postgres with `supabase/tests/00_supabase_stub.sql` standing in for
