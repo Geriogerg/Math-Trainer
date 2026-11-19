@@ -11,8 +11,8 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 ## Current phase
 
 **Phase 3a — Build the beta** (`doc/plan.md`, section 7), run in **one pass**.
-Done: 0, 2–8; 1 prepared, dormant until the owner's yes (`PREVIEW_HOST=cloudflare`). Exit
-test run, phase report given. Update this block at every commit.
+Done: 0–8 (1: preview moved to Cloudflare Pages on 19 Nov, owner's yes). Exit test run,
+phase report given. Update this block at every commit.
 
 | # | Commit | Note |
 |---|---|---|
@@ -26,8 +26,7 @@ test run, phase report given. Update this block at every commit.
 | 7 | First game on a never-played type = short placement | played at phase end |
 | 8 | Data check for Phase 3b | — |
 
-Waiting on the owner: host confirmation for commit 1 (`doc/online.md`, "Moving the preview");
-the dashboard connection file; codes, `SMOKE_BETA_CODE` and `BETA_GATE=true`; the decisions of
+Waiting on the owner: the dashboard connection file; codes, `SMOKE_BETA_CODE` and `BETA_GATE=true`; the decisions of
 the report. Server (Render) and migrations are live.
 Phase 3b (calibration) starts only when the dashboard shows ~300 sessions from 10+ testers.
 

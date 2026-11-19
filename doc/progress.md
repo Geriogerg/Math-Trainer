@@ -375,7 +375,15 @@ Plan v2.3 (19 Nov 2026). Entry: Phase 2 live. State at the start:
   question, ~4.6 s less on slow 4G; Cloudflare Pages recommended (`doc/decisions.md`). `ci.yml`
   deploys there, smoke-tests there and turns GitHub Pages into a redirect only when the
   repository variable `PREVIEW_HOST` is `cloudflare`; owner steps in `doc/online.md`.
-  `render.yaml` allows the new origin. **Parked**: the move, then the slow-4G re-measure there.
+  `render.yaml` allows the new origin. **Moved on 19 Nov** (owner's yes): the plain
+  `math-trainer.pages.dev` belongs to another site, so the project is
+  `https://math-trainer-kjc.pages.dev`; CI now reads the project's address and holds back the
+  GitHub redirect until `PREVIEW_URL` matches it (`4093772`, `c25cdd9`), and a manual run on
+  `main` deploys (`e7b9832`). Re-measured there on slow 4G: every large file brotli
+  (`chromium/canvaskit.wasm` 2.06 MB, `main.dart.js` 0.90 MB, `sqlite3.wasm` 0.36 MB), but the
+  first question at **24.4 s** (23.1 s on GitHub Pages, one run each): the guest exists only at
+  23.2 s, so sign-in round trips at slow-4G latency dominate, not bytes. Online path proven
+  there (server levels at 69 s, CORS allows the new origin).
 - **Commit 2** *(A)* — Server levels before each game: `syncLevelsBeforeGame` (core; 8 tests:
   adopt, unchanged, pending uploads, failure, timeout…) called by `buildSessionController`, so
   "Play again" is covered too; `my_server_levels()` migration + SQL test (own rows only, anon
