@@ -11,8 +11,8 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 ## Current phase
 
 **Phase 3a — Build the beta** (`doc/plan.md`, section 7), run in **one pass**.
-Done: 0, 2–7; 1 prepared, dormant until the owner's yes (`PREVIEW_HOST=cloudflare`).
-Next commit: **8**. Update this block at every commit.
+Done: 0, 2–8; 1 prepared, dormant until the owner's yes (`PREVIEW_HOST=cloudflare`).
+Next: exit test, then the phase report. Update this block at every commit.
 
 | # | Commit | Note |
 |---|---|---|

@@ -10,6 +10,7 @@
 #   bash tool/dashboard/dashboard.sh approve-name <player id>
 #   bash tool/dashboard/dashboard.sh clear-name <player id>
 #   bash tool/dashboard/dashboard.sh feedback [count, default 50]
+#   bash tool/dashboard/dashboard.sh data-check          what Phase 3b needs, stored?
 #
 # Connection: the environment variable DASHBOARD_DB_URL, else the first
 # line of tool/dashboard/connection.txt (git-ignored): Supabase → Connect →
@@ -41,6 +42,9 @@ command="${1:-report}"
 case "$command" in
   report)
     run < "$here/report.sql"
+    ;;
+  data-check)
+    run < "$here/data_check.sql"
     ;;
   new-code)
     need "${2:-}"

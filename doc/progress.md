@@ -414,3 +414,9 @@ Plan v2.3 (19 Nov 2026). Entry: Phase 2 live. State at the start:
   (only never-played placed, then a game; interrupted comes back; hint), widget flow from Play.
   The smoke test reads the question count (a fresh guest's first Start now places).
   **To play at phase end** (checkpoint *C*).
+- **Commit 8** *(A)* — Data check: `owner_dashboard.data_check` (six requirements per uploaded
+  answer; SQL test 95 counts each kind of gap), `dashboard.sh data-check` with a verdict and the
+  three things not stored at all (input device, app version per session, timeout in force —
+  owner decisions, `doc/decisions.md`); a core format test for all seven operations. The smoke
+  test now proves the live online path when the build has a server: first run, server levels
+  27 s after opening the page (server on Render, found live: the owner deployed it).

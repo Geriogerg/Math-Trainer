@@ -249,6 +249,21 @@ operations; validation (shared) refuses an operation the server already has a le
 Powers: 5 quick questions find your starting level."); the result screen lists the placed
 operations.
 
+## Data check for Phase 3b (Phase 3a commit 8)
+
+`owner_dashboard.data_check` (`…_data_check.sql`): every uploaded answer checked against what
+calibration needs — operation; level at the time (a game's frozen level, or a placement's seed
+and rotation to replay its staircase); response time (0–15 s); correctness and the typed value
+(−1 = timeout); structure (each operation's operands, integers); time answered. One row per
+requirement: answers checked, failing, one session to inspect. `dashboard.sh data-check` prints
+it with a verdict and what is **not stored at all** (input device, app version per session, the
+timeout in force) — owner decisions before Phase 3b. `math_core/test/sync/phase3b_fields_test.dart`
+holds the upload format to the same six requirements for all seven operations.
+
+The smoke test also checks the whole online path when the build has a server: after its game it
+reads the guest's `my_server_levels()` until the server has validated the upload (≤ 150 s,
+covering a sleeping free instance), then deletes the guest either way.
+
 ## Session upload (Phase 2 commit 5)
 
 - **The queue is the local database**: `SessionRepository.pendingUploads(player)` — sessions

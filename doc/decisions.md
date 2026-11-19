@@ -858,3 +858,18 @@ otherwise), from the start level, replayed from the stored rotation; allowed aft
 - the same staircase constants as the placement test for powers, roots and percentages, whose
   levels have not been calibrated either (Phase 3b).
 **Reopen when** Phase 3b's data shows where type-placed players actually settle.
+
+## Data check: what Phase 3b needs is stored; three things are not (Phase 3a, commit 8)
+
+Every requirement the plan names — operation, level, time, correctness, structure of the
+exercise — is in each uploaded answer (`owner_dashboard.data_check`, and a format test on the
+app side). Three things that would matter to calibration are not stored anywhere; **owner
+decision**, none implemented here (each changes the upload format, a migration of the local
+schema and the server's strict parser):
+- **Input device** (on-screen keypad or physical keyboard): desktop typing is faster, so
+  `t_rapide` per operation would mix both. Recommended before the invitations go out, since
+  answers already recorded cannot get it back.
+- **App version per session**: to set aside games of a buggy build. Recommended with it.
+- **The timeout in force**: constant (15 s) today; must be stored once Phase 3b makes it
+  depend on the level — part of that change, not needed before.
+**Reopen when** the owner decides on the first two.

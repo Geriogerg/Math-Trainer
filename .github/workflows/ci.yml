@@ -342,6 +342,10 @@ jobs:
           APP_URL: ${{ vars.PREVIEW_HOST == 'cloudflare' && vars.PREVIEW_URL || needs.deploy.outputs.page_url }}
           # A code for the beta gate, when it is on (doc/online.md).
           SMOKE_BETA_CODE: ${{ secrets.SMOKE_BETA_CODE }}
+          # With a server in the build: also check the game was uploaded,
+          # validated and turned into server levels (the public key only).
+          SMOKE_SUPABASE_URL: ${{ vars.SERVER_URL && secrets.SUPABASE_URL || '' }}
+          SMOKE_SUPABASE_KEY: ${{ vars.SERVER_URL && secrets.SUPABASE_PUBLISHABLE_KEY || '' }}
         run: node tool/smoke/preview_smoke.mjs "$APP_URL" google-chrome
       - name: Screenshot of the failure
         if: failure()

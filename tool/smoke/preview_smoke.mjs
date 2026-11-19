@@ -306,6 +306,47 @@ await tapText('Profile', 60000, { exact: true });
 if ((await guestId()) !== id) await fail('a reload changed the player');
 await waitForText(' ms'); // "Level 1 · 1234 ms" — an operation with answers
 
+// The whole online path, when the build has a server: the game is uploaded,
+// the server replays and validates it, and only then writes the player's
+// server levels (Phase 2). SMOKE_SUPABASE_URL / SMOKE_SUPABASE_KEY (the
+// public key) let the script read them as the guest; a sleeping free
+// server can take a minute to wake, and the app retries after 30 s.
+// A failure here is reported after the account is deleted (no test guest
+// left behind).
+let serverProblem = null;
+if (process.env.SMOKE_SUPABASE_URL && process.env.SMOKE_SUPABASE_KEY) {
+  step('the game reached the server, which validated it');
+  const token = await evaluate(`(() => {
+    const k = Object.keys(localStorage).find((k) => k.endsWith('-auth-token'));
+    return k ? JSON.parse(localStorage.getItem(k)).access_token : null;
+  })()`);
+  if (!token) await fail('no access token in the page');
+  const end = Date.now() + 150000;
+  let levels = {};
+  while (Object.keys(levels).length === 0 && Date.now() < end) {
+    try {
+      const response = await fetch(`${process.env.SMOKE_SUPABASE_URL}/rest/v1/rpc/my_server_levels`, {
+        method: 'POST',
+        headers: {
+          apikey: process.env.SMOKE_SUPABASE_KEY,
+          authorization: `Bearer ${token}`,
+          'content-type': 'application/json',
+        },
+        body: '{}',
+      });
+      if (response.ok) levels = await response.json();
+    } catch (_) {}
+    if (Object.keys(levels).length === 0) await sleep(5000);
+  }
+  if (Object.keys(levels).length === 0) {
+    serverProblem = 'no server levels after 150 s: the upload never got through';
+    console.log(`  ${serverProblem}`);
+  } else {
+    const shown = Object.entries(levels).map(([type, e]) => `${type} ${(e.level / 100).toFixed(2)}`);
+    console.log(`  server levels: ${shown.join(', ')} (${((Date.now() - started) / 1000).toFixed(0)} s)`);
+  }
+}
+
 step('delete my data (cleans up the test account)');
 await tapText('Delete my data', 30000, { exact: true, scroll: true });
 await tapText('Delete', 30000, { exact: true });
@@ -327,5 +368,6 @@ await tapText('Delete', 30000, { exact: true });
   }
 }
 
+if (serverProblem) await fail(serverProblem);
 console.log(`SMOKE PASSED in ${((Date.now() - started) / 1000).toFixed(0)} s`);
 await shutdown(0);
