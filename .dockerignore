@@ -1,0 +1,10 @@
+# The server image only needs server/ and packages/math_core/
+# (server/Dockerfile copies them explicitly); keep the build context small.
+.git
+app
+doc
+supabase
+tool
+**/.dart_tool
+**/build
+**/.idea

@@ -27,14 +27,14 @@ migrate_working_dir/
 **/doc/api/
 # Artefacts written by flutter test when a golden comparison fails
 # (diff/masked/master/test images) — never source code.
-test/**/failures/
+**/test/**/failures/
 **/ios/Flutter/.last_build_id
 .dart_tool/
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
-/build/
-/coverage/
+**/build/
+**/coverage/
 
 # Symbolication related
 app.*.symbols
@@ -43,16 +43,17 @@ app.*.symbols
 app.*.map.json
 
 # Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
+/app/android/app/debug
+/app/android/app/profile
+/app/android/app/release
 
 # Local Supabase configuration (URL + publishable key) — versioned template:
 # dart_defines.example.json
-/dart_defines.json
+/app/dart_defines.json
 
 # Personal Claude Code settings; the shared hooks are in .claude/settings.json
 .claude/settings.local.json
 
 # Smoke test failure screenshot (tool/smoke/preview_smoke.mjs)
 smoke-failure.png
+

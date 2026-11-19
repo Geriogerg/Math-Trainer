@@ -1,0 +1,21 @@
+name: math_trainer_server
+description: >-
+  Math Trainer's server: receives uploaded sessions, replays them with the
+  same core as the app (math_core), and is the only writer of levels and
+  ranks (plan, Phase 2). Supabase provides auth and Postgres.
+publish_to: none
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  # The same pure-Dart core as the app (rule 1): one implementation.
+  math_core:
+    path: ../packages/math_core
+  shelf: ^1.4.2
+  # Calls to Supabase (auth check, database functions) over HTTPS.
+  http: ^1.6.0
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.25.0

@@ -1,6 +1,6 @@
 /// Rules the Claude Code hooks enforce on every file Claude writes or edits
 /// (`.claude/settings.json`, `tool/hooks/guard_edit.dart`). Pure, so that
-/// `test/tool/edit_rules_test.dart` covers it.
+/// `tool/test/edit_rules_test.dart` covers it.
 library;
 
 final _assertCall = RegExp(r'\bassert\s*\(');
@@ -12,7 +12,10 @@ final _unseededRandom = RegExp(r'\bRandom\s*\(\s*\)');
 List<String> violationsFor(String path, String text) {
   final normalised = '/${path.replaceAll(r'\', '/')}';
   if (!normalised.endsWith('.dart')) return const [];
-  final inCore = normalised.contains('/lib/core/');
+  // The core package, and the app's `lib/core/` (its state layer).
+  final inCore =
+      normalised.contains('/packages/math_core/lib/') ||
+      normalised.contains('/lib/core/');
   final inAppOrTests =
       normalised.contains('/lib/') || normalised.contains('/test/');
 
@@ -22,7 +25,7 @@ List<String> violationsFor(String path, String text) {
     final code = _withoutComment(lines[i]);
     if (inCore && _assertCall.hasMatch(code)) {
       violations.add(
-        'line ${i + 1}: `assert(` in lib/core/ — rule 13: invariants by '
+        'line ${i + 1}: `assert(` in the core — rule 13: invariants by '
         '`throw` (ArgumentError/StateError), with a test of the invalid case; '
         'asserts vanish from release builds.',
       );

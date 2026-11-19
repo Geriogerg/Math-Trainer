@@ -1,0 +1,31 @@
+# Render Blueprint for the Math Trainer server (Phase 2 commit 4).
+# PREPARED, NOT DEPLOYED: a host costs money or has limits, so it is the
+# owner's decision (plan, section 8). Nothing happens until the owner
+# creates a Blueprint from this repository in the Render dashboard; the
+# steps are in doc/online.md ("Deploying the server").
+services:
+  - type: web
+    name: math-trainer-server
+    runtime: docker
+    # Free instance: sleeps after 15 minutes without traffic; the first
+    # upload after that waits for it to wake (uploads are background work,
+    # the leaderboard reads Supabase directly). "starter" stays awake.
+    plan: free
+    branch: main
+    dockerfilePath: ./server/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeploy: true
+    # Redeploy only when the server or the core changes.
+    buildFilter:
+      paths:
+        - server/**
+        - packages/math_core/**
+    envVars:
+      # Values are entered in the Render dashboard, never committed.
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: ALLOWED_ORIGINS
+        value: https://geriogerg.github.io

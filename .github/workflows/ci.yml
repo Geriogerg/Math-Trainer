@@ -1,7 +1,8 @@
-# CI: core tests, all tests, analyzer and web build on every push; a push to
-# main that passes all of them deploys the preview to GitHub Pages
-# (https://<owner>.github.io/<repo>/). Android is not built until Phase 8
-# (doc/plan.md, section 5).
+# CI: core, app, SQL and tooling tests, analyzers and the web build on every
+# push; a push to main that passes them applies the Supabase migrations and
+# deploys the preview to GitHub Pages (https://<owner>.github.io/<repo>/),
+# then smoke-tests it. Monorepo (Phase 2 commit 3): app/ (Flutter),
+# packages/math_core/ (pure Dart, shared with the server), tool/.
 name: CI
 
 on:
@@ -17,14 +18,74 @@ env:
   FLUTTER_VERSION: 3.50.0
 
 jobs:
+  core:
+    # The pure-Dart core on the VM and compiled to JavaScript, the repo
+    # tooling, and formatting of every Dart file. The Flutter SDK's Dart, so
+    # formatting matches the app's.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - name: Formatting
+        run: dart format --output=none --set-exit-if-changed app/lib app/test packages server tool
+      - name: Core — analyzer
+        working-directory: packages/math_core
+        run: dart pub get && dart analyze --fatal-infos
+      - name: Core — tests on the VM
+        working-directory: packages/math_core
+        run: dart test
+      - name: Core — tests compiled to JavaScript
+        # Players generate on the web, the server replays on the VM: the
+        # pinned sequences of test/determinism must match on both
+        # (architecture rule 18).
+        working-directory: packages/math_core
+        run: dart test -p node
+      - name: Tooling — analyzer and tests (Claude Code hook rules)
+        working-directory: tool
+        run: dart pub get && dart analyze --fatal-infos && dart test
+
+  server:
+    # The Dart server: analyzer, tests, and its container image builds and
+    # answers /health (Phase 2 commit 4). Deployment is the host's job, once
+    # the owner has chosen one (render.yaml).
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - name: Analyzer and tests
+        working-directory: server
+        run: dart pub get && dart analyze --fatal-infos && dart test
+      - name: Container image builds and starts
+        run: |
+          docker build -f server/Dockerfile -t math-trainer-server .
+          docker run -d --name server -p 8080:8080             -e SUPABASE_URL=https://example.supabase.co             -e SUPABASE_SECRET_KEY=sb_secret_placeholder             math-trainer-server
+          for i in $(seq 1 20); do
+            if curl -fsS http://localhost:8080/health; then exit 0; fi
+            sleep 1
+          done
+          docker logs server
+          exit 1
+
   test:
-    # Windows: the golden images are recorded on Windows with the real Inter
-    # font, and text antialiasing differs between operating systems.
+    # The Flutter app. Windows: the golden images are recorded on Windows
+    # with the real Inter font, and text antialiasing differs between
+    # operating systems.
     runs-on: windows-latest
     timeout-minutes: 30
     defaults:
       run:
         shell: bash
+        working-directory: app
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -33,16 +94,7 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
       - run: flutter pub get
-      - name: Formatting
-        run: dart format --output=none --set-exit-if-changed lib test tool
-      - name: Core tests
-        run: dart test test/domain
-      - name: Core tests compiled to JavaScript
-        # Players generate on the web, the server will replay on the VM:
-        # the pinned sequences of test/domain/determinism must match on
-        # both (architecture rule 18).
-        run: dart test test/domain -p node
-      - name: All tests
+      - name: All app tests
         run: flutter test
       - name: Analyzer
         # Infos are fatal too: the tree has zero notices since the
@@ -76,7 +128,7 @@ jobs:
     # commit 2). The access token and database password are secrets: GitHub
     # masks them, and nothing here echoes them.
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [test, sql]
+    needs: [core, server, test, sql]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     # One push to the database at a time, never cancelled half-way.
@@ -114,6 +166,9 @@ jobs:
   web:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: app
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -144,13 +199,13 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@v3
         with:
-          path: build/web
+          path: app/build/web
 
   deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     # After the migrations: the app deployed never expects SQL the project
     # does not have yet.
-    needs: [test, web, migrations]
+    needs: [core, server, test, web, migrations]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

@@ -7,76 +7,90 @@ right — report the gap.
 ## Tree
 
 ```
-lib/
-  main.dart                # runApp() — async, resolves the environment first; ConfigErrorApp if
-                           # the build lacks the Supabase configuration or web storage fails
-  app.dart                 # MaterialApp, theme (light/dark/persisted toggle), AuthGate at the root
-  composition_root.dart    # the only file choosing concrete implementations (AppEnvironment)
-  core/
-    domain/                # pure Dart — no Flutter import (rule 1)
-      account/             # Account, AccountRepository, PlayerProfile, ProfileRepository (interfaces)
-      models/              # Exercise (sealed) and 4 variants, ExerciseType, OperationType,
-                           # AnswerResult, SessionConfig, SessionResult
-      generation/          # ExerciseGenerator, CompositeExerciseGenerator, per-type generators,
+packages/math_core/        # pure Dart, no dependency — imported by path by app/ and server/ (rule 1)
+  lib/
+    account/               # Account, AccountRepository, PlayerProfile, ProfileRepository (interfaces)
+    models/                # Exercise (sealed) and 4 variants, ExerciseType, OperationType,
+                           # AnswerResult, SessionConfig, SessionResult, SessionKind
+    generation/            # ExerciseGenerator, CompositeExerciseGenerator, per-type generators,
                            # OperandRange, ExerciseSource, LocalExerciseSource,
                            # DebtAwareTypeSelectionStrategy, FixedTypeSequence,
                            # session_length.dart
-      difficulty/          # level → operand bounds per type (arithmetic/power/square_root/percentage)
-      placement/           # placement test: staircases, placementLevels (pure), its exercise
+    difficulty/            # level → operand bounds per type (arithmetic/power/square_root/percentage)
+    placement/             # placement test: staircases, placementLevels (pure), its exercise
                            # source (adaptive, deterministic), PlacementLevelOrchestrator
-      leveling/            # LevelUpdater, LevelCacheOrchestrator, LevelingRules, Confidence,
+    leveling/              # Level, LevelUpdater, LevelCacheOrchestrator, LevelingRules, Confidence,
                            # AnswerOutcome — recompute levels from history; overall_level.dart
                            # (overall level, also stored per session)
-      replay/              # replaySessionQuestions: a stored session's questions from what it
+    replay/                # replaySessionQuestions: a stored session's questions from what it
                            # stores alone (seed, kind, frozen levels, type sequence)
-      scoring/             # Scorer, ScoringRules
-      persistence/         # SessionRepository, LocalPlayerIdProvider, TypeSelectionStore,
-                           # ThemeModeStore, PlacementSkipStore (interfaces), PersistedSession/PersistedAnswer,
-                           # LevelCacheEntry, InMemorySessionRepository, uuid.dart, exercise_codec.dart
-    state/                 # SessionController (ChangeNotifier), SessionState — the only part of
-                           # the core importing Flutter (foundation.dart only)
-  infrastructure/
-    persistence/           # SqfliteSessionRepository, database.dart (schema, migrations, web
+    scoring/               # Scorer, ScoringRules
+    persistence/           # SessionRepository, LocalPlayerIdProvider, TypeSelectionStore,
+                           # ThemeModeStore, PlacementSkipStore (interfaces), PersistedSession/
+                           # PersistedAnswer, LevelCacheEntry, InMemorySessionRepository, uuid.dart,
+                           # exercise_codec.dart
+  test/                    # mirrors lib/ — `dart test` (VM) and `dart test -p node` (JavaScript);
+                           # determinism/ (pinned references), tool/ (replay metrics)
+  tool/
+    recalibrate.dart       # replays stored answers to tune the leveling constants (Phase 3)
+    delta_check.dart       # simulated players against LevelUpdater, compares δ / n_min settings
+    placement_check.dart   # simulated players through the placement, then games
+    determinism_references.dart  # regenerates test/determinism/determinism_references.dart
+    src/                   # player_model.dart, replay_metrics.dart
+app/                       # the Flutter app (package `math_trainer`), web first
+  lib/
+    main.dart              # runApp() — async, resolves the environment first; ConfigErrorApp if
+                           # the build lacks the Supabase configuration or web storage fails
+    app.dart               # MaterialApp, theme (light/dark/persisted toggle), AuthGate at the root
+    composition_root.dart  # the only file choosing concrete implementations (AppEnvironment)
+    core/state/            # SessionController (ChangeNotifier), SessionState, account form and
+                           # deletion controllers — Flutter's foundation.dart only
+    infrastructure/
+      persistence/         # SqfliteSessionRepository, database.dart (schema, migrations, web
                            # engine), SharedPreferences{PlayerIdProvider,TypeSelectionStore,
-                           # ThemeModeStore,PlacementSkipStore} — the only place importing sqflite / shared_preferences;
-                           # persistent_storage*.dart (navigator.storage.persist, conditional import)
-    backend/               # Supabase{Account,Profile}Repository — the only place importing
+                           # ThemeModeStore,PlacementSkipStore} — the only place importing
+                           # sqflite / shared_preferences; persistent_storage*.dart
+      backend/             # Supabase{Account,Profile}Repository — the only place importing
                            # supabase_flutter (besides composition_root.dart)
-  presentation/
-    theme/                 # app_theme.dart — light/dark ColorScheme, AppPalette/AppMotion/AppMetrics
-    screens/               # AuthGate (mandatory sign-in) + AuthForm, AppShell (tabbed shell,
-                           # IndexedStack), PlayTab (type selection + day/night toggle),
-                           # SessionFlowScreen/SessionScreen (full-screen session), ResultScreen,
-                           # ProfileScreen (identity + statistics, reloads when the tab is shown),
-                           # ComingSoonScreen, EmptyState, ConfigErrorApp
-    exercise_prompt.dart   # builds the displayed operation from the exercise's fields
-    exercise_type_labels.dart
+    presentation/
+      theme/               # app_theme.dart — light/dark ColorScheme, AppPalette/AppMotion/AppMetrics
+      screens/             # AuthGate (anonymous-first), AppShell (tabbed shell, IndexedStack),
+                           # PlayTab (placement offer or type selection), SessionFlowScreen/
+                           # SessionScreen (full-screen session), ResultScreen, ProfileScreen,
+                           # SaveProgressScreen, SignInScreen, ComingSoonScreen, EmptyState,
+                           # ConfigErrorApp
+      exercise_prompt.dart # builds the displayed operation from the exercise's fields
+      exercise_type_labels.dart
+  test/
+    state/                 # controllers — `flutter test` (ChangeNotifier pulls dart:ui)
+    infrastructure/        # sqflite via sqflite_common_ffi, shared_preferences mocked;
+                           # backend/: real SupabaseClient, simulated HTTP transport (MockClient)
+    presentation/          # screens + golden tests (light/dark)
+    widget_test.dart       # startup → session flow, theme toggle
+  web/                     # index.html, flutter_bootstrap.js, sqlite3.wasm, sqflite_sw.js, fonts
 supabase/
   config.toml              # Supabase CLI config (CI only: `supabase db push`)
   migrations/              # versioned SQL, applied to the live project by CI on main (never by hand)
   tests/                   # 00_supabase_stub.sql (auth schema + roles stand-in), *_test.sql
-tool/sql/test_sql.sh       # migrations (twice) + SQL tests on a scratch Postgres, locally and in CI
-tool/
-  recalibrate.dart         # replays stored answers to tune the leveling constants (Phase 3)
-  delta_check.dart         # simulated players against LevelUpdater, compares δ / n_min settings
-  placement_check.dart     # simulated players through the placement, then games (commit 6)
+tool/                      # repo tooling, its own small package (tests: `dart test` in tool/)
+  hooks/                   # Claude Code hooks (.claude/settings.json): edit_rules.dart (rules),
+                           # guard_edit.dart, format_edit.dart, run.sh (launcher)
   smoke/preview_smoke.mjs  # CI smoke test of the deployed preview (Node + Chrome, CDP)
-  hooks/                   # Claude Code hooks (.claude/settings.json): edit_rules.dart (rules,
-                           # tested), guard_edit.dart, format_edit.dart, run.sh (launcher)
+  sql/test_sql.sh          # migrations (twice) + SQL tests on a scratch Postgres, locally and in CI
+  test/                    # edit_rules_test.dart — also scans app/, the core and server/
 .claude/
   settings.json            # the hooks above
   agents/reviewer.md       # reviewer subagent: diff against the CLAUDE.md rules
-test/
-  domain/                  # mirrors core/domain — `dart test test/domain`
-  state/                   # SessionController — `flutter test` (ChangeNotifier pulls dart:ui)
-  infrastructure/          # sqflite via sqflite_common_ffi, shared_preferences mocked;
-                           # backend/: real SupabaseClient, simulated HTTP transport (MockClient)
-  presentation/            # screens + golden tests (light/dark)
-  widget_test.dart         # smoke test + startup → session flow, theme toggle
+server/                    # Dart server (shelf + http, math_core by path) — doc/online.md
+  bin/server.dart          # entry point: config from the environment, serve
+  lib/src/                 # config.dart (env, secret never printed), http_app.dart (routes, CORS,
+                           # JSON errors)
+  test/                    # `dart test`
+  Dockerfile               # AOT binary in a scratch image; build from the repo root
+render.yaml                # Render Blueprint for the server — prepared, inert until the owner acts
 ```
 
-From Phase 2 commit 1 the repo becomes a monorepo (`app/`, `packages/math_core/`, `server/`, see
-`doc/online.md`).
+Monorepo since Phase 2 commit 3 (`doc/decisions.md`).
 
 ## Online
 
@@ -144,7 +158,7 @@ stored discriminant is the `ExerciseType` value name.
 | `answers` | id, session_id, exercise_type, operation_type, operands_json, submitted_value, is_correct, elapsed_ms, created_at, synced_at |
 | `player_levels` | (player_id, exercise_type), level (in hundredths), sessions_played, updated_at — the level cache |
 
-**Levels are integer hundredths** (`core/domain/leveling/level.dart`, an extension type over
+**Levels are integer hundredths** (`math_core/lib/leveling/level.dart`, an extension type over
 `int`: 3742 = 37.42) since schema v4 (Phase 1 commit 2), which multiplied every stored level by
 100 — the cache and each session's frozen levels. Generation, the score multiplier and the
 screens read the whole part (`Level.whole`, truncated); the level update and, later, the

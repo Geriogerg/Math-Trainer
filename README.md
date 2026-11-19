@@ -1,17 +1,13 @@
-# math_trainer
+# Math Trainer
 
-A new Flutter project.
+Competitive mental-arithmetic game — Flutter, web first. Product plan: `doc/plan.md`; working
+rules: `CLAUDE.md`; structure: `doc/architecture.md`.
 
-## Getting Started
+| Directory | What |
+|---|---|
+| `app/` | the Flutter app (`flutter test`, `flutter run -d edge --web-port=8080 --dart-define-from-file=dart_defines.json`) |
+| `packages/math_core/` | pure-Dart core shared by the app and the server (`dart test`, `dart test -p node`) |
+| `supabase/` | SQL migrations, applied by CI; SQL tests (`bash tool/sql/test_sql.sh <postgres url>`) |
+| `tool/` | Claude Code hooks, preview smoke test, SQL test runner |
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Preview: https://geriogerg.github.io/Math-Trainer/ (every push to `main`).

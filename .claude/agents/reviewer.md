@@ -22,10 +22,10 @@ enclosing `switch`, the matching test file).
 
 For every changed file, check at least:
 
-1. No `package:flutter` import under `lib/core/domain/` (rule 1).
+1. No dependency added to `packages/math_core` and no `package:flutter` there (rule 1).
 2. No unseeded `Random()`; generation reproducible from (seed, config) (rule 2).
 3. No `sqflite`, `shared_preferences`, `drift`, `supabase_flutter`, `dart:html`, `package:web` or
-   `dart:js_interop` outside `lib/infrastructure/` (and `lib/composition_root.dart` for
+   `dart:js_interop` outside `app/lib/infrastructure/` (and `app/lib/composition_root.dart` for
    Supabase) (rules 3, 15).
 4. Repository methods return `Future` (rule 4); syncable rows use UUIDs (rule 5).
 5. Timestamps UTC, checked by `throw`; local time only at display (rule 6).

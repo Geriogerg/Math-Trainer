@@ -1,0 +1,152 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'package:math_core/account/account.dart';
+import 'package:math_core/account/account_repository.dart';
+
+/// Supabase Auth `error_code` values (strings, not gotrue's `ErrorCode`
+/// enum: `invalid_credentials` and `email_address_invalid` are missing from
+/// it in the version used, yet the server returns them).
+AccountException _toAccountException(AuthException error) {
+  // Thrown by gotrue when the request does not go through (no network,
+  // CORS) or the server answers 5xx — in both cases nothing to fix on the
+  // player's side, only retry later.
+  if (error is AuthRetryableFetchException) {
+    return AccountException(AccountFailure.network, detail: error.message);
+  }
+  final failure = switch (error.code) {
+    'invalid_credentials' => AccountFailure.invalidCredentials,
+    'email_not_confirmed' => AccountFailure.emailNotConfirmed,
+    'user_already_exists' || 'email_exists' => AccountFailure.emailAlreadyUsed,
+    'weak_password' => AccountFailure.weakPassword,
+    'email_address_invalid' ||
+    'validation_failed' => AccountFailure.invalidInput,
+    'over_request_rate_limit' ||
+    'over_email_send_rate_limit' => AccountFailure.rateLimited,
+    _ => AccountFailure.unknown,
+  };
+  return AccountException(failure, detail: error.message);
+}
+
+class SupabaseAccountRepository implements AccountRepository {
+  SupabaseAccountRepository(this._client);
+
+  final SupabaseClient _client;
+
+  /// An anonymous user has no email (gotrue may report `''`); an email
+  /// user always has one.
+  Account? _toAccount(User? user) {
+    if (user == null) return null;
+    final email = user.email;
+    return Account(
+      id: user.id,
+      email: (email == null || email.isEmpty) ? null : email,
+      isAnonymous: user.isAnonymous,
+    );
+  }
+
+  /// Despite its name, the `ReplaySubject` from `supabase_common` behind
+  /// `onAuthStateChange` replays only the **latest** event to a new
+  /// subscriber, not the whole history — which is what guarantees the
+  /// "current state first" contract of `AccountRepository.authState`.
+  /// Library behaviour locked by `supabase_account_repository_test.dart`.
+  @override
+  Stream<Account?> get authState => _client.auth.onAuthStateChange.map(
+    (state) => _toAccount(state.session?.user),
+  );
+
+  /// One `updateUser` call with both: checked on the real project (19 Nov
+  /// 2026) — a weak password is refused (422 `weak_password`) and leaves the
+  /// guest untouched; a valid pair applies at once, same id,
+  /// `is_anonymous` false; a taken email answers 422 `email_exists`. Two
+  /// calls (email, then password) could leave an account with an email
+  /// but no password if the second failed.
+  @override
+  Future<Account?> linkEmail({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      final response = await _client.auth.updateUser(
+        UserAttributes(email: email, password: password),
+      );
+      final user = response.user;
+      // Confirmation required: the address waits in `new_email`, the
+      // account keeps no email until the link is opened.
+      if (user == null || (user.email ?? '').isEmpty) return null;
+      return _toAccount(user);
+    } on AuthException catch (e) {
+      throw _toAccountException(e);
+    }
+  }
+
+  @override
+  Future<Account> signIn({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      final response = await _client.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
+      final account = _toAccount(response.user);
+      if (account == null || account.email == null) {
+        throw const AccountException(
+          AccountFailure.unknown,
+          detail: 'session without a user or an email',
+        );
+      }
+      return account;
+    } on AuthException catch (e) {
+      throw _toAccountException(e);
+    }
+  }
+
+  @override
+  Future<Account> signInAnonymously() async {
+    try {
+      final response = await _client.auth.signInAnonymously();
+      final account = _toAccount(response.user);
+      if (account == null) {
+        throw const AccountException(
+          AccountFailure.unknown,
+          detail: 'anonymous sign-in returned no user',
+        );
+      }
+      return account;
+    } on AuthException catch (e) {
+      throw _toAccountException(e);
+    }
+  }
+
+  @override
+  Future<void> deleteAccount() async {
+    try {
+      await _client.rpc<void>('delete_my_account');
+    } on AuthException catch (e) {
+      throw _toAccountException(e);
+    } on PostgrestException catch (e) {
+      // PGRST202: the function is not installed (the SQL was never run);
+      // anything else from PostgREST is equally unexpected here.
+      throw AccountException(AccountFailure.unknown, detail: e.message);
+    } on Exception catch (e) {
+      // `http.ClientException` and the like: the request never went
+      // through.
+      throw AccountException(AccountFailure.network, detail: '$e');
+    }
+  }
+
+  /// gotrue clears the local session and emits `signedOut` *before*
+  /// notifying the server: offline, the player is indeed signed out, only
+  /// the server-side revocation fails (the token will expire on its own).
+  /// Letting that error propagate left it unhandled from the "Sign out"
+  /// button, for a sign-out that had actually happened.
+  @override
+  Future<void> signOut() async {
+    try {
+      await _client.auth.signOut();
+    } on AuthException catch (_) {
+      // Local sign-out already done, see above.
+    }
+  }
+}

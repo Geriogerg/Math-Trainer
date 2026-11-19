@@ -1,0 +1,101 @@
+import 'dart:convert';
+
+import 'package:math_trainer_server/server.dart';
+import 'package:shelf/shelf.dart';
+import 'package:test/test.dart';
+
+void main() {
+  final config = ServerConfig(
+    supabaseUrl: Uri.parse('https://example.supabase.co'),
+    supabaseSecretKey: 'sb_secret_test',
+    allowedOrigins: {'https://geriogerg.github.io'},
+  );
+  final handler = buildHandler(
+    config,
+    routes: [
+      (
+        method: 'POST',
+        path: '/v1/echo',
+        handler: (request) async =>
+            jsonResponse(200, {'echo': await request.readAsString()}),
+      ),
+      (
+        method: 'GET',
+        path: '/v1/boom',
+        handler: (_) => throw StateError('secret detail'),
+      ),
+    ],
+  );
+
+  Future<Response> send(
+    String method,
+    String path, {
+    Map<String, String> headers = const {},
+    String? body,
+  }) async => handler(
+    Request(
+      method,
+      Uri.parse('http://localhost$path'),
+      headers: headers,
+      body: body,
+    ),
+  );
+
+  test('GET /health answers ok in JSON', () async {
+    final response = await send('GET', '/health');
+    expect(response.statusCode, 200);
+    expect(jsonDecode(await response.readAsString()), {
+      'status': 'ok',
+      'service': 'math_trainer_server',
+    });
+  });
+
+  test('unknown path 404, wrong method 405', () async {
+    expect((await send('GET', '/nope')).statusCode, 404);
+    expect((await send('POST', '/health')).statusCode, 405);
+  });
+
+  test('a route receives its request', () async {
+    final response = await send('POST', '/v1/echo', body: 'hi');
+    expect(jsonDecode(await response.readAsString()), {'echo': 'hi'});
+  });
+
+  test('an exception becomes a JSON 500 without its details', () async {
+    final response = await send('GET', '/v1/boom');
+    expect(response.statusCode, 500);
+    final body = await response.readAsString();
+    expect(jsonDecode(body), {'error': 'internal'});
+    expect(body, isNot(contains('secret detail')));
+  });
+
+  group('CORS', () {
+    test('an allowed origin gets the headers, preflight included', () async {
+      const origin = {'origin': 'https://geriogerg.github.io'};
+      final preflight = await send('OPTIONS', '/v1/echo', headers: origin);
+      expect(preflight.statusCode, 204);
+      expect(
+        preflight.headers['access-control-allow-origin'],
+        'https://geriogerg.github.io',
+      );
+      expect(
+        preflight.headers['access-control-allow-headers'],
+        contains('authorization'),
+      );
+      final get = await send('GET', '/health', headers: origin);
+      expect(
+        get.headers['access-control-allow-origin'],
+        'https://geriogerg.github.io',
+      );
+    });
+
+    test('another origin gets none', () async {
+      final response = await send(
+        'GET',
+        '/health',
+        headers: {'origin': 'https://evil.example'},
+      );
+      expect(response.headers['access-control-allow-origin'], isNull);
+      expect(response.headers['vary'], 'Origin');
+    });
+  });
+}

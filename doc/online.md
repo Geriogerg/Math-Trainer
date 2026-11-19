@@ -21,7 +21,7 @@ The old "slice 3" (leaderboard, sync, validation service) is Phase 2 of the plan
 ## Current state (Phase 1, commit 4)
 
 - Supabase client in `infrastructure/backend/`, behind `AccountRepository`/`ProfileRepository`
-  (`core/domain/account/`). The Supabase SDK is never imported outside `infrastructure/` and
+  (`math_core/lib/account/`). The Supabase SDK is never imported outside `infrastructure/` and
   `composition_root.dart`.
 - **Anonymous-first** (`AuthGate`, plan section 6.3). No session on launch → the gate calls
   `AccountRepository.signInAnonymously()` once (guarded against repeated "no session" events)
@@ -126,6 +126,31 @@ Code layout, from Phase 2 commit 1: monorepo `app/` (the Flutter app), `packages
 pure-Dart core, imported by both sides through a path dependency), `server/`.
 
 The Supabase service-role key exists only on the server, never in the app nor in the repo.
+
+## The server (Phase 2 commit 4 on)
+
+`server/`: a Dart package (`shelf` + `http`, `math_core` by path), AOT-compiled into a small
+container (`server/Dockerfile`, built from the repo root). Configuration only from environment
+variables (`server/lib/src/config.dart`): `SUPABASE_URL`, `SUPABASE_SECRET_KEY` (refused if it is
+the publishable key; never printed), `PORT` (default 8080), `ALLOWED_ORIGINS` (web origins
+allowed by CORS — the preview's `https://geriogerg.github.io`). `GET /health` answers
+`{"status":"ok"}`; errors are JSON, a 500 never carries details. CI (`server` job): analyzer,
+tests, and the image builds and answers `/health`.
+
+### Deploying the server — owner decision, prepared, not deployed
+
+`render.yaml` is a Render Blueprint, inert until the owner creates it in Render. Steps, once
+the owner says yes:
+
+1. render.com → sign up with GitHub → **New → Blueprint** → pick `Geriogerg/Math-Trainer`.
+   Render reads `render.yaml`: one web service, Docker, free plan, deploys `main` when `server/`
+   or `packages/math_core/` change.
+2. When asked for the two secret values: `SUPABASE_URL` (same as the GitHub secret) and
+   `SUPABASE_SECRET_KEY` — Supabase dashboard → Project Settings → API Keys → **Secret keys** →
+   create one named `math-trainer-server`, copy it into Render only.
+3. Copy the service URL Render shows (`https://math-trainer-server-….onrender.com`) into a
+   GitHub **repository variable** (not a secret: it is public) named `SERVER_URL` — the web
+   build passes it to the app (commit 5).
 
 ## Data flow (Phase 2)
 

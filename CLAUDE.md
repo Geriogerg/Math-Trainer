@@ -11,8 +11,9 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 ## Current phase
 
 **Phase 2 — Server and leaderboard** (`doc/plan.md`, section 7), run in **one pass**.
-Done: 0, 1, 2. Next commit: **3**. To check on the first CI run of commit 2: the `migrations`
-job applied the three migrations (Phase 1 test accounts deleted by the third). Update this block at every commit.
+Done: 0–4. Next commit: **5**. Waiting on the owner: the `SUPABASE_ACCESS_TOKEN` and
+`SUPABASE_DB_PASSWORD` secrets (CI skips the migrations until then — the Phase 1 test accounts
+go with them); the server host (Render free, prepared in `render.yaml`, not deployed). Update this block at every commit.
 
 | # | Commit | Note |
 |---|---|---|
@@ -50,7 +51,8 @@ development is paused until Phase 8. Never propose anything needing Xcode locall
 
 Non-negotiable without explicit discussion.
 
-1. **Pure-Dart core**: no `package:flutter` in `core/domain/`.
+1. **Pure-Dart core**: `packages/math_core` has no dependency at all (no Flutter); app and
+   server import it by path.
 2. **Deterministic generation**: explicit seed, no unseeded `Random()`; same (seed, config) → same
    sequence. Placement: same (seed, answers so far) → same next question.
 3. **Persistence behind abstractions**: storage packages only in `infrastructure/`.
@@ -133,16 +135,23 @@ green. Until Phase 8, CI's Android build is the only Android check — say so wh
 ## Commands
 
 ```bash
-dart test test/domain            # core on the VM (scope mandatory)
-dart test test/domain -p node    # core compiled to JavaScript
+# packages/math_core/
+dart test                        # core on the VM
+dart test -p node                # core compiled to JavaScript
+# app/
 flutter test
 flutter analyze
 flutter run -d edge --web-port=8080 --dart-define-from-file=dart_defines.json
+# server/
+dart test
+docker build -f server/Dockerfile .          # from the repo root
+# repo root
+dart format app/lib app/test packages server tool   # what CI checks
 node tool/smoke/preview_smoke.mjs <url> [chrome]   # smoke test; SMOKE_NETWORK=slow4g to time it
 bash tool/sql/test_sql.sh <postgres admin url>     # migrations (twice) + SQL tests, scratch DB
 ```
 
-`dart_defines.json` (not versioned) holds the Supabase URL and public key; in CI they come from
+`app/dart_defines.json` (not versioned) holds the Supabase URL and public key; in CI they come from
 the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 
 ## Pitfalls (append new ones)
@@ -152,12 +161,11 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   sequence.
 - `ExerciseType` and `SessionKind` names are stored discriminants; renaming breaks history.
 - Changing `placementRulesV1` changes stored placements' replay: add a `placementV2` instead.
-- `dart test` without the `test/domain` scope fails.
 - Integer levels round small steps to zero — never round before storing hundredths.
 - `Level` is an `int` at runtime: string interpolation prints hundredths, and `level ?? 1`
   compiles (widens to `Object`). Display through `.whole`; fall back to `Level.floor`.
-- `test/domain/determinism/determinism_references.dart` is generated
-  (`dart run tool/determinism_references.dart`) only by a change meant to alter sequences or
+- `packages/math_core/test/determinism/determinism_references.dart` is generated (in
+  `packages/math_core`: `dart run tool/determinism_references.dart`) only by a change meant to alter sequences or
   level updates — never to make a JavaScript failure pass.
 - `Random.secure()` throws under `-p node` (dart2js + Node 24); browsers are fine.
 - `web/sqlite3.wasm` and `web/sqflite_sw.js` come from `dart run sqflite_common_ffi_web:setup`;

@@ -55,7 +55,12 @@ the same deterministic generation. Live duels open on an owner decision, on meas
 
 The server must run the same core as the app (rule 1). A pure-Dart package imported by path from
 both sides keeps one implementation and one test suite, with no publishing step. Done in Phase 2
-commit 1, with no behaviour change.
+commit 3, with no behaviour change: `lib/core/domain/` became `packages/math_core/lib/` (zero
+dependencies — the package itself now enforces rule 1), the Flutter app moved to `app/`, the
+simulation tools and core tests went with the core, and root `tool/` (hooks, smoke test, SQL
+runner) became a small package so the hook rules keep their tests. Independent packages with path
+dependencies rather than a pub workspace: a workspace resolves all members together, so the
+server's container build (Dart only) would need the Flutter SDK to resolve `app/`.
 **Reopen when** the server needs a release cycle independent of the app.
 
 ### No ads, payments or third-party analytics before online play
@@ -404,7 +409,7 @@ directly. A display typeface for digits is chosen by the owner before Phase 5.
 
 Exponents must be raised, which a flat `String` cannot express (Unicode `²`/`³` stop quickly and
 render poorly across fonts). The display is composed in the presentation layer from each variant's
-fields. Side effect: no interface text in `core/domain/`; the domain is purely mathematical.
+fields. Side effect: no interface text in `math_core/lib/`; the domain is purely mathematical.
 
 ## No negative result in subtraction
 
@@ -452,7 +457,7 @@ previous game — exactly the effect of that game.
 This replaced a session-entry snapshot over the types played that day, which never showed the last
 game and made switching from addition to multiplication look like a level drop.
 
-- `overallLevel` lives in `core/domain/leveling/`: it is a stored data rule, not just display.
+- `overallLevel` lives in `math_core/lib/leveling/`: it is a stored data rule, not just display.
 - Nullable column, no reconstruction for older sessions: the overall level after an old session
   depends on the whole cache at that time, which history cannot faithfully rebuild. Those sessions
   are absent from the curve.
@@ -568,7 +573,7 @@ need the bridge).
 
 ## No `uuid` dependency
 
-A pure-Dart UUID v4 generator (`core/domain/persistence/uuid.dart`, ~15 lines, `Random.secure()`)
+A pure-Dart UUID v4 generator (`math_core/lib/persistence/uuid.dart`, ~15 lines, `Random.secure()`)
 is enough.
 
 ## `points_awarded` removed from `answers` (step 2)
@@ -592,7 +597,7 @@ future strategy without keeping old strategy code replayable, and the server's r
 history. A forged sequence gains nothing the server cannot see: it still regenerates every
 question from it and checks every answer (commit 6).
 
-- `replaySessionQuestions(session, answers)` (`core/domain/replay/`): the questions of a stored
+- `replaySessionQuestions(session, answers)` (`math_core/lib/replay/`): the questions of a stored
   session from (seed, kind, frozen levels, type sequence), one per answer; a placement replays
   with its own rules version. Throws `SessionNotReplayable` when the session lacks what it
   needs — never guesses a missing level.
@@ -603,6 +608,24 @@ question from it and checks every answer (commit 6).
 - The plan's test: `test/state/self_contained_sessions_test.dart` plays a placement, five games
   (2 to 7 types, rotation exercised) and an interrupted game through the app's builders into
   SQLite, then replays each stored session alone and gets back every question.
+
+## Server host: Render free, prepared (Phase 2, commit 4) — owner decision pending
+
+The plan: host and monthly cost prepared, **not deployed until the owner confirms** (it costs
+money or has limits). What the server must do here is small: receive an upload after each game
+(background work, retried from an offline queue) and write to Supabase. Reads (the leaderboard)
+go straight to Supabase, so a sleeping server never slows a screen.
+
+| Host | Cost (as of late 2026, to check) | Trade-off |
+|---|---|---|
+| **Render, free web service** — recommended to start | 0 | Docker from the repo, `render.yaml` blueprint, deploys on push. Sleeps after 15 min idle: the first upload after a pause waits ~1 min — invisible to the player (background). |
+| Render Starter | ~7 $/month | Same, always awake. The upgrade path when uploads must land at once. |
+| Google Cloud Run | free tier covers the beta | Scales to zero, starts in ~1 s; needs a Google Cloud billing account (card) and more setup. |
+| Fly.io | ~2–5 $/month | Small always-on VM; no free tier for new accounts. |
+| Supabase Edge Functions | 0 | Deno only. The core could run there compiled to JavaScript (VM = JS is pinned), but the plan chose a Dart server; noted as a fallback. |
+
+**Provisional: Render free** — `render.yaml` and `server/Dockerfile` ready, nothing deployed.
+**Reopen when** the owner chooses, or uploads need to land immediately (live duels, Phase 7).
 
 ## SQL migrations applied by CI, tested on plain Postgres (Phase 2, commit 2)
 
@@ -628,7 +651,7 @@ start` in CI).
 
 Players generate in the browser (dart2js); the server will replay on the Dart VM. `dart:math`'s
 `Random(seed)` and IEEE 754 arithmetic are specified the same on both, but "specified" is not
-"checked": `test/domain/determinism/` pins 144 session sequences (12 seeds × 12 setups, built
+"checked": `packages/math_core/test/determinism/` pins 144 session sequences (12 seeds × 12 setups, built
 exactly as `buildSessionController` builds them), 12 endless sequences and a 5,040-update grid
 of `LevelUpdater`, as strings generated on the VM (`tool/determinism_references.dart`). CI runs
 the core suite on the VM and with `-p node`. **Result on 19 Nov 2026: identical, 158 of 158.**
@@ -669,5 +692,5 @@ regenerated in the same commit.
 ## Manual day/night toggle
 
 A corner button on the Play screen, persisted through `ThemeModeStore` (interface in
-`core/domain/`, `SharedPreferences` implementation in `infrastructure/`). Until something is stored,
+`math_core/lib/`, `SharedPreferences` implementation in `infrastructure/`). Until something is stored,
 the system theme stays the default — the button only overrides it once used.
