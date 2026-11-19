@@ -220,10 +220,12 @@ jobs:
           # The beta gate (Phase 3a commit 3): "true" from the repository
           # variable BETA_GATE once the owner sends the invitations.
           BETA_GATE: ${{ vars.BETA_GATE }}
+        # APP_VERSION: the build's commit, stored with feedback (commit 5).
         run: |
           jq -n --arg url "$SUPABASE_URL" --arg key "$SUPABASE_PUBLISHABLE_KEY" \
             --arg server "$SERVER_URL" --arg gate "$BETA_GATE" \
-            '{SUPABASE_URL: $url, SUPABASE_PUBLISHABLE_KEY: $key, SERVER_URL: $server, BETA_GATE: $gate}' \
+            --arg version "${GITHUB_SHA::7}" \
+            '{SUPABASE_URL: $url, SUPABASE_PUBLISHABLE_KEY: $key, SERVER_URL: $server, BETA_GATE: $gate, APP_VERSION: $version}' \
             > dart_defines.json
       - name: Web build
         # Every URL in the build (bootstrap, assets, sqflite_sw.js,

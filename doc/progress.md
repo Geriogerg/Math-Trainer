@@ -395,3 +395,7 @@ Plan v2.3 (19 Nov 2026). Entry: Phase 2 live. State at the start:
   (checked: profiles, uploaded_sessions, server_players, server_levels, upload_rejections,
   upload_flags via sessions, name_reports, beta_code_uses). Tests: sections, the named buttons,
   the 30-day guest retention equal to `abandonedGuestRetention`; goldens.
+- **Commit 5** *(A)* — Feedback: migration `feedback` + `send_feedback` (SQL test 80: trimmed,
+  stored with the version, 20 a day, unreadable by players, deleted with the account); core
+  `feedback.dart`; `FeedbackController` + `FeedbackScreen` from Profile; the build's commit as
+  `APP_VERSION` (CI). Tests: controller, repository, the flow from Profile.

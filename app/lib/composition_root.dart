@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:math_core/account/account.dart';
 import 'package:math_core/account/account_repository.dart';
 import 'package:math_core/account/beta_access.dart';
+import 'package:math_core/feedback/feedback.dart';
 import 'package:math_core/account/profile_repository.dart';
 import 'package:math_core/generation/composite_exercise_generator.dart';
 import 'package:math_core/generation/debt_aware_type_selection_strategy.dart';
@@ -32,6 +33,7 @@ import 'package:math_core/placement/placement_level_orchestrator.dart';
 import 'core/state/session_controller.dart';
 import 'infrastructure/backend/http_session_upload_client.dart';
 import 'infrastructure/backend/supabase_beta_code_repository.dart';
+import 'infrastructure/backend/supabase_feedback_repository.dart';
 import 'infrastructure/backend/supabase_leaderboard_repository.dart';
 import 'infrastructure/backend/supabase_account_repository.dart';
 import 'infrastructure/backend/supabase_profile_repository.dart';
@@ -73,6 +75,7 @@ class AppEnvironment {
     this.serverLevelsSource,
     this.betaCodes,
     this.betaCodeStore = const SharedPreferencesBetaCodeStore(),
+    this.feedbackRepository,
   });
 
   final SessionRepository repository;
@@ -138,6 +141,10 @@ class AppEnvironment {
   /// Same reasoning as `typeSelectionStore`.
   final BetaCodeStore betaCodeStore;
 
+  /// The beta's feedback field (Phase 3a commit 5); `null` in tests that
+  /// do not care — Profile then shows no "Send feedback".
+  final FeedbackRepository? feedbackRepository;
+
   AppEnvironment forPlayer(String playerId) => AppEnvironment(
     repository: repository,
     playerId: playerId,
@@ -152,6 +159,7 @@ class AppEnvironment {
     serverLevelsSource: serverLevelsSource,
     betaCodes: betaCodes,
     betaCodeStore: betaCodeStore,
+    feedbackRepository: feedbackRepository,
     uploadQueue: switch (uploadClient) {
       final client? => SessionUploadQueue(
         repository: repository,
@@ -202,6 +210,10 @@ const _serverUrl = String.fromEnvironment('SERVER_URL');
 /// `BETA_GATE=true` (CI: the repository variable of the same name, set by
 /// the owner when the invitations go out; removed at the public launch).
 const _betaGate = bool.fromEnvironment('BETA_GATE');
+
+/// The build's commit (CI: the first 7 characters of the SHA), stored with
+/// every feedback message; `dev` for a local build.
+const appVersion = String.fromEnvironment('APP_VERSION', defaultValue: 'dev');
 
 /// Build started without `--dart-define-from-file=dart_defines.json` (see
 /// `dart_defines.example.json`). Without this check the app still started
@@ -283,6 +295,7 @@ Future<AppEnvironment> buildAppEnvironment() async {
     betaCodes: _betaGate
         ? SupabaseBetaCodeRepository(Supabase.instance.client)
         : null,
+    feedbackRepository: SupabaseFeedbackRepository(Supabase.instance.client),
   );
 }
 

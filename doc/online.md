@@ -205,6 +205,15 @@ the move happens before the invitations.
    use: `max_uses` 2 is enough), and store it as the repository **secret** `SMOKE_BETA_CODE`.
 3. Repository **variable** `BETA_GATE` = `true`, then re-run CI: the next preview asks for a code.
 
+## Feedback (Phase 3a commit 5)
+
+Profile → "Send feedback": one free text (≤ 2,000 characters, `math_core/feedback`), sent by
+`send_feedback(message, app_version)` (`…_feedback.sql`): stored trimmed in `feedback` with the
+player id and the app version — the build's commit, `APP_VERSION` from CI (`dev` locally). At
+most 20 messages per player per 24 hours (`tooMany`). Not queued offline: a failed send keeps
+the text on screen. Players cannot read the table; it cascades with the account. The owner
+reads it with the dashboard script (commit 6); Phase 3b triages it.
+
 ## Session upload (Phase 2 commit 5)
 
 - **The queue is the local database**: `SessionRepository.pendingUploads(player)` — sessions

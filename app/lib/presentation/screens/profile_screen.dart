@@ -11,14 +11,17 @@ import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/persistence/persisted_session.dart';
 import '../../core/state/account_deletion_controller.dart';
 import 'package:math_core/account/display_name.dart';
+import 'package:math_core/feedback/feedback.dart';
 
 import '../account_messages.dart';
 import '../exercise_type_labels.dart';
 import '../upload_refusal_text.dart';
 import 'package:math_core/leveling/overall_level.dart';
 import '../../core/state/account_form_controller.dart';
+import '../../core/state/feedback_controller.dart';
 import '../theme/app_theme.dart';
 import 'empty_state.dart';
+import 'feedback_screen.dart';
 import 'privacy_screen.dart';
 import 'save_progress_screen.dart';
 import 'session_flow_screen.dart';
@@ -226,6 +229,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   /// Confirm, then delete on the server, wipe this device's data, sign out
   /// (`AccountDeletionController`); `AuthGate` then starts a fresh guest.
+  Future<void> _sendFeedback(FeedbackRepository repository) async {
+    final controller = FeedbackController(
+      repository: repository,
+      appVersion: appVersion,
+    );
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => FeedbackScreen(controller: controller),
+      ),
+    );
+    controller.dispose();
+  }
+
   Future<void> _deleteData(Account account) async {
     final guest = account.isAnonymous;
     final confirmed = await showDialog<bool>(
@@ -417,6 +433,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       : null,
                 ),
             const SizedBox(height: 32),
+            // The beta's feedback field (Phase 3a commit 5).
+            if (widget.environment.feedbackRepository case final feedback?)
+              Center(
+                child: TextButton(
+                  onPressed: () => _sendFeedback(feedback),
+                  child: const Text('Send feedback'),
+                ),
+              ),
             // What is stored and how to delete it (Phase 3a commit 4), right
             // above the deletion it describes.
             Center(
