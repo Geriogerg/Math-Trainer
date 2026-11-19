@@ -7,7 +7,9 @@
 #
 # e.g. postgresql://postgres:postgres@localhost:5432/postgres. Creates (and
 # drops first) the database `mt_sql_test` on that server.
-set -euo pipefail
+set -Eeuo pipefail
+# Any unexpected failure names its line (an annotation on GitHub Actions).
+trap 'status=$?; echo "::error title=SQL runner::line $LINENO failed (exit $status): $BASH_COMMAND"' ERR
 
 admin_url="${1:?usage: test_sql.sh <postgres admin url>}"
 root="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -46,8 +48,10 @@ for attempt in $(seq 1 30); do
   sleep 2
 done
 
-psql "$admin_url" -v ON_ERROR_STOP=1 -q -c "drop database if exists $db" \
-  -c "create database $db"
+if ! out=$(psql "$admin_url" -v ON_ERROR_STOP=1 -q \
+  -c "drop database if exists $db" -c "create database $db" 2>&1); then
+  fail create-database "$out"
+fi
 run "$root/supabase/tests/00_supabase_stub.sql"
 for file in "$root"/supabase/migrations/*.sql; do run "$file"; done
 # Twice: every migration must be safe to re-apply (the first ones were run
