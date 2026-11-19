@@ -307,6 +307,10 @@ Phase 0 closed in Phase 1 commit 0 (`material_ui`, `δ` recorded, preview, load)
   other players' named rows, confirmation, `report_player_name` (one per reporter/player);
   3 reports on the current name → shown as "Player". SQL tests (20 sample names, reports,
   hiding, access). Also: the SQL runner sets `PGCLIENTENCODING=UTF8`.
+- **Commit 10** *(A)* — Linked players only: migration replaces `leaderboard_rows` (skips
+  anonymous accounts) and `leaderboard_around_me` (`notLinked` first for a guest). The tab tells
+  a guest why and offers "Save your progress" (the Profile screen), then reloads. SQL test: a
+  guest with the best level is off the board and told `notLinked`; once linked (same id), first.
 
 ### Remaining contradictions after commit 0
 

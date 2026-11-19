@@ -198,4 +198,22 @@ void main() {
     expect(leaderboard.reported, ['id-1']);
     expect(find.text('Reported — thank you.'), findsOneWidget);
   });
+
+  testWidgets('a guest is offered to save their progress (Phase 2 commit 10)', (
+    tester,
+  ) async {
+    leaderboard.standings[const LeaderboardBoard.overall()] = const NotRanked(
+      reason: NotRankedReason.notLinked,
+    );
+    await pump(tester);
+
+    expect(
+      find.textContaining('shows players who saved their progress'),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('Save your progress'));
+    await tester.pumpAndSettle();
+    // The same screen as from Profile: email, password, player name.
+    expect(find.text('Email'), findsOneWidget);
+  });
 }

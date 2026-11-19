@@ -136,3 +136,38 @@ begin
 end;
 $$;
 reset role;
+
+-- Only linked players (Phase 2 commit 10): a guest with the best level is
+-- not on the board, and is told why; once linked, same id, there at once.
+do $$
+begin
+  insert into auth.users (id, is_anonymous)
+    values ('00000000-0000-0000-0000-000000000199', true);
+  insert into public.server_players (player_id, version, last_session_at, has_completed_session)
+    values ('00000000-0000-0000-0000-000000000199', 3, now(), true);
+  insert into public.server_levels values
+    ('00000000-0000-0000-0000-000000000199', 'addition', 9900, 5, now());
+end;
+$$;
+set role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000199', false);
+do $$
+begin
+  assert public.leaderboard_top('addition') -> 0 ->> 'name' = 'Player 10',
+    'a guest topped the board';
+  assert public.leaderboard_around_me('addition') ->> 'reason' = 'notLinked',
+    'guest reason: ' || public.leaderboard_around_me('addition')::text;
+end;
+$$;
+reset role;
+update auth.users set is_anonymous = false
+  where id = '00000000-0000-0000-0000-000000000199';
+set role authenticated;
+do $$
+begin
+  assert (public.leaderboard_top('addition') -> 0 ->> 'level')::int = 9900,
+    'linked player missing';
+  assert (public.leaderboard_around_me('addition') ->> 'rank')::int = 1, 'linked rank';
+end;
+$$;
+reset role;

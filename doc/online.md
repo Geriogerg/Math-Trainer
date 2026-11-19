@@ -238,6 +238,11 @@ which return only rank, player name and level; the tables themselves stay closed
   neighbours}` (five above and five below, the caller included), or `{eligible: false, reason,
   sessionsNeeded}` with `reason` ∈ `signedOut`, `noSessions`, `notEnoughSessions`, `inactive`.
 
+**Linked players only** (commit 10, plan 6.3): `leaderboard_rows` skips anonymous accounts
+(`auth.users.is_anonymous`); a guest's own standing answers `notLinked` before any other
+reason, and the tab offers "Save your progress" (the Profile screen) — same id once linked,
+so their place appears at once. A guest's sessions are uploaded and validated like anyone's.
+
 `board` is `overall` or an `ExerciseType` name. Ranked on the level in hundredths, descending
 (`rank()`: equal levels share a rank); displayed as a whole number. Overall level = mean of the
 seven, an unplayed one counting as level 1 (the app's `overallLevel`), rounded to hundredths.

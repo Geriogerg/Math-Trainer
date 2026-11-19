@@ -11,7 +11,7 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 ## Current phase
 
 **Phase 2 — Server and leaderboard** (`doc/plan.md`, section 7), run in **one pass**.
-Done: 0–9. Next commit: **10**. Waiting on the owner: the `SUPABASE_ACCESS_TOKEN` and
+Done: 0–10. Next commit: **11**. Waiting on the owner: the `SUPABASE_ACCESS_TOKEN` and
 `SUPABASE_DB_PASSWORD` secrets (CI skips the migrations until then — the Phase 1 test accounts
 go with them); the server host (Render free, prepared in `render.yaml`, not deployed). Update this block at every commit.
 

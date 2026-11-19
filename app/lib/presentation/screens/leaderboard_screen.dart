@@ -2,10 +2,12 @@ import 'package:material_ui/material_ui.dart';
 import 'package:math_core/leaderboard/leaderboard.dart';
 
 import '../../composition_root.dart';
+import '../../core/state/account_form_controller.dart';
 import '../../core/state/leaderboard_controller.dart';
 import '../exercise_type_labels.dart';
 import '../theme/app_theme.dart';
 import 'empty_state.dart';
+import 'save_progress_screen.dart';
 
 /// The Leaderboard tab (plan 6.4, Phase 2 commit 8): a board per operation
 /// and overall; by default the player's standing — "Top N %" and the five
@@ -120,6 +122,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         NotRanked() => _NotRankedView(
           standing: standing,
           board: controller.board,
+          onSaveProgress: _saveProgress,
         ),
       },
       LeaderboardView.top =>
@@ -132,6 +135,31 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               )
             : _EntryList(entries: top, onReport: _report),
     };
+  }
+
+  /// A guest is not on the boards (only linked players are, plan 6.3):
+  /// the same "Save your progress" as Profile, then the board again —
+  /// same account id, so their place shows at once.
+  Future<void> _saveProgress() async {
+    final environment = widget.environment;
+    final outcome = await Navigator.of(context).push<SaveProgressOutcome>(
+      MaterialPageRoute(
+        builder: (_) => SaveProgressScreen(
+          accountRepository: environment.accountRepository,
+          profileRepository: environment.profileRepository,
+          initialDisplayName: '',
+          guestHasProgress: true,
+        ),
+      ),
+    );
+    if (!mounted || outcome == null) return;
+    _controller?.load().ignore();
+    if (outcome == SaveProgressOutcome.saved ||
+        outcome == SaveProgressOutcome.savedWithoutName) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Progress saved to your account.')),
+      );
+    }
   }
 
   /// Confirm, report, say so. Names are public content (plan 6.4).
@@ -227,10 +255,15 @@ class _RankedView extends StatelessWidget {
 }
 
 class _NotRankedView extends StatelessWidget {
-  const _NotRankedView({required this.standing, required this.board});
+  const _NotRankedView({
+    required this.standing,
+    required this.board,
+    required this.onSaveProgress,
+  });
 
   final NotRanked standing;
   final LeaderboardBoard board;
+  final VoidCallback onSaveProgress;
 
   @override
   Widget build(BuildContext context) {
@@ -250,13 +283,27 @@ class _NotRankedView extends StatelessWidget {
         'Play a game to appear again: the board shows players active in the '
             'last 30 days. Your level never drops while you are away.',
       NotRankedReason.notLinked =>
-        'Save your progress to appear on the leaderboard.',
+        'The leaderboard shows players who saved their progress. Save '
+            'yours — an email and a player name — to take your place.',
       NotRankedReason.signedOut ||
       NotRankedReason.other => 'You are not on this board yet.',
     };
     return Align(
       alignment: Alignment.topLeft,
-      child: Text(message, style: theme.textTheme.bodyLarge),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(message, style: theme.textTheme.bodyLarge),
+          if (standing.reason == NotRankedReason.notLinked) ...[
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: onSaveProgress,
+              child: const Text('Save your progress'),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
