@@ -324,7 +324,20 @@ Phase 0 closed in Phase 1 commit 0 (`material_ui`, `δ` recorded, preview, load)
   never blocks the preview. Its first local run caught real breakage: Flutter 3.50 refuses
   Gradle 9.1.0 and Android Gradle Plugin 9.0.1 (minimums 9.3.1 / 9.1.1). Moved to the versions
   Flutter recommends (Gradle 9.5.0, AGP 9.3.1, Kotlin 2.4.20); the full build is left to CI
-  (a local one takes over 12 minutes and did not finish here).
+  (a local one takes over 12 minutes and did not finish here). First CI run: **APK built**.
+
+### Phase 2 exit test (20 Nov 2026)
+
+- Rows reproduced by replay: **by tests** — `app/test/state/server_replay_test.dart` (server
+  levels after replaying six real sessions = the app's cache), the SQL write path, the
+  endpoint. Not live: no server deployed, migrations not applied.
+- Forged upload rejected: **by tests** (core: 18 validation cases; server: a forged question
+  rejected, recorded, still rejected when resent).
+- The owner sees their rank on a phone: **not yet** — needs the migration secrets and the
+  server host (owner decisions).
+- Also measured, Phase 1's open item: slow 4G on the **real preview**, fresh browser, first
+  question **26.5 s** from navigation (target < 30 s; 21.1 s on the local build). The smoke
+  script now waits up to 60 s for Flutter (it gave up at 20 s on slow 4G).
 
 ### Remaining contradictions after commit 0
 

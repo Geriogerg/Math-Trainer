@@ -11,9 +11,10 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 ## Current phase
 
 **Phase 2 — Server and leaderboard** (`doc/plan.md`, section 7), run in **one pass**.
-Done: 0–12, all commits. Next: the exit test and the **phase report**. Waiting on the owner: the `SUPABASE_ACCESS_TOKEN` and
-`SUPABASE_DB_PASSWORD` secrets (CI skips the migrations until then — the Phase 1 test accounts
-go with them); the server host (Render free, prepared in `render.yaml`, not deployed). Update this block at every commit.
+Done: 0–12, all commits; exit test run, phase report given. Waiting on the owner:
+the `SUPABASE_ACCESS_TOKEN` / `SUPABASE_DB_PASSWORD` secrets (CI skips the 8 migrations until
+then); the server host decision (`render.yaml`, not deployed) and the `SERVER_URL` variable;
+the play-through checklist of the report. Update this block at every commit.
 
 | # | Commit | Note |
 |---|---|---|

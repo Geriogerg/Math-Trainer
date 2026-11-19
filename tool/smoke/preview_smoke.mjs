@@ -120,9 +120,10 @@ async function shutdown(code) {
 }
 
 /// Flutter builds its accessibility DOM only when asked; the placeholder
-/// button is how a screen reader asks. Re-armed after every reload.
+/// button is how a screen reader asks. Re-armed after every reload. Up to
+/// 60 s: on emulated slow 4G Flutter alone takes about 20 s to start.
 async function enableSemantics() {
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 120; i++) {
     const done = await evaluate(`(() => {
       if (document.querySelector('flt-semantics')) return true;
       const p = document.querySelector('flt-semantics-placeholder');
