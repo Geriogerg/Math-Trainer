@@ -70,6 +70,56 @@ void main() {
   }
 
   group('SqfliteSessionRepository', () {
+    test('the type sequence round-trips, in order; null stays null', () async {
+      final sequence = [
+        for (var i = 0; i < 10; i++)
+          i % 3 == 0 ? ExerciseType.division : ExerciseType.addition,
+      ];
+      final withSequence = PersistedSession(
+        id: 'with',
+        playerId: 'player-1',
+        seed: 42,
+        enabledTypes: const {ExerciseType.addition, ExerciseType.division},
+        exerciseCount: 10,
+        totalScore: 0,
+        levels: {
+          ExerciseType.addition: Level.whole(4),
+          ExerciseType.division: Level.whole(2),
+        },
+        createdAt: DateTime.utc(2026, 11, 2),
+        typeSequence: sequence,
+      );
+      await repository.recordSession(
+        session: withSequence,
+        answers: const [],
+        levelUpdates: const {},
+      );
+      await repository.recordSession(
+        session: session('without', createdAt: DateTime.utc(2026, 11, 1)),
+        answers: const [],
+        levelUpdates: const {},
+      );
+
+      final stored = await repository.recentSessions('player-1');
+      expect(stored.first, withSequence);
+      expect(stored.first.typeSequence, sequence);
+      expect(stored.last.typeSequence, isNull);
+    });
+
+    test('answers come back in the order they were stored', () async {
+      await repository.recordSession(
+        session: session('s', createdAt: DateTime.utc(2026, 11, 1)),
+        answers: [
+          for (final id in ['z', 'a', 'm']) answer(id, 's'),
+        ],
+        levelUpdates: const {},
+      );
+      expect(
+        [for (final a in await repository.answersForSession('s')) a.id],
+        ['z', 'a', 'm'],
+      );
+    });
+
     test('hasCompletedSession: only a session played to its last question '
         'counts, and only for its player', () async {
       expect(await repository.hasCompletedSession('player-1'), isFalse);

@@ -109,6 +109,22 @@ void main() {
               synced_at TEXT
             )
           ''');
+            // Every real database has had `answers` since v1 (the v6
+            // migration reads it).
+            await db.execute('''
+            CREATE TABLE answers (
+              id TEXT PRIMARY KEY,
+              session_id TEXT NOT NULL REFERENCES sessions(id),
+              exercise_type TEXT NOT NULL,
+              operation_type TEXT NOT NULL,
+              operands_json TEXT NOT NULL,
+              submitted_value REAL NOT NULL,
+              is_correct INTEGER NOT NULL,
+              elapsed_ms INTEGER NOT NULL,
+              created_at TEXT NOT NULL,
+              synced_at TEXT
+            )
+          ''');
             // Every real v2 database has it (created by the v1 → v2 step);
             // the v4 migration updates it.
             await db.execute('''
@@ -175,6 +191,21 @@ void main() {
               synced_at TEXT
             )
           ''');
+          // Every real database has had `answers` since v1.
+          await db.execute('''
+            CREATE TABLE answers (
+              id TEXT PRIMARY KEY,
+              session_id TEXT NOT NULL REFERENCES sessions(id),
+              exercise_type TEXT NOT NULL,
+              operation_type TEXT NOT NULL,
+              operands_json TEXT NOT NULL,
+              submitted_value REAL NOT NULL,
+              is_correct INTEGER NOT NULL,
+              elapsed_ms INTEGER NOT NULL,
+              created_at TEXT NOT NULL,
+              synced_at TEXT
+            )
+          ''');
           await db.execute('''
             CREATE TABLE player_levels (
               player_id TEXT NOT NULL,
@@ -235,6 +266,88 @@ void main() {
     expect(await v4db.getVersion(), schemaVersion);
 
     await v4db.close();
+    await databaseFactory.deleteDatabase(path);
+  });
+
+  test('an existing v5 database migrates to v6: a complete session gets its '
+      'answer types as its sequence, an interrupted one keeps null', () async {
+    const path = 'migration_v5_test.db';
+    await databaseFactory.deleteDatabase(path);
+    final v5db = await databaseFactory.openDatabase(
+      path,
+      options: OpenDatabaseOptions(
+        version: 5,
+        onCreate: (db, version) async {
+          await db.execute('''
+            CREATE TABLE sessions (
+              id TEXT PRIMARY KEY,
+              player_id TEXT NOT NULL,
+              seed INTEGER NOT NULL,
+              operation_types TEXT NOT NULL,
+              exercise_count INTEGER NOT NULL,
+              total_score INTEGER NOT NULL,
+              levels_json TEXT NOT NULL DEFAULT '{}',
+              overall_level_after REAL,
+              created_at TEXT NOT NULL,
+              synced_at TEXT,
+              kind TEXT NOT NULL DEFAULT 'game'
+            )
+          ''');
+          await db.execute('''
+            CREATE TABLE answers (
+              id TEXT PRIMARY KEY,
+              session_id TEXT NOT NULL REFERENCES sessions(id),
+              exercise_type TEXT NOT NULL,
+              operation_type TEXT NOT NULL,
+              operands_json TEXT NOT NULL,
+              submitted_value REAL NOT NULL,
+              is_correct INTEGER NOT NULL,
+              elapsed_ms INTEGER NOT NULL,
+              created_at TEXT NOT NULL,
+              synced_at TEXT
+            )
+          ''');
+        },
+      ),
+    );
+    for (final (id, count) in [('complete', 3), ('interrupted', 4)]) {
+      await v5db.insert('sessions', {
+        'id': id,
+        'player_id': 'player',
+        'seed': 7,
+        'operation_types': '["addition","power"]',
+        'exercise_count': count,
+        'total_score': 0,
+        'levels_json': '{"addition":100,"power":100}',
+        'created_at': DateTime.utc(2026, 11, 1).toIso8601String(),
+      });
+      // Inserted in answer order; ids deliberately not in that order.
+      for (final (i, type) in [(2, 'power'), (0, 'addition'), (1, 'power')]) {
+        await v5db.insert('answers', {
+          'id': '$id-$i',
+          'session_id': id,
+          'exercise_type': type == 'power' ? 'power' : 'arithmetic',
+          'operation_type': type,
+          'operands_json': '{}',
+          'submitted_value': 1,
+          'is_correct': 1,
+          'elapsed_ms': 900,
+          'created_at': DateTime.utc(2026, 11, 1).toIso8601String(),
+        });
+      }
+    }
+    await v5db.close();
+
+    final db = await openMathTrainerDatabase(path);
+    final sequences = {
+      for (final row in await db.query('sessions'))
+        row['id']: row['type_sequence'],
+    };
+    expect(sequences['complete'], '["power","addition","power"]');
+    expect(sequences['interrupted'], isNull);
+    expect(await db.getVersion(), schemaVersion);
+
+    await db.close();
     await databaseFactory.deleteDatabase(path);
   });
 }

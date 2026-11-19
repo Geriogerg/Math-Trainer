@@ -8,6 +8,7 @@ import 'core/domain/account/account_repository.dart';
 import 'core/domain/account/profile_repository.dart';
 import 'core/domain/generation/composite_exercise_generator.dart';
 import 'core/domain/generation/debt_aware_type_selection_strategy.dart';
+import 'core/domain/generation/fixed_type_sequence.dart';
 import 'core/domain/generation/local_exercise_source.dart';
 import 'core/domain/generation/session_length.dart';
 import 'core/domain/leveling/level.dart';
@@ -227,14 +228,17 @@ Future<SessionController> buildSessionController(
     nMin: _levelingRules.nMin,
     cap: _sessionLengthCap,
   );
-  final strategy = DebtAwareTypeSelectionStrategy(
+  // The order depends on the player's history (least-played types first):
+  // decided once here and stored with the session, so the session replays
+  // from what it stores alone (plan, Phase 2 commit 1).
+  final typeSequence = DebtAwareTypeSelectionStrategy(
     exerciseCount: exerciseCount,
     nMin: _levelingRules.nMin,
     sessionsPlayedByType: {
       for (final entry in priorLevels.entries)
         entry.key: entry.value.sessionsPlayed,
     },
-  );
+  ).sequenceFor(enabledTypes.toList()..sort((a, b) => a.index - b.index));
 
   final seed = DateTime.now().millisecondsSinceEpoch;
   return SessionController(
@@ -243,12 +247,13 @@ Future<SessionController> buildSessionController(
       enabledTypes: enabledTypes,
       exerciseCount: exerciseCount,
       levels: levels,
+      typeSequence: typeSequence,
     ),
     exerciseSource: LocalExerciseSource(
       generator: CompositeExerciseGenerator(
         enabledTypes: enabledTypes,
         levels: levels,
-        strategy: strategy,
+        strategy: FixedTypeSequence(typeSequence),
       ),
       seed: seed,
     ),
@@ -279,6 +284,7 @@ SessionController buildPlacementController(AppEnvironment environment) {
         for (final t in placementTypes) t: Level.whole(rules.startLevel),
       },
       kind: placementKindFor(rules),
+      typeSequence: placementTypeSequence(rules),
     ),
     exerciseSource: PlacementExerciseSource(seed: seed, rules: rules),
     levelCacheOrchestrator: const PlacementLevelOrchestrator(rules: rules),

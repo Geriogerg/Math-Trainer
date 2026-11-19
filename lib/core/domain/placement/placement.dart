@@ -172,6 +172,12 @@ bool placementPassed({
 ExerciseType placementTypeAt(int index) =>
     placementTypes[index % placementTypes.length];
 
+/// Every question's type in a full placement under [rules] — what the
+/// session stores as its type sequence.
+List<ExerciseType> placementTypeSequence(PlacementRules rules) => [
+  for (var i = 0; i < rules.questionCount; i++) placementTypeAt(i),
+];
+
 /// The staircases after [answers] — `(isCorrect, elapsedMs)` in the order
 /// they were given, question `i` being of type [placementTypeAt]`(i)`.
 Map<ExerciseType, Staircase> replayStaircases(

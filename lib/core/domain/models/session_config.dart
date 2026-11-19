@@ -9,6 +9,7 @@ class SessionConfig {
     required this.exerciseCount,
     required this.levels,
     this.kind = SessionKind.game,
+    this.typeSequence,
   });
 
   final int seed;
@@ -24,4 +25,10 @@ class SessionConfig {
   /// A placement's levels move with its answers: [levels] then holds the
   /// staircases' starting levels, for the record.
   final SessionKind kind;
+
+  /// The type of every planned question, in order — decided at the start
+  /// and stored with the session, so it replays from (seed, stored config)
+  /// alone (plan, Phase 2 commit 1). `null` only where no session is
+  /// stored from this config (tests, the endless stream).
+  final List<ExerciseType>? typeSequence;
 }

@@ -19,13 +19,16 @@ lib/
                            # AnswerResult, SessionConfig, SessionResult
       generation/          # ExerciseGenerator, CompositeExerciseGenerator, per-type generators,
                            # OperandRange, ExerciseSource, LocalExerciseSource,
-                           # DebtAwareTypeSelectionStrategy, session_length.dart
+                           # DebtAwareTypeSelectionStrategy, FixedTypeSequence,
+                           # session_length.dart
       difficulty/          # level → operand bounds per type (arithmetic/power/square_root/percentage)
       placement/           # placement test: staircases, placementLevels (pure), its exercise
                            # source (adaptive, deterministic), PlacementLevelOrchestrator
       leveling/            # LevelUpdater, LevelCacheOrchestrator, LevelingRules, Confidence,
                            # AnswerOutcome — recompute levels from history; overall_level.dart
                            # (overall level, also stored per session)
+      replay/              # replaySessionQuestions: a stored session's questions from what it
+                           # stores alone (seed, kind, frozen levels, type sequence)
       scoring/             # Scorer, ScoringRules
       persistence/         # SessionRepository, LocalPlayerIdProvider, TypeSelectionStore,
                            # ThemeModeStore, PlacementSkipStore (interfaces), PersistedSession/PersistedAnswer,
@@ -130,11 +133,11 @@ The expected answer comes from the domain, never recomputed by the UI or the `Sc
 Storage goes through `operands_json`, which absorbs the variants without schema migration. The
 stored discriminant is the `ExerciseType` value name.
 
-## Local schema (version 5)
+## Local schema (version 6)
 
 | Table | Content |
 |---|---|
-| `sessions` | id, player_id, seed, operation_types, exercise_count, total_score, levels_json (levels frozen at start, in hundredths), overall_level_after (nullable, in level units: 37.42), created_at, synced_at, kind (`SessionKind.name`: `game`, `placementV1` or `placementV2`, schema v5) |
+| `sessions` | id, player_id, seed, operation_types, exercise_count, total_score, levels_json (levels frozen at start, in hundredths), overall_level_after (nullable, in level units: 37.42), created_at, synced_at, kind (`SessionKind.name`: `game`, `placementV1` or `placementV2`, schema v5), type_sequence (JSON list of `ExerciseType` names, one per planned question, schema v6; `null` for an interrupted session from before v6) |
 | `answers` | id, session_id, exercise_type, operation_type, operands_json, submitted_value, is_correct, elapsed_ms, created_at, synced_at |
 | `player_levels` | (player_id, exercise_type), level (in hundredths), sessions_played, updated_at — the level cache |
 

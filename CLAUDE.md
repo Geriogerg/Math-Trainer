@@ -11,7 +11,7 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 ## Current phase
 
 **Phase 2 — Server and leaderboard** (`doc/plan.md`, section 7), run in **one pass**.
-Done: 0. Next commit: **1**. Parked: deleting the Phase 1 test accounts (needs
+Done: 0, 1. Next commit: **2**. Parked: deleting the Phase 1 test accounts (needs
 `delete_my_account()`, applied by CI from commit 2). Update this block at every commit.
 
 | # | Commit | Note |
@@ -168,8 +168,9 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 - SQL goes in versioned migrations applied by CI (from commit 2); never run SQL by hand, never
   print the access token or database password.
 - Browser storage can be evicted until server sync is live.
-- Rotation by sampling debt makes question order depend on past games — store it with the
-  session or replay breaks.
+- Rotation by sampling debt makes question order depend on past games: sessions store their
+  type sequence (schema v6). Replay with `replaySessionQuestions`, never by re-running the
+  strategy.
 - No Google fonts at runtime (`fontFallbackBaseUrl: 'fonts/'` in `web/flutter_bootstrap.js`):
   a glyph missing from the bundled fonts shows as a box. Check new UI symbols in the network
   panel.

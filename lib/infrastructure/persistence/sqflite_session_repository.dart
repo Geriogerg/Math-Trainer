@@ -57,6 +57,9 @@ class SqfliteSessionRepository implements SessionRepository {
       'answers',
       where: 'session_id = ?',
       whereArgs: [sessionId],
+      // The order they were given (inserted in order, one transaction): a
+      // replay pairs answer i with question i.
+      orderBy: 'rowid',
     );
     return rows.map(_answerFromRow).toList();
   }
@@ -200,6 +203,9 @@ class SqfliteSessionRepository implements SessionRepository {
       ),
       'overall_level_after': session.overallLevelAfter,
       'kind': session.kind.name,
+      'type_sequence': session.typeSequence == null
+          ? null
+          : jsonEncode([for (final t in session.typeSequence!) t.name]),
       'created_at': session.createdAt.toIso8601String(),
       'synced_at': session.syncedAt?.toIso8601String(),
     };
@@ -211,6 +217,7 @@ class SqfliteSessionRepository implements SessionRepository {
     final levelsJson = (jsonDecode(row['levels_json'] as String) as Map)
         .cast<String, Object?>();
     final syncedAt = row['synced_at'] as String?;
+    final typeSequence = row['type_sequence'] as String?;
     return PersistedSession(
       id: row['id'] as String,
       playerId: row['player_id'] as String,
@@ -228,6 +235,12 @@ class SqfliteSessionRepository implements SessionRepository {
       overallLevelAfter: (row['overall_level_after'] as num?)?.toDouble(),
       kind: SessionKind.values.byName(row['kind'] as String),
       syncedAt: syncedAt == null ? null : DateTime.parse(syncedAt),
+      typeSequence: typeSequence == null
+          ? null
+          : [
+              for (final name in (jsonDecode(typeSequence) as List))
+                ExerciseType.values.byName(name as String),
+            ],
     );
   }
 

@@ -8,7 +8,7 @@ import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart'
 
 /// Current schema version. Every change increments this value and adds a
 /// branch in [_onUpgrade] — never destructive, never retroactive.
-const schemaVersion = 5;
+const schemaVersion = 6;
 
 /// The app's database, where each platform expects it. On web: same schema
 /// and same SQL as elsewhere, SQLite compiled to WebAssembly
@@ -54,8 +54,10 @@ Future<Database> openMathTrainerDatabase(String path) {
           overall_level_after REAL,
           created_at TEXT NOT NULL,
           synced_at TEXT,
-          -- `SessionKind.name`: 'game' or 'placementV1' (schema v5).
-          kind TEXT NOT NULL DEFAULT 'game'
+          -- `SessionKind.name`: 'game', 'placementV1', ... (schema v5).
+          kind TEXT NOT NULL DEFAULT 'game',
+          -- Type of every planned question, JSON list of names (schema v6).
+          type_sequence TEXT
         )
       ''');
       await db.execute('''
@@ -122,6 +124,44 @@ Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     // Placement test (Phase 1 commit 6): every session so far is a game.
     await db.execute(
       "ALTER TABLE sessions ADD COLUMN kind TEXT NOT NULL DEFAULT 'game'",
+    );
+  }
+  if (oldVersion < 6) {
+    await db.execute('ALTER TABLE sessions ADD COLUMN type_sequence TEXT');
+    await backfillTypeSequences(db);
+  }
+}
+
+/// Schema v6 (plan, Phase 2 commit 1): a session stores its type order. For
+/// a session played to its last question, that order is exactly the types
+/// of its answers in the order given (`rowid`: inserted in order, in one
+/// transaction). An interrupted session only shows a prefix of its plan:
+/// it keeps `null` and cannot be replayed — readable as before.
+Future<void> backfillTypeSequences(DatabaseExecutor db) async {
+  final sessions = await db.query(
+    'sessions',
+    columns: ['id', 'exercise_count'],
+  );
+  for (final session in sessions) {
+    final answers = await db.query(
+      'answers',
+      columns: ['operation_type'],
+      where: 'session_id = ?',
+      whereArgs: [session['id']],
+      orderBy: 'rowid',
+    );
+    if (answers.isEmpty || answers.length != session['exercise_count']) {
+      continue;
+    }
+    await db.update(
+      'sessions',
+      {
+        'type_sequence': jsonEncode([
+          for (final a in answers) a['operation_type'],
+        ]),
+      },
+      where: 'id = ?',
+      whereArgs: [session['id']],
     );
   }
 }

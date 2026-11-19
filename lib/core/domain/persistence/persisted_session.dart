@@ -18,7 +18,16 @@ class PersistedSession {
     this.overallLevelAfter,
     this.syncedAt,
     this.kind = SessionKind.game,
+    this.typeSequence,
   }) {
+    final sequence = typeSequence;
+    if (sequence != null && sequence.length != exerciseCount) {
+      throw ArgumentError.value(
+        sequence.length,
+        'typeSequence',
+        'must hold one type per planned question ($exerciseCount).',
+      );
+    }
     final overall = overallLevelAfter;
     if (overall != null && (overall < 1 || overall > 100)) {
       throw ArgumentError.value(
@@ -71,6 +80,12 @@ class PersistedSession {
   /// Game or placement (schema v5; older rows are games).
   final SessionKind kind;
 
+  /// The type of every planned question, in order (schema v6): with
+  /// [seed], [levels] and [kind], all a replay needs. Rows from before v6
+  /// were backfilled from their answers when complete; an older
+  /// interrupted session has `null` and cannot be replayed.
+  final List<ExerciseType>? typeSequence;
+
   PersistedSession copyWith({String? playerId, Object? syncedAt = _unset}) {
     return PersistedSession(
       id: id,
@@ -86,7 +101,18 @@ class PersistedSession {
           ? this.syncedAt
           : syncedAt as DateTime?,
       kind: kind,
+      typeSequence: typeSequence,
     );
+  }
+
+  bool _typeSequenceEqual(List<ExerciseType>? other) {
+    final mine = typeSequence;
+    if (mine == null || other == null) return mine == other;
+    if (mine.length != other.length) return false;
+    for (var i = 0; i < mine.length; i++) {
+      if (mine[i] != other[i]) return false;
+    }
+    return true;
   }
 
   /// A `Set` has no stable order to compare positionally — two sets built
@@ -120,7 +146,8 @@ class PersistedSession {
       other.createdAt == createdAt &&
       other.overallLevelAfter == overallLevelAfter &&
       other.syncedAt == syncedAt &&
-      other.kind == kind;
+      other.kind == kind &&
+      other._typeSequenceEqual(typeSequence);
 
   @override
   int get hashCode => Object.hash(
@@ -139,5 +166,6 @@ class PersistedSession {
     overallLevelAfter,
     syncedAt,
     kind,
+    typeSequence == null ? null : Object.hashAll(typeSequence!),
   );
 }

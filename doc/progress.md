@@ -227,6 +227,12 @@ Phase 0 closed in Phase 1 commit 0 (`material_ui`, `δ` recorded, preview, load)
   level and a bar inside it, no more "(+2.76)" (`level_format.dart` removed). 48 placement v2
   sequences pinned (v1 references unchanged). `SessionRepository.hasCompletedSession`.
   **Parked: test accounts** — deleted once `delete_my_account()` is applied by CI (commit 2).
+- **Commit 1** *(A)* — Self-contained sessions: every session stores its type sequence
+  (schema v6 `sessions.type_sequence`; complete old sessions backfilled from their answers,
+  interrupted old ones stay `null`). Games are generated through `FixedTypeSequence` (same
+  questions as the debt strategy). `replaySessionQuestions` regenerates a stored session from
+  what it stores alone; a test plays real sessions into SQLite and replays each in isolation.
+  `answersForSession` ordered by `rowid`. No pinned sequence changed.
 
 ### Remaining contradictions after commit 0
 

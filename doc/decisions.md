@@ -576,6 +576,34 @@ is enough.
 Proposed in the initial plan, removed during implementation: it grew the change by touching
 `Scorer` and `AnswerResult`, both stable.
 
+## Self-contained sessions: the type sequence is stored (Phase 2, commit 1)
+
+Phase 1 found that a game's question order depends on the player's per-type session counts at
+the time (`DebtAwareTypeSelectionStrategy`, least-played types first), read from the level
+cache and stored nowhere: a single session could not be replayed without the player's whole
+history. The plan offered two fixes: store the counts, or store the type sequence itself.
+
+Chosen: **the type sequence** (`sessions.type_sequence`, schema v6; `SessionConfig.typeSequence`,
+`PersistedSession.typeSequence`). The app decides it once at the start with the debt strategy
+and generates through `FixedTypeSequence`, which consumes no randomness — so the questions are
+exactly what they were (a test checks both paths give the same exercises; no pinned sequence
+changed). Why not the counts: the sequence also covers the placement (fixed rotation) and any
+future strategy without keeping old strategy code replayable, and the server's replay needs no
+history. A forged sequence gains nothing the server cannot see: it still regenerates every
+question from it and checks every answer (commit 6).
+
+- `replaySessionQuestions(session, answers)` (`core/domain/replay/`): the questions of a stored
+  session from (seed, kind, frozen levels, type sequence), one per answer; a placement replays
+  with its own rules version. Throws `SessionNotReplayable` when the session lacks what it
+  needs — never guesses a missing level.
+- **Old sessions**: schema v6 backfills every session played to its end with its answers'
+  types in the order given (`rowid`), which is exactly its sequence. An older interrupted
+  session keeps `null`: readable as before, not replayable.
+- `answersForSession` now returns answers in the order given (it had no `ORDER BY`).
+- The plan's test: `test/state/self_contained_sessions_test.dart` plays a placement, five games
+  (2 to 7 types, rotation exercised) and an interrupted game through the app's builders into
+  SQLite, then replays each stored session alone and gets back every question.
+
 ## Cross-platform determinism: pinned references, VM and JavaScript (Phase 1, commit 1)
 
 Players generate in the browser (dart2js); the server will replay on the Dart VM. `dart:math`'s
