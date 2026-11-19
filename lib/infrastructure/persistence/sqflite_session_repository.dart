@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:sqflite/sqflite.dart';
 
+import '../../core/domain/leveling/level.dart';
 import '../../core/domain/persistence/level_cache_entry.dart';
 import '../../core/domain/models/exercise_type.dart';
 import '../../core/domain/persistence/persisted_answer.dart';
@@ -73,7 +74,7 @@ class SqfliteSessionRepository implements SessionRepository {
         ExerciseType.values.byName(
           row['exercise_type'] as String,
         ): LevelCacheEntry(
-          level: row['level'] as int,
+          level: Level.fromHundredths(row['level'] as int),
           sessionsPlayed: row['sessions_played'] as int,
           updatedAt: DateTime.parse(row['updated_at'] as String),
         ),
@@ -160,7 +161,9 @@ class SqfliteSessionRepository implements SessionRepository {
       'exercise_count': session.exerciseCount,
       'total_score': session.totalScore,
       'levels_json': jsonEncode(
-        session.levels.map((type, level) => MapEntry(type.name, level)),
+        session.levels.map(
+          (type, level) => MapEntry(type.name, level.hundredths),
+        ),
       ),
       'overall_level_after': session.overallLevelAfter,
       'created_at': session.createdAt.toIso8601String(),
@@ -182,8 +185,10 @@ class SqfliteSessionRepository implements SessionRepository {
       exerciseCount: row['exercise_count'] as int,
       totalScore: row['total_score'] as int,
       levels: levelsJson.map(
-        (name, level) =>
-            MapEntry(ExerciseType.values.byName(name), level as int),
+        (name, level) => MapEntry(
+          ExerciseType.values.byName(name),
+          Level.fromHundredths(level as int),
+        ),
       ),
       createdAt: DateTime.parse(row['created_at'] as String),
       overallLevelAfter: (row['overall_level_after'] as num?)?.toDouble(),
@@ -232,7 +237,7 @@ class SqfliteSessionRepository implements SessionRepository {
     return {
       'player_id': playerId,
       'exercise_type': type.name,
-      'level': entry.level,
+      'level': entry.level.hundredths,
       'sessions_played': entry.sessionsPlayed,
       'updated_at': entry.updatedAt.toIso8601String(),
     };

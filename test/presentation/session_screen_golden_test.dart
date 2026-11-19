@@ -1,3 +1,4 @@
+import 'package:math_trainer/core/domain/leveling/level.dart';
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
@@ -66,7 +67,7 @@ void main() {
         // One question in the plain golden (its "1 / 1" stays as recorded),
         // two when a correction must not be on the last question.
         exerciseCount: correcting ? 2 : 1,
-        levels: const {ExerciseType.addition: 12},
+        levels: {ExerciseType.addition: Level.whole(12)},
       ),
       exerciseSource: _FixedExerciseSource(exercises),
       repository: InMemorySessionRepository(),

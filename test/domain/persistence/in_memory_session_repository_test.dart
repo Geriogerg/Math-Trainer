@@ -1,3 +1,4 @@
+import 'package:math_trainer/core/domain/leveling/level.dart';
 import 'package:math_trainer/core/domain/persistence/level_cache_entry.dart';
 import 'package:math_trainer/core/domain/models/exercise_type.dart';
 import 'package:math_trainer/core/domain/persistence/in_memory_session_repository.dart';
@@ -145,7 +146,7 @@ void main() {
       () async {
         final repository = InMemorySessionRepository();
         final entry = LevelCacheEntry(
-          level: 42,
+          level: Level.whole(42),
           sessionsPlayed: 1,
           updatedAt: DateTime.utc(2026, 8, 8),
         );
@@ -174,7 +175,7 @@ void main() {
           (await repository.currentLevels(
             'account',
           ))[ExerciseType.addition]?.level,
-          42,
+          Level.whole(42),
         );
         expect(await repository.averageElapsedMsByType('account'), {
           ExerciseType.addition: 900,
@@ -189,12 +190,12 @@ void main() {
       () async {
         final repository = InMemorySessionRepository();
         final deviceLevel = LevelCacheEntry(
-          level: 10,
+          level: Level.whole(10),
           sessionsPlayed: 1,
           updatedAt: DateTime.utc(2026, 8, 8),
         );
         final accountLevel = LevelCacheEntry(
-          level: 80,
+          level: Level.whole(80),
           sessionsPlayed: 3,
           updatedAt: DateTime.utc(2026, 8, 9),
         );
@@ -229,7 +230,7 @@ void main() {
           (await repository.currentLevels(
             'account',
           ))[ExerciseType.addition]?.level,
-          80,
+          Level.whole(80),
         );
         expect((await repository.recentSessions('device')).map((s) => s.id), [
           'device-1',
@@ -248,7 +249,7 @@ void main() {
       () async {
         final repository = InMemorySessionRepository();
         final entry = LevelCacheEntry(
-          level: 42,
+          level: Level.whole(42),
           sessionsPlayed: 1,
           updatedAt: DateTime.utc(2026, 8, 8),
         );
@@ -260,7 +261,7 @@ void main() {
         );
         final levels = await repository.currentLevels('player-1');
 
-        expect(levels[ExerciseType.addition]?.level, 42);
+        expect(levels[ExerciseType.addition]?.level, Level.whole(42));
         expect(levels[ExerciseType.addition]?.sessionsPlayed, 1);
       },
     );
@@ -268,7 +269,7 @@ void main() {
     test('currentLevels does not mix players', () async {
       final repository = InMemorySessionRepository();
       final entry = LevelCacheEntry(
-        level: 77,
+        level: Level.whole(77),
         sessionsPlayed: 1,
         updatedAt: DateTime.utc(2026, 8, 8),
       );

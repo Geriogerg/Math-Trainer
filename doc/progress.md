@@ -155,6 +155,13 @@ Phase 0 closed in Phase 1 commit 0 (`material_ui`, `δ` recorded, preview, load)
   Node 24; passes in Edge). Found: sequences depend on `sessionsPlayedByType`, not stored with
   the session — for Phase 2.
 
+- **Commit 2** *(A)* — Continuous levels: `Level` (integer hundredths, extension type), update
+  rounded once to hundredths, generation and display on the whole part; schema v4 migrates
+  `player_levels.level` and `sessions.levels_json` ×100. Pinned sequences unchanged; level grid
+  regenerated. Simulation rerun: oscillation ±1.95 (was ±2.4), convergence from level 1 64
+  sessions (was 45) — placement (commit 6) or Phase 3 constants. Result screen shows the change
+  in hundredths (provisional). Bug caught by goldens: `levels[type] ?? 1` printed "level 1200".
+
 ### Remaining contradictions after commit 0
 
 The five plan/reality contradictions found at commit 0 (language, `δ`, branch and remote, commit 0

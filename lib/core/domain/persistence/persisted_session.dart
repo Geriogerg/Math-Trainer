@@ -1,3 +1,4 @@
+import '../leveling/level.dart';
 import '../models/exercise_type.dart';
 
 /// See [PersistedAnswer] for why this sentinel exists.
@@ -50,7 +51,8 @@ class PersistedSession {
   /// Per-operation levels frozen when this session was generated — never
   /// recomputed afterwards. May cover only a subset of `ExerciseType` (the
   /// types enabled that session); empty for sessions older than step 4.
-  final Map<ExerciseType, int> levels;
+  /// In hundredths (schema v4 migrated older rows ×100).
+  final Map<ExerciseType, Level> levels;
 
   final DateTime createdAt;
 
@@ -91,7 +93,7 @@ class PersistedSession {
 
   /// Same pitfall as `enabledTypes`, for a `Map`: iteration order must not
   /// affect equality.
-  bool _levelsEqual(Map<ExerciseType, int> other) {
+  bool _levelsEqual(Map<ExerciseType, Level> other) {
     if (other.length != levels.length) return false;
     for (final entry in levels.entries) {
       if (other[entry.key] != entry.value) return false;

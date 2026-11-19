@@ -4,6 +4,7 @@ import '../persistence/level_cache_entry.dart';
 import '../persistence/session_repository.dart';
 import 'answer_outcome.dart';
 import 'confidence.dart';
+import 'level.dart';
 import 'level_updater.dart';
 
 /// Computes the level cache updates at the end of a session. Taken out of
@@ -22,7 +23,7 @@ class LevelCacheOrchestrator {
   /// generated the session, never re-read from the cache at this point.
   Future<Map<ExerciseType, LevelCacheEntry>> computeUpdates({
     required List<AnswerResult> outcomes,
-    required Map<ExerciseType, int> frozenLevels,
+    required Map<ExerciseType, Level> frozenLevels,
     required SessionRepository repository,
     required String playerId,
     required DateTime now,
@@ -48,7 +49,7 @@ class LevelCacheOrchestrator {
       if (answers.length < levelUpdater.rules.nMin) continue;
 
       final prior = priorLevels[type];
-      final currentLevel = frozenLevels[type] ?? 1;
+      final currentLevel = frozenLevels[type] ?? Level.floor;
       final confidence = confidenceFor(
         entry: prior,
         now: now,

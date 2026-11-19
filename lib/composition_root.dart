@@ -10,6 +10,7 @@ import 'core/domain/generation/composite_exercise_generator.dart';
 import 'core/domain/generation/debt_aware_type_selection_strategy.dart';
 import 'core/domain/generation/local_exercise_source.dart';
 import 'core/domain/generation/session_length.dart';
+import 'core/domain/leveling/level.dart';
 import 'core/domain/leveling/leveling_rules.dart';
 import 'core/domain/models/exercise_type.dart';
 import 'core/domain/models/session_config.dart';
@@ -207,7 +208,8 @@ Future<SessionController> buildSessionController(
     environment.playerId,
   );
   final levels = {
-    for (final type in enabledTypes) type: priorLevels[type]?.level ?? 1,
+    for (final type in enabledTypes)
+      type: priorLevels[type]?.level ?? Level.floor,
   };
 
   final exerciseCount = sessionLengthFor(

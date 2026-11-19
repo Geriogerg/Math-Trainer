@@ -1,3 +1,4 @@
+import 'package:math_trainer/core/domain/leveling/level.dart';
 import 'package:math_trainer/core/domain/models/exercise_type.dart';
 import 'package:math_trainer/core/domain/persistence/persisted_answer.dart';
 import 'package:math_trainer/core/domain/persistence/persisted_session.dart';
@@ -81,7 +82,10 @@ void main() {
         enabledTypes: const {ExerciseType.addition, ExerciseType.division},
         exerciseCount: 10,
         totalScore: 150,
-        levels: const {ExerciseType.addition: 42, ExerciseType.division: 17},
+        levels: {
+          ExerciseType.addition: Level.whole(42),
+          ExerciseType.division: Level.whole(17),
+        },
         createdAt: DateTime.utc(2026, 8, 8),
         overallLevelAfter: overallLevelAfter,
         syncedAt: syncedAt,
@@ -136,7 +140,10 @@ void main() {
         enabledTypes: const {ExerciseType.addition, ExerciseType.division},
         exerciseCount: 10,
         totalScore: 150,
-        levels: const {ExerciseType.division: 17, ExerciseType.addition: 42},
+        levels: {
+          ExerciseType.division: Level.whole(17),
+          ExerciseType.addition: Level.whole(42),
+        },
         createdAt: DateTime.utc(2026, 8, 8),
       );
 
@@ -153,7 +160,10 @@ void main() {
         enabledTypes: const {ExerciseType.addition, ExerciseType.division},
         exerciseCount: 10,
         totalScore: 150,
-        levels: const {ExerciseType.addition: 99, ExerciseType.division: 17},
+        levels: {
+          ExerciseType.addition: Level.whole(99),
+          ExerciseType.division: Level.whole(17),
+        },
         createdAt: DateTime.utc(2026, 8, 8),
       );
 

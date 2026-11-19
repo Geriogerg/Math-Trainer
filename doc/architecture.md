@@ -126,13 +126,22 @@ The expected answer comes from the domain, never recomputed by the UI or the `Sc
 Storage goes through `operands_json`, which absorbs the variants without schema migration. The
 stored discriminant is the `ExerciseType` value name.
 
-## Local schema (version 3)
+## Local schema (version 4)
 
 | Table | Content |
 |---|---|
-| `sessions` | id, player_id, seed, operation_types, exercise_count, total_score, levels_json (levels frozen at start), overall_level_after (nullable), created_at, synced_at |
+| `sessions` | id, player_id, seed, operation_types, exercise_count, total_score, levels_json (levels frozen at start, in hundredths), overall_level_after (nullable, in level units: 37.42), created_at, synced_at |
 | `answers` | id, session_id, exercise_type, operation_type, operands_json, submitted_value, is_correct, elapsed_ms, created_at, synced_at |
-| `player_levels` | (player_id, exercise_type), level, sessions_played, updated_at — the level cache |
+| `player_levels` | (player_id, exercise_type), level (in hundredths), sessions_played, updated_at — the level cache |
+
+**Levels are integer hundredths** (`core/domain/leveling/level.dart`, an extension type over
+`int`: 3742 = 37.42) since schema v4 (Phase 1 commit 2), which multiplied every stored level by
+100 — the cache and each session's frozen levels. Generation, the score multiplier and the
+screens read the whole part (`Level.whole`, truncated); the level update and, later, the
+leaderboard use the hundredths. A migrated frozen level's whole part is the old level, so old
+sessions regenerate the same questions (checked: the pinned determinism sequences did not
+change). Pitfall: `Level` is an `int` at runtime — interpolating one in a string prints the
+hundredths; always go through `.whole` or `formatLevelChange`.
 
 `answers.created_at` is the moment of that answer (`AnswerResult.answeredAt`; for a timeout, when
 the time ran out) since Phase 0 commit 4; `sessions.created_at` is the end of the session. Answers

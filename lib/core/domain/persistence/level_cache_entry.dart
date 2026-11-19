@@ -1,3 +1,5 @@
+import '../leveling/level.dart';
+
 /// Persisted state of the level cache for one operation: a recomputable
 /// cache, not a syncable entity (see `doc/decisions.md`) — which is why the
 /// underlying storage uses a composite key rather than a UUID, and why this
@@ -10,9 +12,6 @@ class LevelCacheEntry {
     required this.sessionsPlayed,
     required this.updatedAt,
   }) {
-    if (level < 1 || level > 100) {
-      throw ArgumentError.value(level, 'level', 'must be between 1 and 100.');
-    }
     if (sessionsPlayed < 0) {
       throw ArgumentError.value(
         sessionsPlayed,
@@ -29,7 +28,8 @@ class LevelCacheEntry {
     }
   }
 
-  final int level;
+  /// In hundredths since schema v4; its range is checked by [Level].
+  final Level level;
   final int sessionsPlayed;
   final DateTime updatedAt;
 }

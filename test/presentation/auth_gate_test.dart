@@ -1,3 +1,4 @@
+import 'package:math_trainer/core/domain/leveling/level.dart';
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
@@ -184,13 +185,13 @@ void main() {
             enabledTypes: const {ExerciseType.addition},
             exerciseCount: 4,
             totalScore: 100,
-            levels: const {ExerciseType.addition: 40},
+            levels: {ExerciseType.addition: Level.whole(40)},
             createdAt: DateTime.utc(2026, 11, 1),
           ),
           answers: const [],
           levelUpdates: {
             ExerciseType.addition: LevelCacheEntry(
-              level: 43,
+              level: Level.whole(43),
               sessionsPlayed: 1,
               updatedAt: DateTime.utc(2026, 11, 1),
             ),

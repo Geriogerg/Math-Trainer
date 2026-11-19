@@ -1,3 +1,4 @@
+import 'package:math_trainer/core/domain/leveling/level.dart';
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
@@ -55,7 +56,7 @@ void main() {
         seed: 1,
         enabledTypes: const {ExerciseType.addition},
         exerciseCount: exercises.length,
-        levels: const {ExerciseType.addition: 12},
+        levels: {ExerciseType.addition: Level.whole(12)},
       ),
       exerciseSource: _FixedExerciseSource(exercises),
       repository: InMemorySessionRepository(),
@@ -102,11 +103,11 @@ void main() {
           ExerciseType.percentage,
         },
         exerciseCount: exercises.length,
-        levels: const {
-          ExerciseType.addition: 12,
-          ExerciseType.multiplication: 12,
-          ExerciseType.power: 12,
-          ExerciseType.percentage: 12,
+        levels: {
+          ExerciseType.addition: Level.whole(12),
+          ExerciseType.multiplication: Level.whole(12),
+          ExerciseType.power: Level.whole(12),
+          ExerciseType.percentage: Level.whole(12),
         },
       ),
       exerciseSource: _FixedExerciseSource(exercises),

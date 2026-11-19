@@ -1,3 +1,4 @@
+import 'package:math_trainer/core/domain/leveling/level.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -77,7 +78,7 @@ class _FixedLevelsRepository implements SessionRepository {
     enabledTypes: const {ExerciseType.addition},
     exerciseCount: 4,
     totalScore: score,
-    levels: {ExerciseType.addition: level},
+    levels: {ExerciseType.addition: Level.whole(level)},
     createdAt: createdAt,
     // Same value as the entry level: keeps the curve and gaps of the
     // reference image from before `overallLevelAfter` (20 → 30 → 42).
@@ -89,12 +90,12 @@ class _FixedLevelsRepository implements SessionRepository {
     String playerId,
   ) async => {
     ExerciseType.addition: LevelCacheEntry(
-      level: 42,
+      level: Level.whole(42),
       sessionsPlayed: 5,
       updatedAt: DateTime.utc(2026, 1, 1),
     ),
     ExerciseType.multiplication: LevelCacheEntry(
-      level: 7,
+      level: Level.whole(7),
       sessionsPlayed: 1,
       updatedAt: DateTime.utc(2026, 1, 1),
     ),

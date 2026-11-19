@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'answer_outcome.dart';
+import 'level.dart';
 import 'leveling_rules.dart';
 
 /// Pure level update function — see `doc/decisions.md` for the full
@@ -17,19 +18,12 @@ class LevelUpdater {
 
   final LevelingRules rules;
 
-  int update({
-    required int currentLevel,
+  /// [currentLevel] is valid by construction (`Level` checks its range).
+  Level update({
+    required Level currentLevel,
     required List<AnswerOutcome> answers,
     ConfidenceMultiplier confidence = ConfidenceMultiplier.normal,
   }) {
-    if (currentLevel < 1 || currentLevel > 100) {
-      throw ArgumentError.value(
-        currentLevel,
-        'currentLevel',
-        'must be between 1 and 100.',
-      );
-    }
-
     if (answers.length < rules.nMin) return currentLevel;
 
     final meanP = answers.map(_pFor).reduce((a, b) => a + b) / answers.length;
@@ -56,7 +50,10 @@ class LevelUpdater {
     final change = (deadbandRemoved * k * confidenceFactor * volumeWeight)
         .clamp(-rules.deltaMax.toDouble(), rules.deltaMax.toDouble());
 
-    return (currentLevel + change).round().clamp(1, 100);
+    // The single rounding, to hundredths (rule 18: `+ − × ÷` and `sqrt`
+    // above, then one `round`). Rounding to a whole level here is what used
+    // to swallow every step under 0.5 (doc/decisions.md).
+    return Level.clamped(currentLevel.hundredths + (change * 100).round());
   }
 
   double _pFor(AnswerOutcome answer) {

@@ -1,3 +1,4 @@
+import '../leveling/level.dart';
 import 'exercise_type.dart';
 
 class SessionConfig {
@@ -14,6 +15,7 @@ class SessionConfig {
 
   /// Per-operation levels frozen at the start of the session — never
   /// recomputed along the way (otherwise duels cannot be revalidated
-  /// server-side, see `doc/decisions.md`).
-  final Map<ExerciseType, int> levels;
+  /// server-side, see `doc/decisions.md`). In hundredths; generation reads
+  /// the whole part.
+  final Map<ExerciseType, Level> levels;
 }

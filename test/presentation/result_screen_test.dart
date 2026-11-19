@@ -1,3 +1,4 @@
+import 'package:math_trainer/core/domain/leveling/level.dart';
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
@@ -64,7 +65,7 @@ void main() {
         seed: 1,
         enabledTypes: const {ExerciseType.addition},
         exerciseCount: 4,
-        levels: const {ExerciseType.addition: 50},
+        levels: {ExerciseType.addition: Level.whole(50)},
       ),
       exerciseSource: _FixedExerciseSource(additionExercises(4)),
       repository: repository ?? InMemorySessionRepository(),
@@ -136,7 +137,7 @@ void main() {
         seed: 1,
         enabledTypes: const {ExerciseType.addition},
         exerciseCount: 4,
-        levels: const {ExerciseType.addition: 1},
+        levels: {ExerciseType.addition: Level.whole(1)},
       ),
       exerciseSource: _FixedExerciseSource(additionExercises(4)),
       repository: InMemorySessionRepository(),
@@ -167,9 +168,9 @@ void main() {
           seed: 1,
           enabledTypes: const {ExerciseType.addition, ExerciseType.subtraction},
           exerciseCount: 4,
-          levels: const {
-            ExerciseType.addition: 50,
-            ExerciseType.subtraction: 50,
+          levels: {
+            ExerciseType.addition: Level.whole(50),
+            ExerciseType.subtraction: Level.whole(50),
           },
         ),
         exerciseSource: _FixedExerciseSource(additionExercises(4)),
@@ -205,7 +206,7 @@ void main() {
         seed: 1,
         enabledTypes: const {ExerciseType.addition},
         exerciseCount: 4,
-        levels: const {ExerciseType.addition: 50},
+        levels: {ExerciseType.addition: Level.whole(50)},
       ),
       exerciseSource: _FixedExerciseSource(additionExercises(4)),
       repository: InMemorySessionRepository(),

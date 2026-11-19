@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../../core/domain/leveling/level.dart';
 import '../../core/domain/models/answer_result.dart';
 import '../../core/domain/models/exercise_type.dart';
 import '../../core/domain/persistence/level_cache_entry.dart';
@@ -7,6 +8,7 @@ import '../../core/state/session_controller.dart';
 import '../../core/state/session_state.dart';
 import '../exercise_prompt.dart';
 import '../exercise_type_labels.dart';
+import '../level_format.dart';
 import '../theme/app_theme.dart';
 
 class ResultScreen extends StatelessWidget {
@@ -66,7 +68,7 @@ class ResultScreen extends StatelessWidget {
                   for (final type in controller.config.enabledTypes)
                     _LevelChangeRow(
                       label: exerciseTypeLabel(type),
-                      before: controller.config.levels[type] ?? 1,
+                      before: controller.config.levels[type] ?? Level.floor,
                       updates: controller.lastLevelUpdates,
                       type: type,
                     ),
@@ -271,7 +273,7 @@ class _LevelChangeRow extends StatelessWidget {
   });
 
   final String label;
-  final int before;
+  final Level before;
   final Map<ExerciseType, LevelCacheEntry>? updates;
   final ExerciseType type;
 
@@ -282,7 +284,7 @@ class _LevelChangeRow extends StatelessWidget {
 
     if (updates == null) {
       return Text(
-        '$label — level $before',
+        '$label — level ${before.whole}',
         textAlign: TextAlign.center,
         style: style,
       );
@@ -294,19 +296,25 @@ class _LevelChangeRow extends StatelessWidget {
       // to animate — distinct from "evaluated, level unchanged" (the player
       // could not tell the difference if both rendered the same).
       return Text(
-        '$label — level $before (not enough answers to count)',
+        '$label — level ${before.whole} (not enough answers to count)',
         textAlign: TextAlign.center,
         style: style,
       );
     }
 
     final motion = theme.extension<AppMotion>()!.levelUp;
+    // The whole level animates (truncated, like everywhere it is shown);
+    // the exact change in hundredths follows, so a session that moves the
+    // level by less than one step still shows it counted.
+    final change = formatLevelChange(
+      entry.level.hundredths - before.hundredths,
+    );
     return TweenAnimationBuilder<double>(
-      tween: Tween(begin: before.toDouble(), end: entry.level.toDouble()),
+      tween: Tween(begin: before.value, end: entry.level.value),
       duration: motion.duration,
       curve: motion.curve,
       builder: (context, value, _) => Text(
-        '$label — level ${value.round()}',
+        '$label — level ${value.floor()} ($change)',
         textAlign: TextAlign.center,
         style: style,
       ),

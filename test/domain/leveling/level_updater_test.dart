@@ -1,7 +1,12 @@
 import 'package:math_trainer/core/domain/leveling/answer_outcome.dart';
+import 'package:math_trainer/core/domain/leveling/level.dart';
 import 'package:math_trainer/core/domain/leveling/leveling_rules.dart';
 import 'package:math_trainer/core/domain/leveling/level_updater.dart';
 import 'package:test/test.dart';
+
+/// Levels in hundredths (`Level`): 5069 is 50.69.
+Level h(int hundredths) => Level.fromHundredths(hundredths);
+final fifty = Level.whole(50);
 
 void main() {
   group('LevelUpdater', () {
@@ -14,7 +19,7 @@ void main() {
           (_) => const AnswerOutcome(isCorrect: true, elapsedMs: 0),
         );
 
-        expect(updater.update(currentLevel: 50, answers: answers), 50);
+        expect(updater.update(currentLevel: fifty, answers: answers), fifty);
       },
     );
 
@@ -27,7 +32,8 @@ void main() {
           (_) => const AnswerOutcome(isCorrect: true, elapsedMs: 0),
         );
 
-        expect(updater.update(currentLevel: 50, answers: answers), 51);
+        // (1.0 − 0.70 − δ 0.07) × K_haut 3 = +0.69.
+        expect(updater.update(currentLevel: fifty, answers: answers), h(5069));
       },
     );
 
@@ -38,7 +44,9 @@ void main() {
         (_) => const AnswerOutcome(isCorrect: false, elapsedMs: 0),
       );
 
-      expect(updater.update(currentLevel: 50, answers: answers), 49);
+      // (0 − 0.70 + δ 0.07) × K_bas 1.5 ≈ −0.945, rounded once: −0.94 (the
+      // floating-point −0.6299… × 1.5 lands just under the half).
+      expect(updater.update(currentLevel: fifty, answers: answers), h(4906));
     });
 
     test(
@@ -56,7 +64,7 @@ void main() {
           ),
         ];
 
-        expect(updater.update(currentLevel: 50, answers: answers), 50);
+        expect(updater.update(currentLevel: fifty, answers: answers), fifty);
       },
     );
 
@@ -67,16 +75,16 @@ void main() {
         (_) => const AnswerOutcome(isCorrect: true, elapsedMs: 0),
       );
 
-      final normal = updater.update(currentLevel: 50, answers: answers);
+      final normal = updater.update(currentLevel: fifty, answers: answers);
       final calibration = updater.update(
-        currentLevel: 50,
+        currentLevel: fifty,
         answers: answers,
         confidence: ConfidenceMultiplier.calibration,
       );
 
-      expect(normal, 51);
-      expect(calibration, 53);
-      expect(calibration - 50, greaterThan(normal - 50));
+      expect(normal, h(5069));
+      expect(calibration, h(5276)); // 0.69 × K_calib 4
+      expect(calibration.hundredths, greaterThan(normal.hundredths));
     });
 
     test('Δ_max caps the change, even with a strong confidence multiplier', () {
@@ -86,14 +94,15 @@ void main() {
         (_) => const AnswerOutcome(isCorrect: true, elapsedMs: 0),
       );
 
-      // Without a cap at 1, this same scenario would give 53 (see previous test).
+      // Without a cap at 1, this same scenario would give 52.76 (previous
+      // test).
       expect(
         updater.update(
-          currentLevel: 50,
+          currentLevel: fifty,
           answers: answers,
           confidence: ConfidenceMultiplier.calibration,
         ),
-        51,
+        h(5100),
       );
     });
 
@@ -106,11 +115,11 @@ void main() {
 
       expect(
         updater.update(
-          currentLevel: 99,
+          currentLevel: Level.whole(99),
           answers: answers,
           confidence: ConfidenceMultiplier.calibration,
         ),
-        100,
+        h(10000),
       );
     });
 
@@ -123,11 +132,11 @@ void main() {
 
       expect(
         updater.update(
-          currentLevel: 2,
+          currentLevel: Level.whole(2),
           answers: answers,
           confidence: ConfidenceMultiplier.calibration,
         ),
-        1,
+        Level.floor,
       );
     });
 
@@ -139,7 +148,7 @@ void main() {
           4,
           (_) => AnswerOutcome(isCorrect: true, elapsedMs: elapsedMs),
         );
-        return updater.update(currentLevel: 50, answers: answers);
+        return updater.update(currentLevel: fifty, answers: answers).hundredths;
       }
 
       final fast = levelFor(2000);
@@ -162,27 +171,25 @@ void main() {
       );
 
       expect(
-        updater.update(currentLevel: 50, answers: fastWrong),
-        updater.update(currentLevel: 50, answers: slowWrong),
+        updater.update(currentLevel: fifty, answers: fastWrong),
+        updater.update(currentLevel: fifty, answers: slowWrong),
       );
     });
 
-    test('rejects a level outside [1, 100]', () {
-      final updater = LevelUpdater();
-      final answers = List.generate(
-        4,
-        (_) => const AnswerOutcome(isCorrect: true, elapsedMs: 0),
-      );
-
-      expect(
-        () => updater.update(currentLevel: 0, answers: answers),
-        throwsArgumentError,
-      );
-      expect(
-        () => updater.update(currentLevel: 101, answers: answers),
-        throwsArgumentError,
-      );
-    });
+    test(
+      'a step under one level still counts (no rounding to whole levels)',
+      () {
+        // Before continuous levels, +0.49 rounded to 0: the level never moved.
+        final updater = LevelUpdater();
+        final answers = [
+          for (var i = 0; i < 4; i++)
+            AnswerOutcome(isCorrect: true, elapsedMs: i < 3 ? 0 : 6000),
+        ];
+        final next = updater.update(currentLevel: fifty, answers: answers);
+        expect(next.hundredths, greaterThan(5000));
+        expect(next.whole, 50);
+      },
+    );
 
     test(
       'replayable over a history: folding over successive sessions rises then caps',
@@ -193,19 +200,19 @@ void main() {
           (_) => const AnswerOutcome(isCorrect: true, elapsedMs: 0),
         );
 
-        // With these parameters, a "perfect" session gains ~1 level: enough
-        // of them are needed to reach the cap from 50 and stay there.
-        var level = 50;
+        // A "perfect" session gains 0.69 outside calibration: 73 of them
+        // reach the cap from 50; 80 reach it and stay there.
+        var level = fifty;
         final levels = <int>[];
-        for (var i = 0; i < 60; i++) {
+        for (var i = 0; i < 80; i++) {
           level = updater.update(currentLevel: level, answers: greatSession);
-          levels.add(level);
+          levels.add(level.hundredths);
         }
 
         for (var i = 1; i < levels.length; i++) {
           expect(levels[i], greaterThanOrEqualTo(levels[i - 1]));
         }
-        expect(levels.last, 100);
+        expect(levels.last, 10000);
       },
     );
   });

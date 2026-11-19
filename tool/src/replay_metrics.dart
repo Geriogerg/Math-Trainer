@@ -1,5 +1,6 @@
 import 'package:math_trainer/core/domain/leveling/answer_outcome.dart';
 import 'package:math_trainer/core/domain/leveling/confidence.dart';
+import 'package:math_trainer/core/domain/leveling/level.dart';
 import 'package:math_trainer/core/domain/leveling/leveling_rules.dart';
 import 'package:math_trainer/core/domain/leveling/level_updater.dart';
 import 'package:math_trainer/core/domain/persistence/level_cache_entry.dart';
@@ -35,16 +36,17 @@ const convergenceWindow = 5;
 /// Replays a trajectory with [rules], starting level 1. `sessionsPlayed`
 /// and absence for `confidenceFor` are rebuilt from the replay itself — not
 /// from `player_levels`, which only reflects the current state, not the
-/// full history.
-List<int> replay(
+/// full history. Levels are returned as continuous values (37.42), the
+/// unit of the metrics, while the replay itself runs on hundredths.
+List<double> replay(
   Trajectory trajectory,
   LevelingRules rules,
   DateTime baseTime,
 ) {
   final updater = LevelUpdater(rules: rules);
-  var level = 1;
+  var level = Level.floor;
   LevelCacheEntry? prior;
-  final levels = <int>[];
+  final levels = <double>[];
 
   for (var i = 0; i < trajectory.length; i++) {
     final now = baseTime.add(
@@ -56,7 +58,7 @@ List<int> replay(
       answers: trajectory[i],
       confidence: confidence,
     );
-    levels.add(level);
+    levels.add(level.value);
     prior = LevelCacheEntry(
       level: level,
       sessionsPlayed: (prior?.sessionsPlayed ?? 0) + 1,
@@ -70,19 +72,28 @@ List<int> replay(
 /// fewer, at the end of the trajectory) has an amplitude (max−min) under
 /// [oscillationTarget] — `null` if never reached. A window of length 1
 /// allows no conclusion (zero amplitude by construction) and is ignored.
-int? convergenceIndex(List<int> levels) {
+int? convergenceIndex(List<num> levels) {
   for (var i = 0; i < levels.length; i++) {
     final windowEnd = (i + convergenceWindow < levels.length)
         ? i + convergenceWindow
         : levels.length;
-    final window = levels.sublist(i, windowEnd);
-    if (window.length < 2) continue;
-    final amplitude =
-        window.reduce((a, b) => a > b ? a : b) -
-        window.reduce((a, b) => a < b ? a : b);
-    if (amplitude <= oscillationTarget) return i;
+    if (windowEnd - i < 2) continue;
+    if (_amplitude(levels.sublist(i, windowEnd)) <= oscillationTarget) {
+      return i;
+    }
   }
   return null;
+}
+
+/// max − min. A loop rather than `reduce`: `levels` may be a `List<int>` at
+/// runtime, and `reduce` with a `num` callback is then a type error.
+num _amplitude(List<num> values) {
+  var lo = values.first, hi = values.first;
+  for (final v in values) {
+    if (v < lo) lo = v;
+    if (v > hi) hi = v;
+  }
+  return hi - lo;
 }
 
 double? mean(List<double> values) =>
@@ -108,11 +119,7 @@ Metrics averageMetrics(
 
     convergences.add(convergedAt.toDouble());
     final tail = levels.sublist(convergedAt);
-    oscillations.add(
-      (tail.reduce((a, b) => a > b ? a : b) -
-              tail.reduce((a, b) => a < b ? a : b))
-          .toDouble(),
-    );
+    oscillations.add(_amplitude(tail).toDouble());
     if (tail.length >= 2) {
       final diffs = [
         for (var i = 1; i < tail.length; i++) tail[i] - tail[i - 1],

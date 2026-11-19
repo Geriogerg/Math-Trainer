@@ -1,3 +1,4 @@
+import 'package:math_trainer/core/domain/leveling/level.dart';
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
@@ -63,7 +64,7 @@ void main() {
           seed: 1,
           enabledTypes: const {ExerciseType.addition},
           exerciseCount: exercises.length,
-          levels: const {ExerciseType.addition: 12},
+          levels: {ExerciseType.addition: Level.whole(12)},
         ),
         exerciseSource: _FixedExerciseSource(exercises),
         repository: InMemorySessionRepository(),
@@ -131,7 +132,7 @@ void main() {
           seed: 1,
           enabledTypes: const {ExerciseType.addition},
           exerciseCount: exercises.length,
-          levels: const {ExerciseType.addition: 1},
+          levels: {ExerciseType.addition: Level.whole(1)},
         ),
         exerciseSource: _FixedExerciseSource(exercises),
         repository: InMemorySessionRepository(),
@@ -205,7 +206,7 @@ void main() {
           seed: 1,
           enabledTypes: const {ExerciseType.addition},
           exerciseCount: 3,
-          levels: const {ExerciseType.addition: 12},
+          levels: {ExerciseType.addition: Level.whole(12)},
         ),
         exerciseSource: _FixedExerciseSource(const [
           ArithmeticExercise(
@@ -316,7 +317,7 @@ void main() {
         seed: 1,
         enabledTypes: const {ExerciseType.addition},
         exerciseCount: 2,
-        levels: const {ExerciseType.addition: 12},
+        levels: {ExerciseType.addition: Level.whole(12)},
       ),
       exerciseSource: _FixedExerciseSource(const [
         ArithmeticExercise(

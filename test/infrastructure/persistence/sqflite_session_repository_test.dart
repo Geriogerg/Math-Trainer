@@ -1,3 +1,4 @@
+import 'package:math_trainer/core/domain/leveling/level.dart';
 import 'package:math_trainer/core/domain/persistence/level_cache_entry.dart';
 import 'package:math_trainer/core/domain/models/exercise_type.dart';
 import 'package:math_trainer/core/domain/persistence/persisted_answer.dart';
@@ -38,7 +39,10 @@ void main() {
       enabledTypes: const {ExerciseType.addition, ExerciseType.division},
       exerciseCount: 10,
       totalScore: 150,
-      levels: const {ExerciseType.addition: 42, ExerciseType.division: 17},
+      levels: {
+        ExerciseType.addition: Level.whole(42),
+        ExerciseType.division: Level.whole(17),
+      },
       createdAt: createdAt,
       overallLevelAfter: 9.5,
     );
@@ -165,7 +169,7 @@ void main() {
       'transferPlayerData hands sessions, answers and levels to the new player',
       () async {
         final entry = LevelCacheEntry(
-          level: 42,
+          level: Level.whole(42),
           sessionsPlayed: 1,
           updatedAt: DateTime.utc(2026, 8, 8),
         );
@@ -194,7 +198,7 @@ void main() {
           (await repository.currentLevels(
             'account',
           ))[ExerciseType.addition]?.level,
-          42,
+          Level.whole(42),
         );
         expect(await repository.averageElapsedMsByType('account'), {
           ExerciseType.addition: 900,
@@ -208,12 +212,12 @@ void main() {
       'transferPlayerData never merges with a player who already has data',
       () async {
         final deviceLevel = LevelCacheEntry(
-          level: 10,
+          level: Level.whole(10),
           sessionsPlayed: 1,
           updatedAt: DateTime.utc(2026, 8, 8),
         );
         final accountLevel = LevelCacheEntry(
-          level: 80,
+          level: Level.whole(80),
           sessionsPlayed: 3,
           updatedAt: DateTime.utc(2026, 8, 9),
         );
@@ -248,7 +252,7 @@ void main() {
           (await repository.currentLevels(
             'account',
           ))[ExerciseType.addition]?.level,
-          80,
+          Level.whole(80),
         );
         expect((await repository.recentSessions('device')).map((s) => s.id), [
           'device-1',
@@ -285,7 +289,7 @@ void main() {
       () async {
         final s = session('session-1', createdAt: DateTime.utc(2026, 8, 8));
         final entry = LevelCacheEntry(
-          level: 42,
+          level: Level.whole(42),
           sessionsPlayed: 1,
           updatedAt: DateTime.utc(2026, 8, 8),
         );
@@ -303,7 +307,7 @@ void main() {
         expect(storedAnswers, hasLength(2));
 
         final levels = await repository.currentLevels('player-1');
-        expect(levels[ExerciseType.addition]?.level, 42);
+        expect(levels[ExerciseType.addition]?.level, Level.whole(42));
       },
     );
 
@@ -315,12 +319,12 @@ void main() {
       'currentLevels replaces the previous value for an operation already cached',
       () async {
         final firstEntry = LevelCacheEntry(
-          level: 40,
+          level: Level.whole(40),
           sessionsPlayed: 1,
           updatedAt: DateTime.utc(2026, 8, 8),
         );
         final secondEntry = LevelCacheEntry(
-          level: 45,
+          level: Level.whole(45),
           sessionsPlayed: 2,
           updatedAt: DateTime.utc(2026, 8, 9),
         );
@@ -337,7 +341,7 @@ void main() {
         );
 
         final levels = await repository.currentLevels('player-1');
-        expect(levels[ExerciseType.addition]?.level, 45);
+        expect(levels[ExerciseType.addition]?.level, Level.whole(45));
         expect(levels[ExerciseType.addition]?.sessionsPlayed, 2);
       },
     );

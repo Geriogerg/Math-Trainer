@@ -109,6 +109,18 @@ void main() {
               synced_at TEXT
             )
           ''');
+            // Every real v2 database has it (created by the v1 → v2 step);
+            // the v4 migration updates it.
+            await db.execute('''
+            CREATE TABLE player_levels (
+              player_id TEXT NOT NULL,
+              exercise_type TEXT NOT NULL,
+              level INTEGER NOT NULL,
+              sessions_played INTEGER NOT NULL,
+              updated_at TEXT NOT NULL,
+              PRIMARY KEY (player_id, exercise_type)
+            )
+          ''');
           },
         ),
       );
@@ -127,7 +139,8 @@ void main() {
       final v3db = await openMathTrainerDatabase(path);
       final rows = await v3db.query('sessions');
 
-      expect(rows.single['levels_json'], '{"addition":12}');
+      // Through v4 as well: the frozen level is now in hundredths.
+      expect(rows.single['levels_json'], '{"addition":1200}');
       expect(rows.single.containsKey('overall_level_after'), isTrue);
       expect(rows.single['overall_level_after'], isNull);
 
@@ -135,4 +148,91 @@ void main() {
       await databaseFactory.deleteDatabase(path);
     },
   );
+
+  test('an existing v3 database migrates to v4: every level ×100, nothing '
+      'else touched', () async {
+    const path = 'migration_v3_test.db';
+    await databaseFactory.deleteDatabase(path);
+
+    // A v3 database as the app created it (same schema as today, whole
+    // levels).
+    final v3db = await databaseFactory.openDatabase(
+      path,
+      options: OpenDatabaseOptions(
+        version: 3,
+        onCreate: (db, version) async {
+          await db.execute('''
+            CREATE TABLE sessions (
+              id TEXT PRIMARY KEY,
+              player_id TEXT NOT NULL,
+              seed INTEGER NOT NULL,
+              operation_types TEXT NOT NULL,
+              exercise_count INTEGER NOT NULL,
+              total_score INTEGER NOT NULL,
+              levels_json TEXT NOT NULL DEFAULT '{}',
+              overall_level_after REAL,
+              created_at TEXT NOT NULL,
+              synced_at TEXT
+            )
+          ''');
+          await db.execute('''
+            CREATE TABLE player_levels (
+              player_id TEXT NOT NULL,
+              exercise_type TEXT NOT NULL,
+              level INTEGER NOT NULL,
+              sessions_played INTEGER NOT NULL,
+              updated_at TEXT NOT NULL,
+              PRIMARY KEY (player_id, exercise_type)
+            )
+          ''');
+        },
+      ),
+    );
+    Map<String, Object?> session(String id, String levelsJson) => {
+      'id': id,
+      'player_id': 'player',
+      'seed': 7,
+      'operation_types': '["addition","division"]',
+      'exercise_count': 8,
+      'total_score': 120,
+      'levels_json': levelsJson,
+      'overall_level_after': 9.857142857142858,
+      'created_at': DateTime.utc(2026, 11, 1).toIso8601String(),
+    };
+    await v3db.insert(
+      'sessions',
+      session('s1', '{"addition":42,"division":1}'),
+    );
+    await v3db.insert('sessions', session('s2', '{}'));
+    for (final (type, level) in [('addition', 43), ('division', 100)]) {
+      await v3db.insert('player_levels', {
+        'player_id': 'player',
+        'exercise_type': type,
+        'level': level,
+        'sessions_played': 5,
+        'updated_at': DateTime.utc(2026, 11, 1).toIso8601String(),
+      });
+    }
+    await v3db.close();
+
+    final v4db = await openMathTrainerDatabase(path);
+    final sessions = {
+      for (final row in await v4db.query('sessions')) row['id']: row,
+    };
+    final levels = {
+      for (final row in await v4db.query('player_levels'))
+        row['exercise_type']: row['level'],
+    };
+
+    expect(sessions['s1']!['levels_json'], '{"addition":4200,"division":100}');
+    expect(sessions['s2']!['levels_json'], '{}');
+    // Overall level stays in level units, untouched.
+    expect(sessions['s1']!['overall_level_after'], 9.857142857142858);
+    expect(sessions['s1']!['seed'], 7);
+    expect(levels, {'addition': 4300, 'division': 10000});
+    expect(await v4db.getVersion(), 4);
+
+    await v4db.close();
+    await databaseFactory.deleteDatabase(path);
+  });
 }

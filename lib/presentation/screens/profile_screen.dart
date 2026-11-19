@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../composition_root.dart';
 import '../../core/domain/account/account.dart';
 import '../../core/domain/account/player_profile.dart';
+import '../../core/domain/leveling/level.dart';
 import '../../core/domain/persistence/level_cache_entry.dart';
 import '../../core/domain/models/exercise_type.dart';
 import '../../core/domain/persistence/persisted_session.dart';
@@ -385,7 +386,7 @@ class _OperationRow extends StatelessWidget {
   });
 
   final String label;
-  final int? level;
+  final Level? level;
   final double? averageElapsedMs;
 
   @override
@@ -406,7 +407,9 @@ class _OperationRow extends StatelessWidget {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(
-                    value: level == null ? 0 : level / 100,
+                    // Continuous: the bar shows the hundredths the
+                    // whole-number label leaves out.
+                    value: level == null ? 0 : level.value / 100,
                     minHeight: 6,
                     backgroundColor: theme.colorScheme.outline,
                     valueColor: AlwaysStoppedAnimation<Color>(
@@ -420,8 +423,8 @@ class _OperationRow extends StatelessWidget {
                 level == null
                     ? 'Not played'
                     : averageElapsedMs == null
-                    ? 'Level $level'
-                    : 'Level $level · ${averageElapsedMs.round()} ms',
+                    ? 'Level ${level.whole}'
+                    : 'Level ${level.whole} · ${averageElapsedMs.round()} ms',
                 style: theme.textTheme.bodyMedium,
               ),
             ],

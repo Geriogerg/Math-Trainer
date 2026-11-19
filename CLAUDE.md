@@ -11,9 +11,9 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 ## Current phase
 
 **Phase 1 — First run and accounts** (`doc/plan.md`, section 7), run in **one pass**.
-Done: **0**, **1** (VM = JavaScript, 158/158), **7 (1/2)** (SQL written; owner to run it).
-One pass from here (owner's 5 games at phase end). Next commit: **2**. Update this block at
-every commit.
+Done: **0**, **1** (VM = JavaScript, 158/158), **2** (levels in hundredths, schema v4),
+**7 (1/2)** (SQL written; owner to run it). Waiting on the owner: `SUPABASE_PUBLISHABLE_KEY`
+secret still empty on the preview. Next commit: **3**. Update this block at every commit.
 
 | # | Commit | Note |
 |---|---|---|
@@ -144,6 +144,9 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 - `ExerciseType` names are the stored discriminant; renaming breaks history.
 - `dart test` without the `test/domain` scope fails.
 - Integer levels round small steps to zero — never round before storing hundredths.
+- `Level` is an `int` at runtime: string interpolation prints hundredths, and `level ?? 1`
+  compiles (widens to `Object`). Display through `.whole` / `formatLevelChange`; fall back to
+  `Level.floor`.
 - `web/sqlite3.wasm` and `web/sqflite_sw.js` come from `dart run sqflite_common_ffi_web:setup`;
   rerun with `--force` after upgrades. On GitHub Pages every path respects `/Math-Trainer/`.
 - Always web port 8080 locally: session and settings live in `localStorage`, scoped by port.

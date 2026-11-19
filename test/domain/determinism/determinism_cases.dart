@@ -14,6 +14,7 @@ import 'package:math_trainer/core/domain/generation/debt_aware_type_selection_st
 import 'package:math_trainer/core/domain/generation/local_exercise_source.dart';
 import 'package:math_trainer/core/domain/generation/session_length.dart';
 import 'package:math_trainer/core/domain/leveling/answer_outcome.dart';
+import 'package:math_trainer/core/domain/leveling/level.dart';
 import 'package:math_trainer/core/domain/leveling/level_updater.dart';
 import 'package:math_trainer/core/domain/leveling/leveling_rules.dart';
 import 'package:math_trainer/core/domain/models/exercise.dart';
@@ -39,7 +40,7 @@ const determinismSeeds = <int>[
   9007199254740991,
 ];
 
-/// (types, levels, sessions already played per type) — the inputs besides
+/// (types, whole levels, sessions already played per type) — the inputs besides
 /// the seed that shape a sequence. `sessionsPlayedByType` is not part of
 /// `SessionConfig` but changes the interleaving order (debt-aware strategy).
 typedef GenerationSetup = ({
@@ -105,7 +106,9 @@ String sessionSequence(int seed, GenerationSetup setup) {
   final source = LocalExerciseSource(
     generator: CompositeExerciseGenerator(
       enabledTypes: enabledTypes,
-      levels: setup.levels,
+      levels: {
+        for (final e in setup.levels.entries) e.key: Level.whole(e.value),
+      },
       strategy: DebtAwareTypeSelectionStrategy(
         exerciseCount: exerciseCount,
         nMin: LevelingRules().nMin,
@@ -125,7 +128,7 @@ String endlessSequence(int seed) {
   final source = LocalExerciseSource(
     generator: CompositeExerciseGenerator(
       enabledTypes: _all.toSet(),
-      levels: {for (final t in _all) t: 1 + (t.index * 17) % 100},
+      levels: {for (final t in _all) t: Level.whole(1 + (t.index * 17) % 100)},
     ),
     seed: seed,
   );
@@ -140,14 +143,16 @@ String _describe(Exercise exercise) {
 /// Level updates over a grid of synthetic sessions: correctness patterns ×
 /// elapsed times × lengths × confidence × starting levels. Exercises the
 /// floating-point path (mean, dead band, `sqrt` volume weight, clamp,
-/// `round`), where a platform difference would show first.
+/// `round`), where a platform difference would show first. Levels in
+/// hundredths since Phase 1 commit 2 (starting levels with a fraction
+/// included).
 String levelUpdateGrid() {
   final updater = LevelUpdater();
   final out = StringBuffer();
   const patterns = [0x0, 0x5, 0x7, 0xB, 0xE, 0xF];
   const elapsed = [0, 1999, 2000, 3500, 5000, 7999, 8000, 15000];
   const lengths = [3, 4, 5, 8, 12, 16, 24];
-  const starts = [1, 2, 37, 99, 100];
+  const starts = [100, 200, 3742, 9901, 10000];
   for (final pattern in patterns) {
     for (final ms in elapsed) {
       for (final n in lengths) {
@@ -162,11 +167,13 @@ String levelUpdateGrid() {
                 ),
             ];
             out.write(
-              updater.update(
-                currentLevel: start,
-                answers: answers,
-                confidence: confidence,
-              ),
+              updater
+                  .update(
+                    currentLevel: Level.fromHundredths(start),
+                    answers: answers,
+                    confidence: confidence,
+                  )
+                  .hundredths,
             );
             out.write(',');
           }

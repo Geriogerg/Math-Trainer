@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 
+import '../../core/domain/leveling/level.dart';
 import '../../core/state/session_controller.dart';
 import '../exercise_prompt.dart';
 import '../exercise_type_labels.dart';
@@ -207,7 +208,10 @@ class _SessionScreenState extends State<SessionScreen>
 
     final theme = Theme.of(context);
     final metrics = theme.extension<AppMetrics>()!;
-    final level = widget.controller.config.levels[exercise.type] ?? 1;
+    // Whole part, never the raw hundredths (`Level` is an `int` at runtime:
+    // interpolating it directly would print 1200 for level 12).
+    final level =
+        (widget.controller.config.levels[exercise.type] ?? Level.floor).whole;
     final correction = state.correction;
     // During the correction pause the answer field shows the correct
     // answer; the caption says what was given instead.

@@ -1,3 +1,4 @@
+import 'package:math_trainer/core/domain/leveling/level.dart';
 import 'package:math_trainer/core/domain/leveling/confidence.dart';
 import 'package:math_trainer/core/domain/persistence/level_cache_entry.dart';
 import 'package:math_trainer/core/domain/leveling/leveling_rules.dart';
@@ -18,7 +19,7 @@ void main() {
     test("calibration during an operation's first 3 sessions", () {
       for (final sessionsPlayed in [0, 1, 2]) {
         final entry = LevelCacheEntry(
-          level: 50,
+          level: Level.whole(50),
           sessionsPlayed: sessionsPlayed,
           updatedAt: now,
         );
@@ -31,7 +32,7 @@ void main() {
 
     test('normal after 3 sessions and no long absence', () {
       final entry = LevelCacheEntry(
-        level: 50,
+        level: Level.whole(50),
         sessionsPlayed: 5,
         updatedAt: now,
       );
@@ -47,7 +48,7 @@ void main() {
         Duration(days: rules.absenceDaysThreshold),
       );
       final entry = LevelCacheEntry(
-        level: 50,
+        level: Level.whole(50),
         sessionsPlayed: 5,
         updatedAt: lastPlayed,
       );
@@ -63,7 +64,7 @@ void main() {
         Duration(days: rules.absenceDaysThreshold - 1),
       );
       final entry = LevelCacheEntry(
-        level: 50,
+        level: Level.whole(50),
         sessionsPlayed: 5,
         updatedAt: lastPlayed,
       );

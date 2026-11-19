@@ -1,3 +1,4 @@
+import 'package:math_trainer/core/domain/leveling/level.dart';
 import 'package:math_trainer/core/domain/leveling/level_cache_orchestrator.dart';
 import 'package:math_trainer/core/domain/models/answer_result.dart';
 import 'package:math_trainer/core/domain/models/exercise.dart';
@@ -47,7 +48,7 @@ void main() {
 
         final updates = await orchestrator.computeUpdates(
           outcomes: correctOutcomes(3),
-          frozenLevels: {ExerciseType.addition: 50},
+          frozenLevels: {ExerciseType.addition: Level.whole(50)},
           repository: repository,
           playerId: 'test-player',
           now: DateTime.utc(2026, 8, 8),
@@ -66,15 +67,18 @@ void main() {
 
         final updates = await orchestrator.computeUpdates(
           outcomes: correctOutcomes(4),
-          frozenLevels: {ExerciseType.addition: 50},
+          frozenLevels: {ExerciseType.addition: Level.whole(50)},
           repository: repository,
           playerId: 'test-player',
           now: DateTime.utc(2026, 8, 8),
         );
 
-        // Same scenario as the LevelUpdater test of commit A (step 4.2): from
-        // 50, n_min right and instant answers, calibration confidence → 53.
-        expect(updates[ExerciseType.addition]?.level, 53);
+        // Same scenario as the LevelUpdater test: from 50, n_min right and
+        // instant answers, calibration confidence → 50 + 0.69 × 4 = 52.76.
+        expect(
+          updates[ExerciseType.addition]?.level,
+          Level.fromHundredths(5276),
+        );
         expect(updates[ExerciseType.addition]?.sessionsPlayed, 1);
       },
     );
@@ -99,7 +103,7 @@ void main() {
         answers: const [],
         levelUpdates: {
           ExerciseType.addition: LevelCacheEntry(
-            level: 50,
+            level: Level.whole(50),
             sessionsPlayed: 3,
             updatedAt: now,
           ),
@@ -108,15 +112,15 @@ void main() {
 
       final updates = await orchestrator.computeUpdates(
         outcomes: correctOutcomes(8),
-        frozenLevels: {ExerciseType.addition: 50},
+        frozenLevels: {ExerciseType.addition: Level.whole(50)},
         repository: repository,
         playerId: 'test-player',
         now: now,
       );
 
-      // Normal confidence (K_haut without multiplier): +1, not +3 as in
-      // calibration (see LevelUpdater: normal → 51, calibration → 53).
-      expect(updates[ExerciseType.addition]?.level, 51);
+      // Normal confidence (K_haut without multiplier), 8 answers:
+      // 0.69 × √(8/4) = +0.98 — not capped at +3 as in calibration.
+      expect(updates[ExerciseType.addition]?.level, Level.fromHundredths(5098));
       expect(updates[ExerciseType.addition]?.sessionsPlayed, 4);
     });
 
@@ -132,8 +136,8 @@ void main() {
             ...correctOutcomes(3, type: ExerciseType.subtraction),
           ],
           frozenLevels: {
-            ExerciseType.addition: 50,
-            ExerciseType.subtraction: 50,
+            ExerciseType.addition: Level.whole(50),
+            ExerciseType.subtraction: Level.whole(50),
           },
           repository: repository,
           playerId: 'test-player',
@@ -167,7 +171,7 @@ void main() {
         answers: const [],
         levelUpdates: {
           ExerciseType.addition: LevelCacheEntry(
-            level: 80,
+            level: Level.whole(80),
             sessionsPlayed: 3,
             updatedAt: now,
           ),
@@ -176,13 +180,14 @@ void main() {
 
       final updates = await orchestrator.computeUpdates(
         outcomes: correctOutcomes(8),
-        frozenLevels: {ExerciseType.addition: 50},
+        frozenLevels: {ExerciseType.addition: Level.whole(50)},
         repository: repository,
         playerId: 'test-player',
         now: now,
       );
 
-      expect(updates[ExerciseType.addition]?.level, 51); // 50 + 1, not 80 + 1
+      // 50 + 0.98 (8 answers, normal confidence), not 80 + 0.98.
+      expect(updates[ExerciseType.addition]?.level, Level.fromHundredths(5098));
     });
   });
 }

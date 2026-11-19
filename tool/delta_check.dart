@@ -6,6 +6,7 @@ import 'dart:math' as math;
 
 import 'package:math_trainer/core/domain/leveling/answer_outcome.dart';
 import 'package:math_trainer/core/domain/leveling/confidence.dart';
+import 'package:math_trainer/core/domain/leveling/level.dart';
 import 'package:math_trainer/core/domain/leveling/level_updater.dart';
 import 'package:math_trainer/core/domain/leveling/leveling_rules.dart';
 import 'package:math_trainer/core/domain/persistence/level_cache_entry.dart';
@@ -24,6 +25,10 @@ import 'package:math_trainer/core/domain/persistence/level_cache_entry.dart';
 /// The reference is the original design: `n_min` = 8, `δ` = 0.05, 8
 /// answers per operation and session. Each candidate plays 4 answers per
 /// session (what `n_min × active types` gives every type).
+///
+/// Rerun in Phase 1 commit 2 with continuous levels (integer hundredths):
+/// the simulated player answers at the level's whole part, as generation
+/// does; distances use the continuous value.
 ///
 /// Usage: `dart run tool/delta_check.dart`
 void main() {
@@ -46,8 +51,10 @@ void main() {
     ]) {
       final rules = LevelingRules(nMin: n, delta: delta);
       final m = _simulate(model, rules, answersPerSession: n, target: target);
-      final up = delta + 0.5 / rules.kHaut;
-      final down = delta + 0.5 / rules.kBas;
+      // Rounding to hundredths adds half a hundredth over K to δ (it added
+      // half a level when levels were whole numbers).
+      final up = delta + 0.005 / rules.kHaut;
+      final down = delta + 0.005 / rules.kBas;
       print(
         '$n\t${delta.toStringAsFixed(2)}\t${m.convergence.toStringAsFixed(1)}\t\t'
         '${m.bias.toStringAsFixed(2)}\t${m.spread.toStringAsFixed(2)}\t\t'
@@ -63,8 +70,10 @@ void main() {
     'bias, spread: mean and standard deviation of (level − equilibrium) over 100 sessions\n'
     'of a player started at the equilibrium level, normal confidence;\n'
     'oscillation: mean of (max − min) / 2 per player over those 100 sessions;\n'
-    'eff. dead band: |mean p − p_cible| needed to move one level at n = n_min, normal\n'
-    'confidence — the rounding of the level to an integer adds 0.5 / K to δ.',
+    'eff. dead band: |mean p − p_cible| needed to move the level at all at n = n_min,\n'
+    'normal confidence — rounding to hundredths adds 0.005 / K to δ (0.5 / K before\n'
+    'Phase 1 commit 2, with whole levels);\n'
+    'sessions that move: share of sessions that change the stored level (hundredths).',
   );
 }
 
@@ -160,14 +169,14 @@ _Metrics _simulate(
   const convergenceCap = 150;
   var convergenceSum = 0;
   for (var p = 0; p < players; p++) {
-    var level = 1;
+    var level = Level.floor;
     LevelCacheEntry? prior;
     var s = 0;
-    while (s < convergenceCap && (level - target).abs() > 2) {
+    while (s < convergenceCap && (level.value - target).abs() > 2) {
       final now = base.add(Duration(days: s));
       level = updater.update(
         currentLevel: level,
-        answers: session(level),
+        answers: session(level.whole),
         confidence: confidenceFor(entry: prior, now: now, rules: rules),
       );
       prior = LevelCacheEntry(
@@ -187,15 +196,18 @@ _Metrics _simulate(
   var oscillationSum = 0.0;
   var moves = 0;
   for (var p = 0; p < players; p++) {
-    var level = target.round();
-    var lo = level, hi = level;
+    var level = Level.fromHundredths((target * 100).round());
+    var lo = level.value, hi = level.value;
     for (var s = 0; s < settledSessions; s++) {
-      final next = updater.update(currentLevel: level, answers: session(level));
+      final next = updater.update(
+        currentLevel: level,
+        answers: session(level.whole),
+      );
       if (next != level) moves++;
       level = next;
-      gaps.add(level - target);
-      lo = math.min(lo, level);
-      hi = math.max(hi, level);
+      gaps.add(level.value - target);
+      lo = math.min(lo, level.value);
+      hi = math.max(hi, level.value);
     }
     oscillationSum += (hi - lo) / 2;
   }

@@ -233,6 +233,42 @@ placement test (Phase 1) for convergence, the continuous level value the leaderb
 (Phase 3).
 **Reopen when** Phase 3 recalibrates on real sessions, or a continuous level is stored.
 
+## Continuous levels in integer hundredths (Phase 1, commit 2)
+
+Owner decision (plan v2, section 8; schema migration approved). A level is an integer number of
+hundredths (`Level`, an extension type over `int`, [100, 10000]); the update computes with
+`+ − × ÷` and `sqrt` and rounds **once**, to hundredths. Generation, the score multiplier and
+the screens read the whole part, truncated, so the level the player sees is the one that sets
+the difficulty. The overall level stays a `double` in level units (display and Profile curve
+only), so its stored points before and after the change stay on one scale.
+
+Why an extension type and not a plain `int`: the migration multiplies every level by 100, and a
+whole level mistaken for hundredths (or the reverse) is silent. The compiler now refuses to mix
+them. It caught 120 places at once; one more (`levels[type] ?? 1`, which widens to `Object`) was
+caught by a golden image showing "level 1200".
+
+**Rerun of `tool/delta_check.dart`** (same model and seeds as Phase 0 commit 5):
+
+| Setting | Oscillation w 6 / w 10 | Sessions that move | Convergence from 1 (w 6 / w 10) |
+|---|---|---|---|
+| whole levels, `n` = 4, `δ` = 0.07 (Phase 0) | ±2.4 / ±3.1 | 27 % | 45 / 53 |
+| **hundredths, `n` = 4, `δ` = 0.07** | **±1.95 / ±2.31** | 60 % | **64 / 75** |
+| hundredths, `n` = 8, `δ` = 0.05 (original design) | ±1.43 / ±1.71 | 71 % | 59 / 72 |
+
+- **At equilibrium, better**: oscillation within the ±2 target for w = 6; the rounding dead band
+  (0.5 / K) is gone; most sessions now move the level a little, which the result screen shows.
+- **From level 1, slower** (64 vs 45 sessions). Rounding used to turn the largest normal step
+  outside calibration, 0.69 level (`(1 − p_cible − δ) × K_haut` at `n_min`), into a full +1. The
+  climb is now capped at 0.69 per minimal session after the three calibration sessions. Fixing
+  convergence is the placement test's job (commit 6); the constants (`K_haut`, `K_calib`,
+  calibration length) are the owner's Phase 3 decision. Not changed here.
+
+**Provisional (owner to confirm)**: the result screen shows the session's exact change next to
+the whole level — "level 14 (+2.76)" — so a session that moves the level by less than one step
+still visibly counts (pillar 2). The plan says only "displayed as a whole number". Profile shows
+the whole level and a continuous progress bar.
+**Reopen when** Phase 3 recalibrates the constants, or players read the hundredths as noise.
+
 ## The number of questions is derived, not chosen
 
 `exerciseCount = n_min × active types`, capped at 24 (a target of ~90 s). With `n_min = 4`: one

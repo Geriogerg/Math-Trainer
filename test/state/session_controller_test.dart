@@ -1,3 +1,4 @@
+import 'package:math_trainer/core/domain/leveling/level.dart';
 import 'dart:async';
 
 import 'package:math_trainer/core/domain/generation/exercise_source.dart';
@@ -197,7 +198,7 @@ void main() {
         seed: 1,
         enabledTypes: {ExerciseType.addition},
         exerciseCount: exercises.length,
-        levels: {ExerciseType.addition: 1},
+        levels: {ExerciseType.addition: Level.whole(1)},
       ),
       exerciseSource: _FixedExerciseSource(exercises),
       repository: repository ?? InMemorySessionRepository(),
@@ -263,7 +264,7 @@ void main() {
           seed: 1,
           enabledTypes: {ExerciseType.addition},
           exerciseCount: exercises.length,
-          levels: {ExerciseType.addition: 100},
+          levels: {ExerciseType.addition: Level.whole(100)},
         ),
         exerciseSource: _FixedExerciseSource(exercises),
         repository: InMemorySessionRepository(),
@@ -296,7 +297,7 @@ void main() {
       expect(sessions, hasLength(1));
       expect(sessions.single.playerId, 'test-player');
       expect(sessions.single.totalScore, controller.state.score);
-      expect(sessions.single.levels, {ExerciseType.addition: 1});
+      expect(sessions.single.levels, {ExerciseType.addition: Level.floor});
 
       final answers = await repository.answersForSession(sessions.single.id);
       expect(answers, hasLength(3));
@@ -317,7 +318,7 @@ void main() {
             seed: 1,
             enabledTypes: {ExerciseType.addition},
             exerciseCount: exercises.length,
-            levels: {ExerciseType.addition: 1},
+            levels: {ExerciseType.addition: Level.whole(1)},
           ),
           exerciseSource: _FixedExerciseSource(exercises),
           repository: repository,
@@ -358,7 +359,7 @@ void main() {
           seed: 1,
           enabledTypes: {ExerciseType.addition},
           exerciseCount: 1,
-          levels: {ExerciseType.addition: 1},
+          levels: {ExerciseType.addition: Level.whole(1)},
         ),
         exerciseSource: _FixedExerciseSource(exercises),
         repository: repository,
@@ -394,7 +395,7 @@ void main() {
             seed: 1,
             enabledTypes: {ExerciseType.addition},
             exerciseCount: 8,
-            levels: {ExerciseType.addition: 50},
+            levels: {ExerciseType.addition: Level.whole(50)},
           ),
           exerciseSource: _FixedExerciseSource(eightExercises),
           repository: repository,
@@ -414,7 +415,7 @@ void main() {
         // √(8/4) — see doc/decisions.md), "calibration" confidence (first
         // session on this operation): the unclamped change exceeds deltaMax,
         // capped at 3 → 53.
-        expect(levels[ExerciseType.addition]?.level, 53);
+        expect(levels[ExerciseType.addition]?.level, Level.whole(53));
         expect(levels[ExerciseType.addition]?.sessionsPlayed, 1);
       },
     );
@@ -435,7 +436,7 @@ void main() {
           seed: 1,
           enabledTypes: {ExerciseType.addition},
           exerciseCount: 8,
-          levels: {ExerciseType.addition: 50},
+          levels: {ExerciseType.addition: Level.whole(50)},
         ),
         exerciseSource: _FixedExerciseSource(eightExercises),
         repository: repository,
@@ -481,7 +482,7 @@ void main() {
             seed: 1,
             enabledTypes: {ExerciseType.addition},
             exerciseCount: 8,
-            levels: {ExerciseType.addition: 50},
+            levels: {ExerciseType.addition: Level.whole(50)},
           ),
           exerciseSource: _FixedExerciseSource(eightExercises),
           repository: repository,
@@ -546,7 +547,7 @@ void main() {
           seed: 1,
           enabledTypes: {ExerciseType.addition},
           exerciseCount: exerciseCount,
-          levels: {ExerciseType.addition: 50},
+          levels: {ExerciseType.addition: Level.whole(50)},
         ),
         exerciseSource: _FixedExerciseSource(manyExercises(exerciseCount)),
         repository: repository ?? InMemorySessionRepository(),
@@ -599,7 +600,7 @@ void main() {
           seed: 1,
           enabledTypes: {ExerciseType.addition},
           exerciseCount: 3,
-          levels: {ExerciseType.addition: 50},
+          levels: {ExerciseType.addition: Level.whole(50)},
         ),
         exerciseSource: _FixedExerciseSource(manyExercises(3)),
         repository: InMemorySessionRepository(),
@@ -757,7 +758,7 @@ void main() {
           seed: 1,
           enabledTypes: {ExerciseType.addition},
           exerciseCount: count,
-          levels: {ExerciseType.addition: 1},
+          levels: {ExerciseType.addition: Level.whole(1)},
         ),
         exerciseSource: _FixedExerciseSource(questions(count)),
         repository: repository ?? InMemorySessionRepository(),
@@ -893,7 +894,7 @@ void main() {
           seed: 1,
           enabledTypes: {ExerciseType.addition},
           exerciseCount: 10,
-          levels: {ExerciseType.addition: 50},
+          levels: {ExerciseType.addition: Level.whole(50)},
         ),
         exerciseSource: _FixedExerciseSource(manyExercises(10)),
         repository: repository,
@@ -928,7 +929,7 @@ void main() {
           seed: 1,
           enabledTypes: {ExerciseType.addition},
           exerciseCount: 10,
-          levels: {ExerciseType.addition: 50},
+          levels: {ExerciseType.addition: Level.whole(50)},
         ),
         exerciseSource: _FixedExerciseSource(manyExercises(10)),
         repository: repository,
@@ -952,7 +953,7 @@ void main() {
           seed: 1,
           enabledTypes: {ExerciseType.addition},
           exerciseCount: 5,
-          levels: {ExerciseType.addition: 1},
+          levels: {ExerciseType.addition: Level.whole(1)},
         ),
         exerciseSource: _FixedExerciseSource(manyExercises(5)),
         repository: InMemorySessionRepository(),
@@ -976,7 +977,7 @@ void main() {
           seed: 1,
           enabledTypes: {ExerciseType.addition},
           exerciseCount: 1,
-          levels: {ExerciseType.addition: 1},
+          levels: {ExerciseType.addition: Level.whole(1)},
         ),
         exerciseSource: _FixedExerciseSource(manyExercises(1)),
         repository: InMemorySessionRepository(),
@@ -1013,7 +1014,7 @@ void main() {
           seed: 1,
           enabledTypes: {ExerciseType.addition},
           exerciseCount: 8,
-          levels: {ExerciseType.addition: 50},
+          levels: {ExerciseType.addition: Level.whole(50)},
         ),
         exerciseSource: _FixedExerciseSource(eightExercises),
         repository: repository,
@@ -1030,7 +1031,10 @@ void main() {
       }
       await controller.pendingPersistence;
 
-      expect(controller.lastLevelUpdates?[ExerciseType.addition]?.level, 53);
+      expect(
+        controller.lastLevelUpdates?[ExerciseType.addition]?.level,
+        Level.whole(53),
+      );
     });
 
     test(
@@ -1042,7 +1046,7 @@ void main() {
             seed: 1,
             enabledTypes: {ExerciseType.addition},
             exerciseCount: 8,
-            levels: {ExerciseType.addition: 50},
+            levels: {ExerciseType.addition: Level.whole(50)},
           ),
           exerciseSource: _FixedExerciseSource(
             List.generate(
@@ -1076,7 +1080,7 @@ void main() {
           seed: 1,
           enabledTypes: {ExerciseType.addition},
           exerciseCount: 4,
-          levels: {ExerciseType.addition: 50},
+          levels: {ExerciseType.addition: Level.whole(50)},
         ),
         exerciseSource: _FixedExerciseSource(
           List.generate(
@@ -1149,7 +1153,7 @@ void persistenceRobustnessTests() {
           seed: 1,
           enabledTypes: {ExerciseType.addition},
           exerciseCount: 4,
-          levels: {ExerciseType.addition: 10},
+          levels: {ExerciseType.addition: Level.whole(10)},
         ),
         exerciseSource: _FixedExerciseSource(
           List.generate(
@@ -1257,13 +1261,13 @@ void persistenceRobustnessTests() {
             enabledTypes: const {ExerciseType.multiplication},
             exerciseCount: 4,
             totalScore: 40,
-            levels: const {ExerciseType.multiplication: 50},
+            levels: {ExerciseType.multiplication: Level.whole(50)},
             createdAt: DateTime.utc(2023),
           ),
           answers: const [],
           levelUpdates: {
             ExerciseType.multiplication: LevelCacheEntry(
-              level: 50,
+              level: Level.whole(50),
               sessionsPlayed: 1,
               updatedAt: DateTime.utc(2023),
             ),
@@ -1277,7 +1281,7 @@ void persistenceRobustnessTests() {
 
         final additionAfter = (await repository.currentLevels(
           'test-player',
-        ))[ExerciseType.addition]!.level;
+        ))[ExerciseType.addition]!.level.value;
         final session = (await repository.recentSessions('test-player')).first;
         // Addition updated + multiplication 50 + 5 types at the floor, over 7.
         expect(

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../domain/generation/exercise_source.dart';
+import '../domain/leveling/level.dart';
 import '../domain/leveling/level_cache_orchestrator.dart';
 import '../domain/leveling/overall_level.dart';
 import '../domain/models/answer_result.dart';
@@ -251,7 +252,8 @@ class SessionController extends ChangeNotifier {
     final points = scorer.pointsFor(
       outcome,
       currentStreak: nextStreak,
-      level: config.levels[exercise.type] ?? 1,
+      // The score multiplier reads the whole level, like generation.
+      level: (config.levels[exercise.type] ?? Level.floor).whole,
     );
     final outcomes = [..._state.outcomes, outcome];
     final isSessionComplete = outcomes.length >= config.exerciseCount;

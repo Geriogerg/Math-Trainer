@@ -4,6 +4,7 @@ import '../difficulty/arithmetic_difficulty.dart';
 import '../difficulty/percentage_difficulty.dart';
 import '../difficulty/power_difficulty.dart';
 import '../difficulty/square_root_difficulty.dart';
+import '../leveling/level.dart';
 import '../models/exercise.dart';
 import '../models/exercise_type.dart';
 import 'arithmetic_generator.dart';
@@ -28,13 +29,16 @@ const _defaultLevel = 50;
 class CompositeExerciseGenerator implements ExerciseGenerator {
   CompositeExerciseGenerator({
     required Set<ExerciseType> enabledTypes,
-    Map<ExerciseType, int>? levels,
+    Map<ExerciseType, Level>? levels,
     TypeSelectionStrategy? strategy,
   }) : _sortedTypes = enabledTypes.toList()
          ..sort((a, b) => a.index.compareTo(b.index)),
        _generators = {
          for (final type in enabledTypes)
-           type: _buildGenerator(type, levels?[type] ?? _defaultLevel),
+           // Generation reads the whole part of a level (plan, Phase 1
+           // commit 2): 37.99 generates exactly like 37.00, so sequences
+           // from before continuous levels replay unchanged.
+           type: _buildGenerator(type, levels?[type]?.whole ?? _defaultLevel),
        } {
     if (enabledTypes.isEmpty) {
       throw ArgumentError.value(

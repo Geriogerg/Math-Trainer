@@ -1,3 +1,4 @@
+import 'package:math_trainer/core/domain/leveling/level.dart';
 import 'dart:math';
 
 import 'package:math_trainer/core/domain/generation/composite_exercise_generator.dart';
@@ -110,11 +111,11 @@ void main() {
       final random = Random(11);
       final lowLevelGenerator = CompositeExerciseGenerator(
         enabledTypes: {ExerciseType.addition},
-        levels: {ExerciseType.addition: 1},
+        levels: {ExerciseType.addition: Level.whole(1)},
       );
       final highLevelGenerator = CompositeExerciseGenerator(
         enabledTypes: {ExerciseType.addition},
-        levels: {ExerciseType.addition: 100},
+        levels: {ExerciseType.addition: Level.whole(100)},
       );
 
       final lowLevelMax =
@@ -131,13 +132,31 @@ void main() {
       expect(highLevelMax, greaterThan(lowLevelMax));
     });
 
+    test('generation reads the whole part of a level: 37.99 generates like '
+        '37.00, 38.00 does not', () {
+      List<Exercise> sequence(int hundredths) {
+        final generator = CompositeExerciseGenerator(
+          enabledTypes: {ExerciseType.multiplication, ExerciseType.power},
+          levels: {
+            ExerciseType.multiplication: Level.fromHundredths(hundredths),
+            ExerciseType.power: Level.fromHundredths(hundredths),
+          },
+        );
+        final random = Random(29);
+        return List.generate(40, (_) => generator.next(random));
+      }
+
+      expect(sequence(3799), sequence(3700));
+      expect(sequence(3800), isNot(sequence(3700)));
+    });
+
     test('an enabled type missing from levels uses the level 50 fallback', () {
       final withoutLevel = CompositeExerciseGenerator(
         enabledTypes: {ExerciseType.addition},
       );
       final withLevel50 = CompositeExerciseGenerator(
         enabledTypes: {ExerciseType.addition},
-        levels: {ExerciseType.addition: 50},
+        levels: {ExerciseType.addition: Level.whole(50)},
       );
 
       final randomA = Random(13);
@@ -196,7 +215,10 @@ void main() {
 
         final generatorA = CompositeExerciseGenerator(
           enabledTypes: {ExerciseType.addition, ExerciseType.subtraction},
-          levels: {ExerciseType.addition: 40, ExerciseType.subtraction: 60},
+          levels: {
+            ExerciseType.addition: Level.whole(40),
+            ExerciseType.subtraction: Level.whole(60),
+          },
           strategy: DebtAwareTypeSelectionStrategy(
             exerciseCount: 16,
             nMin: 8,
@@ -205,7 +227,10 @@ void main() {
         );
         final generatorB = CompositeExerciseGenerator(
           enabledTypes: {ExerciseType.addition, ExerciseType.subtraction},
-          levels: {ExerciseType.addition: 40, ExerciseType.subtraction: 60},
+          levels: {
+            ExerciseType.addition: Level.whole(40),
+            ExerciseType.subtraction: Level.whole(60),
+          },
           strategy: DebtAwareTypeSelectionStrategy(
             exerciseCount: 16,
             nMin: 8,
