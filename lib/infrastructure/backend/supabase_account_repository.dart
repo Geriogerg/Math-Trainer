@@ -32,10 +32,16 @@ class SupabaseAccountRepository implements AccountRepository {
 
   final SupabaseClient _client;
 
+  /// An anonymous user has no email (gotrue may report `''`); an email
+  /// user always has one.
   Account? _toAccount(User? user) {
-    final email = user?.email;
-    if (user == null || email == null) return null;
-    return Account(id: user.id, email: email);
+    if (user == null) return null;
+    final email = user.email;
+    return Account(
+      id: user.id,
+      email: (email == null || email.isEmpty) ? null : email,
+      isAnonymous: user.isAnonymous,
+    );
   }
 
   /// Despite its name, the `ReplaySubject` from `supabase_common` behind
@@ -78,10 +84,27 @@ class SupabaseAccountRepository implements AccountRepository {
         password: password,
       );
       final account = _toAccount(response.user);
-      if (account == null) {
+      if (account == null || account.email == null) {
         throw const AccountException(
           AccountFailure.unknown,
           detail: 'session without a user or an email',
+        );
+      }
+      return account;
+    } on AuthException catch (e) {
+      throw _toAccountException(e);
+    }
+  }
+
+  @override
+  Future<Account> signInAnonymously() async {
+    try {
+      final response = await _client.auth.signInAnonymously();
+      final account = _toAccount(response.user);
+      if (account == null) {
+        throw const AccountException(
+          AccountFailure.unknown,
+          detail: 'anonymous sign-in returned no user',
         );
       }
       return account;

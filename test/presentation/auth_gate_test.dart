@@ -1,8 +1,8 @@
-import 'package:math_trainer/core/domain/leveling/level.dart';
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:math_trainer/core/domain/leveling/level.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:math_trainer/composition_root.dart';
@@ -52,11 +52,33 @@ class _ControllableAccountRepository implements AccountRepository {
     return account;
   }
 
+  /// Anonymous sign-ins requested so far. Each stays pending until the
+  /// test settles it ([completeAnonymous] / [failAnonymous]) — so tests
+  /// that drive `resolveSession` by hand are not raced by a guest account.
+  int anonymousSignIns = 0;
+  Completer<Account>? _pendingAnonymous;
+
+  @override
+  Future<Account> signInAnonymously() {
+    anonymousSignIns++;
+    return (_pendingAnonymous = Completer<Account>()).future;
+  }
+
+  void completeAnonymous(Account account) {
+    _pendingAnonymous!.complete(account);
+    _controller.add(account);
+  }
+
+  void failAnonymous(AccountFailure failure) =>
+      _pendingAnonymous!.completeError(AccountException(failure));
+
   @override
   Future<void> signOut() async {
     _controller.add(null);
   }
 }
+
+const _guest = Account(id: 'guest-1', isAnonymous: true);
 
 void main() {
   Future<AppEnvironment> pumpGate(
@@ -89,7 +111,45 @@ void main() {
     expect(find.text('Math Trainer'), findsNothing);
   });
 
-  testWidgets('shows the sign-in form once the session resolves as absent', (
+  testWidgets(
+    'no session: creates an anonymous player and goes straight to the game, '
+    'no form',
+    (tester) async {
+      final accountRepository = _ControllableAccountRepository();
+      await pumpGate(tester, accountRepository);
+      await tester.pump();
+
+      accountRepository.resolveSession(null);
+      await tester.pump();
+      expect(accountRepository.anonymousSignIns, 1);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(TextField), findsNothing);
+
+      accountRepository.completeAnonymous(_guest);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Math Trainer'), findsOneWidget);
+      expect(find.byType(TextField), findsNothing);
+    },
+  );
+
+  testWidgets('a returning player gets their account back, never a guest', (
+    tester,
+  ) async {
+    final accountRepository = _ControllableAccountRepository();
+    await pumpGate(tester, accountRepository);
+    await tester.pump();
+
+    accountRepository.resolveSession(
+      const Account(id: 'returning', email: 'r@test.com'),
+    );
+    await tester.pumpAndSettle();
+
+    expect(accountRepository.anonymousSignIns, 0);
+    expect(find.text('Math Trainer'), findsOneWidget);
+  });
+
+  testWidgets('repeated "no session" states start a single anonymous sign-in', (
     tester,
   ) async {
     final accountRepository = _ControllableAccountRepository();
@@ -97,26 +157,48 @@ void main() {
     await tester.pump();
 
     accountRepository.resolveSession(null);
-    await tester.pumpAndSettle();
+    await tester.pump();
+    accountRepository.resolveSession(null);
+    await tester.pump();
 
-    expect(find.text('Sign in'), findsWidgets);
-    expect(find.byType(TextField), findsNWidgets(2));
+    expect(accountRepository.anonymousSignIns, 1);
   });
 
-  testWidgets('signing in from the form switches to AppShell', (tester) async {
+  testWidgets('first launch offline: a retry screen says why, then the game', (
+    tester,
+  ) async {
     final accountRepository = _ControllableAccountRepository();
     await pumpGate(tester, accountRepository);
     await tester.pump();
     accountRepository.resolveSession(null);
-    await tester.pumpAndSettle();
+    await tester.pump();
 
-    await tester.enterText(find.byType(TextField).at(0), 'player@test.com');
-    await tester.enterText(find.byType(TextField).at(1), 'motdepasse');
-    await tester.tap(find.widgetWithText(FilledButton, 'Sign in'));
+    accountRepository.failAnonymous(AccountFailure.network);
     await tester.pumpAndSettle();
+    expect(find.text("Couldn't start"), findsOneWidget);
+    expect(find.textContaining('No connection'), findsOneWidget);
 
+    await tester.tap(find.widgetWithText(FilledButton, 'Try again'));
+    await tester.pump();
+    expect(accountRepository.anonymousSignIns, 2);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+    accountRepository.completeAnonymous(_guest);
+    await tester.pumpAndSettle();
     expect(find.text('Math Trainer'), findsOneWidget);
-    expect(find.byType(TextField), findsNothing);
+  });
+
+  testWidgets('rate limited: its own message', (tester) async {
+    final accountRepository = _ControllableAccountRepository();
+    await pumpGate(tester, accountRepository);
+    await tester.pump();
+    accountRepository.resolveSession(null);
+    await tester.pump();
+
+    accountRepository.failAnonymous(AccountFailure.rateLimited);
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Too many new players'), findsOneWidget);
   });
 
   // Regression: `authState` returns a new `Stream` on each read. Read in
@@ -209,14 +291,18 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text('Overall level: 7'), findsOneWidget);
 
+        // Signed out: a guest is being created (pending) — a spinner,
+        // which never settles.
         accountRepository.resolveSession(null);
-        await tester.pumpAndSettle();
+        await tester.pump();
         accountRepository.resolveSession(accountB);
         await tester.pumpAndSettle();
         expect(find.text(welcome), findsOneWidget);
 
+        // Signed out: a guest is being created (pending) — a spinner,
+        // which never settles.
         accountRepository.resolveSession(null);
-        await tester.pumpAndSettle();
+        await tester.pump();
         accountRepository.resolveSession(accountA);
         await tester.pumpAndSettle();
         expect(find.text('Overall level: 7'), findsOneWidget);

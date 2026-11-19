@@ -88,6 +88,39 @@ void main() {
     expect(await repo.authState.first, isNull);
   });
 
+  test(
+    'signInAnonymously: a guest account (no email, anonymous), then emitted',
+    () async {
+      final anonymous = SupabaseTestClient(
+        authHandler: (request) async => request.url.path == '/auth/v1/signup'
+            ? http.Response(
+                jsonEncode(anonymousSessionJson()),
+                200,
+                headers: {'content-type': 'application/json'},
+              )
+            : null,
+      );
+      addTearDown(anonymous.client.dispose);
+      final repo = SupabaseAccountRepository(anonymous.client);
+      anonymous.emitInitialSessionWithoutUser();
+
+      final account = await repo.signInAnonymously();
+
+      const guest = Account(id: testUserId, isAnonymous: true);
+      expect(account, guest);
+      expect(await repo.authState.first, guest);
+    },
+  );
+
+  test('an email account is not anonymous', () async {
+    supabase.emitInitialSessionWithoutUser();
+    await supabase.signIn();
+
+    final account = await repository.authState.first;
+    expect(account?.isAnonymous, isFalse);
+    expect(account?.email, testEmail);
+  });
+
   group('errors mapped to AccountException', () {
     /// Current Supabase Auth format: API version header, code in `code`
     /// (before 2024: `error_code`).
@@ -152,6 +185,30 @@ void main() {
         await failureOf(() => repo.signIn(email: testEmail, password: 'x')),
         AccountFailure.network,
       );
+      expect(await failureOf(repo.signInAnonymously), AccountFailure.network);
+    });
+
+    test('anonymous sign-in rate limited → rateLimited', () async {
+      final limited = SupabaseTestClient(
+        authHandler: refuse(429, 'over_request_rate_limit'),
+      );
+      addTearDown(limited.client.dispose);
+      final repo = SupabaseAccountRepository(limited.client);
+
+      expect(
+        await failureOf(repo.signInAnonymously),
+        AccountFailure.rateLimited,
+      );
+    });
+
+    test('anonymous sign-ins disabled in the project → unknown', () async {
+      final disabled = SupabaseTestClient(
+        authHandler: refuse(422, 'anonymous_provider_disabled'),
+      );
+      addTearDown(disabled.client.dispose);
+      final repo = SupabaseAccountRepository(disabled.client);
+
+      expect(await failureOf(repo.signInAnonymously), AccountFailure.unknown);
     });
 
     test('server error (5xx) → network', () async {

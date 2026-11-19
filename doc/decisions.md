@@ -19,8 +19,10 @@ input. Android is not checked until Phase 8 (owner, 18 Nov 2026).
 
 Mandatory sign-in (step 6, slice 2) makes most first-time players leave before one question. A
 player is created silently on first launch; email (later Google) is linked when they want the
-leaderboard or a second device. Existing email accounts keep their data. The detailed design is
-proposed to the owner before Phase 1 commit 1.
+leaderboard or a second device. Existing email accounts keep their data. Design decided by the
+owner in plan v2 (section 6.3); built in Phase 1 commit 4 (`doc/online.md`). The sign-out button
+is hidden for guests from commit 4 on, not commit 5: in between, a guest pressing it would have
+lost their account.
 **Reopen when** abuse of anonymous accounts costs more than the protections planned (CAPTCHA,
 cleanup).
 

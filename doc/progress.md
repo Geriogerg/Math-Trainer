@@ -169,6 +169,14 @@ Phase 0 closed in Phase 1 commit 0 (`material_ui`, `δ` recorded, preview, load)
   16.0): Pages gzips CanvasKit where Google served brotli (+0.55 MiB). Levers recorded, none
   applied. Non-Latin player names would render as boxes (Phase 2 decision).
 
+- **Commit 4** *(A)* — Anonymous-first: `Account.isAnonymous` (email optional),
+  `AccountRepository.signInAnonymously()`; `AuthGate` creates a guest when no session exists
+  (once, after the local session resolves), retry screen on failure; sign-out hidden for guests.
+  Checked in a release build against the real project: fresh browser → guest created (one
+  `signup`), straight to Play, a game, reload → same guest, no new account, history kept.
+  Guest `8bec648d-…` created by that check (to delete with commit 7). `AuthForm` unused until
+  commit 5.
+
 ### Remaining contradictions after commit 0
 
 The five plan/reality contradictions found at commit 0 (language, `δ`, branch and remote, commit 0

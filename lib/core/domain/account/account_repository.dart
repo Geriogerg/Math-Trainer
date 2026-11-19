@@ -23,6 +23,15 @@ abstract class AccountRepository {
   /// network unavailable).
   Future<Account> signIn({required String email, required String password});
 
-  /// Signs out locally in every case, even offline — never throws.
+  /// Creates an anonymous player and signs them in (plan, section 6.3:
+  /// anonymous-first). Needs the network once; the session is then
+  /// persisted locally like any other. Throws an `AccountException` on
+  /// failure (`network`, `rateLimited`, `unknown` — e.g. anonymous sign-ins
+  /// disabled in the project).
+  Future<Account> signInAnonymously();
+
+  /// Signs out locally in every case, even offline — never throws. Never
+  /// offered to an anonymous player (`Account.isAnonymous`): their account
+  /// would be lost.
   Future<void> signOut();
 }

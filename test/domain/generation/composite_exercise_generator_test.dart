@@ -1,9 +1,9 @@
-import 'package:math_trainer/core/domain/leveling/level.dart';
 import 'dart:math';
 
 import 'package:math_trainer/core/domain/generation/composite_exercise_generator.dart';
 import 'package:math_trainer/core/domain/generation/debt_aware_type_selection_strategy.dart';
 import 'package:math_trainer/core/domain/generation/type_selection_strategy.dart';
+import 'package:math_trainer/core/domain/leveling/level.dart';
 import 'package:math_trainer/core/domain/models/exercise.dart';
 import 'package:math_trainer/core/domain/models/exercise_type.dart';
 import 'package:test/test.dart';

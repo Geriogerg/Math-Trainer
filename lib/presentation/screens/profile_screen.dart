@@ -366,13 +366,17 @@ class _IdentityBlock extends StatelessWidget {
           ],
         ),
         Text(
-          account.email,
+          account.email ?? 'Guest — progress saved on this device only',
           style: theme.textTheme.bodyMedium?.copyWith(
             color: theme.extension<AppPalette>()!.textMuted,
           ),
         ),
-        const SizedBox(height: 8),
-        TextButton(onPressed: onSignOut, child: const Text('Sign out')),
+        // Never for a guest: signing out would lose the account for good
+        // (plan, section 6.3). Account actions for guests: commit 5.
+        if (!account.isAnonymous) ...[
+          const SizedBox(height: 8),
+          TextButton(onPressed: onSignOut, child: const Text('Sign out')),
+        ],
       ],
     );
   }

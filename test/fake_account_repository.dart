@@ -23,5 +23,8 @@ class FakeAccountRepository implements AccountRepository {
       throw UnimplementedError();
 
   @override
+  Future<Account> signInAnonymously() => throw UnimplementedError();
+
+  @override
   Future<void> signOut() => throw UnimplementedError();
 }

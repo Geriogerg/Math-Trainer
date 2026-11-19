@@ -1,7 +1,7 @@
-import 'package:math_trainer/core/domain/leveling/level.dart';
 import 'dart:async';
 
 import 'package:math_trainer/core/domain/generation/exercise_source.dart';
+import 'package:math_trainer/core/domain/leveling/level.dart';
 import 'package:math_trainer/core/domain/persistence/level_cache_entry.dart';
 import 'package:math_trainer/core/domain/models/exercise.dart';
 import 'package:math_trainer/core/domain/models/exercise_type.dart';

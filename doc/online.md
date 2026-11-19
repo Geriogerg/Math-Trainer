@@ -11,21 +11,30 @@ detail and the state of the code. Where the two disagree, the plan wins.
 |---|---|---|
 | Step 6, slice 1 | Email/password sign-up and sign-in | done (`0d884c1`) |
 | Step 6, slice 2 | Mandatory sign-in, player name, Profile tab | done (`7400f9b`) |
-| Phase 1 | Anonymous-first, existing accounts migrated, account deletion, real SMTP | planned |
+| Phase 1 | Anonymous-first (commit 4, done), linking and account screens, account deletion | in progress |
+| Phase 6 | Email confirmation with a real SMTP sender, CAPTCHA | planned |
 | Phase 2 | Monorepo, Dart server, session upload, replay validation, leaderboard | planned |
 | Phase 7 | Ghost duels, Glicko-2, friend challenges; live duels on owner decision | planned |
 
 The old "slice 3" (leaderboard, sync, validation service) is Phase 2 of the plan.
 
-## Current state (step 6, slices 1–2)
+## Current state (Phase 1, commit 4)
 
 - Supabase client in `infrastructure/backend/`, behind `AccountRepository`/`ProfileRepository`
   (`core/domain/account/`). The Supabase SDK is never imported outside `infrastructure/` and
   `composition_root.dart`.
-- **Sign-in is mandatory** (`AuthGate`). This is the current behaviour, **not the direction**:
-  the plan replaces it with anonymous-first in Phase 1 (section 6.3). Supabase persists the
-  session locally, so a player who has signed in once plays offline afterwards; only a fresh
-  browser or an explicit sign-out needs the network.
+- **Anonymous-first** (`AuthGate`, plan section 6.3). No session on launch → the gate calls
+  `AccountRepository.signInAnonymously()` once (guarded against repeated "no session" events)
+  and goes straight to the game; failure → `StartErrorView` (no connection / rate limited /
+  other) with "Try again". The session is persisted locally like any other, so later launches
+  work offline. The gate never starts an anonymous sign-in before the local session is resolved,
+  or a returning player would get a second, empty account. `Account.isAnonymous`; a guest has
+  no email (Supabase reports `''`, mapped to `null`).
+- **No sign-out for a guest** (Profile shows "Guest — progress saved on this device only"): it
+  would lose the account for good. An email account still signs out; a new guest is then
+  created. Linking, sign-in to an existing account and deletion: commits 5 and 7.
+- Supabase project settings this relies on: anonymous sign-ins **on** (owner, 19 Nov 2026);
+  built-in rate limit on anonymous sign-ins (30 per hour per IP) until CAPTCHA (Phase 6).
 - Email confirmation is **off** in the Supabase project for development: the default mailer only
   sends to organisation members. Phase 1 turns it on with a real SMTP sender and a site URL.
 

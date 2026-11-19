@@ -35,6 +35,17 @@ Map<String, Object?> _sessionJson() => {
   },
 };
 
+/// What Supabase Auth answers to an anonymous sign-in: same shape, an
+/// empty email and `is_anonymous: true`.
+Map<String, Object?> anonymousSessionJson() => {
+  ..._sessionJson(),
+  'user': {
+    ...(_sessionJson()['user']! as Map<String, Object?>),
+    'email': '',
+    'is_anonymous': true,
+  },
+};
+
 /// A real `SupabaseClient` (the app's code) with only the HTTP transport
 /// simulated: sign-in and sign-out answer like Supabase Auth, and
 /// [restHandler] answers PostgREST requests (`/rest/v1/...`). Each PostgREST

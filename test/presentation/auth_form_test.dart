@@ -8,6 +8,9 @@ import 'package:math_trainer/presentation/theme/app_theme.dart';
 
 /// Records the credentials received and fails with [failure] if given.
 class _RecordingAccountRepository implements AccountRepository {
+  @override
+  Future<Account> signInAnonymously() => throw UnimplementedError();
+
   _RecordingAccountRepository({this.failure});
 
   final AccountFailure? failure;

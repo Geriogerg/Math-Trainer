@@ -12,9 +12,9 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 
 **Phase 1 — First run and accounts** (`doc/plan.md`, section 7), run in **one pass**.
 Done: **0**, **1** (VM = JavaScript, 158/158), **2** (levels in hundredths, schema v4),
-**3** (self-hosted CanvasKit and fonts, loading screen), **7 (1/2)** (SQL written; owner to run
+**3** (self-hosted CanvasKit and fonts, loading screen), **4** (anonymous-first), **7 (1/2)** (SQL written; owner to run
 it). Waiting on the owner: `SUPABASE_PUBLISHABLE_KEY`
-secret still empty on the preview. Next commit: **4**. Update this block at every commit.
+secret still empty on the preview. Next commit: **5**. Update this block at every commit.
 
 | # | Commit | Note |
 |---|---|---|

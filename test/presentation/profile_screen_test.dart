@@ -1,10 +1,10 @@
-import 'package:math_trainer/core/domain/leveling/level.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:math_trainer/composition_root.dart';
 import 'package:math_trainer/core/domain/account/account.dart';
 import 'package:math_trainer/core/domain/account/account_repository.dart';
+import 'package:math_trainer/core/domain/leveling/level.dart';
 import 'package:math_trainer/core/domain/persistence/level_cache_entry.dart';
 import 'package:math_trainer/core/domain/models/exercise_type.dart';
 import 'package:math_trainer/core/domain/persistence/in_memory_session_repository.dart';
@@ -84,11 +84,19 @@ class _FlakySessionRepository implements SessionRepository {
 /// `FakeAccountRepository` throws `UnimplementedError` there (it only
 /// satisfies the constructor for tests that do not care).
 class _RecordingAccountRepository implements AccountRepository {
+  _RecordingAccountRepository({
+    this.account = const Account(id: 'test-account', email: 'player@test.com'),
+  });
+
+  final Account account;
+
+  @override
+  Future<Account> signInAnonymously() => throw UnimplementedError();
+
   bool signOutCalled = false;
 
   @override
-  Stream<Account?> get authState =>
-      Stream.value(const Account(id: 'test-account', email: 'player@test.com'));
+  Stream<Account?> get authState => Stream.value(account);
 
   @override
   Future<Account?> signUp({required String email, required String password}) =>
@@ -563,6 +571,31 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(accountRepository.signOutCalled, isTrue);
+  });
+
+  testWidgets('a guest sees "Guest" and is never offered a sign-out', (
+    WidgetTester tester,
+  ) async {
+    await setTallSurface(tester);
+    final environment = AppEnvironment(
+      repository: InMemorySessionRepository(),
+      playerId: 'guest-1',
+      accountRepository: _RecordingAccountRepository(
+        account: const Account(id: 'guest-1', isAnonymous: true),
+      ),
+      profileRepository: FakeProfileRepository(),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildLightTheme(),
+        home: Scaffold(body: ProfileScreen(environment: environment)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Guest'), findsOneWidget);
+    expect(find.text('Sign out'), findsNothing);
   });
 }
 
