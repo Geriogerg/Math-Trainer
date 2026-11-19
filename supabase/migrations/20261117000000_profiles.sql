@@ -1,6 +1,7 @@
 -- Public profiles table (player name) — step 6, slice 2.
--- Run in the Supabase project's SQL editor. Idempotent: can be re-run
--- without error on a project where the table already exists.
+-- First migration (Phase 2 commit 2): it was run by hand before migrations
+-- existed, so it stays idempotent — applying it to the live project, where
+-- the table already exists, changes nothing.
 --
 -- No creation trigger at sign-up: the row is created by the first chosen
 -- name (`upsert` in SupabaseProfileRepository), and a missing profile reads

@@ -52,7 +52,10 @@ lib/
     exercise_prompt.dart   # builds the displayed operation from the exercise's fields
     exercise_type_labels.dart
 supabase/
-  profiles.sql             # `profiles` table + RLS, run by hand in the project's SQL editor
+  config.toml              # Supabase CLI config (CI only: `supabase db push`)
+  migrations/              # versioned SQL, applied to the live project by CI on main (never by hand)
+  tests/                   # 00_supabase_stub.sql (auth schema + roles stand-in), *_test.sql
+tool/sql/test_sql.sh       # migrations (twice) + SQL tests on a scratch Postgres, locally and in CI
 tool/
   recalibrate.dart         # replays stored answers to tune the leveling constants (Phase 3)
   delta_check.dart         # simulated players against LevelUpdater, compares δ / n_min settings

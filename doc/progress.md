@@ -233,6 +233,15 @@ Phase 0 closed in Phase 1 commit 0 (`material_ui`, `δ` recorded, preview, load)
   questions as the debt strategy). `replaySessionQuestions` regenerates a stored session from
   what it stores alone; a test plays real sessions into SQLite and replays each in isolation.
   `answersForSession` ordered by `rowid`. No pinned sequence changed.
+- **Commit 2** *(A)* — SQL migrations from CI. `supabase/profiles.sql` and
+  `supabase/delete_account.sql` became `supabase/migrations/2026111{7,9}…`; a third migration
+  deletes the eight Phase 1 test accounts by id. CI `sql` job: every migration applied twice
+  to a scratch Postgres 17 with a Supabase stand-in (`supabase/tests/00_supabase_stub.sql`),
+  then SQL tests (profiles RLS, `delete_my_account()`). CI `migrations` job on `main`:
+  `supabase link` + `supabase db push` with the `SUPABASE_ACCESS_TOKEN` / `SUPABASE_DB_PASSWORD`
+  secrets; `deploy` waits for it. Also seen: the smoke test is **green on the preview** since
+  commit 0 — the owner fixed the key secret and installed `delete_my_account()`, so Phase 1's
+  parked live deletion check passed (the smoke guest deletes itself).
 
 ### Remaining contradictions after commit 0
 

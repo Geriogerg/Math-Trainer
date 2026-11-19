@@ -11,8 +11,8 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 ## Current phase
 
 **Phase 2 — Server and leaderboard** (`doc/plan.md`, section 7), run in **one pass**.
-Done: 0, 1. Next commit: **2**. Parked: deleting the Phase 1 test accounts (needs
-`delete_my_account()`, applied by CI from commit 2). Update this block at every commit.
+Done: 0, 1, 2. Next commit: **3**. To check on the first CI run of commit 2: the `migrations`
+job applied the three migrations (Phase 1 test accounts deleted by the third). Update this block at every commit.
 
 | # | Commit | Note |
 |---|---|---|
@@ -139,6 +139,7 @@ flutter test
 flutter analyze
 flutter run -d edge --web-port=8080 --dart-define-from-file=dart_defines.json
 node tool/smoke/preview_smoke.mjs <url> [chrome]   # smoke test; SMOKE_NETWORK=slow4g to time it
+bash tool/sql/test_sql.sh <postgres admin url>     # migrations (twice) + SQL tests, scratch DB
 ```
 
 `dart_defines.json` (not versioned) holds the Supabase URL and public key; in CI they come from
@@ -167,6 +168,9 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   create (the smoke test through "Delete my data", which needs `delete_my_account()`).
 - SQL goes in versioned migrations applied by CI (from commit 2); never run SQL by hand, never
   print the access token or database password.
+- SQL tests run on plain Postgres with `supabase/tests/00_supabase_stub.sql` standing in for
+  Supabase: a migration using anything else of Supabase's must add it to the stub. Every
+  migration must be idempotent (CI applies them twice).
 - Browser storage can be evicted until server sync is live.
 - Rotation by sampling debt makes question order depend on past games: sessions store their
   type sequence (schema v6). Replay with `replaySessionQuestions`, never by re-running the

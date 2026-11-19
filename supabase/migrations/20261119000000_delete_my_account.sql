@@ -1,6 +1,6 @@
 -- In-app account deletion — Phase 1, commit 7 (doc/plan.md, section 6.3).
--- Run once in the Supabase project's SQL editor. Idempotent: re-running it
--- replaces the function with the same definition.
+-- Run by hand by the owner in Phase 1; a migration since Phase 2 commit 2.
+-- Idempotent: re-applying it replaces the function with the same definition.
 --
 -- `delete_my_account()` deletes the CALLER's own auth user and nothing else:
 -- the only id it ever touches is `auth.uid()`, taken from the caller's JWT,

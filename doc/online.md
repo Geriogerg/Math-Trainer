@@ -49,7 +49,7 @@ The old "slice 3" (leaderboard, sync, validation service) is Phase 2 of the plan
 - **Account deletion** (commit 7), every player, guests included: Profile → "Delete my
   data" (guest) / "Delete my account", after a confirmation. `AccountDeletionController`:
   1. `AccountRepository.deleteAccount()` — RPC `delete_my_account()`
-     (`supabase/delete_account.sql`, `security definer`, deletes only `auth.uid()`; the
+     (`supabase/migrations/20261119000000_delete_my_account.sql`, `security definer`, deletes only `auth.uid()`; the
      profile and Supabase's sessions follow by cascade). If it fails, **nothing** is touched;
   2. `SessionRepository.deletePlayerData(id)` — this player's sessions, answers and level
      cache on this device, atomically; other players on the device untouched;
@@ -58,7 +58,8 @@ The old "slice 3" (leaderboard, sync, validation service) is Phase 2 of the plan
   that data stayed on the device. Device settings (theme, type selection) are kept.
 - Supabase project settings this relies on: anonymous sign-ins **on** (owner, 19 Nov 2026);
   built-in rate limit on anonymous sign-ins (30 per hour per IP) until CAPTCHA (Phase 6);
-  `delete_my_account()` installed by the owner from `supabase/delete_account.sql`.
+  `delete_my_account()` (run by hand in Phase 1, a migration since Phase 2 commit 2). Checked
+  live: the CI smoke test's guest deletes itself through it (first green run 20 Nov 2026).
 - Email confirmation is **off** in the Supabase project for development: the default mailer only
   sends to organisation members. Phase 1 turns it on with a real SMTP sender and a site URL.
 
@@ -69,8 +70,8 @@ Postgres table `profiles` (`id` references `auth.users.id`, `display_name`) rath
 name must be (RLS: public read, write restricted to one's own row) — and it is the table the
 leaderboard needs to show a name next to a level.
 
-Schema and RLS versioned in `supabase/profiles.sql` (idempotent, run by hand in the project's SQL
-editor). No sign-up trigger: the row is created by the first chosen name (`upsert`), and a missing
+Schema and RLS versioned in `supabase/migrations/20261117000000_profiles.sql` (idempotent: it was
+run by hand before migrations existed). No sign-up trigger: the row is created by the first chosen name (`upsert`), and a missing
 row reads as "no name chosen" (`maybeSingle`). Name limited to 30 characters (`check` constraint,
 same bound in the input dialog). Player names are public content: a name filter and a report
 action come before the leaderboard opens (Phase 2, commit 7).
@@ -91,6 +92,25 @@ accounts on the same browser shared levels and history.
   mapping table.
 - Anonymous-first (Phase 1) keeps this: an anonymous Supabase user has an id from the first launch,
   and linking an email keeps the same id, hence the same history.
+
+## SQL: migrations applied by CI (Phase 2 commit 2)
+
+Every change to the Supabase database is a file in `supabase/migrations/`
+(`<timestamp>_<name>.sql`, applied in name order). Nobody runs SQL by hand any more.
+
+- **CI `sql` job, every push**: a scratch Postgres 17 (service container) gets
+  `supabase/tests/00_supabase_stub.sql` — a stand-in for the parts of Supabase the migrations
+  use (roles `anon`/`authenticated`/`service_role`, `auth.users`, `auth.uid()`, default grants)
+  — then every migration **twice** (each must be idempotent), then `supabase/tests/*_test.sql`
+  (PL/pgSQL `assert`s; row-level security exercised with `set role` and JWT claims).
+  Locally: `bash tool/sql/test_sql.sh <postgres admin url>`.
+- **CI `migrations` job, on `main` after `test` and `sql`**: Supabase CLI (`supabase/setup-cli`),
+  `supabase link` (project ref = subdomain of `SUPABASE_URL`), `supabase db push` — applies the
+  migrations the project has not recorded yet. Secrets `SUPABASE_ACCESS_TOKEN` and
+  `SUPABASE_DB_PASSWORD`, never printed; missing → a warning and nothing applied. `deploy` waits
+  for it, so the preview never expects SQL the project lacks.
+- The stand-in is not Supabase: a migration that relies on something else of Supabase's must
+  add it to the stub first.
 
 ## Backend: Supabase + a Dart server
 

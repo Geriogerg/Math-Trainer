@@ -1,0 +1,5 @@
+# Supabase CLI configuration (Phase 2 commit 2). CI only uses the CLI to
+# apply `migrations/` to the linked project (`supabase db push`); nothing
+# here runs a local Supabase stack. The project ref comes from the
+# SUPABASE_URL secret at link time, never from this file.
+project_id = "math-trainer"

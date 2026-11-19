@@ -604,6 +604,26 @@ question from it and checks every answer (commit 6).
   (2 to 7 types, rotation exercised) and an interrupted game through the app's builders into
   SQLite, then replays each stored session alone and gets back every question.
 
+## SQL migrations applied by CI, tested on plain Postgres (Phase 2, commit 2)
+
+The plan: Supabase SQL in versioned migrations applied by CI on `main`, access token and database
+password as secrets, no SQL by hand. Done with the Supabase CLI's own flow (`supabase link` +
+`supabase db push`, migration history kept by the CLI in the project) rather than `psql` on a
+connection string: the CLI finds the project's connection pooler from the access token, so no
+region-specific host is stored anywhere.
+
+Added beyond the plan: every migration is **tested before it reaches the project** — the `sql`
+CI job applies them to a scratch Postgres with a small stand-in for Supabase's auth schema and
+roles, twice (idempotence: the first two were run by hand before migrations existed), then runs
+SQL tests. A full local Supabase stack (`supabase start`, Docker) was the alternative: heavier in
+CI, and unavailable on the owner's machine. The stand-in only fakes what the migrations use; the
+server's tables and functions (commits 5–7) are tested the same way.
+
+The Phase 1 test accounts are deleted by a migration listing their eight ids
+(`20261119000100_delete_phase1_test_accounts.sql`): auditable, applied once by CI, a no-op after.
+**Reopen when** a migration needs a Supabase feature the stand-in cannot fake (then: `supabase
+start` in CI).
+
 ## Cross-platform determinism: pinned references, VM and JavaScript (Phase 1, commit 1)
 
 Players generate in the browser (dart2js); the server will replay on the Dart VM. `dart:math`'s
