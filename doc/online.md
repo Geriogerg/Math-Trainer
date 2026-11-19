@@ -133,8 +133,8 @@ The Supabase service-role key exists only on the server, never in the app nor in
 container (`server/Dockerfile`, built from the repo root). Configuration only from environment
 variables (`server/lib/src/config.dart`): `SUPABASE_URL`, `SUPABASE_SECRET_KEY` (refused if it is
 the publishable key; never printed), `PORT` (default 8080), `ALLOWED_ORIGINS` (web origins
-allowed by CORS — the preview's `https://geriogerg.github.io`, and `https://math-trainer.pages.dev`
-for the move of Phase 3a commit 1). `GET /health` answers
+allowed by CORS — the preview `https://math-trainer-kjc.pages.dev` and the old
+`https://geriogerg.github.io`, now a redirect). `GET /health` answers
 `{"status":"ok"}`; errors are JSON, a 500 never carries details. CI (`server` job): analyzer,
 tests, and the image builds and answers `/health`.
 
@@ -164,19 +164,19 @@ host"). Prepared and dormant in `ci.yml`; nothing changes until step 4. Steps fo
    includes Cloudflare Pages: Edit) → limit it to this account → create, copy once.
 3. GitHub → Settings → Secrets and variables → Actions:
    - **Secrets**: `CLOUDFLARE_API_TOKEN` (step 2), `CLOUDFLARE_ACCOUNT_ID` (step 1).
-   - **Variables**: `PREVIEW_URL` = the address Cloudflare gives the project. **Not**
-     `https://math-trainer.pages.dev`: that name belongs to someone else's site, so the project
-     gets a suffix (`https://math-trainer-….pages.dev`, shown in Workers & Pages → the project).
-     CI checks it against the project (job deploy-cloudflare, run summary and annotation) and
-     holds back the redirect and the smoke test until they match. Tell Claude the address:
-     `ALLOWED_ORIGINS` in `render.yaml` must list it.
+   - **Variables**: `PREVIEW_URL` = `https://math-trainer-kjc.pages.dev`, the project's
+     address. **Not** `https://math-trainer.pages.dev`: that name belongs to someone else's
+     site, so Cloudflare added a suffix. CI checks the variable against the project (job
+     deploy-cloudflare, run summary and annotation) and holds back the redirect and the smoke
+     test until they match.
 4. Variables: `PREVIEW_HOST` = `cloudflare`. **This is the switch**: the next push (or
    Actions → CI → Run workflow on `main`) builds for the root path, creates the Cloudflare
    project, deploys there, smoke-tests the new address, and turns GitHub Pages into a redirect.
 5. Supabase → Authentication → **URL Configuration**: Site URL = the new address; Redirect URLs:
-   add `https://math-trainer.pages.dev/**` (keep the GitHub one until no link points there).
-6. On Render (once deployed): the service's `ALLOWED_ORIGINS` already lists the new address
-   (`render.yaml`); nothing to do unless the project name differs.
+   add `https://math-trainer-kjc.pages.dev/**` (keep the GitHub one until no link points there).
+6. Render → the service → **Environment** → `ALLOWED_ORIGINS` =
+   `https://math-trainer-kjc.pages.dev,https://geriogerg.github.io` (as in `render.yaml`; the
+   dashboard value is what runs), save, let it redeploy.
 
 Your own progress on the old address stays in that browser for the old origin: if you saved it
 to an email, sign in at the new address; a guest starts over. No tester is affected as long as

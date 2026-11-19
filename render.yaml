@@ -27,7 +27,7 @@ services:
         sync: false
       - key: SUPABASE_SECRET_KEY
         sync: false
-      # GitHub Pages today; Cloudflare Pages once the preview moves there
-      # (Phase 3a commit 1; change it if the project gets another name).
+      # The Cloudflare Pages preview (Phase 3a commit 1; math-trainer.pages.dev
+      # is someone else's) and the old GitHub Pages address, now a redirect.
       - key: ALLOWED_ORIGINS
-        value: https://geriogerg.github.io,https://math-trainer.pages.dev
+        value: https://math-trainer-kjc.pages.dev,https://geriogerg.github.io

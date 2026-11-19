@@ -31,7 +31,8 @@ the dashboard connection file; codes, `SMOKE_BETA_CODE` and `BETA_GATE=true`; th
 the report. Server (Render) and migrations are live.
 Phase 3b (calibration) starts only when the dashboard shows ~300 sessions from 10+ testers.
 
-Preview: `https://geriogerg.github.io/Math-Trainer/`, deployed on every push to `main`.
+Preview: `https://math-trainer-kjc.pages.dev/` (Cloudflare Pages), deployed on every push to
+`main`; the old `https://geriogerg.github.io/Math-Trainer/` redirects there.
 
 ## Who you work with
 

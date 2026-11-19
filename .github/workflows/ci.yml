@@ -256,9 +256,14 @@ jobs:
           PREVIEW_URL: ${{ vars.PREVIEW_URL }}
         working-directory: .
         run: |
-          case "$PREVIEW_URL" in https://*) ;; *) echo "::error::PREVIEW_URL must be the https address of the Cloudflare preview"; exit 1 ;; esac
+          # Pasted values carry spaces or line breaks: drop them.
+          url=$(printf '%s' "$PREVIEW_URL" | tr -d '[:space:]'); url=${url%/}
+          printf '%s' "$url" | grep -Eq '^https://[A-Za-z0-9.-]+$' || {
+            echo "::error::The repository variable PREVIEW_URL must be just the address, like https://math-trainer-kjc.pages.dev (it is '$url')"
+            exit 1
+          }
           mkdir -p build/redirect
-          sed "s|__PREVIEW_URL__|${PREVIEW_URL%/}/|g" tool/preview_redirect/index.html > build/redirect/index.html
+          sed "s|__PREVIEW_URL__|$url/|g" tool/preview_redirect/index.html > build/redirect/index.html
           cp build/redirect/index.html build/redirect/404.html
       - name: Upload the site (GitHub Pages)
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
@@ -338,7 +343,8 @@ jobs:
           url="https://$sub"
           echo "url=$url" >> "$GITHUB_OUTPUT"
           echo "Cloudflare Pages address: $url" >> "$GITHUB_STEP_SUMMARY"
-          if [ "${PREVIEW_URL%/}" != "$url" ]; then
+          wanted=$(printf '%s' "$PREVIEW_URL" | tr -d '[:space:]'); wanted=${wanted%/}
+          if [ "$wanted" != "$url" ]; then
             echo "::error::The Cloudflare project's address is $url but the repository variable PREVIEW_URL is '$PREVIEW_URL'. Set PREVIEW_URL to $url and re-run CI; the GitHub Pages redirect and the smoke test wait until they match."
             exit 1
           fi

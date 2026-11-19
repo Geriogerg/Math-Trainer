@@ -10,4 +10,4 @@ rules: `CLAUDE.md`; structure: `doc/architecture.md`.
 | `supabase/` | SQL migrations, applied by CI; SQL tests (`bash tool/sql/test_sql.sh <postgres url>`) |
 | `tool/` | Claude Code hooks, preview smoke test, SQL test runner |
 
-Preview: https://geriogerg.github.io/Math-Trainer/ (every push to `main`).
+Preview: https://math-trainer-kjc.pages.dev/ (every push to `main`).
