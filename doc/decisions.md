@@ -432,6 +432,33 @@ is enough.
 Proposed in the initial plan, removed during implementation: it grew the change by touching
 `Scorer` and `AnswerResult`, both stable.
 
+## Cross-platform determinism: pinned references, VM and JavaScript (Phase 1, commit 1)
+
+Players generate in the browser (dart2js); the server will replay on the Dart VM. `dart:math`'s
+`Random(seed)` and IEEE 754 arithmetic are specified the same on both, but "specified" is not
+"checked": `test/domain/determinism/` pins 144 session sequences (12 seeds × 12 setups, built
+exactly as `buildSessionController` builds them), 12 endless sequences and a 5,040-update grid
+of `LevelUpdater`, as strings generated on the VM (`tool/determinism_references.dart`). CI runs
+the core suite on the VM and with `-p node`. **Result on 19 Nov 2026: identical, 158 of 158.**
+Seeds include real ones (millisecond timestamps, ~2^41), around 2^32 (where a JavaScript port
+of a 64-bit seed splits it), negative and 2^53 − 1. Seeds beyond 2^53 cannot exist in a browser.
+
+The references are regenerated only by a change meant to alter sequences, in the same commit;
+never to make a JavaScript failure pass.
+
+Found along the way:
+
+- **A session's sequence also depends on `sessionsPlayedByType`** (the debt-aware strategy
+  orders the interleaving by it), which is not in `SessionConfig` nor stored with the session.
+  It is recomputable by replaying a player's history in order, but a session cannot be replayed
+  on its own. **Phase 2 must settle it** — store the counts (or the type sequence) with the
+  session, or replay histories in order.
+- `Random.secure()` throws under dart2js on Node 24 (SDK bug reading `globalThis.crypto`);
+  browsers are fine. The UUID test is `@TestOn('!node')`; nothing deterministic depends on it.
+
+**Reopen when** the core gains floating-point functions beyond `sqrt` (rule 18), or a WebAssembly
+build (`--wasm`) ships: add a `-p chrome --compiler dart2wasm` run then.
+
 ## Useless RNG draw in `CompositeExerciseGenerator`
 
 Reusing `ArithmeticExerciseGenerator` with a one-element list still calls `random.nextInt(1)`

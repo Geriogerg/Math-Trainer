@@ -144,6 +144,17 @@ Phase 0 closed in Phase 1 commit 0 (`material_ui`, `δ` recorded, preview, load)
   owner's GitHub-template `.github/workflows/dart.yml` fails on every push (plain `dart pub get`
   cannot resolve a Flutter project) and duplicates `ci.yml`.
 
+- *Owner decisions* (`890cee9`) — one pass with stops only where necessary; new screens in
+  English; `.github/workflows/dart.yml` removed. Secrets added by the owner.
+- **Commit 7 (1/2)** (`891822e`) — `supabase/delete_account.sql` written first, for the owner to
+  run during the phase.
+- **Commit 1** *(A)* — Cross-platform determinism: `test/domain/determinism/` pins 144 session
+  sequences, 12 endless sequences and a 5,040-update `LevelUpdater` grid, generated on the VM by
+  `tool/determinism_references.dart`; **identical on Node (dart2js), 158/158**. CI runs the core
+  on the VM and `-p node`. UUID test excluded from Node (dart2js `Random.secure()` bug under
+  Node 24; passes in Edge). Found: sequences depend on `sessionsPlayedByType`, not stored with
+  the session — for Phase 2.
+
 ### Remaining contradictions after commit 0
 
 The five plan/reality contradictions found at commit 0 (language, `δ`, branch and remote, commit 0

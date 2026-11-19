@@ -1,3 +1,12 @@
+// Not on Node: dart2js's `Random.secure()` reads `globalThis.crypto` with
+// the wrong receiver and throws under Node 24 ("Value of "this" must be of
+// type nullish or must be the global object"). Browsers are fine — this
+// test passes with `-p edge`/`-p chrome`, and the web app saves sessions
+// with these ids. UUIDs are random by design, outside the cross-platform
+// determinism contract (`determinism/`).
+@TestOn('!node')
+library;
+
 import 'package:math_trainer/core/domain/persistence/uuid.dart';
 import 'package:test/test.dart';
 

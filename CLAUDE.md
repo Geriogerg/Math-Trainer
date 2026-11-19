@@ -11,8 +11,8 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 ## Current phase
 
 **Phase 1 — First run and accounts** (`doc/plan.md`, section 7), run in **one pass**.
-Done: **0** (`material_ui`, δ recorded, load re-measured). Owner's go received; secrets added;
-one pass from here (owner's 5 games at phase end). Next commit: **1**. Update this block at
+Done: **0**, **1** (VM = JavaScript, 158/158), **7 (1/2)** (SQL written; owner to run it).
+One pass from here (owner's 5 games at phase end). Next commit: **2**. Update this block at
 every commit.
 
 | # | Commit | Note |
@@ -153,6 +153,10 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 - SQL files in `supabase/` are run by hand by the owner; nothing applies them automatically.
 - Browser storage can be evicted until server sync (Phase 2).
 - Integer arithmetic for perfect squares, never floating-point `sqrt()`.
+- `test/domain/determinism/determinism_references.dart` is generated
+  (`dart run tool/determinism_references.dart`) only by a change meant to alter sequences or
+  level updates — never to make a JavaScript failure pass.
+- `Random.secure()` throws under `-p node` (dart2js + Node 24); browsers are fine.
 - *Android, Phase 8*: use `build apk` + `adb install`, not attached `flutter run`;
   `kotlin.incremental=false` works around a Windows cross-drive Kotlin crash; corrupted Gradle
   cache → clear `D:\Users\GREgo\.gradle\caches\<version>\transforms`.

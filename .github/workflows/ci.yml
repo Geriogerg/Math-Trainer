@@ -37,6 +37,11 @@ jobs:
         run: dart format --output=none --set-exit-if-changed lib test tool
       - name: Core tests
         run: dart test test/domain
+      - name: Core tests compiled to JavaScript
+        # Players generate on the web, the server will replay on the VM:
+        # the pinned sequences of test/domain/determinism must match on
+        # both (architecture rule 18).
+        run: dart test test/domain -p node
       - name: All tests
         run: flutter test
       - name: Analyzer
