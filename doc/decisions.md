@@ -120,7 +120,7 @@ the result is multiplied by `K_haut` or `K_bas`, then by the confidence multipli
 | `f` | 0.30 | credit for a slow right answer; **temperament parameter** — towards 0.60 the game gets twitchier |
 | `K_haut` | 3.0 | rising speed |
 | `K_bas` | 1.5 | falling speed; 2:1 ratio on purpose |
-| `δ` | 0.07 | dead band; was 0.05 at `n_min` = 8 — checked in Phase 0 commit 5, kept, **awaiting the owner's confirmation** (see below) |
+| `δ` | 0.07 | dead band; was 0.05 at `n_min` = 8 — checked in Phase 0 commit 5, **kept by the owner** (19 Nov 2026, see below) |
 | `Δ_max` | 3 | maximum move per session |
 | `n_min` | 4 | below this, a type's answers do not count for the session (noise) |
 | `K_calib` | ×4 over 3 sessions | initial calibration |
@@ -184,8 +184,9 @@ session lasts about thirty seconds, which makes the "play, replay" loop viable.
 raises noise by about 40 %. A player exactly at the right level can score 4/4 then 2/4 by chance.
 
 **`δ` must therefore widen** — the two parameters are coupled; never move one without the other.
-Commit `1f8b891` (12 Aug 2026) widened it from 0.05 to 0.07 as an indicative value. **The owner has
-not approved it**: `δ` is an owner decision (plan, section 8).
+Commit `1f8b891` (12 Aug 2026) widened it from 0.05 to 0.07 as an indicative value, without the
+owner's approval. Checked in Phase 0 commit 5 (below); **the owner decided on 19 Nov 2026 to keep
+0.07** (plan v2, section 8).
 
 ### Check of Phase 0 commit 5 (`tool/delta_check.dart`)
 
@@ -213,7 +214,7 @@ Findings:
 4. **Convergence is far slower than its 10–20-session target** (45–90 sessions from level 1, for
    every `δ`): outside calibration a session moves the level by at most one step upwards.
 
-**Recommendation: keep `δ` = 0.07**, awaiting the owner's confirmation. Widening further buys
+**Decision: keep `δ` = 0.07** (recommended, confirmed by the owner on 19 Nov 2026). Widening further buys
 little and moves towards the cliff. The real levers are elsewhere and already planned: the
 placement test (Phase 1) for convergence, the continuous level value the leaderboard ranks on
 (plan, section 6.4) which removes the rounding dead band, and recalibration on real data
@@ -396,6 +397,18 @@ Missing, the app stops on a "web storage unavailable" screen rather than silentl
 memory. The package is still labelled experimental by its author.
 **Reopen when** browser eviction loses real data before server upload exists, or the package
 stalls.
+
+## `material_ui` package rather than `package:flutter/material.dart`
+
+Flutter 3.47 moved the Material library out of the SDK into the `material_ui` package; the old
+import is deprecated (28 analyzer notices). Owner's yes on 19 Nov 2026 (plan v2, section 8).
+Migrated with the official data-driven fix (`dart fix --apply --code=migrate_design_widgets`):
+imports only, no widget or golden image changed. Official Flutter package, every platform
+(rule 16). No `MaterialUiCompatibilityBridge`: the two dependencies that still import the old
+library (`supabase_flutter`'s lifecycle observer, `url_launcher_web`'s `Link`, unused) read no
+`Theme`. CI's analyzer treats infos as fatal again.
+**Reopen when** a dependency renders Material widgets through the old import (themes would then
+need the bridge).
 
 ## No `uuid` dependency
 

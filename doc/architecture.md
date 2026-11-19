@@ -162,6 +162,14 @@ CDN `gstatic.com`, Flutter's default), `Inter.ttf` 856 KiB (not compressed by th
 `sqlite3.wasm` 731 KiB (351 KiB gzipped) and `sqflite_sw.js` 256 KiB (77 KiB gzipped). Whole
 `build/web`: 43 MB, of which 37 MB are CanvasKit variants the browser picks one of.
 
+**Re-measured on the preview** (Phase 1 commit 0, `https://geriogerg.github.io/Math-Trainer/`,
+same method, the browser's real network to GitHub Pages plus the emulated profile; 2–3 runs
+each): 2.6–3.3 s unthrottled, 3.4–3.7 s on Fast 4G, 16.0–16.1 s on Slow 4G, 2.86 MiB before the
+first frame. GitHub Pages gzips `Inter.ttf` (451 KiB on the wire), the main gain over the local
+numbers. Still fetched from Google at runtime: `canvaskit.wasm` 1.5 MiB and `canvaskit.js`
+(`www.gstatic.com`), Roboto (`fonts.gstatic.com`) — Phase 1 commit 3. The measured first frame
+was the "Missing configuration" screen (CI secrets absent at the time); the bundle is the same.
+
 Leads, none applied: subset Inter to Latin (most of its 856 KiB); bundle the Roboto fallback or
 stop it being requested (the fonts are meant to be bundled); serve CanvasKit from the site
 (`--no-web-resources-cdn`) if the third-party CDN becomes a concern; a loading screen with
@@ -176,6 +184,7 @@ declines it, as Chrome's engagement heuristics predict.
 | Dependency | Reason |
 |---|---|
 | `flutter` (SDK) | required |
+| `material_ui ^1.11.1` | Material widgets, moved out of the SDK in Flutter 3.47 (`package:flutter/material.dart` is deprecated); official Flutter package, every platform — see `doc/decisions.md` |
 | `cupertino_icons ^1.0.8` | added by `flutter create` — **unused**, removable |
 | `flutter_test` (SDK, dev) | widget tests |
 | `flutter_lints ^6.0.0` (dev) | project lints |

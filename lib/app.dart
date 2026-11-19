@@ -1,6 +1,6 @@
 import 'dart:ui' show PlatformDispatcher;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'composition_root.dart';
 import 'core/domain/persistence/theme_mode_store.dart';

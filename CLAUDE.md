@@ -1,57 +1,56 @@
 # Math Trainer
 
-Competitive mental-arithmetic game in Flutter, for teens and adults. **Everything in English**:
-interface text, code comments, docs, commit messages (owner decision, 18 Nov 2026 — older commits
-stay in French).
+Competitive mental-arithmetic game in Flutter, for teens and adults. UI in French.
 
-**`doc/plan.md` is the product plan: vision, principles, direction, roadmap, owner decisions.**
-Read it at the start of every phase. Never edit it — it belongs to the owner. This file is the
-working file: keep it under 200 lines, update it as the project moves (current phase, rules,
-pitfalls), and keep it consistent with the plan (see "Phase report").
-
-Other docs, read when the topic comes up: `doc/architecture.md` (structure, state, exercise model,
-dependencies), `doc/decisions.md` (trade-offs and reasons), `doc/design.md` (palette, typography,
-notation, UI rules), `doc/online.md` (accounts, server, online), `doc/progress.md` (commit log by
-phase). Where another doc disagrees with `doc/plan.md`, the plan wins — report the conflict.
+**`doc/plan.md` (version 2) is the product plan.** Read it at the start of every phase; never
+edit it. This file is the working file: keep it short, update it as the project moves, keep it
+consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/decisions.md`,
+`doc/design.md`, `doc/online.md`, `doc/progress.md`. The plan wins any conflict — report it.
 
 ## Current phase
 
-**Phase 0 — Stabilise and build the web pipeline.** Commit list and exit test: `doc/plan.md`,
-section 7. Repo: `github.com/Geriogerg/Math-Trainer` (public), branch `main`; preview
-`https://geriogerg.github.io/Math-Trainer/`. Done: 0 (docs), 1 (CI), 2 (preview deployment),
-4 (one timestamp per answer), 5 (`δ` checked: keep 0.07, owner to confirm), 6 (debug switch
-for the timeout), 7 (formatting, hooks, reviewer subagent), 8 (first load measured, persistent
-storage), 9 *(C)* (correction pause, mistakes review) — **waiting for the owner to play 5 games
-on the preview**. Parked: 3 (`material_ui` needs the owner's yes on a new dependency); preview
-check and deployment (GitHub Pages not enabled yet). Update this block at every commit.
+**Phase 1 — First run and accounts** (`doc/plan.md`, section 7), run in **one pass**.
+Done: **0** (`material_ui`, δ recorded, load re-measured; preview check passed on a local
+sub-path build only). **Stopped after 0** (owner's instruction): the owner adds the
+`SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY` repository secrets, then plays 5 games on the
+preview. Next commit: **1**, on the owner's go. Update this block at every commit.
+
+| # | Commit | Note |
+|---|---|---|
+| 0 | Close Phase 0: `material_ui`, record δ = 0.07, verify preview, re-measure load | owner's 5 games move to phase end |
+| 1 | Core tests on VM and JavaScript, pinned sequences identical | mismatch: fix it; unfixable → hard stop |
+| 2 | Levels in integer hundredths, migration ×100 (approved), rerun simulation | numbers in commit message |
+| 3 | Self-hosted CanvasKit and fonts, loading screen, re-measure | — |
+| 4 | Anonymous-first sign-in, data keyed by Supabase user id | — |
+| 5 | Linking and account screens in Profil | played at phase end |
+| 6 | Placement test | start level and steps chosen by simulation — provisional |
+| 7 | Account deletion via SQL function | SQL written first, run by the owner meanwhile |
+| 8 | CI smoke test on the preview (deletes its own account) | — |
+
+Preview: `https://geriogerg.github.io/Math-Trainer/`, deployed on every push to `main`.
 
 ## Who you work with
 
-Experienced developer (Python, Java, C/C++, algorithms, ML/DL), strong in architecture; new to
-Dart, Flutter, mobile and store publishing. Don't explain general concepts. Explain non-obvious
-Dart/Flutter idioms the first time only (`late`, `factory`, `sealed class`, enhanced enums,
-`switch` exhaustiveness, widget lifecycle, `BuildContext`, `const`/`final`, `Key`,
-`async`/`Future`/`Stream`, conditional imports).
+Experienced developer (Python, Java, C/C++, ML), strong in architecture; new to Dart, Flutter and
+mobile. Don't explain general concepts; explain non-obvious Dart/Flutter idioms the first time
+only.
 
 ## Platform
 
-Windows. **Web-first for now**: mobile development is paused (Android emulator unusable); the web
-build is the product and mobile web is the reference device. Android and iOS return in Phase 8;
-until then Android is not a concern (owner, 18 Nov 2026) beyond rule 16 — no Android build, in
-CI or locally. Never propose anything that needs Xcode locally.
+Windows. **Web-first**: the web build is the product, mobile web is the reference device. Mobile
+development is paused until Phase 8. Never propose anything needing Xcode locally.
 
 ## Architecture rules
 
 Non-negotiable without explicit discussion.
 
-1. **Pure-Dart core**: no `package:flutter` in `core/domain/` — the server runs the same code.
+1. **Pure-Dart core**: no `package:flutter` in `core/domain/`.
 2. **Deterministic generation**: explicit seed, no unseeded `Random()`; same (seed, config) → same
-   sequence. Config = player levels (solo) or duel config.
-3. **Persistence behind abstractions**: no `sqflite`/`shared_preferences`/`drift` outside
-   `infrastructure/`.
-4. **Repositories always async** (`Future<T>`).
-5. **UUIDs**, never `AUTOINCREMENT` on syncable entities.
-6. **UTC timestamps**, local only at display; `createdAt` ≠ `syncedAt`.
+   sequence. Placement: same (seed, answers so far) → same next question.
+3. **Persistence behind abstractions**: storage packages only in `infrastructure/`.
+4. **Repositories always async.**
+5. **UUIDs**, never `AUTOINCREMENT`.
+6. **UTC timestamps**; `createdAt` ≠ `syncedAt`.
 7. **Strict layers**: never UI + logic + state in one file.
 8. **Immutable models**: `final`, `copyWith`.
 9. **Every expected answer is an `int`**; division with `~/`.
@@ -59,124 +58,101 @@ Non-negotiable without explicit discussion.
 11. **No `default`** in a `switch` on `Exercise`, `ExerciseType`, `OperationType`.
 12. **`OperationType` stays inside `ArithmeticExercise`**; the selection axis is `ExerciseType`.
 13. **Invariants by `throw`, never `assert`**, each with a test of the invalid case.
-14. **No signal by colour alone**: colour + motion + haptic or sound.
-15. **Web-specific code only in `infrastructure/`** (`dart:html`, `package:web`,
-    `dart:js_interop`), chosen in `composition_root.dart`, conditional imports if needed.
-16. **No dependency without Android and iOS support**, unless its mobile replacement is named in
+14. **No signal by colour alone.**
+15. **Web-specific code only in `infrastructure/`**, chosen in `composition_root.dart`.
+16. **No dependency without Android and iOS support**, unless its mobile replacement is in
     `doc/decisions.md`.
-17. **The server never trusts the client**: levels for ranking, ranks, ratings and duel results
-    are server-side;
-    the Supabase service-role key never appears in the app or the repo.
+17. **The server never trusts the client.** The service-role key never appears in the app, the
+    repo or CI logs.
+18. **Same result on VM, JavaScript and WebAssembly**: generation and level maths use only
+    `+ − × ÷` and `sqrt` — no `pow`, `exp`, `log`, trigonometry — and store integers.
 
-## Data and backend
+## Data and accounts
 
-- Local: `shared_preferences` for scalars, SQLite for history (web: WebAssembly + IndexedDB).
-  Solo play works offline — except the very first launch, which needs the network to sign in,
-  until anonymous-first (Phase 1).
-- Store **every answer** with its own timestamp, operands, given answer, time, correctness and
-  level at play time. Never aggregates only.
-- Levels are a cache, recomputable from history; the update function lives in the core and
-  replays a list of answers.
-- Supabase = Auth + Postgres. A separate Dart service (`shelf`) validates sessions and computes
-  levels, ranks and ratings — Supabase Edge Functions can't run Dart. From Phase 2: monorepo
-  `app/`, `packages/math_core/`, `server/`.
+- Local SQLite (web: WebAssembly + IndexedDB), keyed by the Supabase user id. Every answer stored
+  with its own timestamp, operands, given answer, time, correctness, level.
+- **Levels**: integer hundredths (3742 = 37.42), shown as a whole number; generation reads the
+  whole part. Recomputable from history by a core function.
+- **Session kinds**: game or placement. Placement answers become starting levels through a pure
+  core function.
+- **Anonymous-first**: anonymous user created on first launch; linking keeps the same user id;
+  email already used → sign in after a "guest progress replaced" warning, no merge; no sign-out
+  for anonymous players; deletion via a `security definer` SQL function on `auth.uid()` only.
+  Detail: `doc/plan.md` section 6.3.
 
 ## How a phase runs
 
-The owner's prompt is usually "Start Phase N" or "Continue Phase N".
+**One pass**: the owner's prompt is "Run Phase N" (or "Continue Phase N" after an interruption).
+The whole phase runs without waiting for the owner.
 
-1. Read `doc/plan.md` (the phase), this file, `doc/progress.md`, `doc/decisions.md`, and the
-   design or online doc if relevant. Check entry conditions.
-2. Propose the plan of the **first commit only**: files, one-line reason each, tests. Wait.
-3. *(A)* commits chain without asking: plan briefly, implement, test, document, commit.
-4. *(C)* commits: propose, wait, implement, deploy to the preview URL, **stop until the owner has
-   played it**.
-5. After each commit: update "Current phase" above and append to `doc/progress.md`.
-6. End of phase: exit test, then the phase report.
+1. Read the phase in `doc/plan.md`, this file, `doc/progress.md`, `doc/decisions.md`.
+2. **Send one message listing everything the owner must do by hand** for the whole phase (GitHub,
+   Supabase dashboard, SQL to run — write SQL files first so they can be run early), with exact
+   steps. **Do not wait** for the answer.
+3. Every commit in order: short plan in the commit message, implement, test, document, commit,
+   push. Checkpoint commits are deployed and played by the owner at the end, not one by one.
+4. **Owner decisions** reached mid-phase: choose the best option with evidence (simulation,
+   measurement), mark it **provisional** in `doc/decisions.md`, continue. The owner confirms or
+   reverses in the report.
+5. **Blocked on something only the owner can do**: park that step in `doc/progress.md`, continue
+   with what does not depend on it, come back to it before the end.
+6. After each commit: update "Current phase" and `doc/progress.md` — enough for "Continue
+   Phase N" to resume cleanly after an interruption.
+7. End: exit test, then the phase report.
 
-**Stop and ask** when: a schema migration not listed in the plan; a new dependency (justify it,
-name its mobile support); a domain contract change not listed; tests red after two attempts; docs
-and code disagree in a way that needs a decision; an owner decision (`doc/plan.md`, section 8).
+**Hard stops — the only reasons to stop mid-phase**: an action that could destroy or lose user
+data beyond what the plan approves; a secret that would land in the repo, the app or CI logs; a
+new dependency without Android and iOS support; tests red after two attempts; a blocking issue
+with no fix (e.g. a VM/JavaScript mismatch you cannot resolve). Anything else: decide, record,
+continue, report.
 
-**Phase report**, in this order: delivered vs plan; deviations and why; choices made without
-explicit approval; what could not be verified; debt found; numbers (tests, load time, sessions);
-**plan alignment** — every point where this file, the code or the other docs drift from
-`doc/plan.md` (checklist in its section 11), with a proposal for each. Honest over flattering.
+**Phase report**: delivered vs plan; deviations; **provisional decisions to confirm**; what the
+owner must play on the preview (a short checklist); what could not be verified; debt; numbers;
+**plan alignment** (`doc/plan.md` section 11). Honest over flattering.
 
-**Collaboration**: propose before implementing (Plan mode); trace ripples down to persistence
-before implementing; explain consequences on later phases; don't rewrite working code; list files
-touched; simplicity first, no abstraction for a single use case; report gaps with
-`doc/architecture.md`.
+**Collaboration**: Plan mode for non-trivial work; trace ripples to persistence first; don't
+rewrite working code; list files touched; no abstraction for a single use case.
 
 ## Conventions
 
-- Business logic always comes with unit tests.
-- Every `Exercise` variant implements `==` and `hashCode` (guarded by a test over
-  `ExerciseType.values`).
-- Determinism tests are keyed on (seed, config), never the seed alone.
-- Comment only the non-obvious.
-- No hard-coded UI values: `Theme.of(context)` and theme extensions.
-- `SafeArea` on every screen.
-- The on-screen keypad is the primary input; physical keyboard on desktop; the native keyboard
-  never appears during a game.
-- Lints: `flutter_lints`, checked by `dart analyze`. Formatting: `dart format` at the default
-  width, checked by CI.
+- Business logic comes with unit tests. Determinism tests keyed on (seed, config), on VM and JS.
+- Every `Exercise` variant implements `==` and `hashCode`.
+- No hard-coded UI values (`Theme.of(context)`); `SafeArea` everywhere; comment the non-obvious.
+- On-screen keypad is the primary input; the native keyboard never appears during a game.
 
-**Hooks and reviewer** (`.claude/`, active when Claude Code is started in this folder): a
-PreToolUse hook refuses `assert(` in `lib/core/` and unseeded `Random()` in `lib/` and `test/`; a
-PostToolUse hook runs `dart format` on every Dart file written (`tool/hooks/`). Before committing
-a plan commit, run the `reviewer` subagent on the diff and fix what it reports.
-
-**Before every commit**: `dart format --output=none --set-exit-if-changed lib test tool`,
-`dart test test/domain`, `flutter test`, `flutter analyze` clean; CI green after push. Checkpoint commits are played by the owner on a phone browser (a docs-only checkpoint
-is read instead). *Until Phase 0 commit 3, `flutter analyze` shows the Flutter 3.50
-`material_ui` deprecation infos and nothing else, and CI runs it with `--no-fatal-infos`.*
-
-CI: `.github/workflows/ci.yml` — tests and analyzer on `windows-latest` (golden images are
-recorded on Windows), web build on `ubuntu-latest`; Supabase settings from the repository secrets
-`SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`. A green push to `main` deploys the preview to
-GitHub Pages (base path `/Math-Trainer/`).
+**Before every commit**: core tests on VM and JS, `flutter test`, `flutter analyze` clean, CI
+green. Until Phase 8, CI's Android build is the only Android check — say so when it matters.
 
 ## Commands
 
 ```bash
-dart test test/domain      # core — the scope is mandatory (see pitfalls)
-flutter test               # all tests
+dart test test/domain            # core on the VM (scope mandatory)
+dart test test/domain -p node    # core compiled to JavaScript
+flutter test
 flutter analyze
 flutter run -d edge --web-port=8080 --dart-define-from-file=dart_defines.json
-flutter build web --dart-define-from-file=dart_defines.json
-# debug build only: no per-question timeout (ignored in profile/release)
-flutter run -d edge --web-port=8080 --dart-define-from-file=dart_defines.json --dart-define=DEBUG_NO_TIMEOUT=true
 ```
 
-`dart_defines.json` (not versioned; template `dart_defines.example.json`) holds the Supabase URL
-and public key. Without it the app shows "Missing configuration".
+`dart_defines.json` (not versioned) holds the Supabase URL and public key; in CI they come from
+the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 
-## Pitfalls (append when you find a new one)
+## Pitfalls (append new ones)
 
-- **Never draw at random directly from a `Set`**: iteration follows insertion order, so the same
-  seed gives different sequences. Use a list sorted by enum `index`.
-- `CompositeExerciseGenerator` makes a useless `nextInt(1)` per arithmetic exercise. Removing it
-  changes every sequence for a seed — never together with anything else.
-- `ExerciseType` value names are the stored discriminant (`exercise_codec`); renaming breaks
-  history.
-- `dart test` without the `test/domain` scope fails (it picks up widget tests).
-- `web/sqlite3.wasm` and `web/sqflite_sw.js` come from `dart run sqflite_common_ffi_web:setup`
-  (versioned); rerun with `--force` after upgrading `sqflite_common_ffi_web` or `sqlite3`. Missing →
-  "Web storage unavailable".
-- **Always web port 8080**: Supabase session, `playerId`, theme and type selection live in
-  `localStorage`, scoped to the origin including the port.
-- The Supabase `profiles` table comes from `supabase/profiles.sql`, run by hand in the SQL editor.
-- Browser storage can be evicted (Safari especially): local web history is unsafe until server
-  sync.
-- Floating-point `sqrt()` is forbidden: integer arithmetic only.
-- Local sub-path build from Git Bash: `MSYS_NO_PATHCONV=1 flutter build web --base-href
-  /Math-Trainer/ …`, otherwise the base href becomes a Windows path. Delete `build/web` first: an
-  incremental build once dropped every file copied from `web/` (icons, manifest, favicon).
-- Headless Edge with `--virtual-time-budget` fast-forwards the 20 s database-open timeout and shows
-  "Web storage unavailable" although the build is fine; check web builds in real time.
-- *Android, for Phase 8*: prefer `flutter build apk --debug` + `adb install -r` + `adb shell am
-  start` over an attached `flutter run` (it disconnects). `kotlin.incremental=false` works around
-  a Windows Kotlin crash across drives. Environment split C:/D: (SDK, AVD, `GRADLE_USER_HOME` on
-  `D:\Users\GREgo`); a corrupted Gradle cache is fixed by clearing
-  `D:\Users\GREgo\.gradle\caches\<version>\transforms`.
+- Never draw at random from a `Set` (insertion order); use a list sorted by enum `index`.
+- The useless `nextInt(1)` in `CompositeExerciseGenerator` stays: removing it changes every
+  sequence.
+- `ExerciseType` names are the stored discriminant; renaming breaks history.
+- `dart test` without the `test/domain` scope fails.
+- Integer levels round small steps to zero — never round before storing hundredths.
+- `web/sqlite3.wasm` and `web/sqflite_sw.js` come from `dart run sqflite_common_ffi_web:setup`;
+  rerun with `--force` after upgrades. On GitHub Pages every path respects `/Math-Trainer/`.
+- Always web port 8080 locally: session and settings live in `localStorage`, scoped by port.
+- Signing out an anonymous user loses the account — never offer it.
+- Anonymous sign-ins are rate-limited (30/hour/IP); automated tests delete the accounts they
+  create.
+- SQL files in `supabase/` are run by hand by the owner; nothing applies them automatically.
+- Browser storage can be evicted until server sync (Phase 2).
+- Integer arithmetic for perfect squares, never floating-point `sqrt()`.
+- *Android, Phase 8*: use `build apk` + `adb install`, not attached `flutter run`;
+  `kotlin.incremental=false` works around a Windows cross-drive Kotlin crash; corrupted Gradle
+  cache → clear `D:\Users\GREgo\.gradle\caches\<version>\transforms`.

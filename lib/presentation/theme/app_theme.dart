@@ -1,6 +1,6 @@
 import 'dart:ui' show lerpDouble;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// "Nuit électrique" theme (`doc/design.md`): palette, typography and
 /// animation durations centralised here, never hard-coded in a widget.

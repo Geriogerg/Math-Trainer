@@ -5,9 +5,11 @@
 > from the owner. The day-to-day working rules live in `CLAUDE.md`, which must always stay
 > consistent with this plan (section 11).
 >
-> Version 1 — 18 November 2026, written from the project state of that date.
-> Version 1.1 — 18 November 2026: English-speaking audience, Android out of CI until Phase 8,
-> facts updated after Phase 0 commit 0 (edited by Claude Code at the owner's request).
+> Version 2.1 — 19 November 2026: phases run in one pass, owner review at the end (section 7
+> and 8). Version 2 — revised after the Phase 0 report. Changes from version 1:
+> Phase 1 rewritten (continuous levels, first-load work, cross-platform determinism check, placement
+> stored as a session, automated preview smoke test); CAPTCHA and email confirmation moved to
+> Phase 6; anonymous-player cleanup moved to Phase 2; owner decisions of Phases 0–1 recorded.
 
 ---
 
@@ -26,8 +28,7 @@ Four pillars, in this order of priority:
 4. **Fair competition.** Rankings and duels computed by a server that trusts nothing the client
    claims.
 
-English-speaking audience first; everything is in English — interface, code, docs. Competitive
-tone, not a school exercise book.
+French-speaking audience first. Competitive tone, not a school exercise book.
 
 ## 2. Product principles
 
@@ -83,9 +84,9 @@ feedback only; it never ranks anyone — the level does.
 
 ### 3.4 Accounts and screens
 
-Supabase accounts (email and password, currently mandatory before playing), player name, Profile
+Supabase accounts (email and password, currently mandatory before playing), player name, Profil
 tab with overall level, 30-day curve, per-operation level and average time, recent games.
-Day and night themes. "Online" and "Leaderboard" tabs are previews.
+Day and night themes. "En ligne" and "Classement" tabs are previews.
 
 ## 4. Current state (18 November 2026)
 
@@ -93,7 +94,6 @@ Day and night themes. "Online" and "Leaderboard" tabs are previews.
 - Web-only since 17 November: the Android emulator is unusable; mobile development is paused.
 - Web storage survives reloads (SQLite in WebAssembly).
 - 28 analyzer deprecation notices since Flutter 3.50 moved Material to `material_ui`.
-- Local branch `main`; no GitHub remote yet (section 10).
 
 | Weakness | Why it matters | Fixed in |
 |---|---|---|
@@ -104,7 +104,7 @@ Day and night themes. "Online" and "Leaderboard" tabs are previews.
 | Level constants are guesses | The leaderboard would rank on unvalidated numbers | Phase 3 |
 | Stock components, generic name | Looks like a template; the name cannot be found or protected | Phase 5 |
 | No CI | Nothing checks the repo on a clean machine | Phase 0 |
-| `δ` widened 0.05 → 0.07 when `n_min` went 8 → 4, never checked or approved | Levels may jitter more or less than designed | Phase 0 |
+| `δ` possibly not widened when `n_min` went 8 → 4 | Levels jitter more than designed | Phase 0 |
 
 ## 5. Strategy: web-first, mobile-ready
 
@@ -129,10 +129,9 @@ build is the product.**
 - A Flutter web build downloads several megabytes before its first frame; load time is measured
   and a loading screen shows progress.
 
-**Guardrails that keep mobile cheap to return to.** Web-specific code stays in the infrastructure
-layer; no dependency without Android and iOS support unless its mobile replacement is identified;
-touch-first input. Android is not built or checked until Phase 8 (owner decision): CI is web-only,
-and Phase 8 accepts the cost of fixing whatever drifted.
+**Guardrails that keep mobile cheap to return to.** CI compiles the Android APK on every push;
+web-specific code stays in the infrastructure layer; no dependency without Android and iOS
+support unless its mobile replacement is identified; touch-first input.
 
 ## 6. Product direction
 
@@ -188,18 +187,33 @@ notation, layout and durations. Identity comes from four levers.
 - **A loop that feels alive**: key tick, a correct chime whose pitch rises with the streak, a low
   tone on error (on by default, one toggle); the streak counter and timer bar intensify at 5, 10
   and 20; a level-up moment with its own sound; haptics where the platform has them.
-- **A real name** before the public launch: short, easy to say in English and French, free as a
+- **A real name** before the public launch: short, easy to say in French and English, free as a
   domain and on both stores. "Math Trainer" describes the app but cannot be found or protected.
 
 ### 6.3 Accounts and first run
 
-- **Anonymous-first.** A player is created silently on first launch and plays immediately. Email
-  (later Google) is linked when they want the leaderboard or a second device. Replaces the
-  mandatory login of step 6 slice 2.
-- Existing email accounts keep working with no data loss.
-- Abuse protection (CAPTCHA or Turnstile), cleanup of stale anonymous players.
-- In-app account deletion: account, personal data and history.
-- Email confirmation with a real SMTP sender.
+- **Anonymous-first.** On first launch the app silently creates a Supabase anonymous user and the
+  player answers a question at once. No form, no name. Replaces the mandatory login of step 6
+  slice 2. On web the first visit is online by nature; if the anonymous sign-in fails, a retry
+  screen appears.
+- **Linking keeps the same user id**, so no data moves. The Profil tab offers "Sauvegarder ta
+  progression": email, password and player name. Later the leaderboard offers it too, since only
+  linked players appear on it.
+- **Email already used**: the player can sign in to that account instead, after a clear warning
+  that this browser's guest progress will be replaced. No merging of two histories in v1.
+- **An anonymous player has no sign-out** (it would lose the account). They get "Supprimer mes
+  données" instead.
+- **Existing email accounts keep working**, with sign-in reachable from Profil.
+- **In-app account deletion** for every player, anonymous included: account, profile, server data
+  and local history. Done through a database function that deletes only the caller's own
+  account, so no service key ever reaches the app.
+- **Abuse protection**: Supabase's built-in rate limit on anonymous sign-ins until the public
+  launch; CAPTCHA or Turnstile from Phase 6.
+- **Stale anonymous players** are cleaned up only once the server knows their activity (Phase 2).
+  Deleting them earlier risks deleting someone who still plays.
+- **Email confirmation with a real SMTP sender** needs a sending domain, so it arrives with the
+  domain in Phase 6. Until then, linked emails are unconfirmed — acceptable for an invite-only
+  audience, not for a public one.
 
 ### 6.4 Rankings
 
@@ -265,8 +279,10 @@ P0 Stabilise ─ P1 First run ─ P2 Server ─┬─ P3 Invite-only beta (data)
 P8 Return to mobile: whenever mobile development is possible again (independent of P6 and P7).
 ```
 
-*(A)* = autonomous commit, judged by tests. *(C)* = checkpoint: implemented, deployed to the
-preview URL, then stopped until the owner has played it.
+**Each phase runs in one pass** (from Phase 1 on): Claude Code works through all its commits
+without waiting, and the owner reviews once, at the end. *(A)* = judged by tests. *(C)* = judged by
+playing: deployed to the preview URL and played by the owner at the end of the phase, from the
+checklist in the phase report.
 
 ### Phase 0 — Stabilise and build the web pipeline
 
@@ -274,16 +290,14 @@ preview URL, then stopped until the owner has played it.
 
 0. *(C)* Docs: create `doc/progress.md`; bring `doc/online.md` and `doc/decisions.md` in line with
    this plan (anonymous-first, Glicko-2, ghost duels first, monorepo, web-first, no ads in v1),
-   each decision with its reason and a "reopen when"; list remaining contradictions. No preview
-   URL exists yet: this checkpoint is read, not played.
-1. *(A)* CI on GitHub Actions: core tests, all tests, analyze, web build, on every push. Supabase
-   settings from CI secrets. No Android build until Phase 8.
+   each decision with its reason and a "reopen when"; list remaining contradictions.
+1. *(A)* CI on GitHub Actions: core tests, all tests, analyze, web build, Android debug build
+   (compile-only), on every push. Supabase settings from CI secrets.
 2. *(A)* Preview deployment of the web build on every push to `main`, stable URL. Host proposed
    with its reason.
 3. *(A)* `material_ui` migration, zero analyzer notices afterwards.
 4. *(A)* One timestamp per answer. Schema migration only after asking.
-5. *(A)* Check `δ` = 0.07 against `n_min` = 4; any new value proposed, never applied without
-   approval.
+5. *(A)* Check `δ` against `n_min` = 4; any new value proposed, never applied without approval.
 6. *(A)* Debug-only switch disabling the timeout, proven inert in release builds.
 7. *(A)* Hooks refusing `assert(` in the core and unseeded `Random(`; formatting after edits;
    reviewer subagent checking diffs against the architecture rules.
@@ -292,19 +306,54 @@ preview URL, then stopped until the owner has played it.
 
 **Exit:** CI green on every push; preview URL live; the owner plays 5 games on a phone browser.
 
+**Phase 0 outcome (19 November):** code done; CI green. Owner decisions taken: `material_ui`
+migration approved; `δ` stays 0.07. Still open when Phase 1 starts: GitHub Pages switched on,
+preview checked online, load time re-measured, the owner's 5 games. Two findings reshape
+Phase 1: a new player needs 45–90 games to reach their real level (target 10–20), caused by
+integer rounding of the level rather than by `δ`; and the first visit takes ~5 s on fast 4G and
+~19 s on slow 4G with a blank screen, partly because CanvasKit and a font load from Google's
+servers.
+
 ### Phase 1 — First run and accounts
 
-**Goal:** a new player answers the first question within 30 seconds, with no form.
+**Goal:** a new player answers the first question within 30 seconds, with no form, and their
+level matches their skill within a few games.
+**Entry:** Phase 0 closed — the open items above are done (commit 0 below finishes them).
 
-1. *(A)* Anonymous-first sign-in (design proposed first): restrictive access rules where needed,
-   abuse protection, cleanup.
-2. *(A)* Existing email accounts migrated with no data loss, tested.
-3. *(C)* Placement test setting starting levels.
-4. *(A)* In-app account deletion.
-5. *(A)* Email confirmation on, real SMTP sender, site URL set.
+0. *(C)* Close Phase 0: `material_ui` migration, `δ` = 0.07 recorded, preview verified online,
+   load re-measured, the owner's 5 games.
+1. *(A)* **Cross-platform determinism.** The core tests also run compiled to JavaScript in CI. A
+   test pins the exercise sequences for a fixed set of (seed, config) and must give identical
+   results on the Dart VM and in JavaScript. Players generate on the web; the server will replay
+   on the VM — any difference would reject honest sessions in Phase 2. Any mismatch blocks the
+   phase.
+2. *(A)* **Continuous levels.** The level is kept in hundredths, as an integer, in the core, the
+   level cache and the frozen session config; it is displayed as a whole number, and generation
+   reads its whole part. The update computes with +, −, ×, ÷ and square root only (exactly
+   reproducible across VM, JavaScript and WebAssembly), then rounds once to hundredths. Existing
+   levels are migrated ×100; old sessions stay readable. The convergence simulation is rerun and
+   reported.
+3. *(A)* **First load.** CanvasKit and fonts served from the app itself, with no request to Google
+   at runtime; Inter bundled; a loading screen with visible progress before Flutter starts;
+   load re-measured on fast and slow 4G profiles.
+4. *(A)* **Anonymous-first sign-in**, as designed in section 6.3. Local data keyed by the Supabase
+   user id; existing email accounts unaffected and tested.
+5. *(C)* **Linking and account screens** in Profil: save progress (email, password, name), sign
+   in to an existing account with the replacement warning, no sign-out for anonymous players.
+6. *(C)* **Placement test**, offered on first launch with a "Passer" option, only to a player
+   without history. 60–90 s on the four basic operations, one adaptive staircase per operation
+   (about 6 questions each, step halving after every answer). Stored as a session of its own
+   kind; a pure core function turns its answers into starting levels, so levels stay
+   recomputable from history and replayable by the server. Powers, roots and percentages start
+   where they do today and use the calibration boost.
+7. *(A)* **Account deletion**, anonymous included, through a database function the owner runs
+   once in Supabase; local data wiped; a fresh anonymous player created afterwards.
+8. *(A)* **Automated smoke test** in CI after every preview deployment: fresh browser, anonymous
+   start, a full game with the timeout switch off, a reload, history still there.
 
-**Exit:** from a fresh browser profile, first question in under 30 s; an anonymous player links an
-email and keeps their history.
+**Exit:** on a throttled slow-4G profile from a fresh browser, the first question appears in under
+30 s; the smoke test is green; an anonymous player links an email and keeps their history; the
+rerun simulation shows a placed player at their level within about 10 games.
 
 ### Phase 2 — Server and leaderboard
 
@@ -319,6 +368,9 @@ email and keeps their history.
    only the server writes.
 6. *(C)* Leaderboard screen: percentile, neighbours, top 100, per operation.
 7. *(A)* Name filter and report action.
+8. *(A)* Only linked players appear on the leaderboard; it offers anonymous players to save their
+   progress.
+9. *(A)* Cleanup of anonymous players with no uploaded session for 30 days.
 
 **Exit:** rows reproduced by replay; forged upload rejected; the owner sees their rank on a phone.
 
@@ -365,8 +417,10 @@ email and keeps their history.
 
 1. *(A)* Production deployment on the domain, separate from preview.
 2. *(A)* Privacy policy and legal notice pages, linked in the app.
-3. *(A)* Beta gate removed; abuse protections verified.
-4. *(C)* Launch checklist run on a phone from a fresh browser.
+3. *(A)* CAPTCHA or Turnstile on anonymous sign-in and sign-up.
+4. *(A)* Email confirmation on, with a real SMTP sender on the domain and the site URL set.
+5. *(A)* Beta gate removed; abuse protections verified.
+6. *(C)* Launch checklist run on a phone from a fresh browser.
 
 ### Phase 7 — Online play
 
@@ -381,8 +435,7 @@ email and keeps their history.
 
 **Entry:** the owner says mobile development is possible again.
 
-1. *(C)* Android build added to CI; Android on a device or emulator; fix what drifted while it was
-   unbuilt.
+1. *(C)* Android on a device or emulator; fix what compile-only CI could not catch.
 2. *(A)* Native haptics and sound behind the Phase 5 interfaces.
 3. *(A)* Store assets, data-safety form, account deletion link.
 4. *(C)* Google Play closed test, then production.
@@ -390,13 +443,19 @@ email and keeps their history.
 
 ## 8. Decisions that belong to the owner
 
-Claude Code proposes options with their consequences, then waits.
+In one-pass mode Claude Code does not wait: it picks the best option with evidence, records it
+as **provisional** in `doc/decisions.md`, and the owner confirms or reverses it in the phase
+report. Exceptions — decisions that cost money or are hard to undo (server host and budget, app
+name and domain, ads or payments) are prepared but not applied until the owner confirms.
 
 | Decision | Needed before |
 |---|---|
-| `δ` value (0.07 in code, not yet approved) | Phase 0, commit 5 |
-| Preview host (accepted unless the owner objects) | Phase 0, commit 2 |
-| Anonymous-first design | Phase 1, commit 1 |
+| ~~`δ` value~~ — decided: stays 0.07 | Phase 0 |
+| ~~Preview host~~ — decided: GitHub Pages | Phase 0 |
+| ~~`material_ui` migration~~ — decided: yes | Phase 0 |
+| ~~Anonymous-first design~~ — decided: section 6.3 | Phase 1 |
+| ~~Continuous levels in hundredths~~ — decided: yes, schema migration approved | Phase 1 |
+| Placement test start level and step sizes (proposal with simulation) | Phase 1, commit 6 |
 | Server host and budget | Phase 2, commit 2 |
 | New level constants | Phase 3, commit 4 |
 | Digit typeface | Phase 5 |
@@ -413,12 +472,14 @@ owner. Silence never turns a guess into the product.
 |---|---|
 | Browser storage wiped before server sync exists | Persistent storage request (P0); server backup (P2) |
 | Too few beta testers for calibration | Recruit 10–20 people before Phase 3 starts |
-| Flutter web too slow on first load | Measure in P0; loading screen; revisit renderer choice if needed |
+| Flutter web too slow on first load | Measured in P0 (~19 s slow 4G); self-hosted assets and loading screen in P1; revisit renderer if still too slow |
+| Generation or level maths differ between web (JavaScript) and server (Dart VM) | Cross-platform determinism test in P1; levels in integer hundredths |
+| Levels take too long to settle | Continuous levels and placement test in P1; recalibration in P3 |
+| Unconfirmed emails during the beta | Invite-only audience; confirmation with the domain in P6 |
 | Not enough players online for duels | Ghost duels first; live duels only on measured concurrency |
 | Cheating in solo rankings | Server replay, timing flags; robust ratings come from duels |
 | Teen users and consent rules | Check before public sign-ups (P6) |
 | First iOS build on unknown ground | Budget time in P8; cloud Mac build service |
-| Android drifts while unbuilt until P8 | Mobile-supported dependencies only; fix cost accepted in P8 |
 | A single developer's bandwidth | Strict phase order; checkpoints kept few |
 
 ## 10. Owner actions outside the code

@@ -40,9 +40,9 @@ jobs:
       - name: All tests
         run: flutter test
       - name: Analyzer
-        # --no-fatal-infos until Phase 0 commit 3 (material_ui migration)
-        # removes the 28 deprecation infos.
-        run: flutter analyze --no-fatal-infos
+        # Infos are fatal too: the tree has zero notices since the
+        # material_ui migration (Phase 1 commit 0).
+        run: flutter analyze
 
   web:
     runs-on: ubuntu-latest

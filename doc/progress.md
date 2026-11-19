@@ -84,7 +84,8 @@ State at the plan: 49 commits, 176 core tests / 328 in total.
   job publishes it once tests and build are green. Host chosen because it needs only GitHub (repo
   public, free plan). Sub-path build checked locally in a real browser: database opens, sign-in
   shows.
-- **Commit 3** — *parked*: needs the owner's yes on the new `material_ui` dependency.
+- **Commit 3** — *parked*: needs the owner's yes on the new `material_ui` dependency. Done in
+  Phase 1 commit 0.
 - **Commit 4** *(A)* — One timestamp per answer, **no schema migration**: `answers.created_at`
   already existed and was filled with the session's end time. `AnswerResult` gains `answeredAt`
   (UTC, refused otherwise), set when the answer is submitted or the time runs out, stored as the
@@ -123,6 +124,25 @@ State at the plan: 49 commits, 176 core tests / 328 in total.
   screen; its actions pinned at the bottom so a long list never hides "Play again". Golden images:
   session and result updated, correction and mistakes added (both themes). **Checkpoint: the
   owner plays 5 games on a phone** — not deployable until GitHub Pages is enabled.
+
+Phase 0 closed in Phase 1 commit 0 (`material_ui`, `δ` recorded, preview, load).
+
+## Phase 1 — First run and accounts
+
+- **Commit 0** *(C)* — Close Phase 0. `material_ui` migration (owner's yes): `material_ui ^1.11.1`
+  added, 28 imports moved by `dart fix --apply --code=migrate_design_widgets`, no widget or
+  golden image changed, analyzer at zero notices, CI's analyzer back to fatal infos. `δ` = 0.07
+  recorded as the owner's decision. Plan v2.1 and the owner's `CLAUDE.md` rewrite committed.
+  Preview: live, but **built without the Supabase settings** — the `SUPABASE_URL` and
+  `SUPABASE_PUBLISHABLE_KEY` repository secrets are missing, so it shows "Missing
+  configuration". Same check on a local release build at `/Math-Trainer/` against the real
+  Supabase project, with one anonymous user created through the auth API
+  (`e188e86d-…`, to delete once commit 7's function exists): app shell, a full 8-question game
+  with correction pauses and mistakes review, reload, Profile still showing the answers. Load
+  re-measured on the preview: 2.7 s / 3.6 s Fast 4G / 16.0 s Slow 4G (`doc/architecture.md`).
+  **Waiting: the owner adds the two secrets, then plays 5 games on a phone.** Also found: the
+  owner's GitHub-template `.github/workflows/dart.yml` fails on every push (plain `dart pub get`
+  cannot resolve a Flutter project) and duplicates `ci.yml`.
 
 ### Remaining contradictions after commit 0
 

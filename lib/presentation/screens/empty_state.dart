@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Replaces a `SizedBox.shrink()` as a screen state (`doc/design.md`): an
 /// empty screen is a dead end, a message and an exit action are required.
