@@ -64,6 +64,10 @@ enum RejectionReason {
   /// A completed placement after a completed session: levels come from
   /// games from then on.
   placementAfterGames,
+
+  /// A type placement on an operation the server already has a level for
+  /// (Phase 3a commit 7): only a never-played operation is placed.
+  typeAlreadyPlayed,
 }
 
 /// Something worth a human look that is not a reason to refuse (plan 6.4:
@@ -231,6 +235,29 @@ ValidationResult validateSessionUpload({
               outcomes: outcomes,
               rules: rules,
               now: session.createdAt,
+            )
+          : const {};
+    case SessionKind.typePlacementV3:
+      // Never-played operations only, each from the staircase's start.
+      final rules = placementRulesFor(session.kind);
+      for (final type in session.enabledTypes) {
+        if (state.levels.containsKey(type)) {
+          return Rejected(RejectionReason.typeAlreadyPlayed, type.name);
+        }
+        if (session.levels[type] != Level.whole(rules.startLevel)) {
+          return Rejected(
+            RejectionReason.levelsMismatch,
+            'type placement start ${type.name}',
+          );
+        }
+      }
+      updates = completed
+          ? placementLevelUpdates(
+              outcomes: outcomes,
+              rules: rules,
+              now: session.createdAt,
+              // Replay above already checked it against the operations.
+              sequence: session.typeSequence,
             )
           : const {};
   }

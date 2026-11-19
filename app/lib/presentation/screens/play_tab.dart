@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../composition_root.dart';
 import 'package:math_core/models/exercise_type.dart';
+import 'package:math_core/placement/placement.dart';
 import 'package:math_core/persistence/level_cache_entry.dart';
 import '../../core/state/session_controller.dart';
 import '../exercise_type_labels.dart';
@@ -66,6 +67,10 @@ class _PlayTabState extends State<PlayTab> {
   /// offer replaces it. A local read — a few milliseconds.
   bool _startupResolved = false;
 
+  /// The player's level cache, for the type placement hint (Phase 3a
+  /// commit 7); `null` until read, or if the read failed (no hint then).
+  Map<ExerciseType, LevelCacheEntry>? _levels;
+
   @override
   void initState() {
     super.initState();
@@ -99,6 +104,7 @@ class _PlayTabState extends State<PlayTab> {
       setState(() {
         if (storedSelection != null) _selectedTypes = storedSelection;
         _hasHistory = levels.isNotEmpty;
+        _levels = levels;
         _globalLevel = levels.isEmpty ? null : overallLevel(levels);
         _offerPlacement = !completed && !skipped;
         _startupResolved = true;
@@ -186,8 +192,28 @@ class _PlayTabState extends State<PlayTab> {
       hasHistory: _hasHistory,
       globalLevel: _globalLevel,
       onToggleTheme: widget.onToggleTheme,
+      neverPlayed: switch (_levels) {
+        final levels? => neverPlayedTypes(_selectedTypes, levels),
+        null => const {},
+      },
     );
   }
+}
+
+/// "First time on Powers and Percentages: …" — what Start will do when the
+/// selection holds operations never played (Phase 3a commit 7).
+String typePlacementHint(Set<ExerciseType> neverPlayed) {
+  final names = [
+    for (final type in neverPlayed.toList()..sort((a, b) => a.index - b.index))
+      exerciseTypeLabel(type),
+  ];
+  final list = names.length == 1
+      ? names.single
+      : '${names.sublist(0, names.length - 1).join(', ')} and ${names.last}';
+  final each = names.length == 1 ? '' : ' each';
+  return 'First time on $list: '
+      '${typePlacementRules.questionsPerType} quick questions$each find your '
+      'starting level.';
 }
 
 class _TypeSelectionView extends StatelessWidget {
@@ -200,9 +226,14 @@ class _TypeSelectionView extends StatelessWidget {
     required this.hasHistory,
     required this.globalLevel,
     required this.onToggleTheme,
+    required this.neverPlayed,
   });
 
   final Set<ExerciseType> selectedTypes;
+
+  /// Selected operations with no level yet: Start plays a short placement
+  /// on them first.
+  final Set<ExerciseType> neverPlayed;
   final ValueChanged<Set<ExerciseType>> onChanged;
   final VoidCallback? onStart;
   final bool isStarting;
@@ -274,6 +305,15 @@ class _TypeSelectionView extends StatelessWidget {
               if (selectedTypes.isEmpty) ...[
                 const SizedBox(height: 8),
                 Text('No type selected.', style: theme.textTheme.bodyMedium),
+              ] else if (startError == null && neverPlayed.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  typePlacementHint(neverPlayed),
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.extension<AppPalette>()!.textMuted,
+                  ),
+                ),
               ] else if (startError != null) ...[
                 const SizedBox(height: 8),
                 Text(

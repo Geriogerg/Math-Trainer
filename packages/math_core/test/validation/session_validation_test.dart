@@ -8,6 +8,7 @@ import 'package:math_core/persistence/exercise_codec.dart';
 import 'package:math_core/persistence/level_cache_entry.dart';
 import 'package:math_core/persistence/persisted_answer.dart';
 import 'package:math_core/persistence/persisted_session.dart';
+import 'package:math_core/models/session_kind.dart';
 import 'package:math_core/placement/placement.dart';
 import 'package:math_core/placement/placement_exercise_source.dart';
 import 'package:math_core/replay/session_replay.dart';
@@ -385,6 +386,112 @@ void main() {
         (validate(moved) as Rejected).reason,
         RejectionReason.levelsMismatch,
       );
+    });
+  });
+
+  group('type placement (Phase 3a commit 7)', () {
+    const placed = {ExerciseType.power, ExerciseType.percentage};
+
+    SessionUpload typePlacement({
+      int? answered,
+      List<ExerciseType>? sequence,
+      int startLevel = 35,
+    }) {
+      final seq = sequence ?? typePlacementSequence(placed);
+      final n = answered ?? seq.length;
+      final at = DateTime.utc(2026, 11, 20, 10);
+      final session = PersistedSession(
+        id: 'tp',
+        playerId: 'p1',
+        seed: 4242,
+        enabledTypes: placed,
+        exerciseCount: seq.length,
+        totalScore: 0,
+        levels: {for (final t in placed) t: Level.whole(startLevel)},
+        createdAt: at,
+        kind: SessionKind.typePlacementV3,
+        typeSequence: seq,
+      );
+      // Right and fast on powers only: the two staircases diverge.
+      final outcomes = <({bool isCorrect, int elapsedMs})>[];
+      final answers = <PersistedAnswer>[];
+      for (var i = 0; i < n; i++) {
+        final q = replayPlacementQuestions(
+          seed: session.seed,
+          answers: [...outcomes, (isCorrect: false, elapsedMs: 0)],
+          rules: typePlacementRules,
+          sequence: seq,
+        )[i];
+        final right = q.type == ExerciseType.power;
+        final given = (
+          value: right ? q.correctAnswer : q.correctAnswer + 1,
+          ms: 1400 + 13 * i,
+        );
+        outcomes.add((isCorrect: right, elapsedMs: given.ms));
+        answers.add(_answerOf('tp', i, q, given, at));
+      }
+      return SessionUpload(session: session, answers: answers);
+    }
+
+    test('sets levels for its operations only, boost kept', () {
+      final result = validate(typePlacement()) as Accepted;
+      expect(result.levelUpdates.keys, unorderedEquals(placed));
+      expect(
+        result.levelUpdates[ExerciseType.power]!.level.hundredths,
+        greaterThan(3500),
+      );
+      expect(
+        result.levelUpdates[ExerciseType.percentage]!.level.hundredths,
+        lessThan(3500),
+      );
+      for (final entry in result.levelUpdates.values) {
+        expect(entry.sessionsPlayed, typePlacementRules.sessionsPlayedAfter);
+      }
+    });
+
+    test('allowed after games, on operations the server never saw', () {
+      final state = ServerPlayerState(
+        hasCompletedSession: true,
+        lastSessionAt: DateTime.utc(2026, 11, 19),
+        levels: {
+          ExerciseType.addition: LevelCacheEntry(
+            level: Level.whole(40),
+            sessionsPlayed: 6,
+            updatedAt: DateTime.utc(2026, 11, 19),
+          ),
+        },
+      );
+      expect(validate(typePlacement(), state: state), isA<Accepted>());
+    });
+
+    test('an operation the server has a level for is refused', () {
+      final state = ServerPlayerState(
+        levels: {
+          ExerciseType.percentage: LevelCacheEntry(
+            level: Level.whole(12),
+            sessionsPlayed: 2,
+            updatedAt: DateTime.utc(2026, 11, 19),
+          ),
+        },
+      );
+      final result = validate(typePlacement(), state: state);
+      expect((result as Rejected).reason, RejectionReason.typeAlreadyPlayed);
+    });
+
+    test('a start level other than the rules’ is refused', () {
+      final result = validate(typePlacement(startLevel: 60));
+      expect((result as Rejected).reason, RejectionReason.levelsMismatch);
+    });
+
+    test('a rotation other than the rules’ cannot replay', () {
+      final reordered = typePlacementSequence(placed).reversed.toList();
+      final result = validate(typePlacement(sequence: reordered));
+      expect((result as Rejected).reason, RejectionReason.notReplayable);
+    });
+
+    test('interrupted: accepted, sets nothing', () {
+      final result = validate(typePlacement(answered: 4)) as Accepted;
+      expect(result.levelUpdates, isEmpty);
     });
   });
 

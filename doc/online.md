@@ -237,6 +237,18 @@ password in place of `[YOUR-PASSWORD]`, save it as the only line of
 `tool/dashboard/connection.txt` (git-ignored). Needs `psql` 15+ (installed with PostgreSQL on
 this machine). Then `bash tool/dashboard/dashboard.sh`.
 
+## Type placement (Phase 3a commit 7)
+
+`buildSessionController`: when the selection holds operations with no level yet
+(`neverPlayedTypes`), Start builds `buildTypePlacementController` on those operations only — the
+placement test's staircase, rules version 3, kind `typePlacementV3`, 5 questions per operation in
+turn (`typePlacementSequence`, by enum index). Replay checks the stored rotation against the
+operations; validation (shared) refuses an operation the server already has a level for
+(`typeAlreadyPlayed`) or a start other than 35, and sets the placed levels with
+`sessionsPlayed` 0 (calibration boost kept). The Play tab says it under Start ("First time on
+Powers: 5 quick questions find your starting level."); the result screen lists the placed
+operations.
+
 ## Session upload (Phase 2 commit 5)
 
 - **The queue is the local database**: `SessionRepository.pendingUploads(player)` — sessions

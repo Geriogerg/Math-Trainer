@@ -9,7 +9,8 @@
 //
 // Steps, each failing loudly with a screenshot (smoke-failure.png):
 //   1. fresh profile → an anonymous player is created (no form);
-//   2. the placement offer is skipped; a 2-type game (8 questions) is played
+//   2. the placement offer is skipped; the first 2-type game (a short
+//      placement on the never-played operations since Phase 3a) is played
 //      to its result screen — every answer typed at once ("1", Enter), so the
 //      per-question timeout (always on in a release build) never fires;
 //   3. reload → Profile shows the game's answers (history survived);
@@ -254,21 +255,49 @@ const id = await guestId();
 if (!id) await fail('no anonymous session stored');
 console.log(`  guest ${id} (${((Date.now() - started) / 1000).toFixed(1)} s from navigation)`);
 
-step('skip the placement, start the default 2-type game');
+step('skip the placement, start the default 2-type selection');
 await tapText('Skip', 30000, { exact: true });
 await tapText('Start', 30000, { exact: true });
-await waitForText('1 / 8');
+// A new player's first game on never-played operations is a short
+// placement (Phase 3a commit 7): 5 questions per operation instead of a
+// game's 8. Read the count from the "1 / N" counter.
+let questions = null;
+{
+  const end = Date.now() + 30000;
+  while (questions === null && Date.now() < end) {
+    questions = await evaluate(`(() => {
+      for (const el of document.querySelectorAll('flt-semantics, flt-semantics *')) {
+        for (const t of [el.getAttribute('aria-label') || '', el.textContent || '']) {
+          // Part of a longer label too (the counter shares its node).
+          const m = t.match(/(?:^|[^0-9])1 \\/ (\\d+)(?:[^0-9]|$)/);
+          if (m) return Number(m[1]);
+        }
+      }
+      return null;
+    })()`);
+    if (questions === null) await sleep(300);
+  }
+  if (questions === null) await fail('no question counter "1 / N" appeared');
+}
 // Two taps (Skip, Start) included: what a new visitor going straight to a
 // game experiences, at script speed.
-console.log(`  first question ${((Date.now() - started) / 1000).toFixed(1)} s from navigation`);
+console.log(`  first question ${((Date.now() - started) / 1000).toFixed(1)} s from navigation (${questions} questions)`);
 
-step('answer the 8 questions');
-for (let q = 0; q < 8; q++) {
+step(`answer the ${questions} questions`);
+for (let q = 0; q < questions; q++) {
   await pressKey('1');
   await pressKey('Enter');
   await sleep(1600); // a wrong answer shows its correction for 1 s
 }
-await waitForText('Session complete', 20000);
+{
+  const end = Date.now() + 20000;
+  let done = false;
+  while (!done && Date.now() < end) {
+    done = Boolean((await findText('Session complete')) || (await findText('Your starting levels')));
+    if (!done) await sleep(300);
+  }
+  if (!done) await fail('neither "Session complete" nor "Your starting levels" appeared');
+}
 
 step('reload: same guest, history kept');
 await send('Page.reload', {});

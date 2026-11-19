@@ -406,3 +406,11 @@ Plan v2.3 (19 Nov 2026). Entry: Phase 2 live. State at the start:
   test 90 checks every count. `tool/dashboard/dashboard.sh` (report, new-code, codes,
   disable-code, approve-name, clear-name, feedback), run by `test_sql.sh` on the scratch
   database. **Not yet run on live data**: needs the owner's connection file.
+- **Commit 7** *(C)* — Type placement: rules version 3 and kind `typePlacementV3` (core: the
+  staircases follow a stored rotation; replay and shared validation, new reason
+  `typeAlreadyPlayed`); `buildSessionController` places never-played operations first; Play
+  hint; result screen lists the placed operations; Profile explains the new refusal. Tests: core
+  (rotation, staircases, live = replay, the placement test unchanged; 6 validation cases), app
+  (only never-played placed, then a game; interrupted comes back; hint), widget flow from Play.
+  The smoke test reads the question count (a fresh guest's first Start now places).
+  **To play at phase end** (checkpoint *C*).

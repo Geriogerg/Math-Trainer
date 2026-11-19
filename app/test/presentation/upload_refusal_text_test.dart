@@ -20,10 +20,11 @@ void main() {
         RejectionReason.placementAfterGames,
         RejectionReason.notReplayable,
         RejectionReason.outOfOrder,
+        RejectionReason.typeAlreadyPlayed,
       ])
         uploadRefusalText(reason.name),
     };
-    expect(specific, hasLength(4));
+    expect(specific, hasLength(5));
     expect(
       specific,
       isNot(contains(uploadRefusalText(RejectionReason.badElapsed.name))),

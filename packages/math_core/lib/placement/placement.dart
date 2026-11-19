@@ -108,6 +108,47 @@ const placementRulesV2 = PlacementRules(
 /// The rules a new placement uses.
 const currentPlacementRules = placementRulesV2;
 
+/// Version 3 (plan v2.3, Phase 3a commit 7): the **type placement** — the
+/// first game on an operation the player never played is a short
+/// placement on the never-played operations of their selection, any of the
+/// seven (powers, roots and percentages otherwise take ~65 games to climb
+/// from level 1). Same staircase as version 2, per operation: start 35,
+/// first step 25 levels, 5 questions, pass time 1.5 × `t_rapide`. The
+/// session stores which operations it placed (`enabledTypes`) and their
+/// rotation (`typeSequence`, `typePlacementSequence`).
+const typePlacementRules = PlacementRules(
+  version: 3,
+  startLevel: 35,
+  firstStepHundredths: 2500,
+  questionsPerType: 5,
+  passMaxElapsedMsByType: {
+    ExerciseType.addition: 3000,
+    ExerciseType.subtraction: 3000,
+    ExerciseType.multiplication: 3000,
+    ExerciseType.division: 3000,
+    ExerciseType.power: 3000,
+    ExerciseType.squareRoot: 3000,
+    ExerciseType.percentage: 3000,
+  },
+  sessionsPlayedAfter: 0,
+);
+
+/// A type placement's questions: [types] in turn (by enum index, the
+/// stored order of `ExerciseType`), `questionsPerType` each.
+List<ExerciseType> typePlacementSequence(
+  Set<ExerciseType> types, {
+  PlacementRules rules = typePlacementRules,
+}) {
+  if (types.isEmpty) {
+    throw ArgumentError.value(types, 'types', 'is empty.');
+  }
+  final ordered = types.toList()..sort((a, b) => a.index - b.index);
+  return [
+    for (var i = 0; i < rules.questionsPerType * ordered.length; i++)
+      ordered[i % ordered.length],
+  ];
+}
+
 /// The pass times `placementRulesV2` must hold for [rules]: 1.5 ×
 /// `t_rapide`, for each placed operation.
 Map<ExerciseType, int> placementPassTimesFor(LevelingRules rules) => {
@@ -120,6 +161,7 @@ Map<ExerciseType, int> placementPassTimesFor(LevelingRules rules) => {
 PlacementRules placementRulesFor(SessionKind kind) => switch (kind) {
   SessionKind.placementV1 => placementRulesV1,
   SessionKind.placementV2 => placementRulesV2,
+  SessionKind.typePlacementV3 => typePlacementRules,
   SessionKind.game => throw ArgumentError.value(
     kind,
     'kind',
@@ -131,6 +173,7 @@ PlacementRules placementRulesFor(SessionKind kind) => switch (kind) {
 SessionKind placementKindFor(PlacementRules rules) => switch (rules.version) {
   1 => SessionKind.placementV1,
   2 => SessionKind.placementV2,
+  3 => SessionKind.typePlacementV3,
   _ => throw ArgumentError.value(rules.version, 'rules.version', 'unknown.'),
 };
 
@@ -179,16 +222,26 @@ List<ExerciseType> placementTypeSequence(PlacementRules rules) => [
 ];
 
 /// The staircases after [answers] — `(isCorrect, elapsedMs)` in the order
-/// they were given, question `i` being of type [placementTypeAt]`(i)`.
+/// they were given, question `i` being of type [placementTypeAt]`(i)`, or
+/// `sequence[i]` for a type placement (one staircase per type in it).
 Map<ExerciseType, Staircase> replayStaircases(
   List<({bool isCorrect, int elapsedMs})> answers,
-  PlacementRules rules,
-) {
+  PlacementRules rules, {
+  List<ExerciseType>? sequence,
+}) {
+  if (sequence != null && answers.length > sequence.length) {
+    throw ArgumentError.value(
+      answers.length,
+      'answers',
+      'outnumber the ${sequence.length} planned questions.',
+    );
+  }
   final stairs = {
-    for (final type in placementTypes) type: Staircase.start(rules),
+    for (final type in sequence?.toSet() ?? placementTypes)
+      type: Staircase.start(rules),
   };
   for (var i = 0; i < answers.length; i++) {
-    final type = placementTypeAt(i);
+    final type = sequence?[i] ?? placementTypeAt(i);
     stairs[type] = stairs[type]!.after(
       passed: placementPassed(
         type: type,
@@ -208,17 +261,20 @@ Map<ExerciseType, Staircase> replayStaircases(
 /// interrupted placement sets no level.
 Map<ExerciseType, Level> placementLevels(
   List<({bool isCorrect, int elapsedMs})> answers,
-  PlacementRules rules,
-) {
-  if (answers.length != rules.questionCount) {
+  PlacementRules rules, {
+  List<ExerciseType>? sequence,
+}) {
+  final count = sequence?.length ?? rules.questionCount;
+  if (answers.length != count) {
     throw ArgumentError.value(
       answers.length,
       'answers',
-      'must hold exactly ${rules.questionCount} answers (a full placement).',
+      'must hold exactly $count answers (a full placement).',
     );
   }
   return replayStaircases(
     answers,
     rules,
+    sequence: sequence,
   ).map((type, stair) => MapEntry(type, stair.level));
 }

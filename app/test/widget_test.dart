@@ -7,6 +7,7 @@ import 'package:math_trainer/presentation/screens/session_screen.dart';
 import 'package:math_trainer/composition_root.dart';
 import 'package:math_core/persistence/level_cache_entry.dart';
 import 'package:math_core/models/exercise_type.dart';
+import 'package:math_core/leveling/level.dart';
 import 'package:math_core/persistence/in_memory_session_repository.dart';
 import 'package:math_core/persistence/persisted_answer.dart';
 import 'package:math_core/persistence/persisted_session.dart';
@@ -76,8 +77,22 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
+  // Levels for the default selection (addition, subtraction): Start plays
+  // a game. Without them it plays a type placement instead (Phase 3a
+  // commit 7; tested on its own below).
+  final sharedRepository = InMemorySessionRepository();
+  setUpAll(
+    () => sharedRepository.replaceLevelCache('test-player', {
+      for (final type in [ExerciseType.addition, ExerciseType.subtraction])
+        type: LevelCacheEntry(
+          level: Level.whole(5),
+          sessionsPlayed: 4,
+          updatedAt: DateTime.utc(2026, 11, 1),
+        ),
+    }),
+  );
   final testEnvironment = AppEnvironment(
-    repository: InMemorySessionRepository(),
+    repository: sharedRepository,
     playerId: 'test-player',
     accountRepository: FakeAccountRepository(),
     profileRepository: FakeProfileRepository(),
@@ -235,10 +250,11 @@ void main() {
   );
 
   testWidgets(
-    "the Play screen's overall level is re-read on return from a session",
+    'a first game on never-played types is a short placement, then the '
+    "Play screen's overall level is re-read (Phase 3a commit 7)",
     (WidgetTester tester) async {
-      // Fresh environment: the shared one accumulates the history of the
-      // other tests, and this test needs to start without history.
+      // Fresh environment: the shared one has levels, this test needs a
+      // player without history.
       final environment = AppEnvironment(
         repository: InMemorySessionRepository(),
         playerId: 'test-player',
@@ -247,14 +263,38 @@ void main() {
       );
       await openPlay(tester, environment);
       expect(find.text('Difficulty adapts to your answers.'), findsOneWidget);
+      expect(
+        find.text(
+          'First time on Addition and Subtraction: 5 quick questions each '
+          'find your starting level.',
+        ),
+        findsOneWidget,
+      );
 
       await tester.tap(find.text('Start'));
       await settlePageTransition(tester);
-      await playToCompletion(tester);
-      await tester.tap(find.text('New selection'));
+      expect(find.text('1 / 10'), findsOneWidget);
+      for (
+        var i = 0;
+        i < 20 && find.text('Your starting levels').evaluate().isEmpty;
+        i++
+      ) {
+        await tester.tap(find.text('1'));
+        await tester.tap(find.byIcon(Icons.check));
+        await tester.pump();
+        await tester.pump(SessionController.defaultCorrectionDelay);
+      }
+      expect(find.text('Your starting levels'), findsOneWidget);
+      expect(find.textContaining('Addition — level'), findsOneWidget);
+      expect(find.textContaining('Subtraction — level'), findsOneWidget);
+
+      await tester.tap(find.text('Play'));
       await settlePageTransition(tester);
+      await tester.pumpAndSettle();
 
       expect(find.textContaining('Overall level'), findsOneWidget);
+      // Placed: no hint any more, Start plays a game.
+      expect(find.textContaining('First time on'), findsNothing);
     },
   );
 

@@ -45,7 +45,38 @@ List<Exercise> replaySessionQuestions(
     case SessionKind.placementV1:
     case SessionKind.placementV2:
       return _replayPlacement(session, answers);
+    case SessionKind.typePlacementV3:
+      return _replayTypePlacement(session, answers);
   }
+}
+
+/// A type placement (Phase 3a commit 7): its stored rotation must be the
+/// one its operations imply — the staircases follow it question by
+/// question.
+List<Exercise> _replayTypePlacement(
+  PersistedSession session,
+  List<PlacementAnswer> answers,
+) {
+  final rules = placementRulesFor(session.kind);
+  final sequence = session.typeSequence;
+  if (sequence == null) {
+    throw const SessionNotReplayable('no stored type sequence');
+  }
+  final expected = typePlacementSequence(session.enabledTypes, rules: rules);
+  if (sequence.length != expected.length ||
+      [
+        for (var i = 0; i < expected.length; i++) sequence[i] == expected[i],
+      ].contains(false)) {
+    throw const SessionNotReplayable(
+      'type sequence differs from the type placement rules',
+    );
+  }
+  return replayPlacementQuestions(
+    seed: session.seed,
+    answers: answers,
+    rules: rules,
+    sequence: sequence,
+  );
 }
 
 List<Exercise> _replayGame(PersistedSession session, int count) {

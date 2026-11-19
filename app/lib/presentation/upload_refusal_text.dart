@@ -19,6 +19,9 @@ String uploadRefusalText(String reason) {
       'Not ranked: played before the app could send games to the server.',
     RejectionReason.outOfOrder =>
       'Not ranked: it reached the server after a newer game.',
+    RejectionReason.typeAlreadyPlayed =>
+      'Not ranked: these operations already had a level (from another '
+          'device), so this placement could not set them.',
     RejectionReason.wrongPlayer ||
     RejectionReason.futureTimestamp ||
     RejectionReason.badAnswerCount ||

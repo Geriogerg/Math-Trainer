@@ -11,8 +11,8 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 ## Current phase
 
 **Phase 3a — Build the beta** (`doc/plan.md`, section 7), run in **one pass**.
-Done: 0, 2–6; 1 prepared, dormant until the owner's yes (`PREVIEW_HOST=cloudflare`).
-Next commit: **7**. Update this block at every commit.
+Done: 0, 2–7; 1 prepared, dormant until the owner's yes (`PREVIEW_HOST=cloudflare`).
+Next commit: **8**. Update this block at every commit.
 
 | # | Commit | Note |
 |---|---|---|
@@ -162,6 +162,8 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   sequence.
 - `ExerciseType` and `SessionKind` names are stored discriminants; renaming breaks history.
 - Changing `placementRulesV1` changes stored placements' replay: add a `placementV2` instead.
+- A new player's first Start is a type placement (`typePlacementV3`), not a game: tests that
+  mean a game give the player levels first (`widget_test.dart`'s shared repository).
 - Integer levels round small steps to zero — never round before storing hundredths.
 - `Level` is an `int` at runtime: string interpolation prints hundredths, and `level ?? 1`
   compiles (widens to `Object`). Display through `.whole`; fall back to `Level.floor`.

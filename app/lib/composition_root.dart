@@ -17,6 +17,7 @@ import 'package:math_core/leveling/level.dart';
 import 'package:math_core/leveling/leveling_rules.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/models/session_config.dart';
+import 'package:math_core/persistence/level_cache_entry.dart';
 import 'package:math_core/persistence/local_player_id_provider.dart';
 import 'package:math_core/leaderboard/leaderboard.dart';
 import 'package:math_core/persistence/abandoned_guest_cleanup.dart';
@@ -333,6 +334,13 @@ Future<SessionController> buildSessionController(
   final priorLevels = await environment.repository.currentLevels(
     environment.playerId,
   );
+  // An operation never played has no level to start from: this first game
+  // on it is a short placement instead (plan v2.3, Phase 3a commit 7) —
+  // on the never-played operations only; the next game plays them all.
+  final neverPlayed = neverPlayedTypes(enabledTypes, priorLevels);
+  if (neverPlayed.isNotEmpty) {
+    return buildTypePlacementController(environment, neverPlayed);
+  }
   final levels = {
     for (final type in enabledTypes)
       type: priorLevels[type]?.level ?? Level.floor,
@@ -385,6 +393,55 @@ Future<SessionController> buildSessionController(
 /// The placement test (plan, Phase 1 commit 6): the four basic operations
 /// in turn, each on its own adaptive staircase, then starting levels from
 /// `placementLevels`. Offered by `PlayTab` to a player with no history.
+/// The operations of [enabledTypes] with no level yet: never played (nor
+/// placed) by this player. What turns a game into a type placement.
+Set<ExerciseType> neverPlayedTypes(
+  Set<ExerciseType> enabledTypes,
+  Map<ExerciseType, LevelCacheEntry> levels,
+) => {
+  for (final type in enabledTypes)
+    if (!levels.containsKey(type)) type,
+};
+
+/// The first game on never-played operations (Phase 3a commit 7): the
+/// placement test's staircase on [types] only, five questions each, in
+/// turn. Sets their starting levels; an interrupted one sets nothing and is
+/// offered again at the next start.
+SessionController buildTypePlacementController(
+  AppEnvironment environment,
+  Set<ExerciseType> types,
+) {
+  const rules = typePlacementRules;
+  final sequence = typePlacementSequence(types, rules: rules);
+  final seed = DateTime.now().millisecondsSinceEpoch;
+  return SessionController(
+    config: SessionConfig(
+      seed: seed,
+      enabledTypes: types,
+      exerciseCount: sequence.length,
+      levels: {for (final t in types) t: Level.whole(rules.startLevel)},
+      kind: placementKindFor(rules),
+      typeSequence: sequence,
+    ),
+    exerciseSource: PlacementExerciseSource(
+      seed: seed,
+      rules: rules,
+      sequence: sequence,
+    ),
+    levelCacheOrchestrator: PlacementLevelOrchestrator(
+      rules: rules,
+      sequence: sequence,
+    ),
+    repository: environment.repository,
+    playerId: environment.playerId,
+    correctionDelay: SessionController.defaultCorrectionDelay,
+    questionTimeout: questionTimeoutFor(
+      isDebugBuild: kDebugMode,
+      noTimeoutRequested: _debugNoTimeout,
+    ),
+  );
+}
+
 SessionController buildPlacementController(AppEnvironment environment) {
   const rules = currentPlacementRules;
   final seed = DateTime.now().millisecondsSinceEpoch;

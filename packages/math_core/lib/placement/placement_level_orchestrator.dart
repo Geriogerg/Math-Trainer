@@ -13,9 +13,15 @@ import 'placement.dart';
 /// alone (plan: they start where they do today). Called only for a
 /// finished session — an interrupted placement sets nothing.
 class PlacementLevelOrchestrator implements SessionLevelUpdates {
-  const PlacementLevelOrchestrator({this.rules = currentPlacementRules});
+  const PlacementLevelOrchestrator({
+    this.rules = currentPlacementRules,
+    this.sequence,
+  });
 
   final PlacementRules rules;
+
+  /// A type placement's rotation; `null` for the placement test.
+  final List<ExerciseType>? sequence;
 
   @override
   Future<Map<ExerciseType, LevelCacheEntry>> computeUpdates({
@@ -24,7 +30,12 @@ class PlacementLevelOrchestrator implements SessionLevelUpdates {
     required SessionRepository repository,
     required String playerId,
     required DateTime now,
-  }) async => placementLevelUpdates(outcomes: outcomes, rules: rules, now: now);
+  }) async => placementLevelUpdates(
+    outcomes: outcomes,
+    rules: rules,
+    now: now,
+    sequence: sequence,
+  );
 }
 
 /// Level cache entries of a **completed** placement — pure, shared with
@@ -34,11 +45,16 @@ Map<ExerciseType, LevelCacheEntry> placementLevelUpdates({
   required List<AnswerResult> outcomes,
   required PlacementRules rules,
   required DateTime now,
+  List<ExerciseType>? sequence,
 }) =>
-    placementLevels([
-      for (final o in outcomes)
-        (isCorrect: o.isCorrect, elapsedMs: o.elapsedMs),
-    ], rules).map(
+    placementLevels(
+      [
+        for (final o in outcomes)
+          (isCorrect: o.isCorrect, elapsedMs: o.elapsedMs),
+      ],
+      rules,
+      sequence: sequence,
+    ).map(
       (type, level) => MapEntry(
         type,
         LevelCacheEntry(

@@ -835,3 +835,26 @@ rule keeps its meaning for schema changes; the report still prints the SQL equiv
 plan asks. Answer times use games only and the level the session froze for that operation;
 placement answers move along a staircase within one session, so their level would mislead.
 **Reopen when** Phase 3b needs a view the report lacks, or the owner wants it in a browser.
+
+## Type placement: the first game on a never-played operation (Phase 3a, commit 7)
+
+Plan: "First game on a never-played type acts as a short placement for that type" — from level
+1, powers, roots and percentages take ~65 games to settle. Starting a game whose selection holds
+operations with no level yet plays, instead, the placement test's staircase on **those
+operations only**: rules version 3 (`typePlacementRules`: start 35, first step 25 levels,
+5 questions per operation, pass time 1.5 × `t_rapide`), stored as `typePlacementV3` with its
+operations (`enabledTypes`) and rotation (`typeSequence`). The next Start plays the whole
+selection as a game. An interrupted one sets nothing and comes back, like the placement test.
+Evidence: `tool/placement_check.dart`'s player model has one response curve for every operation,
+so its Phase 1 result for 5 questions per staircase (placed error 4.8 / 6.9 levels, ±3 within
+5.6 / 20.0 games instead of 65.5 / 73.5) applies to each operation alike.
+Server: accepted only for operations the server has no level for (`typeAlreadyPlayed`
+otherwise), from the start level, replayed from the stored rotation; allowed after games.
+**Provisional (owner to confirm)**:
+- every never-played operation is placed this way, the four basic ones included — a player
+  who skipped the placement test meets it in short form on their first Start;
+- the already-played operations of the selection sit out that first game (a session mixing a
+  staircase and a game would need a third kind of replay for one game);
+- the same staircase constants as the placement test for powers, roots and percentages, whose
+  levels have not been calibrated either (Phase 3b).
+**Reopen when** Phase 3b's data shows where type-placed players actually settle.

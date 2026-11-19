@@ -4,7 +4,6 @@ import 'package:math_core/leveling/level.dart';
 import 'package:math_core/models/answer_result.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/persistence/level_cache_entry.dart';
-import 'package:math_core/placement/placement.dart';
 import '../../core/state/session_controller.dart';
 import '../../core/state/session_state.dart';
 import '../exercise_prompt.dart';
@@ -78,7 +77,11 @@ class ResultScreen extends StatelessWidget {
                       style: labelStyle,
                     )
                   else
-                    for (final type in placementTypes)
+                    // The placement test: the four basic operations; a type
+                    // placement: the ones it placed.
+                    for (final type
+                        in controller.config.enabledTypes.toList()
+                          ..sort((a, b) => a.index - b.index))
                       Text(
                         controller.lastLevelUpdates?[type] == null
                             ? '${exerciseTypeLabel(type)} — …'
