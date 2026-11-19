@@ -172,6 +172,66 @@ class SqfliteSessionRepository implements SessionRepository {
   }
 
   @override
+  Future<List<PersistedSession>> pendingUploads(String playerId) async {
+    final rows = await _database.query(
+      'sessions',
+      where: 'player_id = ? AND synced_at IS NULL AND upload_refused IS NULL',
+      whereArgs: [playerId],
+      // Oldest first: levels chain from one session to the next.
+      orderBy: 'created_at ASC, rowid ASC',
+    );
+    return rows.map(_sessionFromRow).toList();
+  }
+
+  @override
+  Future<void> markSynced(String sessionId, DateTime syncedAt) async {
+    final at = syncedAt.toUtc().toIso8601String();
+    await _database.transaction((txn) async {
+      await txn.update(
+        'sessions',
+        {'synced_at': at},
+        where: 'id = ?',
+        whereArgs: [sessionId],
+      );
+      await txn.update(
+        'answers',
+        {'synced_at': at},
+        where: 'session_id = ?',
+        whereArgs: [sessionId],
+      );
+    });
+  }
+
+  @override
+  Future<void> markUploadRefused(String sessionId, String reason) =>
+      _database.update(
+        'sessions',
+        {'upload_refused': reason},
+        where: 'id = ?',
+        whereArgs: [sessionId],
+      );
+
+  @override
+  Future<void> replaceLevelCache(
+    String playerId,
+    Map<ExerciseType, LevelCacheEntry> levels,
+  ) async {
+    await _database.transaction((txn) async {
+      await txn.delete(
+        'player_levels',
+        where: 'player_id = ?',
+        whereArgs: [playerId],
+      );
+      for (final MapEntry(key: type, value: entry) in levels.entries) {
+        await txn.insert(
+          'player_levels',
+          _levelCacheToRow(playerId, type, entry),
+        );
+      }
+    });
+  }
+
+  @override
   Future<void> deletePlayerData(String playerId) async {
     await _database.transaction((txn) async {
       // Answers first: they reference their session (`session_id`).

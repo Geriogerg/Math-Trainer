@@ -17,6 +17,8 @@ import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/models/session_config.dart';
 import 'package:math_core/persistence/local_player_id_provider.dart';
 import 'package:math_core/persistence/placement_skip_store.dart';
+import 'package:math_core/sync/session_upload_client.dart';
+import 'package:math_core/sync/session_upload_queue.dart';
 import 'package:math_core/persistence/session_repository.dart';
 import 'package:math_core/persistence/theme_mode_store.dart';
 import 'package:math_core/persistence/type_selection_store.dart';
@@ -24,6 +26,7 @@ import 'package:math_core/placement/placement.dart';
 import 'package:math_core/placement/placement_exercise_source.dart';
 import 'package:math_core/placement/placement_level_orchestrator.dart';
 import 'core/state/session_controller.dart';
+import 'infrastructure/backend/http_session_upload_client.dart';
 import 'infrastructure/backend/supabase_account_repository.dart';
 import 'infrastructure/backend/supabase_profile_repository.dart';
 import 'infrastructure/persistence/database.dart';
@@ -54,6 +57,8 @@ class AppEnvironment {
     this.typeSelectionStore = const SharedPreferencesTypeSelectionStore(),
     this.themeModeStore = const SharedPreferencesThemeModeStore(),
     this.placementSkipStore = const SharedPreferencesPlacementSkipStore(),
+    this.uploadClient,
+    this.uploadQueue,
   });
 
   final SessionRepository repository;
@@ -89,6 +94,15 @@ class AppEnvironment {
   /// Same reasoning as `typeSelectionStore`.
   final PlacementSkipStore placementSkipStore;
 
+  /// `null` when the build has no `SERVER_URL` (server not deployed yet):
+  /// sessions stay local, pending, until a build has one.
+  final SessionUploadClient? uploadClient;
+
+  /// This player's upload queue (`forPlayer`); `null` for the device-id
+  /// environment and without [uploadClient]. Flushed at sign-in and after
+  /// every session flow; disposed by `AuthGate` when the player changes.
+  final SessionUploadQueue? uploadQueue;
+
   AppEnvironment forPlayer(String playerId) => AppEnvironment(
     repository: repository,
     playerId: playerId,
@@ -97,6 +111,15 @@ class AppEnvironment {
     typeSelectionStore: typeSelectionStore,
     themeModeStore: themeModeStore,
     placementSkipStore: placementSkipStore,
+    uploadClient: uploadClient,
+    uploadQueue: switch (uploadClient) {
+      final client? => SessionUploadQueue(
+        repository: repository,
+        client: client,
+        playerId: playerId,
+      ),
+      null => null,
+    },
   );
 }
 
@@ -130,6 +153,10 @@ const _supabaseUrl = String.fromEnvironment('SUPABASE_URL');
 const _supabasePublishableKey = String.fromEnvironment(
   'SUPABASE_PUBLISHABLE_KEY',
 );
+
+/// The upload server (`server/`); empty until the owner deploys it — the
+/// app then keeps every session local and pending (plan: offline first).
+const _serverUrl = String.fromEnvironment('SERVER_URL');
 
 /// Build started without `--dart-define-from-file=dart_defines.json` (see
 /// `dart_defines.example.json`). Without this check the app still started
@@ -190,11 +217,18 @@ Future<AppEnvironment> buildAppEnvironment() async {
     publishableKey: _supabasePublishableKey,
   );
 
+  final accountRepository = SupabaseAccountRepository(Supabase.instance.client);
   return AppEnvironment(
     repository: repository,
     playerId: playerId,
-    accountRepository: SupabaseAccountRepository(Supabase.instance.client),
+    accountRepository: accountRepository,
     profileRepository: SupabaseProfileRepository(Supabase.instance.client),
+    uploadClient: _serverUrl.isEmpty
+        ? null
+        : HttpSessionUploadClient(
+            serverUrl: Uri.parse(_serverUrl),
+            accessToken: accountRepository.accessToken,
+          ),
   );
 }
 

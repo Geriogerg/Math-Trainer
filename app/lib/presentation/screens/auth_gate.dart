@@ -66,6 +66,7 @@ class _AuthGateState extends State<AuthGate> {
       if (account != _account) setState(() => _account = account);
       return;
     }
+    _playerEnvironment?.uploadQueue?.dispose();
     setState(() {
       _isResolved = true;
       _account = account;
@@ -81,8 +82,13 @@ class _AuthGateState extends State<AuthGate> {
     );
     // Signed out or switched account during adoption: stale result, the
     // call triggered by the new state takes over.
-    if (!mounted || _account?.id != account.id) return;
+    if (!mounted || _account?.id != account.id) {
+      playerEnvironment.uploadQueue?.dispose();
+      return;
+    }
     setState(() => _playerEnvironment = playerEnvironment);
+    // Whatever was played offline (or before a server existed) goes now.
+    playerEnvironment.uploadQueue?.flush().ignore();
   }
 
   void _startAnonymousPlayer() {
@@ -106,6 +112,7 @@ class _AuthGateState extends State<AuthGate> {
 
   @override
   void dispose() {
+    _playerEnvironment?.uploadQueue?.dispose();
     _authSubscription.cancel();
     super.dispose();
   }

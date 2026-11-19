@@ -40,6 +40,9 @@ dependencies:
   supabase_flutter: ^2.17.1
   sqflite_common_ffi_web: ^1.2.2
   material_ui: ^1.11.1
+  # Session uploads to the server (infrastructure/backend/); Android, iOS
+  # and web — the Dart team's own client.
+  http: ^1.6.0
   # The pure-Dart core, shared with the server (doc/online.md, monorepo).
   math_core:
     path: ../packages/math_core
@@ -59,9 +62,6 @@ dev_dependencies:
   # Flutter binding — flutter_test alone does not run outside Flutter tooling.
   test: ^1.25.0
   sqflite_common_ffi: ^2.4.2
-  # `MockClient`: a real `SupabaseClient` in infrastructure tests, only the
-  # HTTP transport is simulated (`test/infrastructure/backend/`).
-  http: ^1.6.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

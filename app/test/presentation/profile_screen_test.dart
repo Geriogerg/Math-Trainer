@@ -21,6 +21,17 @@ import '../fake_profile_repository.dart';
 /// network/disk that recovers, to test the "Retry" button.
 class _FlakySessionRepository implements SessionRepository {
   @override
+  Future<List<PersistedSession>> pendingUploads(String playerId) async => [];
+  @override
+  Future<void> markSynced(String sessionId, DateTime syncedAt) async {}
+  @override
+  Future<void> markUploadRefused(String sessionId, String reason) async {}
+  @override
+  Future<void> replaceLevelCache(
+    String playerId,
+    Map<ExerciseType, LevelCacheEntry> levels,
+  ) async {}
+  @override
   Future<void> deletePlayerData(String playerId) => throw UnimplementedError();
   bool shouldFail = true;
 
@@ -92,6 +103,8 @@ class _FlakySessionRepository implements SessionRepository {
 /// `FakeAccountRepository` throws `UnimplementedError` there (it only
 /// satisfies the constructor for tests that do not care).
 class _RecordingAccountRepository implements AccountRepository {
+  @override
+  Future<String?> accessToken() async => 'test-token';
   _RecordingAccountRepository({
     this.account = const Account(id: 'test-account', email: 'player@test.com'),
   });

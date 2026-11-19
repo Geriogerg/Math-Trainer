@@ -29,6 +29,9 @@ Future<void> playSessionFlow(
     ),
   );
   await pendingPersistence;
+  // The session is stored: send it (and anything still pending) in the
+  // background — offline, it waits in the queue.
+  environment.uploadQueue?.flush().ignore();
 }
 
 /// Pushed full screen over the tabbed shell (`doc/design.md`: "the session

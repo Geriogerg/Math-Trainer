@@ -152,6 +152,36 @@ the owner says yes:
    GitHub **repository variable** (not a secret: it is public) named `SERVER_URL` — the web
    build passes it to the app (commit 5).
 
+## Session upload (Phase 2 commit 5)
+
+- **The queue is the local database**: `SessionRepository.pendingUploads(player)` — sessions
+  never accepted (`synced_at` null) nor refused (`upload_refused` null, schema v7), **oldest
+  first**. `SessionUploadQueue` (`math_core/sync/`) sends them one at a time: the server checks
+  that levels chain from one session to the next, so order matters. Accepted → `markSynced`
+  (session and answers get the server's `received_at`); refused → `markUploadRefused(reason)`,
+  never resent; a network or server failure stops the pass and retries after 30 s, 1, 2, 5,
+  then every 10 min. Flushed at sign-in (`AuthGate`) and after every session flow
+  (`playSessionFlow`); one pass at a time, a call during a pass makes it run once more.
+- **Format**: `SessionUpload` (`math_core/sync/`), JSON, `formatVersion` 1 — the session's stored
+  fields (seed, kind, enabled types, frozen levels in hundredths, type sequence, `createdAt`) and
+  its answers in order. One codec for the app and the server; strict parsing (a wrong type is a
+  400, never a guess). A game interrupted before schema v6 has no type sequence: refused
+  locally (`notReplayable`), never sent.
+- **App**: `HttpSessionUploadClient` (`infrastructure/backend/`, package `http`), the player's
+  Supabase access token as bearer (`AccountRepository.accessToken`, refreshed if expired).
+  Only the server's own answer is final; offline, timeout (90 s: a free host wakes up in about
+  a minute), 401, 5xx or a non-JSON page → retry later. `SERVER_URL` (`--dart-define`, from the
+  repository variable in CI) empty → no client: sessions stay local and pending until a build
+  has one.
+- **Server**: `POST /v1/sessions` — bearer checked by Supabase Auth (`GET /auth/v1/user`), body
+  ≤ 256 KB, parsed, the session's player must be the caller, then `record_session_upload`
+  (service role only): **idempotent** on the session id — `inserted`, `duplicate` (resent after
+  a lost answer: same `received_at`) or `conflict` (another player's id: refused). Answers 200
+  `{status: accepted, syncedAt, duplicate}`, 400/409 `{status: refused, reason}`, 401, 413, 503.
+- **Table** `uploaded_sessions` (id, player_id → `auth.users` on delete cascade, created_at,
+  received_at, kind, payload jsonb): RLS on, no policy, API roles' grants revoked — only the
+  server reads and writes it.
+
 ## Data flow (Phase 2)
 
 1. The player plays solo exactly as today; local storage stays the source of truth for solo play.

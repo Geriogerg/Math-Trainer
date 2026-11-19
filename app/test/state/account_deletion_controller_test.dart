@@ -9,6 +9,8 @@ import 'package:math_core/persistence/persisted_session.dart';
 import 'package:math_trainer/core/state/account_deletion_controller.dart';
 
 class _Accounts implements AccountRepository {
+  @override
+  Future<String?> accessToken() async => 'test-token';
   AccountException? deleteError;
   final calls = <String>[];
 

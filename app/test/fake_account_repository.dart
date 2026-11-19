@@ -12,6 +12,8 @@ const _fakeAccount = Account(id: 'fake-account-id', email: 'player@test.com');
 /// controllable fake that really exercises the sign-in gate.
 class FakeAccountRepository implements AccountRepository {
   @override
+  Future<String?> accessToken() async => 'test-token';
+  @override
   Future<void> deleteAccount() => throw UnimplementedError();
   @override
   Stream<Account?> get authState => Stream.value(_fakeAccount);

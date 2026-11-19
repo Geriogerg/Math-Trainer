@@ -70,6 +70,87 @@ void main() {
   }
 
   group('SqfliteSessionRepository', () {
+    group('uploads (schema v7)', () {
+      Future<void> store(
+        String id,
+        DateTime at, {
+        String player = 'player-1',
+      }) => repository.recordSession(
+        session: session(id, createdAt: at, playerId: player),
+        answers: [answer('$id-a', id)],
+        levelUpdates: const {},
+      );
+
+      test(
+        'pending: this player only, never synced nor refused, oldest first',
+        () async {
+          await store('late', DateTime.utc(2026, 11, 3));
+          await store('early', DateTime.utc(2026, 11, 1));
+          await store('refused', DateTime.utc(2026, 11, 2));
+          await store('theirs', DateTime.utc(2026, 11, 2), player: 'other');
+          await repository.markUploadRefused('refused', 'levelsMismatch');
+
+          expect(
+            [for (final s in await repository.pendingUploads('player-1')) s.id],
+            ['early', 'late'],
+          );
+
+          await repository.markSynced('early', DateTime.utc(2026, 11, 20, 10));
+          expect(
+            [for (final s in await repository.pendingUploads('player-1')) s.id],
+            ['late'],
+          );
+          final synced = (await repository.recentSessions(
+            'player-1',
+          )).firstWhere((s) => s.id == 'early');
+          expect(synced.syncedAt, DateTime.utc(2026, 11, 20, 10));
+          expect(
+            (await repository.answersForSession('early')).single.syncedAt,
+            DateTime.utc(2026, 11, 20, 10),
+          );
+        },
+      );
+
+      test('replaceLevelCache swaps the whole cache of one player', () async {
+        LevelCacheEntry entry(int level) => LevelCacheEntry(
+          level: Level.whole(level),
+          sessionsPlayed: 1,
+          updatedAt: DateTime.utc(2026, 11, 1),
+        );
+        await repository.recordSession(
+          session: session('s', createdAt: DateTime.utc(2026, 11, 1)),
+          answers: const [],
+          levelUpdates: {
+            ExerciseType.addition: entry(30),
+            ExerciseType.division: entry(20),
+          },
+        );
+        await repository.recordSession(
+          session: session(
+            't',
+            createdAt: DateTime.utc(2026, 11, 1),
+            playerId: 'other',
+          ),
+          answers: const [],
+          levelUpdates: {ExerciseType.addition: entry(50)},
+        );
+
+        await repository.replaceLevelCache('player-1', {
+          ExerciseType.power: entry(12),
+        });
+
+        final mine = await repository.currentLevels('player-1');
+        expect(mine.keys, [ExerciseType.power]);
+        expect(mine[ExerciseType.power]!.level, Level.whole(12));
+        expect(
+          (await repository.currentLevels(
+            'other',
+          ))[ExerciseType.addition]!.level,
+          Level.whole(50),
+        );
+      });
+    });
+
     test('the type sequence round-trips, in order; null stays null', () async {
       final sequence = [
         for (var i = 0; i < 10; i++)

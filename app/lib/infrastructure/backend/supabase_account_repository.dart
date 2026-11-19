@@ -142,6 +142,19 @@ class SupabaseAccountRepository implements AccountRepository {
   /// Letting that error propagate left it unhandled from the "Sign out"
   /// button, for a sign-out that had actually happened.
   @override
+  Future<String?> accessToken() async {
+    final session = _client.auth.currentSession;
+    if (session == null) return null;
+    if (!session.isExpired) return session.accessToken;
+    try {
+      return (await _client.auth.refreshSession()).session?.accessToken;
+    } on Exception catch (_) {
+      // Offline or refresh refused: the upload waits for the next try.
+      return null;
+    }
+  }
+
+  @override
   Future<void> signOut() async {
     try {
       await _client.auth.signOut();

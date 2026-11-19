@@ -24,6 +24,8 @@ packages/math_core/        # pure Dart, no dependency — imported by path by ap
                            # (overall level, also stored per session)
     replay/                # replaySessionQuestions: a stored session's questions from what it
                            # stores alone (seed, kind, frozen levels, type sequence)
+    sync/                  # SessionUpload (JSON codec shared with the server),
+                           # SessionUploadClient (interface), SessionUploadQueue (offline, ordered)
     scoring/               # Scorer, ScoringRules
     persistence/           # SessionRepository, LocalPlayerIdProvider, TypeSelectionStore,
                            # ThemeModeStore, PlacementSkipStore (interfaces), PersistedSession/
@@ -51,7 +53,8 @@ app/                       # the Flutter app (package `math_trainer`), web first
                            # ThemeModeStore,PlacementSkipStore} — the only place importing
                            # sqflite / shared_preferences; persistent_storage*.dart
       backend/             # Supabase{Account,Profile}Repository — the only place importing
-                           # supabase_flutter (besides composition_root.dart)
+                           # supabase_flutter (besides composition_root.dart);
+                           # HttpSessionUploadClient (package http)
     presentation/
       theme/               # app_theme.dart — light/dark ColorScheme, AppPalette/AppMotion/AppMetrics
       screens/             # AuthGate (anonymous-first), AppShell (tabbed shell, IndexedStack),
@@ -84,7 +87,8 @@ tool/                      # repo tooling, its own small package (tests: `dart t
 server/                    # Dart server (shelf + http, math_core by path) — doc/online.md
   bin/server.dart          # entry point: config from the environment, serve
   lib/src/                 # config.dart (env, secret never printed), http_app.dart (routes, CORS,
-                           # JSON errors)
+                           # JSON errors), supabase_gateway.dart (auth check, database functions),
+                           # session_endpoint.dart (POST /v1/sessions)
   test/                    # `dart test`
   Dockerfile               # AOT binary in a scratch image; build from the repo root
 render.yaml                # Render Blueprint for the server — prepared, inert until the owner acts
@@ -150,11 +154,11 @@ The expected answer comes from the domain, never recomputed by the UI or the `Sc
 Storage goes through `operands_json`, which absorbs the variants without schema migration. The
 stored discriminant is the `ExerciseType` value name.
 
-## Local schema (version 6)
+## Local schema (version 7)
 
 | Table | Content |
 |---|---|
-| `sessions` | id, player_id, seed, operation_types, exercise_count, total_score, levels_json (levels frozen at start, in hundredths), overall_level_after (nullable, in level units: 37.42), created_at, synced_at, kind (`SessionKind.name`: `game`, `placementV1` or `placementV2`, schema v5), type_sequence (JSON list of `ExerciseType` names, one per planned question, schema v6; `null` for an interrupted session from before v6) |
+| `sessions` | id, player_id, seed, operation_types, exercise_count, total_score, levels_json (levels frozen at start, in hundredths), overall_level_after (nullable, in level units: 37.42), created_at, synced_at, kind (`SessionKind.name`: `game`, `placementV1` or `placementV2`, schema v5), type_sequence (JSON list of `ExerciseType` names, one per planned question, schema v6; `null` for an interrupted session from before v6), upload_refused (why the server refused it for good, schema v7; `null` while pending or once synced) |
 | `answers` | id, session_id, exercise_type, operation_type, operands_json, submitted_value, is_correct, elapsed_ms, created_at, synced_at |
 | `player_levels` | (player_id, exercise_type), level (in hundredths), sessions_played, updated_at — the level cache |
 

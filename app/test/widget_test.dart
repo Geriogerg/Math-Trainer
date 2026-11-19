@@ -18,6 +18,17 @@ import 'fake_profile_repository.dart';
 
 class _ThrowingSessionRepository implements SessionRepository {
   @override
+  Future<List<PersistedSession>> pendingUploads(String playerId) async => [];
+  @override
+  Future<void> markSynced(String sessionId, DateTime syncedAt) async {}
+  @override
+  Future<void> markUploadRefused(String sessionId, String reason) async {}
+  @override
+  Future<void> replaceLevelCache(
+    String playerId,
+    Map<ExerciseType, LevelCacheEntry> levels,
+  ) async {}
+  @override
   Future<void> deletePlayerData(String playerId) => throw UnimplementedError();
   @override
   Future<bool> hasCompletedSession(String playerId) =>

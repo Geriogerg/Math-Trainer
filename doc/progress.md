@@ -262,6 +262,17 @@ Phase 0 closed in Phase 1 commit 0 (`material_ui`, `δ` recorded, preview, load)
   details; AOT container (`server/Dockerfile`, scratch image); CI `server` job builds the image
   and checks `/health`. Host **prepared, not deployed**: `render.yaml` (Render free),
   recommendation and steps in `doc/decisions.md` / `doc/online.md` — owner decision.
+- **Commit 5** *(A)* — Session upload. Core: `SessionUpload` (JSON codec, strict),
+  `SessionUploadClient`, `SessionUploadQueue` (the local database is the queue: pending =
+  never synced nor refused, oldest first, one at a time, backoff 30 s → 10 min). Schema v7
+  `sessions.upload_refused`; `pendingUploads`, `markSynced` (session and answers),
+  `markUploadRefused`, `replaceLevelCache`; `AccountRepository.accessToken`. App:
+  `HttpSessionUploadClient`, queue per player in `AppEnvironment.forPlayer`, flushed at
+  sign-in and after each session flow; `SERVER_URL` dart-define (repo variable in CI), empty →
+  no upload. Server: `POST /v1/sessions` (Supabase Auth check, caller = player, 256 KB cap),
+  migration `uploaded_sessions` + `record_session_upload` (idempotent; service role only), SQL
+  tests. No server deployed yet: nothing is uploaded by the preview until the owner's host
+  decision.
 
 ### Remaining contradictions after commit 0
 

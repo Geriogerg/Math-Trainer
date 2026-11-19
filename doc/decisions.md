@@ -609,6 +609,19 @@ question from it and checks every answer (commit 6).
   (2 to 7 types, rotation exercised) and an interrupted game through the app's builders into
   SQLite, then replays each stored session alone and gets back every question.
 
+## Uploads: the local database is the queue, sent in order (Phase 2, commit 5)
+
+No separate queue table: "pending" is a query on the sessions themselves (never synced, never
+refused), so a closed tab, a crash or an offline week loses nothing, and there is nothing to
+keep consistent. Sent **one at a time, oldest first**, because the server checks each session's
+frozen levels against the levels its predecessor produced (commit 6) — parallel or reordered
+uploads would be refused as out of order. Only the server's answer is final: every transport
+failure is retried, every refusal is recorded and never resent (resending cannot change a
+replay's verdict). The server's verdict carries `received_at`, stored as `syncedAt` (rule 6:
+`createdAt` ≠ `syncedAt`). Bearer verification by asking Supabase Auth (`/auth/v1/user`) rather
+than checking the JWT locally: no JWT library, works with Supabase's rotating signing keys, and
+catches revoked sessions — one HTTP call per upload, negligible here.
+
 ## Server host: Render free, prepared (Phase 2, commit 4) — owner decision pending
 
 The plan: host and monthly cost prepared, **not deployed until the owner confirms** (it costs

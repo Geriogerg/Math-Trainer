@@ -7,6 +7,8 @@ import 'package:math_trainer/core/state/account_form_controller.dart';
 
 class _Accounts implements AccountRepository {
   @override
+  Future<String?> accessToken() async => 'test-token';
+  @override
   Future<void> deleteAccount() => throw UnimplementedError();
   AccountException? linkError;
   AccountException? signInError;

@@ -179,13 +179,18 @@ jobs:
       - run: flutter pub get
       - name: Supabase configuration from secrets
         # Empty secrets still compile: the app then shows "Missing
-        # configuration" instead of starting.
+        # configuration" instead of starting. SERVER_URL is a repository
+        # *variable* (public, not a secret), set once the server is
+        # deployed; empty, the app keeps its sessions local and pending.
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          SERVER_URL: ${{ vars.SERVER_URL }}
         run: |
           jq -n --arg url "$SUPABASE_URL" --arg key "$SUPABASE_PUBLISHABLE_KEY" \
-            '{SUPABASE_URL: $url, SUPABASE_PUBLISHABLE_KEY: $key}' > dart_defines.json
+            --arg server "$SERVER_URL" \
+            '{SUPABASE_URL: $url, SUPABASE_PUBLISHABLE_KEY: $key, SERVER_URL: $server}' \
+            > dart_defines.json
       - name: Web build
         # Served from https://<owner>.github.io/<repo>/: every URL in the build
         # (bootstrap, assets, sqflite_sw.js, sqlite3.wasm) resolves against

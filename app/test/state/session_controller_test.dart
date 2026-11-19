@@ -78,6 +78,17 @@ class _LevelReadFailureRepository implements SessionRepository {
   Future<void> deletePlayerData(String playerId) => throw UnimplementedError();
   final inner = InMemorySessionRepository();
   @override
+  Future<List<PersistedSession>> pendingUploads(String playerId) async => [];
+  @override
+  Future<void> markSynced(String sessionId, DateTime syncedAt) async {}
+  @override
+  Future<void> markUploadRefused(String sessionId, String reason) async {}
+  @override
+  Future<void> replaceLevelCache(
+    String playerId,
+    Map<ExerciseType, LevelCacheEntry> levels,
+  ) async {}
+  @override
   Future<bool> hasCompletedSession(String playerId) =>
       inner.hasCompletedSession(playerId);
 
@@ -133,6 +144,17 @@ class _BuggyLevelReadRepository implements SessionRepository {
   @override
   Future<void> deletePlayerData(String playerId) => throw UnimplementedError();
   final inner = InMemorySessionRepository();
+  @override
+  Future<List<PersistedSession>> pendingUploads(String playerId) async => [];
+  @override
+  Future<void> markSynced(String sessionId, DateTime syncedAt) async {}
+  @override
+  Future<void> markUploadRefused(String sessionId, String reason) async {}
+  @override
+  Future<void> replaceLevelCache(
+    String playerId,
+    Map<ExerciseType, LevelCacheEntry> levels,
+  ) async {}
   @override
   Future<bool> hasCompletedSession(String playerId) =>
       inner.hasCompletedSession(playerId);

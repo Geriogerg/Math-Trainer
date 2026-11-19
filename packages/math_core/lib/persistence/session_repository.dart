@@ -63,6 +63,28 @@ abstract class SessionRepository {
     required String toPlayerId,
   });
 
+  /// Sessions of [playerId] still to upload (plan, Phase 2 commit 5),
+  /// oldest first — the server checks that levels chain from one session
+  /// to the next, so order matters: never accepted (`syncedAt == null`) and
+  /// never refused.
+  Future<List<PersistedSession>> pendingUploads(String playerId);
+
+  /// The server accepted [sessionId] at [syncedAt] (UTC): the session and
+  /// its answers carry it from now on.
+  Future<void> markSynced(String sessionId, DateTime syncedAt);
+
+  /// The server refused [sessionId] for good ([reason], a rejection name):
+  /// never sent again, still in the player's history.
+  Future<void> markUploadRefused(String sessionId, String reason);
+
+  /// Replaces [playerId]'s whole level cache with [levels] — the server's,
+  /// after it refused a session whose levels did not chain from its own
+  /// (another device, or history from before uploads). Atomic.
+  Future<void> replaceLevelCache(
+    String playerId,
+    Map<ExerciseType, LevelCacheEntry> levels,
+  );
+
   /// Deletes everything stored here for [playerId] — sessions, their
   /// answers, the level cache — in one atomic operation (account deletion,
   /// plan section 6.3). Other players on this device are untouched.

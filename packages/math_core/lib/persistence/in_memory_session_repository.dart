@@ -11,6 +11,10 @@ class InMemorySessionRepository implements SessionRepository {
   final List<PersistedSession> _sessions = [];
   final List<PersistedAnswer> _answers = [];
   final Map<String, Map<ExerciseType, LevelCacheEntry>> _levelsByPlayer = {};
+  final Map<String, String> _refusals = {};
+
+  /// Why the server refused [sessionId], if it did.
+  String? uploadRefusal(String sessionId) => _refusals[sessionId];
 
   @override
   Future<void> recordSession({
@@ -107,6 +111,42 @@ class InMemorySessionRepository implements SessionRepository {
     final levels = _levelsByPlayer.remove(fromPlayerId);
     if (levels != null) _levelsByPlayer[toPlayerId] = levels;
   }
+
+  @override
+  Future<List<PersistedSession>> pendingUploads(String playerId) async =>
+      _sessions
+          .where(
+            (s) =>
+                s.playerId == playerId &&
+                s.syncedAt == null &&
+                !_refusals.containsKey(s.id),
+          )
+          .toList()
+        ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+  @override
+  Future<void> markSynced(String sessionId, DateTime syncedAt) async {
+    for (var i = 0; i < _sessions.length; i++) {
+      if (_sessions[i].id == sessionId) {
+        _sessions[i] = _sessions[i].copyWith(syncedAt: syncedAt);
+      }
+    }
+    for (var i = 0; i < _answers.length; i++) {
+      if (_answers[i].sessionId == sessionId) {
+        _answers[i] = _answers[i].copyWith(syncedAt: syncedAt);
+      }
+    }
+  }
+
+  @override
+  Future<void> markUploadRefused(String sessionId, String reason) async =>
+      _refusals[sessionId] = reason;
+
+  @override
+  Future<void> replaceLevelCache(
+    String playerId,
+    Map<ExerciseType, LevelCacheEntry> levels,
+  ) async => _levelsByPlayer[playerId] = Map.of(levels);
 
   @override
   Future<void> deletePlayerData(String playerId) async {

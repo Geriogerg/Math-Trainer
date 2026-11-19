@@ -345,6 +345,11 @@ void main() {
     };
     expect(sequences['complete'], '["power","addition","power"]');
     expect(sequences['interrupted'], isNull);
+    // Through v7 as well: every existing session is still to upload.
+    expect(
+      [for (final row in await db.query('sessions')) row['upload_refused']],
+      [null, null],
+    );
     expect(await db.getVersion(), schemaVersion);
 
     await db.close();

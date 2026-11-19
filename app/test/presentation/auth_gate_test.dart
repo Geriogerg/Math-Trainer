@@ -13,6 +13,8 @@ import 'package:math_core/persistence/in_memory_session_repository.dart';
 import 'package:math_core/persistence/level_cache_entry.dart';
 import 'package:math_core/persistence/persisted_answer.dart';
 import 'package:math_core/persistence/persisted_session.dart';
+import 'package:math_core/sync/session_upload.dart';
+import 'package:math_core/sync/session_upload_client.dart';
 import 'package:math_trainer/presentation/screens/auth_gate.dart';
 import 'package:math_trainer/presentation/theme/app_theme.dart';
 
@@ -23,6 +25,8 @@ import '../fake_profile_repository.dart';
 /// (`test/fake_account_repository.dart`), which starts signed in and only
 /// serves tests that do not care about the gate itself.
 class _ControllableAccountRepository implements AccountRepository {
+  @override
+  Future<String?> accessToken() async => 'test-token';
   @override
   Future<void> deleteAccount() => throw UnimplementedError();
   final _controller = StreamController<Account?>.broadcast();
@@ -78,6 +82,17 @@ class _ControllableAccountRepository implements AccountRepository {
 }
 
 const _guest = Account(id: 'guest-1', isAnonymous: true);
+
+/// Accepts everything; records the session ids it was sent.
+class _RecordingUploadClient implements SessionUploadClient {
+  final sent = <String>[];
+
+  @override
+  Future<UploadOutcome> upload(SessionUpload upload) async {
+    sent.add(upload.session.id);
+    return UploadAccepted(syncedAt: DateTime.utc(2026, 11, 20));
+  }
+}
 
 void main() {
   // `PlayTab` reads the remembered selection and placement skip before it
@@ -342,5 +357,49 @@ void main() {
 
       expect(find.text(welcome), findsOneWidget);
     });
+  });
+
+  testWidgets('at sign-in, pending sessions of the player are uploaded', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final repository = InMemorySessionRepository();
+    await repository.recordSession(
+      session: PersistedSession(
+        id: 'played-offline',
+        playerId: _guest.id,
+        seed: 1,
+        enabledTypes: const {ExerciseType.addition},
+        exerciseCount: 1,
+        totalScore: 0,
+        levels: {ExerciseType.addition: Level.floor},
+        createdAt: DateTime.utc(2026, 11, 19),
+        typeSequence: const [ExerciseType.addition],
+      ),
+      answers: const [],
+      levelUpdates: const {},
+    );
+    final uploads = _RecordingUploadClient();
+    final accountRepository = _ControllableAccountRepository();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildLightTheme(),
+        home: AuthGate(
+          environment: AppEnvironment(
+            repository: repository,
+            playerId: 'device-id',
+            accountRepository: accountRepository,
+            profileRepository: FakeProfileRepository(),
+            uploadClient: uploads,
+          ),
+        ),
+      ),
+    );
+
+    accountRepository.resolveSession(_guest);
+    await tester.pumpAndSettle();
+
+    expect(uploads.sent, ['played-offline']);
+    expect(await repository.pendingUploads(_guest.id), isEmpty);
   });
 }
