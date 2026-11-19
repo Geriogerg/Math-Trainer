@@ -670,6 +670,16 @@ real players ("Draper" contains "rape": not in the list) — and **reports** cov
 reports pending review.
 **Reopen when** the beta shows abuse the list misses, or players whose names are refused.
 
+## Stale guests: activity = uploads or a renewed session (Phase 2, commit 11)
+
+The plan: delete anonymous players with no uploaded session for 30 days. Taken literally, before
+the server is deployed (no uploads at all) that deletes every guest older than 30 days,
+including ones who play every day — their progress would vanish behind a new guest. So a guest
+counts as active if it uploaded **or** renewed a sign-in session (`auth.sessions`, renewed by
+the app whenever it is open) in the last 30 days. Device side, a guest left for another account
+keeps its hidden games 30 days (owner's Phase 1 decision: "deleted with the guest account").
+**Provisional (owner to confirm)**: the extra activity signal, the 03:17 UTC daily schedule.
+
 ## Server host: Render free, prepared (Phase 2, commit 4) — owner decision pending
 
 The plan: host and monthly cost prepared, **not deployed until the owner confirms** (it costs

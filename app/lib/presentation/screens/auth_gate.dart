@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../composition_root.dart';
 import 'package:math_core/account/account.dart';
 import 'package:math_core/account/account_repository.dart';
+import 'package:math_core/persistence/abandoned_guest_cleanup.dart';
 import 'app_shell.dart';
 import 'start_error_view.dart';
 
@@ -67,6 +68,14 @@ class _AuthGateState extends State<AuthGate> {
       return;
     }
     _playerEnvironment?.uploadQueue?.dispose();
+    // A guest replaced by another account on this device can never come
+    // back: its hidden games go after 30 days (Phase 2 commit 11).
+    final previous = _account;
+    if (previous != null && previous.isAnonymous && account != null) {
+      widget.environment.abandonedGuestStore
+          .record(previous.id, DateTime.now().toUtc())
+          .ignore();
+    }
     setState(() {
       _isResolved = true;
       _account = account;
@@ -89,6 +98,11 @@ class _AuthGateState extends State<AuthGate> {
     setState(() => _playerEnvironment = playerEnvironment);
     // Whatever was played offline (or before a server existed) goes now.
     playerEnvironment.uploadQueue?.flush().ignore();
+    deleteAbandonedGuests(
+      store: widget.environment.abandonedGuestStore,
+      repository: widget.environment.repository,
+      now: DateTime.now().toUtc(),
+    ).ignore();
   }
 
   void _startAnonymousPlayer() {

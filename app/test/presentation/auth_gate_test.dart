@@ -402,4 +402,23 @@ void main() {
     expect(uploads.sent, ['played-offline']);
     expect(await repository.pendingUploads(_guest.id), isEmpty);
   });
+
+  testWidgets('a guest replaced by another account is remembered as left', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final accountRepository = _ControllableAccountRepository();
+    final environment = await pumpGate(tester, accountRepository);
+
+    accountRepository.resolveSession(_guest);
+    await tester.pumpAndSettle();
+    // Signs in to an existing account from this guest (Profile).
+    accountRepository.resolveSession(
+      const Account(id: 'account-b', email: 'b@example.com'),
+    );
+    await tester.pumpAndSettle();
+
+    final left = await environment.abandonedGuestStore.load();
+    expect(left.keys, [_guest.id]);
+  });
 }

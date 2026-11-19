@@ -281,6 +281,21 @@ the reason in words, with the games still missing. Reloads every time the tab is
   public in `profiles`). `name_reports`: RLS on, no API access — the owner reviews in SQL
   until the Phase 3 dashboard.
 
+## Stale guests (Phase 2 commit 11)
+
+- **Server**: `cleanup_stale_guests()` deletes anonymous accounts older than 30 days with **no
+  upload received and no sign-in session renewed** in 30 days (everything of theirs follows by
+  cascade). The plan's wording is "no uploaded session for 30 days"; renewed sessions are added
+  because until the server is deployed nobody uploads, and a guest playing daily would
+  otherwise be deleted — the plan's own warning (6.3: only once the server knows their
+  activity). The app renews its token whenever it is open. Daily at 03:17 UTC through
+  `pg_cron` where available (Supabase); a failure to schedule warns, never blocks the
+  migration.
+- **Device**: a guest replaced by another account on this browser (signing in from Profile)
+  can never come back; `AuthGate` records it (`AbandonedGuestStore`) and, at every sign-in,
+  `deleteAbandonedGuests` removes the local games of guests left more than 30 days ago —
+  the same delay as the server's.
+
 ## Rankings (Phase 2)
 
 - Ranked on **level**: one overall board, one board per operation. Ordered on the continuous level

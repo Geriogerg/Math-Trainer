@@ -17,6 +17,7 @@ import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/models/session_config.dart';
 import 'package:math_core/persistence/local_player_id_provider.dart';
 import 'package:math_core/leaderboard/leaderboard.dart';
+import 'package:math_core/persistence/abandoned_guest_cleanup.dart';
 import 'package:math_core/persistence/placement_skip_store.dart';
 import 'package:math_core/sync/session_upload_client.dart';
 import 'package:math_core/sync/session_upload_queue.dart';
@@ -33,6 +34,7 @@ import 'infrastructure/backend/supabase_account_repository.dart';
 import 'infrastructure/backend/supabase_profile_repository.dart';
 import 'infrastructure/persistence/database.dart';
 import 'infrastructure/persistence/persistent_storage.dart';
+import 'infrastructure/persistence/shared_preferences_abandoned_guest_store.dart';
 import 'infrastructure/persistence/shared_preferences_placement_skip_store.dart';
 import 'infrastructure/persistence/shared_preferences_player_id_provider.dart';
 import 'infrastructure/persistence/shared_preferences_theme_mode_store.dart';
@@ -59,6 +61,7 @@ class AppEnvironment {
     this.typeSelectionStore = const SharedPreferencesTypeSelectionStore(),
     this.themeModeStore = const SharedPreferencesThemeModeStore(),
     this.placementSkipStore = const SharedPreferencesPlacementSkipStore(),
+    this.abandonedGuestStore = const SharedPreferencesAbandonedGuestStore(),
     this.uploadClient,
     this.uploadQueue,
     this.leaderboardRepository,
@@ -97,6 +100,10 @@ class AppEnvironment {
   /// Same reasoning as `typeSelectionStore`.
   final PlacementSkipStore placementSkipStore;
 
+  /// Guests this device left for another account (`AuthGate`), whose
+  /// hidden games go after 30 days.
+  final AbandonedGuestStore abandonedGuestStore;
+
   /// `null` when the build has no `SERVER_URL` (server not deployed yet):
   /// sessions stay local, pending, until a build has one.
   final SessionUploadClient? uploadClient;
@@ -118,6 +125,7 @@ class AppEnvironment {
     typeSelectionStore: typeSelectionStore,
     themeModeStore: themeModeStore,
     placementSkipStore: placementSkipStore,
+    abandonedGuestStore: abandonedGuestStore,
     uploadClient: uploadClient,
     leaderboardRepository: leaderboardRepository,
     uploadQueue: switch (uploadClient) {

@@ -311,6 +311,13 @@ Phase 0 closed in Phase 1 commit 0 (`material_ui`, `δ` recorded, preview, load)
   anonymous accounts) and `leaderboard_around_me` (`notLinked` first for a guest). The tab tells
   a guest why and offers "Save your progress" (the Profile screen), then reloads. SQL test: a
   guest with the best level is off the board and told `notLinked`; once linked (same id), first.
+- **Commit 11** *(A)* — Stale guest cleanup. Server: `cleanup_stale_guests()` (anonymous, older
+  than 30 days, no upload **and no renewed sign-in session** in 30 days — the plan's criterion
+  plus a guard so guests who play before the server exists are not deleted), daily via
+  `pg_cron` (warns if it cannot schedule); stub gains `auth.sessions`; SQL tests (one stale
+  guest deleted out of five kinds). Device: `AuthGate` records a guest replaced by another
+  account (`AbandonedGuestStore`, shared_preferences); `deleteAbandonedGuests` removes their
+  hidden games 30 days later, run at every sign-in.
 
 ### Remaining contradictions after commit 0
 

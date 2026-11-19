@@ -28,6 +28,17 @@ create table if not exists auth.users (
   created_at timestamptz not null default now()
 );
 
+-- A user's sign-in sessions: refreshed (updated_at, refreshed_at) each time
+-- the app renews its token — the cleanup reads them as activity. The real
+-- table has more columns; refreshed_at is without time zone there too.
+create table if not exists auth.sessions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  refreshed_at timestamp
+);
+
 -- Supabase's definition: the caller's id from the request's JWT claims.
 create or replace function auth.uid() returns uuid
 language sql stable
