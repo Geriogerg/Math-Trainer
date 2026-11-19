@@ -33,14 +33,10 @@ class _ControllableAccountRepository implements AccountRepository {
   Stream<Account?> get authState => _controller.stream;
 
   @override
-  Future<Account?> signUp({
+  Future<Account?> linkEmail({
     required String email,
     required String password,
-  }) async {
-    final account = Account(id: 'user-$email', email: email);
-    _controller.add(account);
-    return account;
-  }
+  }) => throw UnimplementedError();
 
   @override
   Future<Account> signIn({

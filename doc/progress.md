@@ -177,6 +177,14 @@ Phase 0 closed in Phase 1 commit 0 (`material_ui`, `δ` recorded, preview, load)
   Guest `8bec648d-…` created by that check (to delete with commit 7). `AuthForm` unused until
   commit 5.
 
+- **Commit 5** *(C)* — Linking and account screens: Profile offers a guest "Save your
+  progress" (email, password, player name → `linkEmail`, one atomic `updateUser`, same id) and
+  "I already have an account" (`SignInScreen`, warning when the guest has played); taken email
+  → "Sign in to that account instead". `AccountFormController` holds the flow; `signUp` and
+  `AuthForm` removed. Server behaviour probed on the real project with two throwaway guests
+  (`fb154e14-…` now linked to `mt-link-check-…@example.com`, `7969cb24-…`), to delete with
+  commit 7. **Played by the owner at phase end.**
+
 ### Remaining contradictions after commit 0
 
 The five plan/reality contradictions found at commit 0 (language, `δ`, branch and remote, commit 0

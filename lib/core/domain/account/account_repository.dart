@@ -1,6 +1,6 @@
 import 'account.dart';
 
-// Part of the contract: every caller of `signIn`/`signUp` needs it.
+// Part of the contract: every caller of `signIn`/`linkEmail` needs it.
 export 'account_exception.dart';
 
 /// Online account — concrete implementation (Supabase) in
@@ -12,12 +12,17 @@ abstract class AccountRepository {
   /// account signed in at the time of the call, never an earlier state.
   Stream<Account?> get authState;
 
-  /// `null`: account created, but email confirmation is required before
-  /// signing in (a Supabase project's default) — not a failure, `authState`
-  /// stays `null` until confirmation and an explicit sign-in. Throws an
-  /// `AccountException` on a real failure (email already used, network
-  /// unavailable).
-  Future<Account?> signUp({required String email, required String password});
+  /// Turns the signed-in **guest** into a permanent account: email and
+  /// password set in one atomic step (a weak password changes nothing), the
+  /// account id kept — so levels and history stay where they are (plan,
+  /// section 6.3). `authState` then emits the same id, no longer anonymous.
+  ///
+  /// `null`: the project requires email confirmation, and the email is
+  /// pending until the link in the email is opened (Phase 6; confirmation
+  /// is off until then). Throws an `AccountException` on failure
+  /// (`emailAlreadyUsed` — the player may sign in to that account instead —
+  /// `weakPassword`, `invalidInput`, `network`).
+  Future<Account?> linkEmail({required String email, required String password});
 
   /// Throws an `AccountException` on failure (invalid credentials,
   /// network unavailable).

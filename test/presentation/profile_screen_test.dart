@@ -99,8 +99,10 @@ class _RecordingAccountRepository implements AccountRepository {
   Stream<Account?> get authState => Stream.value(account);
 
   @override
-  Future<Account?> signUp({required String email, required String password}) =>
-      throw UnimplementedError();
+  Future<Account?> linkEmail({
+    required String email,
+    required String password,
+  }) => throw UnimplementedError();
 
   @override
   Future<Account> signIn({required String email, required String password}) =>
@@ -573,7 +575,7 @@ void main() {
     expect(accountRepository.signOutCalled, isTrue);
   });
 
-  testWidgets('a guest sees "Guest" and is never offered a sign-out', (
+  testWidgets('a guest sees "Guest", can save their progress, never sign out', (
     WidgetTester tester,
   ) async {
     await setTallSurface(tester);
@@ -596,6 +598,12 @@ void main() {
 
     expect(find.textContaining('Guest'), findsOneWidget);
     expect(find.text('Sign out'), findsNothing);
+    expect(find.text('Save your progress'), findsOneWidget);
+    expect(find.text('I already have an account'), findsOneWidget);
+
+    await tester.tap(find.text('Save your progress'));
+    await tester.pumpAndSettle();
+    expect(find.text('Player name'), findsOneWidget);
   });
 }
 

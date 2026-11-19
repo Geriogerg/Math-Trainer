@@ -9,8 +9,11 @@ import '../../core/domain/models/exercise_type.dart';
 import '../../core/domain/persistence/persisted_session.dart';
 import '../exercise_type_labels.dart';
 import '../../core/domain/leveling/overall_level.dart';
+import '../../core/state/account_form_controller.dart';
 import '../theme/app_theme.dart';
 import 'empty_state.dart';
+import 'save_progress_screen.dart';
+import 'sign_in_screen.dart';
 
 const _windowDuration = Duration(days: 30);
 const _recentSessionsLimit = 10;
@@ -169,6 +172,53 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  /// A guest links an email (same account id: nothing moves). On return,
+  /// the screen reloads: the account is no longer anonymous.
+  Future<void> _saveProgress(PlayerProfile? profile, bool hasProgress) async {
+    final environment = widget.environment;
+    final outcome = await Navigator.of(context).push<SaveProgressOutcome>(
+      MaterialPageRoute(
+        builder: (_) => SaveProgressScreen(
+          accountRepository: environment.accountRepository,
+          profileRepository: environment.profileRepository,
+          initialDisplayName: profile?.displayName ?? '',
+          guestHasProgress: hasProgress,
+        ),
+      ),
+    );
+    if (outcome == null || !mounted) return;
+    setState(_load);
+    final message = switch (outcome) {
+      SaveProgressOutcome.saved => 'Progress saved to your account.',
+      SaveProgressOutcome.savedWithoutName =>
+        'Progress saved — the player name was not; set it again here.',
+      SaveProgressOutcome.confirmationPending =>
+        'Almost there — open the link sent to your email to confirm.',
+      SaveProgressOutcome.failed => null,
+    };
+    if (message != null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    }
+  }
+
+  /// Sign in to an existing account; `AuthGate` swaps the whole shell on
+  /// success, so nothing to reload here.
+  void _signInExisting(bool isGuest, bool hasProgress) {
+    final environment = widget.environment;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => SignInScreen(
+          accountRepository: environment.accountRepository,
+          profileRepository: environment.profileRepository,
+          isGuest: isGuest,
+          guestHasProgress: hasProgress,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -215,6 +265,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       : () => _editDisplayName(profile),
                   onRetryProfile: () => setState(_loadProfile),
                   onSignOut: widget.environment.accountRepository.signOut,
+                  onSaveProgress: () =>
+                      _saveProgress(profile, data.recentSessions.isNotEmpty),
+                  onSignInExisting: () => _signInExisting(
+                    data.account.isAnonymous,
+                    data.recentSessions.isNotEmpty,
+                  ),
                 );
               },
             ),
@@ -295,7 +351,7 @@ class _DisplayNameDialogState extends State<_DisplayNameDialog> {
       content: TextField(
         controller: _controller,
         autofocus: true,
-        maxLength: 30,
+        maxLength: maxDisplayNameLength,
         onSubmitted: (value) => Navigator.of(context).pop(value.trim()),
       ),
       actions: [
@@ -320,6 +376,8 @@ class _IdentityBlock extends StatelessWidget {
     required this.onEditName,
     required this.onRetryProfile,
     required this.onSignOut,
+    required this.onSaveProgress,
+    required this.onSignInExisting,
   });
 
   final Account account;
@@ -332,6 +390,8 @@ class _IdentityBlock extends StatelessWidget {
   final VoidCallback? onEditName;
   final VoidCallback onRetryProfile;
   final VoidCallback onSignOut;
+  final VoidCallback onSaveProgress;
+  final VoidCallback onSignInExisting;
 
   @override
   Widget build(BuildContext context) {
@@ -371,12 +431,28 @@ class _IdentityBlock extends StatelessWidget {
             color: theme.extension<AppPalette>()!.textMuted,
           ),
         ),
-        // Never for a guest: signing out would lose the account for good
-        // (plan, section 6.3). Account actions for guests: commit 5.
-        if (!account.isAnonymous) ...[
-          const SizedBox(height: 8),
+        const SizedBox(height: 8),
+        // A guest: save the progress, or sign in to an existing account —
+        // never a sign-out, which would lose the account for good (plan,
+        // section 6.3). Deletion: "Delete my data" (commit 7).
+        if (account.isAnonymous)
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              FilledButton(
+                onPressed: onSaveProgress,
+                child: const Text('Save your progress'),
+              ),
+              TextButton(
+                onPressed: onSignInExisting,
+                child: const Text('I already have an account'),
+              ),
+            ],
+          )
+        else
           TextButton(onPressed: onSignOut, child: const Text('Sign out')),
-        ],
       ],
     );
   }

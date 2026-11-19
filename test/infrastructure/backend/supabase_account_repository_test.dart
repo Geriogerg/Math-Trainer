@@ -121,6 +121,61 @@ void main() {
     expect(account?.email, testEmail);
   });
 
+  group('linkEmail', () {
+    SupabaseTestClient answering(Map<String, Object?> user) {
+      final client = SupabaseTestClient(
+        authHandler: (request) async =>
+            request.method == 'PUT' && request.url.path == '/auth/v1/user'
+            ? http.Response(
+                jsonEncode(user),
+                200,
+                headers: {'content-type': 'application/json'},
+              )
+            : null,
+      );
+      addTearDown(client.client.dispose);
+      return client;
+    }
+
+    final guestUser = anonymousSessionJson()['user']! as Map<String, Object?>;
+
+    test(
+      'sends email and password in one call; same id, no longer a guest',
+      () async {
+        final linked = answering({
+          ...guestUser,
+          'email': 'new@test.com',
+          'is_anonymous': false,
+        });
+        await linked.signIn(); // any session: updateUser needs one
+        final repo = SupabaseAccountRepository(linked.client);
+
+        final account = await repo.linkEmail(
+          email: 'new@test.com',
+          password: 'long-enough',
+        );
+
+        expect(account, const Account(id: testUserId, email: 'new@test.com'));
+        final put = linked.authRequests.singleWhere((r) => r.method == 'PUT');
+        // gotrue also sends PKCE fields (null here): check only ours.
+        final body = jsonDecode(put.body) as Map<String, Object?>;
+        expect(body['email'], 'new@test.com');
+        expect(body['password'], 'long-enough');
+      },
+    );
+
+    test('email confirmation required: null, nothing linked yet', () async {
+      final pending = answering({...guestUser, 'new_email': 'new@test.com'});
+      await pending.signIn();
+      final repo = SupabaseAccountRepository(pending.client);
+
+      expect(
+        await repo.linkEmail(email: 'new@test.com', password: 'long-enough'),
+        isNull,
+      );
+    });
+  });
+
   group('errors mapped to AccountException', () {
     /// Current Supabase Auth format: API version header, code in `code`
     /// (before 2024: `error_code`).
@@ -150,6 +205,9 @@ void main() {
       (400, 'invalid_credentials'): AccountFailure.invalidCredentials,
       (400, 'email_not_confirmed'): AccountFailure.emailNotConfirmed,
       (422, 'user_already_exists'): AccountFailure.emailAlreadyUsed,
+      // What linking a guest to a taken email answers (checked on the real
+      // project, 19 Nov 2026).
+      (422, 'email_exists'): AccountFailure.emailAlreadyUsed,
       (422, 'weak_password'): AccountFailure.weakPassword,
       (400, 'email_address_invalid'): AccountFailure.invalidInput,
       (429, 'over_request_rate_limit'): AccountFailure.rateLimited,
@@ -166,8 +224,30 @@ void main() {
           await failureOf(() => repo.signIn(email: testEmail, password: 'x')),
           expected,
         );
+      });
+    }
+
+    // Linking needs a session: only the update itself is refused.
+    for (final (status, code, expected) in [
+      (422, 'email_exists', AccountFailure.emailAlreadyUsed),
+      (422, 'weak_password', AccountFailure.weakPassword),
+      (400, 'email_address_invalid', AccountFailure.invalidInput),
+    ]) {
+      test('linkEmail: $code → ${expected.name}', () async {
+        final refusing = SupabaseTestClient(
+          authHandler: (request) async =>
+              request.method == 'PUT' && request.url.path == '/auth/v1/user'
+              ? refuse(status, code)(request)
+              : null,
+        );
+        addTearDown(refusing.client.dispose);
+        await refusing.signIn();
+        final repo = SupabaseAccountRepository(refusing.client);
+
         expect(
-          await failureOf(() => repo.signUp(email: testEmail, password: 'x')),
+          await failureOf(
+            () => repo.linkEmail(email: testEmail, password: 'x'),
+          ),
           expected,
         );
       });

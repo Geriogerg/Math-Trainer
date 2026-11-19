@@ -15,8 +15,10 @@ class FakeAccountRepository implements AccountRepository {
   Stream<Account?> get authState => Stream.value(_fakeAccount);
 
   @override
-  Future<Account?> signUp({required String email, required String password}) =>
-      throw UnimplementedError();
+  Future<Account?> linkEmail({
+    required String email,
+    required String password,
+  }) => throw UnimplementedError();
 
   @override
   Future<Account> signIn({required String email, required String password}) =>

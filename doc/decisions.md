@@ -26,6 +26,17 @@ lost their account.
 **Reopen when** abuse of anonymous accounts costs more than the protections planned (CAPTCHA,
 cleanup).
 
+Gaps filled in commit 5 — **provisional, owner to confirm**:
+- Signing in to another account from a guest **keeps** the guest's local games on the device
+  (hidden, unmerged) rather than deleting them: "replaced" in the plan read as "no longer
+  shown", the reversible option. Deleting them is commit 7's explicit "Delete my data".
+- The warning appears only if the guest has played at least one game; the button then reads
+  "Sign in and replace guest progress".
+- The player name is required when saving progress (the plan lists it with email and
+  password); 30 characters at most, as in `profiles`.
+- `linkEmail` returns `null` when the project requires email confirmation (Phase 6): the
+  password is set in the same call, so confirming the email is the only step left.
+
 ### Glicko-2 rather than Elo
 
 Glicko-2 carries a rating deviation: a new or returning player's rating moves fast and settles,

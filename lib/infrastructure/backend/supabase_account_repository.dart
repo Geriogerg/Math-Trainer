@@ -54,20 +54,26 @@ class SupabaseAccountRepository implements AccountRepository {
     (state) => _toAccount(state.session?.user),
   );
 
+  /// One `updateUser` call with both: checked on the real project (19 Nov
+  /// 2026) — a weak password is refused (422 `weak_password`) and leaves the
+  /// guest untouched; a valid pair applies at once, same id,
+  /// `is_anonymous` false; a taken email answers 422 `email_exists`. Two
+  /// calls (email, then password) could leave an account with an email
+  /// but no password if the second failed.
   @override
-  Future<Account?> signUp({
+  Future<Account?> linkEmail({
     required String email,
     required String password,
   }) async {
     try {
-      final response = await _client.auth.signUp(
-        email: email,
-        password: password,
+      final response = await _client.auth.updateUser(
+        UserAttributes(email: email, password: password),
       );
-      // `session == null`: email confirmation required, no active session
-      // yet — not a failure (see account_repository.dart).
-      if (response.session == null) return null;
-      return _toAccount(response.user);
+      final user = response.user;
+      // Confirmation required: the address waits in `new_email`, the
+      // account keeps no email until the link is opened.
+      if (user == null || (user.email ?? '').isEmpty) return null;
+      return _toAccount(user);
     } on AuthException catch (e) {
       throw _toAccountException(e);
     }

@@ -33,6 +33,19 @@ The old "slice 3" (leaderboard, sync, validation service) is Phase 2 of the plan
 - **No sign-out for a guest** (Profile shows "Guest — progress saved on this device only"): it
   would lose the account for good. An email account still signs out; a new guest is then
   created. Linking, sign-in to an existing account and deletion: commits 5 and 7.
+- **Linking** (commit 5, Profile → "Save your progress"): email, password and player name.
+  `AccountRepository.linkEmail` = one Supabase `updateUser(email, password)` call, checked on
+  the real project (19 Nov 2026): atomic (a weak password, 422 `weak_password`, leaves the
+  guest untouched), applied at once with confirmation off, same id, `is_anonymous` false; a
+  taken email answers 422 `email_exists`. The name is saved after; if only the name fails, the
+  progress is still linked and the player is told. The flow lives in `AccountFormController`
+  (`core/state/`); `SaveProgressScreen` and `SignInScreen` render it.
+- **Email already used / "I already have an account"**: `SignInScreen` with a warning when the
+  guest has played — the account replaces the guest on this browser. The guest's local games
+  are **kept** in SQLite under the guest id (not deleted, not shown, never merged); its server
+  user stays until Phase 2's cleanup of stale guests.
+- Sign-up from scratch no longer exists (`signUp` and `AuthForm` removed): a new player is a
+  guest, and saving their progress replaces sign-up.
 - Supabase project settings this relies on: anonymous sign-ins **on** (owner, 19 Nov 2026);
   built-in rate limit on anonymous sign-ins (30 per hour per IP) until CAPTCHA (Phase 6).
 - Email confirmation is **off** in the Supabase project for development: the default mailer only

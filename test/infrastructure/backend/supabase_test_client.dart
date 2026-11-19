@@ -63,6 +63,7 @@ class SupabaseTestClient {
       'sb_publishable_test',
       httpClient: MockClient((request) async {
         final path = request.url.path;
+        if (path.startsWith('/auth/v1/')) authRequests.add(request);
         if (authHandler != null && path.startsWith('/auth/v1/')) {
           final response = await authHandler(request);
           if (response != null) return response;
@@ -102,6 +103,9 @@ class SupabaseTestClient {
 
   late final SupabaseClient client;
   final restRequests = <http.Request>[];
+
+  /// Every Auth request received, in order.
+  final authRequests = <http.Request>[];
 
   /// Reproduces what `Supabase.initialize` does at app start without a
   /// persisted session: an `initialSession` event without a session, which
