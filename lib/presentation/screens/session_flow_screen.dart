@@ -7,6 +7,30 @@ import 'empty_state.dart';
 import 'result_screen.dart';
 import 'session_screen.dart';
 
+/// Starts [controller] and shows it full screen over the tabs; resolves
+/// once the player has left and the end-of-session write is done — the
+/// caller can then re-read levels and history. Shared by Play and Profile
+/// (the placement can be taken from both).
+Future<void> playSessionFlow(
+  BuildContext context,
+  AppEnvironment environment,
+  SessionController controller,
+) async {
+  controller.start();
+  // SessionFlowScreen owns the controller (dispose() in its own State).
+  // The route returns the end-of-session write still running
+  // (`_exitToSelection`): re-reading before it completes would show the
+  // levels from before the game.
+  final pendingPersistence = await Navigator.of(context).push<Future<void>>(
+    MaterialPageRoute(
+      fullscreenDialog: true,
+      builder: (_) =>
+          SessionFlowScreen(controller: controller, environment: environment),
+    ),
+  );
+  await pendingPersistence;
+}
+
 /// Pushed full screen over the tabbed shell (`doc/design.md`: "the session
 /// screen [...] carries no navigation"). Switches between `SessionScreen`
 /// and `ResultScreen` according to `SessionController.state.status`.

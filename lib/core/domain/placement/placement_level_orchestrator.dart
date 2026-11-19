@@ -13,7 +13,7 @@ import 'placement.dart';
 /// alone (plan: they start where they do today). Called only for a
 /// finished session — an interrupted placement sets nothing.
 class PlacementLevelOrchestrator implements SessionLevelUpdates {
-  const PlacementLevelOrchestrator({this.rules = placementRulesV1});
+  const PlacementLevelOrchestrator({this.rules = currentPlacementRules});
 
   final PlacementRules rules;
 

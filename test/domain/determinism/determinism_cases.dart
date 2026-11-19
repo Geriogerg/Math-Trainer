@@ -20,6 +20,7 @@ import 'package:math_trainer/core/domain/leveling/leveling_rules.dart';
 import 'package:math_trainer/core/domain/models/exercise.dart';
 import 'package:math_trainer/core/domain/models/exercise_type.dart';
 import 'package:math_trainer/core/domain/persistence/exercise_codec.dart';
+import 'package:math_trainer/core/domain/placement/placement.dart';
 import 'package:math_trainer/core/domain/placement/placement_exercise_source.dart';
 
 /// Seeds the app really produces (`DateTime.now().millisecondsSinceEpoch`,
@@ -150,11 +151,20 @@ final placementPatterns = <String, PlacementAnswer Function(int i)>{
   'slow right': (i) => (isCorrect: true, elapsedMs: 2500 + i * 61),
 };
 
-/// A full placement's questions, regenerated as the server will
-/// (`replayPlacementQuestions`).
-String placementSequence(int seed, String pattern) => replayPlacementQuestions(
+/// A full placement's questions under [rules], regenerated as the server
+/// will (`replayPlacementQuestions`). Every rules version stays pinned: a
+/// stored placement replays with its own.
+String placementSequence(
+  int seed,
+  String pattern, {
+  PlacementRules rules = placementRulesV1,
+}) => replayPlacementQuestions(
   seed: seed,
-  answers: [for (var i = 0; i < 24; i++) placementPatterns[pattern]!(i)],
+  answers: [
+    for (var i = 0; i < rules.questionCount; i++)
+      placementPatterns[pattern]!(i),
+  ],
+  rules: rules,
 ).map(_describe).join(';');
 
 /// Level updates over a grid of synthetic sessions: correctness patterns ×

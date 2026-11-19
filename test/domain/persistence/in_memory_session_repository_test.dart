@@ -44,6 +44,29 @@ void main() {
   }
 
   group('InMemorySessionRepository', () {
+    late InMemorySessionRepository repository;
+    setUp(() => repository = InMemorySessionRepository());
+
+    test('hasCompletedSession: only a session played to its last question '
+        'counts, and only for its player', () async {
+      expect(await repository.hasCompletedSession('player-1'), isFalse);
+      // Interrupted: 2 answers out of the 10 planned.
+      await repository.recordSession(
+        session: session('interrupted', createdAt: DateTime.utc(2026, 11, 1)),
+        answers: [answer('i-1', 'interrupted'), answer('i-2', 'interrupted')],
+        levelUpdates: const {},
+      );
+      expect(await repository.hasCompletedSession('player-1'), isFalse);
+
+      await repository.recordSession(
+        session: session('complete', createdAt: DateTime.utc(2026, 11, 2)),
+        answers: [for (var i = 0; i < 10; i++) answer('c-$i', 'complete')],
+        levelUpdates: const {},
+      );
+      expect(await repository.hasCompletedSession('player-1'), isTrue);
+      expect(await repository.hasCompletedSession('player-2'), isFalse);
+    });
+
     test(
       'recordSession then answersForSession finds exactly what was written',
       () async {

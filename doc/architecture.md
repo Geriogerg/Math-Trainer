@@ -28,14 +28,14 @@ lib/
                            # (overall level, also stored per session)
       scoring/             # Scorer, ScoringRules
       persistence/         # SessionRepository, LocalPlayerIdProvider, TypeSelectionStore,
-                           # ThemeModeStore (interfaces), PersistedSession/PersistedAnswer,
+                           # ThemeModeStore, PlacementSkipStore (interfaces), PersistedSession/PersistedAnswer,
                            # LevelCacheEntry, InMemorySessionRepository, uuid.dart, exercise_codec.dart
     state/                 # SessionController (ChangeNotifier), SessionState — the only part of
                            # the core importing Flutter (foundation.dart only)
   infrastructure/
     persistence/           # SqfliteSessionRepository, database.dart (schema, migrations, web
                            # engine), SharedPreferences{PlayerIdProvider,TypeSelectionStore,
-                           # ThemeModeStore} — the only place importing sqflite / shared_preferences;
+                           # ThemeModeStore,PlacementSkipStore} — the only place importing sqflite / shared_preferences;
                            # persistent_storage*.dart (navigator.storage.persist, conditional import)
     backend/               # Supabase{Account,Profile}Repository — the only place importing
                            # supabase_flutter (besides composition_root.dart)
@@ -134,7 +134,7 @@ stored discriminant is the `ExerciseType` value name.
 
 | Table | Content |
 |---|---|
-| `sessions` | id, player_id, seed, operation_types, exercise_count, total_score, levels_json (levels frozen at start, in hundredths), overall_level_after (nullable, in level units: 37.42), created_at, synced_at, kind (`SessionKind.name`: `game` or `placementV1`, schema v5) |
+| `sessions` | id, player_id, seed, operation_types, exercise_count, total_score, levels_json (levels frozen at start, in hundredths), overall_level_after (nullable, in level units: 37.42), created_at, synced_at, kind (`SessionKind.name`: `game`, `placementV1` or `placementV2`, schema v5) |
 | `answers` | id, session_id, exercise_type, operation_type, operands_json, submitted_value, is_correct, elapsed_ms, created_at, synced_at |
 | `player_levels` | (player_id, exercise_type), level (in hundredths), sessions_played, updated_at — the level cache |
 

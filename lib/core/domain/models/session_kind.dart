@@ -10,7 +10,10 @@ enum SessionKind {
 
   /// The placement test, rules version 1 (`placementRulesV1`): adaptive
   /// questions, starting levels by `placementLevels`.
-  placementV1;
+  placementV1,
+
+  /// The placement test, rules version 2 (`placementRulesV2`).
+  placementV2;
 
   bool get isPlacement => this != game;
 }

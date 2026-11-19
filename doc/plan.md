@@ -5,7 +5,8 @@
 > from the owner. The day-to-day working rules live in `CLAUDE.md`, which must always stay
 > consistent with this plan (section 11).
 >
-> Version 2.1 — 19 November 2026: phases run in one pass, owner review at the end (section 7
+> Version 2.2 — 19 November 2026: Phase 1 outcome, Phase 2 revised (self-contained sessions,
+> SQL migrations from CI, name charset), English UI. Version 2.1 — phases run in one pass, owner review at the end (section 7
 > and 8). Version 2 — revised after the Phase 0 report. Changes from version 1:
 > Phase 1 rewritten (continuous levels, first-load work, cross-platform determinism check, placement
 > stored as a session, automated preview smoke test); CAPTCHA and email confirmation moved to
@@ -28,7 +29,7 @@ Four pillars, in this order of priority:
 4. **Fair competition.** Rankings and duels computed by a server that trusts nothing the client
    claims.
 
-French-speaking audience first. Competitive tone, not a school exercise book.
+Interface in English (owner decision, Phase 1); French-speaking players remain a key audience. Competitive tone, not a school exercise book.
 
 ## 2. Product principles
 
@@ -84,7 +85,7 @@ feedback only; it never ranks anyone — the level does.
 
 ### 3.4 Accounts and screens
 
-Supabase accounts (email and password, currently mandatory before playing), player name, Profil
+Supabase accounts (anonymous-first since Phase 1, email linking), player name, Profil
 tab with overall level, 30-day curve, per-operation level and average time, recent games.
 Day and night themes. "En ligne" and "Classement" tabs are previews.
 
@@ -93,7 +94,6 @@ Day and night themes. "En ligne" and "Classement" tabs are previews.
 - 49 commits, 176 core tests / 328 in total, steps 1 to 5 and step 6 slices 1–2 done.
 - Web-only since 17 November: the Android emulator is unusable; mobile development is paused.
 - Web storage survives reloads (SQLite in WebAssembly).
-- 28 analyzer deprecation notices since Flutter 3.50 moved Material to `material_ui`.
 
 | Weakness | Why it matters | Fixed in |
 |---|---|---|
@@ -129,7 +129,8 @@ build is the product.**
 - A Flutter web build downloads several megabytes before its first frame; load time is measured
   and a loading screen shows progress.
 
-**Guardrails that keep mobile cheap to return to.** CI compiles the Android APK on every push;
+**Guardrails that keep mobile cheap to return to.** A scheduled CI job compiles the Android APK
+once a week and on demand (not on every push, to keep CI fast);
 web-specific code stays in the infrastructure layer; no dependency without Android and iOS
 support unless its mobile replacement is identified; touch-first input.
 
@@ -196,13 +197,13 @@ notation, layout and durations. Identity comes from four levers.
   player answers a question at once. No form, no name. Replaces the mandatory login of step 6
   slice 2. On web the first visit is online by nature; if the anonymous sign-in fails, a retry
   screen appears.
-- **Linking keeps the same user id**, so no data moves. The Profil tab offers "Sauvegarder ta
-  progression": email, password and player name. Later the leaderboard offers it too, since only
+- **Linking keeps the same user id**, so no data moves. The Profile tab offers "Save your
+  progress": email, password and player name. Later the leaderboard offers it too, since only
   linked players appear on it.
 - **Email already used**: the player can sign in to that account instead, after a clear warning
   that this browser's guest progress will be replaced. No merging of two histories in v1.
-- **An anonymous player has no sign-out** (it would lose the account). They get "Supprimer mes
-  données" instead.
+- **An anonymous player has no sign-out** (it would lose the account). They get "Delete my
+  data" instead.
 - **Existing email accounts keep working**, with sign-in reachable from Profil.
 - **In-app account deletion** for every player, anonymous included: account, profile, server data
   and local history. Done through a database function that deletes only the caller's own
@@ -355,22 +356,53 @@ level matches their skill within a few games.
 30 s; the smoke test is green; an anonymous player links an email and keeps their history; the
 rerun simulation shows a placed player at their level within about 10 games.
 
+### Phase 1 outcome (19 November)
+
+All nine commits delivered; 637 tests; VM and JavaScript identical on 206 pinned cases. Placement
+brings a new player to their level in 5–19 games instead of 65–74. Open at the start of Phase 2:
+the publishable-key secret, the deletion SQL, the owner's play-through, the test accounts.
+Owner decisions on the provisional choices:
+
+- Placement parameters kept (start 35, first step 25, boost on 3 games), but **5 questions per
+  operation** to bring it near 80 s, and the "fast" threshold **per operation** (from `t_rapide`),
+  not a flat 3 s — a flat threshold places players lower on multiplication and division.
+- A skipped placement is remembered; it can be taken later from Profile while the player has no
+  completed game. **An interrupted placement does not count**: it is offered again.
+- Result screen: the level stays a whole number; progress inside the level is a bar, not
+  "(+2.76)".
+- Guest games kept hidden on the device after signing in elsewhere: accepted; they are deleted
+  with the guest account (Phase 2 cleanup).
+- Player name required when saving progress: accepted.
+
 ### Phase 2 — Server and leaderboard
 
 **Goal:** every leaderboard row computed by the server from replayed answers.
 
-1. *(A)* Core extracted to `packages/math_core`; monorepo `app/`, `packages/math_core/`,
+0. *(A)* **Close Phase 1**: the owner decisions above; the type-selection flash before the
+   placement offer; test accounts deleted.
+1. *(A)* **Self-contained sessions.** Everything that decides the question order (the per-type
+   game counts used by rotation, or the type sequence itself) is stored with the session, so a
+   single session replays from (seed, stored config) alone — rule 2. Old sessions stay readable.
+   A test replays every stored session in isolation.
+2. *(A)* **SQL migrations from CI.** Supabase SQL lives in versioned migrations applied by CI on
+   `main` (access token and database password as GitHub secrets, never printed). Existing files in
+   `supabase/` become the first migrations. From then on no SQL is run by hand.
+3. *(A)* Core extracted to `packages/math_core`; monorepo `app/`, `packages/math_core/`,
    `server/`; no behaviour change.
-2. *(A)* Dart server skeleton (`shelf`, container, CI, deployment); host and monthly cost proposed.
-3. *(A)* Session upload: offline queue, idempotent endpoint, `syncedAt`.
-4. *(A)* Server replay and validation; a forged upload rejected by a test.
-5. *(A)* Tables and access rules: continuous level per player and operation, rank and percentile;
+4. *(A)* Dart server skeleton (`shelf`, container, CI). Host and monthly cost **prepared, not
+   deployed, until the owner confirms** (a decision that costs money).
+5. *(A)* Session upload: offline queue, idempotent endpoint, `syncedAt`.
+6. *(A)* Server replay and validation; a forged upload rejected by a test.
+7. *(A)* Tables and access rules: continuous level per player and operation, rank and percentile;
    only the server writes.
-6. *(C)* Leaderboard screen: percentile, neighbours, top 100, per operation.
-7. *(A)* Name filter and report action.
-8. *(A)* Only linked players appear on the leaderboard; it offers anonymous players to save their
+8. *(C)* Leaderboard screen: percentile, neighbours, top 100, per operation.
+9. *(A)* Name filter (including a character set limited to what the bundled fonts cover)
+   and report action.
+10. *(A)* Only linked players appear on the leaderboard; it offers anonymous players to save their
    progress.
-9. *(A)* Cleanup of anonymous players with no uploaded session for 30 days.
+11. *(A)* Cleanup of anonymous players with no uploaded session for 30 days, with their hidden
+    guest games.
+12. *(A)* Android compile-only CI job, weekly and on demand.
 
 **Exit:** rows reproduced by replay; forged upload rejected; the owner sees their rank on a phone.
 
@@ -383,9 +415,13 @@ rerun simulation shows a placed player at their level within about 10 games.
 2. *(A)* Owner dashboard from the server's own data: sessions per day, active players, median time
    per operation, abandonment rate.
 3. *(A)* In-app feedback field.
+3b. *(A)* Preview moved to a host that serves brotli (first load); host choice confirmed by the
+    owner.
 4. *(C)* Recalibration with `tool/recalibrate.dart` on server data; new constants proposed with
    evidence, applied after approval, documented.
 5. *(C)* Timeout derived from the level.
+6. *(C)* First game on a never-played type works as a short placement for that type: a new
+   player still needs ~65 games to climb from level 1 on powers, roots and percentages.
 
 **Exit:** constants updated with documented evidence. Phases 4 and 5 run meanwhile.
 
@@ -472,7 +508,8 @@ owner. Silence never turns a guess into the product.
 |---|---|
 | Browser storage wiped before server sync exists | Persistent storage request (P0); server backup (P2) |
 | Too few beta testers for calibration | Recruit 10–20 people before Phase 3 starts |
-| Flutter web too slow on first load | Measured in P0 (~19 s slow 4G); self-hosted assets and loading screen in P1; revisit renderer if still too slow |
+| Flutter web too slow on first load | Slow 4G: 20 s on the preview (P1). GitHub Pages lacks brotli; move to a brotli host by P3 |
+| Player names in scripts Inter does not cover show as boxes | Name charset restricted to Inter's coverage (P2) |
 | Generation or level maths differ between web (JavaScript) and server (Dart VM) | Cross-platform determinism test in P1; levels in integer hundredths |
 | Levels take too long to settle | Continuous levels and placement test in P1; recalibration in P3 |
 | Unconfirmed emails during the beta | Invite-only audience; confirmation with the domain in P6 |

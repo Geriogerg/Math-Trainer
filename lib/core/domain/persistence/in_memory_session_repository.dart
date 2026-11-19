@@ -42,6 +42,13 @@ class InMemorySessionRepository implements SessionRepository {
   }
 
   @override
+  Future<bool> hasCompletedSession(String playerId) async => _sessions.any(
+    (s) =>
+        s.playerId == playerId &&
+        _answers.where((a) => a.sessionId == s.id).length >= s.exerciseCount,
+  );
+
+  @override
   Future<Map<ExerciseType, LevelCacheEntry>> currentLevels(
     String playerId,
   ) async {

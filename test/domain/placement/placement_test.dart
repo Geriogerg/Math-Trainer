@@ -1,7 +1,9 @@
 import 'package:math_trainer/core/domain/leveling/level.dart';
+import 'package:math_trainer/core/domain/leveling/leveling_rules.dart';
 import 'package:math_trainer/core/domain/models/answer_result.dart';
 import 'package:math_trainer/core/domain/models/exercise.dart';
 import 'package:math_trainer/core/domain/models/exercise_type.dart';
+import 'package:math_trainer/core/domain/models/session_kind.dart';
 import 'package:math_trainer/core/domain/persistence/in_memory_session_repository.dart';
 import 'package:math_trainer/core/domain/placement/placement.dart';
 import 'package:math_trainer/core/domain/placement/placement_exercise_source.dart';
@@ -44,11 +46,62 @@ void main() {
   });
 
   test('a pass is right and within the time limit', () {
-    bool passed(bool ok, int ms) =>
-        placementPassed(isCorrect: ok, elapsedMs: ms, rules: _rules);
-    expect(passed(true, _rules.passMaxElapsedMs), isTrue);
-    expect(passed(true, _rules.passMaxElapsedMs + 1), isFalse);
-    expect(passed(false, 500), isFalse);
+    for (final rules in [placementRulesV1, placementRulesV2]) {
+      for (final type in placementTypes) {
+        bool passed(bool ok, int ms) => placementPassed(
+          type: type,
+          isCorrect: ok,
+          elapsedMs: ms,
+          rules: rules,
+        );
+        final limit = rules.passMaxElapsedMsFor(type);
+        expect(passed(true, limit), isTrue);
+        expect(passed(true, limit + 1), isFalse);
+        expect(passed(false, 500), isFalse);
+      }
+    }
+  });
+
+  test('a non-placed operation has no pass time', () {
+    expect(
+      () => placementRulesV2.passMaxElapsedMsFor(ExerciseType.power),
+      throwsArgumentError,
+    );
+  });
+
+  group('version 2 (owner, end of Phase 1)', () {
+    test('5 questions per operation, same start and step as v1', () {
+      expect(placementRulesV2.questionsPerType, 5);
+      expect(placementRulesV2.questionCount, 20);
+      expect(placementRulesV2.startLevel, placementRulesV1.startLevel);
+      expect(
+        placementRulesV2.firstStepHundredths,
+        placementRulesV1.firstStepHundredths,
+      );
+      expect(currentPlacementRules, same(placementRulesV2));
+    });
+
+    test('pass time per operation, 1.5 × t_rapide', () {
+      expect(
+        placementRulesV2.passMaxElapsedMsByType,
+        placementPassTimesFor(LevelingRules()),
+      );
+    });
+
+    test('v1 is unchanged: a flat 3 s, 6 questions per operation', () {
+      expect(placementRulesV1.questionsPerType, 6);
+      for (final type in placementTypes) {
+        expect(placementRulesV1.passMaxElapsedMsFor(type), 3000);
+      }
+    });
+  });
+
+  test('a placement kind maps to its rules and back', () {
+    expect(placementRulesFor(SessionKind.placementV1), same(placementRulesV1));
+    expect(placementRulesFor(SessionKind.placementV2), same(placementRulesV2));
+    expect(placementKindFor(placementRulesV1), SessionKind.placementV1);
+    expect(placementKindFor(placementRulesV2), SessionKind.placementV2);
+    expect(() => placementRulesFor(SessionKind.game), throwsArgumentError);
   });
 
   test('the four basic operations in turn', () {
@@ -181,13 +234,14 @@ void main() {
     }
     final now = DateTime.utc(2026, 11, 19, 12);
 
-    final updates = await const PlacementLevelOrchestrator().computeUpdates(
-      outcomes: outcomes,
-      frozenLevels: const {},
-      repository: InMemorySessionRepository(),
-      playerId: 'p',
-      now: now,
-    );
+    final updates = await const PlacementLevelOrchestrator(rules: _rules)
+        .computeUpdates(
+          outcomes: outcomes,
+          frozenLevels: const {},
+          repository: InMemorySessionRepository(),
+          playerId: 'p',
+          now: now,
+        );
 
     expect(updates.keys, unorderedEquals(placementTypes));
     for (final entry in updates.values) {

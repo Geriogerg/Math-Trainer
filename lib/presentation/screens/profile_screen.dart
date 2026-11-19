@@ -17,6 +17,7 @@ import '../../core/state/account_form_controller.dart';
 import '../theme/app_theme.dart';
 import 'empty_state.dart';
 import 'save_progress_screen.dart';
+import 'session_flow_screen.dart';
 import 'sign_in_screen.dart';
 
 const _windowDuration = Duration(days: 30);
@@ -45,6 +46,7 @@ class _ProfileData {
     required this.avgElapsedMs,
     required this.windowSessions,
     required this.recentSessions,
+    required this.hasCompletedSession,
   });
 
   /// Frozen once per load — `_LevelCurve` positions its points relative to
@@ -62,6 +64,10 @@ class _ProfileData {
 
   /// `recentSessions(playerId, limit: 10)`, sorted recent → old.
   final List<PersistedSession> recentSessions;
+
+  /// No completed session yet: the placement test is offered here, even
+  /// after a skip on Play (owner, end of Phase 1).
+  final bool hasCompletedSession;
 }
 
 /// Formerly "Progress" (step 5). Renamed Profile in step 6, slice 2: it
@@ -130,6 +136,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           repository.averageElapsedMsByType(playerId),
           repository.sessionsSince(playerId, since),
           repository.recentSessions(playerId, limit: _recentSessionsLimit),
+          repository.hasCompletedSession(playerId),
         ]).then(
           (results) => _ProfileData(
             now: now,
@@ -138,6 +145,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             avgElapsedMs: results[2] as Map<ExerciseType, double>,
             windowSessions: results[3] as List<PersistedSession>,
             recentSessions: results[4] as List<PersistedSession>,
+            hasCompletedSession: results[5] as bool,
           ),
         );
     _loadProfile();
@@ -275,6 +283,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     messenger.showSnackBar(SnackBar(content: Text(message)));
   }
 
+  /// The placement test, from Profile: same flow as from Play.
+  Future<void> _findLevel() async {
+    final environment = widget.environment;
+    await playSessionFlow(
+      context,
+      environment,
+      buildPlacementController(environment),
+    );
+    if (mounted) setState(_load);
+  }
+
   /// Sign in to an existing account; `AuthGate` swaps the whole shell on
   /// success, so nothing to reload here.
   void _signInExisting(bool isGuest, bool hasProgress) {
@@ -346,6 +365,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 );
               },
             ),
+            if (!data.hasCompletedSession) ...[
+              const SizedBox(height: 24),
+              _FindLevelBlock(onStart: _findLevel),
+            ],
             const SizedBox(height: 24),
             Text(
               'Overall level: ${globalLevel == null ? '—' : globalLevel.round()}',
@@ -404,6 +427,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         );
       },
+    );
+  }
+}
+
+/// Offered while the player has no completed session.
+class _FindLevelBlock extends StatelessWidget {
+  const _FindLevelBlock({required this.onStart});
+
+  final VoidCallback onStart;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Find your level', style: theme.textTheme.bodyLarge),
+        const SizedBox(height: 4),
+        Text(
+          'About a minute of + − × ÷, so your games start at the right '
+          'difficulty.',
+          style: theme.textTheme.bodyMedium,
+        ),
+        const SizedBox(height: 8),
+        FilledButton.tonal(
+          onPressed: onStart,
+          child: const Text('Find my level'),
+        ),
+      ],
     );
   }
 }

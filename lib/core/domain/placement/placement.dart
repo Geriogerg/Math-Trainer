@@ -1,5 +1,7 @@
 import '../leveling/level.dart';
+import '../leveling/leveling_rules.dart';
 import '../models/exercise_type.dart';
+import '../models/session_kind.dart';
 
 /// Placement test (plan, Phase 1 commit 6): about a minute on the four
 /// basic operations, one adaptive **staircase** per operation, that sets
@@ -28,7 +30,7 @@ class PlacementRules {
     required this.startLevel,
     required this.firstStepHundredths,
     required this.questionsPerType,
-    required this.passMaxElapsedMs,
+    required this.passMaxElapsedMsByType,
     required this.sessionsPlayedAfter,
   });
 
@@ -43,9 +45,18 @@ class PlacementRules {
   final int questionsPerType;
 
   /// An answer "passes" (the staircase goes up) if right **and** given
-  /// within this time. Right but slow fails: the level targets fast and
-  /// right answers (`p_cible` weighs speed), not right at any speed.
-  final int passMaxElapsedMs;
+  /// within its operation's time. Right but slow fails: the level targets
+  /// fast and right answers (`p_cible` weighs speed), not right at any
+  /// speed. One entry per placed operation.
+  final Map<ExerciseType, int> passMaxElapsedMsByType;
+
+  int passMaxElapsedMsFor(ExerciseType type) {
+    final ms = passMaxElapsedMsByType[type];
+    if (ms == null) {
+      throw ArgumentError.value(type, 'type', 'is not a placed operation.');
+    }
+    return ms;
+  }
 
   /// `sessionsPlayed` written to the level cache of a placed operation:
   /// below 3, the next sessions still move with the calibration boost
@@ -55,19 +66,73 @@ class PlacementRules {
   int get questionCount => questionsPerType * placementTypes.length;
 }
 
-/// Version 1 — chosen by simulation (`tool/placement_check.dart`,
-/// `doc/decisions.md`); **provisional** until the owner confirms.
+/// Version 1 (Phase 1): 6 questions per operation, a flat 3 s. Kept so
+/// that stored `placementV1` sessions still replay — never edit it.
 const placementRulesV1 = PlacementRules(
   version: 1,
   startLevel: 35,
   firstStepHundredths: 2500,
   questionsPerType: 6,
-  passMaxElapsedMs: 3000,
+  passMaxElapsedMsByType: {
+    ExerciseType.addition: 3000,
+    ExerciseType.subtraction: 3000,
+    ExerciseType.multiplication: 3000,
+    ExerciseType.division: 3000,
+  },
   sessionsPlayedAfter: 0,
 );
 
-/// Every version a stored placement may have used.
-const placementRulesByVersion = {1: placementRulesV1};
+/// How the pass time of version 2 follows `t_rapide`: 1.5 × the
+/// operation's `t_rapide` (`tool/placement_check.dart`, `doc/decisions.md`).
+const placementPassTimeOverTRapide = 1.5;
+
+/// Version 2 (owner, end of Phase 1): 5 questions per operation (shorter,
+/// near 80 s), the pass time **per operation**, 1.5 × its `t_rapide`.
+/// `LevelingRules` has a single `t_rapide` (2 s) today, so the four values
+/// are equal until Phase 3 gives each operation its own; a test keeps them
+/// tied to `LevelingRules`.
+const placementRulesV2 = PlacementRules(
+  version: 2,
+  startLevel: 35,
+  firstStepHundredths: 2500,
+  questionsPerType: 5,
+  passMaxElapsedMsByType: {
+    ExerciseType.addition: 3000,
+    ExerciseType.subtraction: 3000,
+    ExerciseType.multiplication: 3000,
+    ExerciseType.division: 3000,
+  },
+  sessionsPlayedAfter: 0,
+);
+
+/// The rules a new placement uses.
+const currentPlacementRules = placementRulesV2;
+
+/// The pass times `placementRulesV2` must hold for [rules]: 1.5 ×
+/// `t_rapide`, for each placed operation.
+Map<ExerciseType, int> placementPassTimesFor(LevelingRules rules) => {
+  for (final type in placementTypes)
+    type: (rules.tRapideMs * placementPassTimeOverTRapide).round(),
+};
+
+/// The rules a stored placement of [kind] was played with. Throws for a
+/// game (rule 13).
+PlacementRules placementRulesFor(SessionKind kind) => switch (kind) {
+  SessionKind.placementV1 => placementRulesV1,
+  SessionKind.placementV2 => placementRulesV2,
+  SessionKind.game => throw ArgumentError.value(
+    kind,
+    'kind',
+    'is not a placement.',
+  ),
+};
+
+/// The session kind a placement with [rules] is stored as.
+SessionKind placementKindFor(PlacementRules rules) => switch (rules.version) {
+  1 => SessionKind.placementV1,
+  2 => SessionKind.placementV2,
+  _ => throw ArgumentError.value(rules.version, 'rules.version', 'unknown.'),
+};
 
 /// One operation's staircase: the level of its next question and the
 /// next move, both in hundredths.
@@ -93,12 +158,13 @@ class Staircase {
   );
 }
 
-/// Whether an answer moves the staircase up.
+/// Whether an answer to a question of [type] moves the staircase up.
 bool placementPassed({
+  required ExerciseType type,
   required bool isCorrect,
   required int elapsedMs,
   required PlacementRules rules,
-}) => isCorrect && elapsedMs <= rules.passMaxElapsedMs;
+}) => isCorrect && elapsedMs <= rules.passMaxElapsedMsFor(type);
 
 /// The type of the [index]-th question (0-based): the four operations in
 /// turn, so each staircase advances evenly and an interrupted placement
@@ -119,6 +185,7 @@ Map<ExerciseType, Staircase> replayStaircases(
     final type = placementTypeAt(i);
     stairs[type] = stairs[type]!.after(
       passed: placementPassed(
+        type: type,
         isCorrect: answers[i].isCorrect,
         elapsedMs: answers[i].elapsedMs,
         rules: rules,

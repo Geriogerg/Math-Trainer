@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:math_trainer/app.dart';
 import 'package:math_trainer/composition_root.dart';
@@ -10,6 +11,10 @@ import '../fake_account_repository.dart';
 import '../fake_profile_repository.dart';
 
 void main() {
+  // `PlayTab` reads the remembered selection and placement skip before it
+  // draws (no flash of the selection before the placement offer).
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+
   final testEnvironment = AppEnvironment(
     repository: InMemorySessionRepository(),
     playerId: 'test-player',

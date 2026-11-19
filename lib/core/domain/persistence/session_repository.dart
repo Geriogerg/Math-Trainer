@@ -25,6 +25,11 @@ abstract class SessionRepository {
 
   Future<List<PersistedAnswer>> answersForSession(String sessionId);
 
+  /// Whether [playerId] has at least one session played to its last
+  /// question, game or placement. An interrupted session does not count
+  /// (owner, end of Phase 1): an interrupted placement is offered again.
+  Future<bool> hasCompletedSession(String playerId);
+
   /// Current state of the level cache for [playerId]. Only includes
   /// operations played at least once — the caller decides the default
   /// level for a missing operation (see `doc/decisions.md`).

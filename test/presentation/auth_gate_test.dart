@@ -11,6 +11,7 @@ import 'package:math_trainer/core/domain/account/account_repository.dart';
 import 'package:math_trainer/core/domain/models/exercise_type.dart';
 import 'package:math_trainer/core/domain/persistence/in_memory_session_repository.dart';
 import 'package:math_trainer/core/domain/persistence/level_cache_entry.dart';
+import 'package:math_trainer/core/domain/persistence/persisted_answer.dart';
 import 'package:math_trainer/core/domain/persistence/persisted_session.dart';
 import 'package:math_trainer/presentation/screens/auth_gate.dart';
 import 'package:math_trainer/presentation/theme/app_theme.dart';
@@ -79,6 +80,10 @@ class _ControllableAccountRepository implements AccountRepository {
 const _guest = Account(id: 'guest-1', isAnonymous: true);
 
 void main() {
+  // `PlayTab` reads the remembered selection and placement skip before it
+  // draws (no flash of the selection before the placement offer).
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+
   Future<AppEnvironment> pumpGate(
     WidgetTester tester,
     _ControllableAccountRepository accountRepository,
@@ -269,7 +274,21 @@ void main() {
             levels: {ExerciseType.addition: Level.whole(40)},
             createdAt: DateTime.utc(2026, 11, 1),
           ),
-          answers: const [],
+          // Played to the end: a completed session, so no placement offer.
+          answers: [
+            for (var i = 0; i < 4; i++)
+              PersistedAnswer(
+                id: 'answer-$i',
+                sessionId: 'session-appareil',
+                exerciseType: 'arithmetic',
+                operationType: 'addition',
+                operands: const {'left': 20, 'right': 22},
+                submittedValue: 42,
+                isCorrect: true,
+                elapsedMs: 1500,
+                createdAt: DateTime.utc(2026, 11, 1),
+              ),
+          ],
           levelUpdates: {
             ExerciseType.addition: LevelCacheEntry(
               level: Level.whole(43),

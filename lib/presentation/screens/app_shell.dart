@@ -71,6 +71,7 @@ class _AppShellState extends State<AppShell>
       PlayTab(
         environment: widget.environment,
         onToggleTheme: widget.onToggleTheme,
+        isActive: _index == 0,
       ),
       const ComingSoonScreen(label: 'Online'),
       ProfileScreen(environment: widget.environment, isActive: _index == 2),

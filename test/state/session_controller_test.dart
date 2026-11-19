@@ -77,6 +77,9 @@ class _LevelReadFailureRepository implements SessionRepository {
   @override
   Future<void> deletePlayerData(String playerId) => throw UnimplementedError();
   final inner = InMemorySessionRepository();
+  @override
+  Future<bool> hasCompletedSession(String playerId) =>
+      inner.hasCompletedSession(playerId);
 
   @override
   Future<Map<ExerciseType, LevelCacheEntry>> currentLevels(String playerId) =>
@@ -130,6 +133,9 @@ class _BuggyLevelReadRepository implements SessionRepository {
   @override
   Future<void> deletePlayerData(String playerId) => throw UnimplementedError();
   final inner = InMemorySessionRepository();
+  @override
+  Future<bool> hasCompletedSession(String playerId) =>
+      inner.hasCompletedSession(playerId);
 
   @override
   Future<Map<ExerciseType, LevelCacheEntry>> currentLevels(String playerId) =>

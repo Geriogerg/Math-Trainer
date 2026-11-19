@@ -3,7 +3,6 @@ import 'package:material_ui/material_ui.dart';
 import '../../composition_root.dart';
 import '../../core/domain/models/exercise_type.dart';
 import '../../core/domain/persistence/level_cache_entry.dart';
-import '../../core/domain/persistence/persisted_session.dart';
 import '../../core/state/session_controller.dart';
 import '../exercise_type_labels.dart';
 import '../../core/domain/leveling/overall_level.dart';
@@ -22,9 +21,18 @@ const _defaultSelectedTypes = {ExerciseType.addition, ExerciseType.subtraction};
 /// session itself is pushed full screen over the tab bar
 /// (`SessionFlowScreen`), not switched inline as before step 5, commit E.
 class PlayTab extends StatefulWidget {
-  const PlayTab({super.key, required this.environment, this.onToggleTheme});
+  const PlayTab({
+    super.key,
+    required this.environment,
+    this.onToggleTheme,
+    this.isActive = true,
+  });
 
   final AppEnvironment environment;
+
+  /// True when `AppShell` shows this tab. Coming back to it re-reads the
+  /// startup state: a placement taken from Profile ends the offer here.
+  final bool isActive;
 
   /// Day/night button in the corner of the home screen (`doc/design.md`) —
   /// `null` by default so as not to break tests that do not care about the
@@ -46,11 +54,17 @@ class _PlayTabState extends State<PlayTab> {
   double? _globalLevel;
   bool _hasHistory = false;
 
-  /// No session stored at all (not even an interrupted one): the placement
-  /// test is offered instead of the type selection, until played or
-  /// skipped. Skipping is not stored: a player who skips and leaves without
-  /// playing is offered it again next time — still a new player.
+  /// No completed session (an interrupted one does not count) and the
+  /// offer never skipped: the placement test is offered instead of the
+  /// type selection (owner, end of Phase 1). A skip is remembered per
+  /// player; Profile still offers the placement until a session is
+  /// completed.
   bool _offerPlacement = false;
+
+  /// `false` until the first read resolves: nothing is drawn meanwhile, or
+  /// a new player would see the type selection flash before the placement
+  /// offer replaces it. A local read — a few milliseconds.
+  bool _startupResolved = false;
 
   @override
   void initState() {
@@ -58,36 +72,50 @@ class _PlayTabState extends State<PlayTab> {
     _loadStartupState();
   }
 
+  @override
+  void didUpdateWidget(covariant PlayTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive && !oldWidget.isActive) _loadStartupState();
+  }
+
   Future<void> _loadStartupState() async {
     // Purely auxiliary (level hint, welcome, remembered selection): a
     // failure here must never prevent starting a session with the default
     // already shown — same logic as the silent failure of
     // `_persistCompletedSession` in the controller.
+    final environment = widget.environment;
     try {
       final results = await Future.wait([
-        widget.environment.typeSelectionStore.load(),
-        widget.environment.repository.currentLevels(
-          widget.environment.playerId,
-        ),
-        widget.environment.repository.recentSessions(
-          widget.environment.playerId,
-          limit: 1,
-        ),
+        environment.typeSelectionStore.load(),
+        environment.repository.currentLevels(environment.playerId),
+        environment.repository.hasCompletedSession(environment.playerId),
+        environment.placementSkipStore.hasSkipped(environment.playerId),
       ]);
       if (!mounted) return;
       final storedSelection = results[0] as Set<ExerciseType>?;
       final levels = results[1] as Map<ExerciseType, LevelCacheEntry>;
-      final anySession = (results[2] as List<PersistedSession>).isNotEmpty;
+      final completed = results[2] as bool;
+      final skipped = results[3] as bool;
       setState(() {
         if (storedSelection != null) _selectedTypes = storedSelection;
         _hasHistory = levels.isNotEmpty;
         _globalLevel = levels.isEmpty ? null : overallLevel(levels);
-        _offerPlacement = !anySession;
+        _offerPlacement = !completed && !skipped;
+        _startupResolved = true;
       });
     } on Exception catch (_) {
-      // Stay on the default already shown — no error state on the main
+      // The type selection with its default — no error state on the main
       // screen for secondary information.
+      if (mounted) setState(() => _startupResolved = true);
     }
+  }
+
+  void _skipPlacement() {
+    setState(() => _offerPlacement = false);
+    // A failed write only costs the offer again at the next launch.
+    widget.environment.placementSkipStore
+        .markSkipped(widget.environment.playerId)
+        .ignore();
   }
 
   void _updateSelection(Set<ExerciseType> types) {
@@ -125,33 +153,25 @@ class _PlayTabState extends State<PlayTab> {
       return;
     }
     if (!mounted) return;
-    controller.start();
     setState(() => _isStarting = false);
-    // SessionFlowScreen owns the controller (dispose() in its own State).
-    // The route returns the end-of-session write still running
-    // (`SessionFlowScreen._exitToSelection`): re-reading the levels before it
-    // completes would show the overall level from before the game.
-    final pendingPersistence = await Navigator.of(context).push<Future<void>>(
-      MaterialPageRoute(
-        fullscreenDialog: true,
-        builder: (_) => SessionFlowScreen(
-          controller: controller,
-          environment: widget.environment,
-        ),
-      ),
-    );
-    await pendingPersistence;
+    await playSessionFlow(context, widget.environment, controller);
     if (mounted) await _loadStartupState();
   }
 
   @override
   Widget build(BuildContext context) {
+    if (!_startupResolved) {
+      return _ThemeToggleOverlay(
+        onToggleTheme: widget.onToggleTheme,
+        child: const SizedBox.expand(),
+      );
+    }
     if (_offerPlacement) {
       return _ThemeToggleOverlay(
         onToggleTheme: widget.onToggleTheme,
         child: _PlacementOfferView(
           onStart: _isStarting ? null : _startPlacement,
-          onSkip: () => setState(() => _offerPlacement = false),
+          onSkip: _skipPlacement,
           isStarting: _isStarting,
           startError: _startError,
         ),

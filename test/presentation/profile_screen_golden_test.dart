@@ -23,6 +23,8 @@ import 'golden_test_utils.dart';
 class _FixedLevelsRepository implements SessionRepository {
   @override
   Future<void> deletePlayerData(String playerId) => throw UnimplementedError();
+  @override
+  Future<bool> hasCompletedSession(String playerId) async => true;
   _FixedLevelsRepository(DateTime now)
     : _windowSessions = [
         _session(

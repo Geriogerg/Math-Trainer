@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:math_trainer/composition_root.dart';
 import 'package:math_trainer/core/domain/persistence/in_memory_session_repository.dart';
@@ -10,6 +11,10 @@ import '../fake_account_repository.dart';
 import '../fake_profile_repository.dart';
 
 void main() {
+  // `PlayTab` reads the remembered selection and placement skip before it
+  // draws (no flash of the selection before the placement offer).
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+
   testWidgets(
     'the tab change fade does not break state preservation (commit F)',
     (tester) async {
@@ -26,7 +31,9 @@ void main() {
           home: AppShell(environment: environment),
         ),
       );
-      await tester.pump();
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Skip'));
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text('Multiplication'));
       await tester.pump();
@@ -40,7 +47,7 @@ void main() {
 
       // Not `find.text('Profile')`: ambiguous with the tab's own label,
       // present in the tree at the same time.
-      expect(find.text('By operation'), findsOneWidget);
+      expect(find.textContaining('30-day change'), findsOneWidget);
 
       await tester.tap(find.text('Play'));
       await tester.pump();

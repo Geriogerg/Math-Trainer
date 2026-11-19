@@ -215,6 +215,19 @@ Phase 0 closed in Phase 1 commit 0 (`material_ui`, `δ` recorded, preview, load)
   `58c28fa0-…`, `c655e665-…`, `4d09177b-…` (deletion function not installed). **The job fails
   until the owner adds `SUPABASE_PUBLISHABLE_KEY` and runs `supabase/delete_account.sql`.**
 
+## Phase 2 — Server and leaderboard
+
+- **Commit 0** *(A)* — Close Phase 1 with the owner's decisions. Placement **version 2**
+  (`placementRulesV2`, `SessionKind.placementV2`; v1 kept and still replayable): 5 questions
+  per operation, pass time per operation at 1.5 × `t_rapide` (equal for the four today: one
+  `t_rapide` in `LevelingRules`). Simulation rerun: median ~81 s, games to ±3 5.6 / 20.0.
+  Offer on Play only without a **completed** session and without a remembered skip
+  (`PlacementSkipStore`); "Find my level" in Profile until a session is completed; no type
+  selection flash (Play draws nothing until its local read resolves). Result screen: whole
+  level and a bar inside it, no more "(+2.76)" (`level_format.dart` removed). 48 placement v2
+  sequences pinned (v1 references unchanged). `SessionRepository.hasCompletedSession`.
+  **Parked: test accounts** — deleted once `delete_my_account()` is applied by CI (commit 2).
+
 ### Remaining contradictions after commit 0
 
 The five plan/reality contradictions found at commit 0 (language, `δ`, branch and remote, commit 0

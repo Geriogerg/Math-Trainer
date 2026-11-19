@@ -8,6 +8,7 @@ import 'package:math_trainer/core/domain/leveling/confidence.dart';
 import 'package:math_trainer/core/domain/leveling/level.dart';
 import 'package:math_trainer/core/domain/leveling/level_updater.dart';
 import 'package:math_trainer/core/domain/leveling/leveling_rules.dart';
+import 'package:math_trainer/core/domain/models/exercise_type.dart';
 import 'package:math_trainer/core/domain/persistence/level_cache_entry.dart';
 import 'package:math_trainer/core/domain/placement/placement.dart';
 
@@ -33,20 +34,28 @@ void main() {
     print(
       '== Model w = $w (equilibrium = skill ${offset.toStringAsFixed(1)}) ==',
     );
-    print('Stage 1 — placement alone (24 questions):');
+    print(
+      'Stage 1 — placement alone '
+      '(${_questionsPerType * placementTypes.length} questions):',
+    );
     print(
       'start\tstep\tpass ms\tbias\tmean |err|\twithin ±5\twithin ±10\tduration p50 / p90',
     );
     final scored = <(double, PlacementRules)>[];
     for (final start in [25, 35, 50]) {
       for (final step in [1600, 2000, 2500, 3200]) {
-        for (final passMs in [3000, 4000, 5000, 6000]) {
+        // 1.5, 1.75, 2, 2.5 and 3 × t_rapide (2 s).
+        for (final passMs in [3000, 3500, 4000, 5000, 6000]) {
           final placement = PlacementRules(
             version: 0,
             startLevel: start,
             firstStepHundredths: step,
-            questionsPerType: 6,
-            passMaxElapsedMs: passMs,
+            questionsPerType: _questionsPerType,
+            // The model has one response-time curve for every operation:
+            // one pass time stands for all four.
+            passMaxElapsedMsByType: {
+              for (final type in placementTypes) type: passMs,
+            },
             sessionsPlayedAfter: 1,
           );
           final m = _placementOnly(placement, w, offset);
@@ -77,7 +86,7 @@ void main() {
         final m = _games(placement, w, offset, sessionsPlayedAfter: after);
         print(
           'start ${placement.startLevel}, step ${placement.firstStepHundredths}, '
-          '${placement.passMaxElapsedMs} ms\t$after\t'
+          '${placement.passMaxElapsedMsFor(ExerciseType.addition)} ms\t$after\t'
           '${m.meanGames.toStringAsFixed(1)} / ${m.p90Games}\t\t\t'
           '${m.err5.toStringAsFixed(1)} / ${m.err10.toStringAsFixed(1)}',
         );
@@ -94,6 +103,9 @@ void main() {
 }
 
 const _players = 2000;
+
+/// 6 in version 1, 5 in version 2 (owner, end of Phase 1).
+const _questionsPerType = 5;
 
 typedef _PlacementMetrics = ({
   double bias,

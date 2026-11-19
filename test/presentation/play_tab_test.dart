@@ -6,12 +6,14 @@ import 'package:math_trainer/core/domain/leveling/level.dart';
 import 'package:math_trainer/core/domain/models/exercise_type.dart';
 import 'package:math_trainer/core/domain/persistence/in_memory_session_repository.dart';
 import 'package:math_trainer/core/domain/persistence/level_cache_entry.dart';
+import 'package:math_trainer/core/domain/persistence/persisted_answer.dart';
 import 'package:math_trainer/core/domain/persistence/persisted_session.dart';
 import 'package:math_trainer/core/domain/persistence/type_selection_store.dart';
 import 'package:math_trainer/presentation/screens/play_tab.dart';
 import 'package:math_trainer/presentation/theme/app_theme.dart';
 
 import '../fake_account_repository.dart';
+import '../fake_placement_skip_store.dart';
 import '../fake_profile_repository.dart';
 
 /// In-memory store — no shared test infrastructure for a single class of a
@@ -54,6 +56,7 @@ void main() {
         accountRepository: FakeAccountRepository(),
         profileRepository: FakeProfileRepository(),
         typeSelectionStore: _FakeTypeSelectionStore(),
+        placementSkipStore: FakePlacementSkipStore(),
       );
 
   group('placement offer', () {
@@ -84,22 +87,53 @@ void main() {
       expect(find.byType(FilterChip), findsNWidgets(7));
     });
 
-    testWidgets('any stored session, even interrupted, means no offer', (
+    PersistedSession sessionOf(String id) => PersistedSession(
+      id: id,
+      playerId: 'test-player',
+      seed: 1,
+      enabledTypes: const {ExerciseType.addition},
+      exerciseCount: 1,
+      totalScore: 0,
+      levels: {ExerciseType.addition: Level.floor},
+      createdAt: DateTime.utc(2026, 11, 1),
+    );
+
+    testWidgets('an interrupted session does not count: still offered', (
       tester,
     ) async {
       final repository = InMemorySessionRepository();
       await repository.recordSession(
-        session: PersistedSession(
-          id: 'interrupted',
-          playerId: 'test-player',
-          seed: 1,
-          enabledTypes: const {ExerciseType.addition},
-          exerciseCount: 4,
-          totalScore: 0,
-          levels: {ExerciseType.addition: Level.floor},
-          createdAt: DateTime.utc(2026, 11, 1),
-        ),
+        session: sessionOf('interrupted'),
         answers: const [],
+        levelUpdates: const {},
+      );
+
+      await pumpPlayTab(
+        tester,
+        environmentWith(repository),
+        skipPlacement: false,
+      );
+
+      expect(find.text('Find my level'), findsOneWidget);
+    });
+
+    testWidgets('a completed session means no offer', (tester) async {
+      final repository = InMemorySessionRepository();
+      await repository.recordSession(
+        session: sessionOf('completed'),
+        answers: [
+          PersistedAnswer(
+            id: 'a1',
+            sessionId: 'completed',
+            exerciseType: 'arithmetic',
+            operationType: 'addition',
+            operands: const {'left': 1, 'right': 1},
+            submittedValue: 2,
+            isCorrect: true,
+            elapsedMs: 900,
+            createdAt: DateTime.utc(2026, 11, 1),
+          ),
+        ],
         levelUpdates: const {},
       );
 
@@ -111,6 +145,48 @@ void main() {
 
       expect(find.text('Find my level'), findsNothing);
       expect(find.byType(FilterChip), findsNWidgets(7));
+    });
+
+    testWidgets('a skip is remembered for this player', (tester) async {
+      final skips = FakePlacementSkipStore();
+      AppEnvironment environment() => AppEnvironment(
+        repository: InMemorySessionRepository(),
+        playerId: 'test-player',
+        accountRepository: FakeAccountRepository(),
+        profileRepository: FakeProfileRepository(),
+        typeSelectionStore: _FakeTypeSelectionStore(),
+        placementSkipStore: skips,
+      );
+      await pumpPlayTab(tester, environment(), skipPlacement: false);
+      await tester.tap(find.text('Skip'));
+      await tester.pumpAndSettle();
+      expect(skips.skipped, {'test-player'});
+
+      // A new launch: straight to the type selection.
+      await tester.pumpWidget(const SizedBox());
+      await pumpPlayTab(tester, environment(), skipPlacement: false);
+      expect(find.text('Find my level'), findsNothing);
+      expect(find.byType(FilterChip), findsNWidgets(7));
+    });
+
+    testWidgets('nothing is drawn before the startup read resolves', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildLightTheme(),
+          home: Scaffold(
+            body: PlayTab(
+              environment: environmentWith(InMemorySessionRepository()),
+            ),
+          ),
+        ),
+      );
+      // First frame: neither the selection nor the offer (no flash).
+      expect(find.byType(FilterChip), findsNothing);
+      expect(find.text('Find my level'), findsNothing);
+      await tester.pumpAndSettle();
+      expect(find.text('Find my level'), findsOneWidget);
     });
 
     testWidgets('Find my level starts the placement session', (tester) async {
@@ -125,7 +201,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 500));
 
       expect(find.textContaining('finding your level'), findsOneWidget);
-      expect(find.text('1 / 24'), findsOneWidget);
+      expect(find.text('1 / 20'), findsOneWidget);
     });
   });
 
@@ -140,6 +216,7 @@ void main() {
       accountRepository: FakeAccountRepository(),
       profileRepository: FakeProfileRepository(),
       typeSelectionStore: store,
+      placementSkipStore: FakePlacementSkipStore(),
     );
 
     await pumpPlayTab(tester, environment);
@@ -163,6 +240,7 @@ void main() {
       accountRepository: FakeAccountRepository(),
       profileRepository: FakeProfileRepository(),
       typeSelectionStore: _FakeTypeSelectionStore(),
+      placementSkipStore: FakePlacementSkipStore(),
     );
 
     await pumpPlayTab(tester, environment);
@@ -185,6 +263,7 @@ void main() {
       accountRepository: FakeAccountRepository(),
       profileRepository: FakeProfileRepository(),
       typeSelectionStore: store,
+      placementSkipStore: FakePlacementSkipStore(),
     );
 
     await pumpPlayTab(tester, environment);
@@ -204,6 +283,7 @@ void main() {
       accountRepository: FakeAccountRepository(),
       profileRepository: FakeProfileRepository(),
       typeSelectionStore: store,
+      placementSkipStore: FakePlacementSkipStore(),
     );
     await pumpPlayTab(tester, secondEnvironment);
 
@@ -225,6 +305,7 @@ void main() {
       accountRepository: FakeAccountRepository(),
       profileRepository: FakeProfileRepository(),
       typeSelectionStore: _FakeTypeSelectionStore(),
+      placementSkipStore: FakePlacementSkipStore(),
     );
 
     await pumpPlayTab(tester, environment);
@@ -263,6 +344,7 @@ void main() {
       accountRepository: FakeAccountRepository(),
       profileRepository: FakeProfileRepository(),
       typeSelectionStore: _FakeTypeSelectionStore(),
+      placementSkipStore: FakePlacementSkipStore(),
     );
 
     await pumpPlayTab(tester, environment);

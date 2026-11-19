@@ -12,8 +12,10 @@ typedef PlacementAnswer = ({bool isCorrect, int elapsedMs});
 /// at its staircase's current level. Adaptive, yet deterministic (rule 2):
 /// question `i` depends only on the seed and the answers before it.
 class PlacementExerciseSource extends ExerciseSource {
-  PlacementExerciseSource({required int seed, this.rules = placementRulesV1})
-    : _random = Random(seed);
+  PlacementExerciseSource({
+    required int seed,
+    this.rules = currentPlacementRules,
+  }) : _random = Random(seed);
 
   final PlacementRules rules;
   final Random _random;
@@ -46,7 +48,7 @@ class PlacementExerciseSource extends ExerciseSource {
 List<Exercise> replayPlacementQuestions({
   required int seed,
   required List<PlacementAnswer> answers,
-  PlacementRules rules = placementRulesV1,
+  PlacementRules rules = currentPlacementRules,
 }) {
   final random = Random(seed);
   return [

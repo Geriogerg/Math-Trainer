@@ -14,8 +14,8 @@ import 'core/domain/leveling/level.dart';
 import 'core/domain/leveling/leveling_rules.dart';
 import 'core/domain/models/exercise_type.dart';
 import 'core/domain/models/session_config.dart';
-import 'core/domain/models/session_kind.dart';
 import 'core/domain/persistence/local_player_id_provider.dart';
+import 'core/domain/persistence/placement_skip_store.dart';
 import 'core/domain/persistence/session_repository.dart';
 import 'core/domain/persistence/theme_mode_store.dart';
 import 'core/domain/persistence/type_selection_store.dart';
@@ -27,6 +27,7 @@ import 'infrastructure/backend/supabase_account_repository.dart';
 import 'infrastructure/backend/supabase_profile_repository.dart';
 import 'infrastructure/persistence/database.dart';
 import 'infrastructure/persistence/persistent_storage.dart';
+import 'infrastructure/persistence/shared_preferences_placement_skip_store.dart';
 import 'infrastructure/persistence/shared_preferences_player_id_provider.dart';
 import 'infrastructure/persistence/shared_preferences_theme_mode_store.dart';
 import 'infrastructure/persistence/shared_preferences_type_selection_store.dart';
@@ -51,6 +52,7 @@ class AppEnvironment {
     required this.profileRepository,
     this.typeSelectionStore = const SharedPreferencesTypeSelectionStore(),
     this.themeModeStore = const SharedPreferencesThemeModeStore(),
+    this.placementSkipStore = const SharedPreferencesPlacementSkipStore(),
   });
 
   final SessionRepository repository;
@@ -83,6 +85,9 @@ class AppEnvironment {
   /// construction in tests that do not care about the theme toggle.
   final ThemeModeStore themeModeStore;
 
+  /// Same reasoning as `typeSelectionStore`.
+  final PlacementSkipStore placementSkipStore;
+
   AppEnvironment forPlayer(String playerId) => AppEnvironment(
     repository: repository,
     playerId: playerId,
@@ -90,6 +95,7 @@ class AppEnvironment {
     profileRepository: profileRepository,
     typeSelectionStore: typeSelectionStore,
     themeModeStore: themeModeStore,
+    placementSkipStore: placementSkipStore,
   );
 }
 
@@ -260,7 +266,7 @@ Future<SessionController> buildSessionController(
 /// in turn, each on its own adaptive staircase, then starting levels from
 /// `placementLevels`. Offered by `PlayTab` to a player with no history.
 SessionController buildPlacementController(AppEnvironment environment) {
-  const rules = placementRulesV1;
+  const rules = currentPlacementRules;
   final seed = DateTime.now().millisecondsSinceEpoch;
   return SessionController(
     config: SessionConfig(
@@ -272,7 +278,7 @@ SessionController buildPlacementController(AppEnvironment environment) {
       levels: {
         for (final t in placementTypes) t: Level.whole(rules.startLevel),
       },
-      kind: SessionKind.placementV1,
+      kind: placementKindFor(rules),
     ),
     exerciseSource: PlacementExerciseSource(seed: seed, rules: rules),
     levelCacheOrchestrator: const PlacementLevelOrchestrator(rules: rules),

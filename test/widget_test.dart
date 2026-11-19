@@ -20,6 +20,9 @@ class _ThrowingSessionRepository implements SessionRepository {
   @override
   Future<void> deletePlayerData(String playerId) => throw UnimplementedError();
   @override
+  Future<bool> hasCompletedSession(String playerId) =>
+      throw Exception('simulated failure');
+  @override
   Future<void> recordSession({
     required PersistedSession session,
     required List<PersistedAnswer> answers,
@@ -69,6 +72,17 @@ void main() {
     profileRepository: FakeProfileRepository(),
   );
 
+  /// The app up to the type selection: `AuthGate` and `PlayTab` resolve
+  /// their local reads, then a new player skips the placement offer.
+  Future<void> openPlay(WidgetTester tester, AppEnvironment environment) async {
+    await tester.pumpWidget(MathTrainerApp(environment: environment));
+    await tester.pumpAndSettle();
+    if (find.text('Skip').evaluate().isNotEmpty) {
+      await tester.tap(find.text('Skip'));
+      await tester.pumpAndSettle();
+    }
+  }
+
   // Advances time just enough for the standard MaterialPageRoute transition
   // to settle, without waiting for the rest (SessionScreen's timer runs 5 s
   // per question: a pumpAndSettle() here would never converge while a new
@@ -79,11 +93,7 @@ void main() {
   }
 
   testWidgets('shows the home screen', (WidgetTester tester) async {
-    await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
-    // `AuthGate` resolves the local session asynchronously (even offline):
-    // one more frame is needed before the real content (here `AppShell`)
-    // replaces the initial spinner.
-    await tester.pump();
+    await openPlay(tester, testEnvironment);
 
     expect(find.text('Math Trainer'), findsOneWidget);
   });
@@ -91,11 +101,7 @@ void main() {
   testWidgets('starting a session pushes the keypad full screen', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
-    // `AuthGate` resolves the local session asynchronously (even offline):
-    // one more frame is needed before the real content (here `AppShell`)
-    // replaces the initial spinner.
-    await tester.pump();
+    await openPlay(tester, testEnvironment);
 
     await tester.tap(find.text('Start'));
     await settlePageTransition(tester);
@@ -108,15 +114,7 @@ void main() {
   testWidgets('no type selected disables Start and explains why', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
-    // `AuthGate` resolves the local session asynchronously (even offline):
-    // one more frame is needed before the real content (here `AppShell`)
-    // replaces the initial spinner.
-    await tester.pump();
-    // A new player first sees the placement offer (Phase 1 commit 6).
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Skip'));
-    await tester.pumpAndSettle();
+    await openPlay(tester, testEnvironment);
 
     // Untick the 2 types selected by default (step 4.1, commit A).
     for (final label in ['Addition', 'Subtraction']) {
@@ -137,15 +135,7 @@ void main() {
   testWidgets('a single selected type starts a single-type session', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
-    // `AuthGate` resolves the local session asynchronously (even offline):
-    // one more frame is needed before the real content (here `AppShell`)
-    // replaces the initial spinner.
-    await tester.pump();
-    // A new player first sees the placement offer (Phase 1 commit 6).
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Skip'));
-    await tester.pumpAndSettle();
+    await openPlay(tester, testEnvironment);
 
     await tester.tap(find.text('Subtraction'));
     await tester.pump();
@@ -158,11 +148,7 @@ void main() {
   testWidgets(
     'the back gesture during a session asks for confirmation before interrupting (step 5, commit A)',
     (WidgetTester tester) async {
-      await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
-      // `AuthGate` resolves the local session asynchronously (even offline):
-      // one more frame is needed before the real content (here `AppShell`)
-      // replaces the initial spinner.
-      await tester.pump();
+      await openPlay(tester, testEnvironment);
 
       await tester.tap(find.text('Start'));
       await settlePageTransition(tester);
@@ -223,11 +209,7 @@ void main() {
   testWidgets(
     '"New selection" after a session goes back to the selection screen',
     (WidgetTester tester) async {
-      await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
-      // `AuthGate` resolves the local session asynchronously (even offline):
-      // one more frame is needed before the real content (here `AppShell`)
-      // replaces the initial spinner.
-      await tester.pump();
+      await openPlay(tester, testEnvironment);
 
       await tester.tap(find.text('Start'));
       await settlePageTransition(tester);
@@ -252,8 +234,7 @@ void main() {
         accountRepository: FakeAccountRepository(),
         profileRepository: FakeProfileRepository(),
       );
-      await tester.pumpWidget(MathTrainerApp(environment: environment));
-      await tester.pump();
+      await openPlay(tester, environment);
       expect(find.text('Difficulty adapts to your answers.'), findsOneWidget);
 
       await tester.tap(find.text('Start'));
@@ -269,11 +250,7 @@ void main() {
   testWidgets(
     '"Play again" restarts immediately without going back through the selection',
     (WidgetTester tester) async {
-      await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
-      // `AuthGate` resolves the local session asynchronously (even offline):
-      // one more frame is needed before the real content (here `AppShell`)
-      // replaces the initial spinner.
-      await tester.pump();
+      await openPlay(tester, testEnvironment);
 
       await tester.tap(find.text('Start'));
       await settlePageTransition(tester);
@@ -302,11 +279,7 @@ void main() {
         tester.view.resetDevicePixelRatio();
       });
 
-      await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
-      // `AuthGate` resolves the local session asynchronously (even offline):
-      // one more frame is needed before the real content (here `AppShell`)
-      // replaces the initial spinner.
-      await tester.pump();
+      await openPlay(tester, testEnvironment);
 
       await tester.tap(find.text('Multiplication'));
       await tester.pump();
@@ -339,8 +312,7 @@ void main() {
         accountRepository: FakeAccountRepository(),
         profileRepository: FakeProfileRepository(),
       );
-      await tester.pumpWidget(MathTrainerApp(environment: failingEnvironment));
-      await tester.pump();
+      await openPlay(tester, failingEnvironment);
 
       await tester.tap(find.text('Start'));
       await tester.pumpAndSettle();
@@ -363,12 +335,7 @@ void main() {
   testWidgets(
     'the day/night button toggles the theme and persists the choice',
     (WidgetTester tester) async {
-      await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
-      // `AuthGate` resolves the local session asynchronously (even offline):
-      // one more frame is needed before the real content (here `AppShell`)
-      // replaces the initial spinner.
-      await tester.pump();
-      await tester.pumpAndSettle();
+      await openPlay(tester, testEnvironment);
 
       final initialBrightness = Theme.of(
         tester.element(find.text('Math Trainer')),
@@ -389,12 +356,7 @@ void main() {
       expect(toggledBrightness, isNot(initialBrightness));
 
       // A new instance pointing at the same environment finds the choice.
-      await tester.pumpWidget(MathTrainerApp(environment: testEnvironment));
-      // `AuthGate` resolves the local session asynchronously (even offline):
-      // one more frame is needed before the real content (here `AppShell`)
-      // replaces the initial spinner.
-      await tester.pump();
-      await tester.pumpAndSettle();
+      await openPlay(tester, testEnvironment);
 
       final reloadedBrightness = Theme.of(
         tester.element(find.text('Math Trainer')),

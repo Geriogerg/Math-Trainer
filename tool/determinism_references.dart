@@ -11,6 +11,8 @@
 
 import 'dart:io';
 
+import 'package:math_trainer/core/domain/placement/placement.dart';
+
 import '../test/domain/determinism/determinism_cases.dart';
 
 void main() {
@@ -44,6 +46,20 @@ void main() {
       out.writeln(
         "  ${_quote('$pattern | $seed')}: ${_quote(placementSequence(seed, pattern))},",
       );
+    }
+  }
+  out
+    ..writeln('};')
+    ..writeln()
+    ..writeln('const placementV2SequenceReferences = <String, String>{');
+  for (final pattern in placementPatterns.keys) {
+    for (final seed in determinismSeeds) {
+      final sequence = placementSequence(
+        seed,
+        pattern,
+        rules: placementRulesV2,
+      );
+      out.writeln("  ${_quote('$pattern | $seed')}: ${_quote(sequence)},");
     }
   }
   out

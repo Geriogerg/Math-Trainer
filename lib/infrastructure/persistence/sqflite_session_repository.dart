@@ -62,6 +62,23 @@ class SqfliteSessionRepository implements SessionRepository {
   }
 
   @override
+  Future<bool> hasCompletedSession(String playerId) async {
+    // Interrupted = fewer answers than planned (`exercise_count` keeps the
+    // planned count, `SessionController._persistCompletedSession`).
+    final rows = await _database.rawQuery(
+      '''
+      SELECT 1 FROM sessions s
+      WHERE s.player_id = ?
+        AND (SELECT COUNT(*) FROM answers a WHERE a.session_id = s.id)
+            >= s.exercise_count
+      LIMIT 1
+      ''',
+      [playerId],
+    );
+    return rows.isNotEmpty;
+  }
+
+  @override
   Future<Map<ExerciseType, LevelCacheEntry>> currentLevels(
     String playerId,
   ) async {

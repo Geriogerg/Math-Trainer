@@ -9,7 +9,6 @@ import '../../core/state/session_controller.dart';
 import '../../core/state/session_state.dart';
 import '../exercise_prompt.dart';
 import '../exercise_type_labels.dart';
-import '../level_format.dart';
 import '../theme/app_theme.dart';
 
 class ResultScreen extends StatelessWidget {
@@ -337,20 +336,53 @@ class _LevelChangeRow extends StatelessWidget {
     }
 
     final motion = theme.extension<AppMotion>()!.levelUp;
-    // The whole level animates (truncated, like everywhere it is shown);
-    // the exact change in hundredths follows, so a session that moves the
-    // level by less than one step still shows it counted.
-    final change = formatLevelChange(
-      entry.level.hundredths - before.hundredths,
-    );
+    // The whole level animates (truncated, like everywhere it is shown),
+    // and a bar shows the progress inside it (owner, end of Phase 1): a
+    // session that moves the level by less than one step still visibly
+    // counts. Crossing a whole level, the bar wraps from full to empty
+    // while the number goes up — the move is in the number and the bar's
+    // length, never in a colour alone (rule 14).
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: before.value, end: entry.level.value),
       duration: motion.duration,
       curve: motion.curve,
-      builder: (context, value, _) => Text(
-        '$label — level ${value.floor()} ($change)',
-        textAlign: TextAlign.center,
-        style: style,
+      builder: (context, value, _) => Column(
+        children: [
+          Text(
+            '$label — level ${value.floor()}',
+            textAlign: TextAlign.center,
+            style: style,
+          ),
+          const SizedBox(height: 4),
+          _ProgressInsideLevel(fraction: value - value.floor()),
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+}
+
+/// How far the player is inside their whole level, 0 to 1 — the hundredths
+/// the whole-number label leaves out.
+class _ProgressInsideLevel extends StatelessWidget {
+  const _ProgressInsideLevel({required this.fraction});
+
+  final double fraction;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return SizedBox(
+      width: 160,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(4),
+        child: LinearProgressIndicator(
+          semanticsLabel: 'Progress toward the next level',
+          value: fraction,
+          minHeight: 6,
+          backgroundColor: theme.colorScheme.outline,
+          valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
+        ),
       ),
     );
   }

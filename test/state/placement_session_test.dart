@@ -24,7 +24,7 @@ class _InertTimer implements Timer {
 /// The placement through the real `SessionController`, as
 /// `buildPlacementController` wires it (`composition_root.dart`).
 void main() {
-  const rules = placementRulesV1;
+  const rules = currentPlacementRules;
   late InMemorySessionRepository repository;
 
   SessionController placement() => SessionController(
@@ -35,10 +35,10 @@ void main() {
       levels: {
         for (final t in placementTypes) t: Level.whole(rules.startLevel),
       },
-      kind: SessionKind.placementV1,
+      kind: placementKindFor(rules),
     ),
-    exerciseSource: PlacementExerciseSource(seed: 1763510400000),
-    levelCacheOrchestrator: const PlacementLevelOrchestrator(),
+    exerciseSource: PlacementExerciseSource(seed: 1763510400000, rules: rules),
+    levelCacheOrchestrator: const PlacementLevelOrchestrator(rules: rules),
     repository: repository,
     playerId: 'new-player',
     // Constant clock: every answer takes 0 ms, a pass when right.
@@ -65,16 +65,17 @@ void main() {
 
     final levels = await repository.currentLevels('new-player');
     expect(levels.keys, unorderedEquals(placementTypes));
-    expect(levels[placementTypes[0]]!.level, Level.fromHundredths(8421));
+    // 5 passes: 3500 + 2500 + 1250 + 625 + 312 + 156.
+    expect(levels[placementTypes[0]]!.level, Level.fromHundredths(8343));
     expect(levels[placementTypes[1]]!.level, Level.floor);
-    expect(levels[placementTypes[2]]!.level, Level.fromHundredths(8421));
+    expect(levels[placementTypes[2]]!.level, Level.fromHundredths(8343));
     expect(levels[placementTypes[3]]!.level, Level.floor);
     for (final entry in levels.values) {
       expect(entry.sessionsPlayed, rules.sessionsPlayedAfter);
     }
 
     final stored = await repository.recentSessions('new-player');
-    expect(stored.single.kind, SessionKind.placementV1);
+    expect(stored.single.kind, SessionKind.placementV2);
     expect(
       (await repository.answersForSession(stored.single.id)).length,
       rules.questionCount,
@@ -95,7 +96,7 @@ void main() {
 
       expect(await repository.currentLevels('new-player'), isEmpty);
       final stored = await repository.recentSessions('new-player');
-      expect(stored.single.kind, SessionKind.placementV1);
+      expect(stored.single.kind, SessionKind.placementV2);
       expect(controller.lastLevelUpdates, isNull);
     },
   );

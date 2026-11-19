@@ -1,32 +1,37 @@
 # Math Trainer
 
 Competitive mental-arithmetic game in Flutter, for teens and adults. UI, code, docs and commits
-in English (owner, 18 and 19 Nov 2026; the plan's French labels become English ones).
+in English.
 
-**`doc/plan.md` (version 2) is the product plan.** Read it at the start of every phase; never
+**`doc/plan.md` (version 2.2) is the product plan.** Read it at the start of every phase; never
 edit it. This file is the working file: keep it short, update it as the project moves, keep it
 consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/decisions.md`,
 `doc/design.md`, `doc/online.md`, `doc/progress.md`. The plan wins any conflict — report it.
 
 ## Current phase
 
-**Phase 1 — First run and accounts** (`doc/plan.md`, section 7), run in **one pass**.
-Done: 0–8, all commits (details: `doc/progress.md`). Next: the **phase report**.
-Waiting on the owner: the `SUPABASE_PUBLISHABLE_KEY` secret (preview still unconfigured);
-running `supabase/delete_account.sql` (commit 7's live check parked). At phase end the owner
-plays 5 games and checkpoints 5 and 6 on the preview. Update this block at every commit.
+**Phase 2 — Server and leaderboard** (`doc/plan.md`, section 7), run in **one pass**.
+Done: 0. Next commit: **1**. Parked: deleting the Phase 1 test accounts (needs
+`delete_my_account()`, applied by CI from commit 2). Update this block at every commit.
 
 | # | Commit | Note |
 |---|---|---|
-| 0 | Close Phase 0: `material_ui`, record δ = 0.07, verify preview, re-measure load | owner's 5 games move to phase end |
-| 1 | Core tests on VM and JavaScript, pinned sequences identical | mismatch: fix it; unfixable → hard stop |
-| 2 | Levels in integer hundredths, migration ×100 (approved), rerun simulation | numbers in commit message |
-| 3 | Self-hosted CanvasKit and fonts, loading screen, re-measure | — |
-| 4 | Anonymous-first sign-in, data keyed by Supabase user id | — |
-| 5 | Linking and account screens in Profil | played at phase end |
-| 6 | Placement test | start level and steps chosen by simulation — provisional |
-| 7 | Account deletion via SQL function | SQL written first, run by the owner meanwhile |
-| 8 | CI smoke test on the preview (deletes its own account) | — |
+| 0 | Close Phase 1: owner decisions (plan, "Phase 1 outcome"), selection flash, test accounts | — |
+| 1 | Self-contained sessions: replay from (seed, stored config) alone | **before any server code** |
+| 2 | SQL migrations applied by CI; `supabase/` files become migrations | secrets: ask once, at start |
+| 3 | Core extracted to `packages/math_core`, monorepo | no behaviour change |
+| 4 | Dart server skeleton | host and cost **prepared, not deployed** until owner says yes |
+| 5 | Session upload: offline queue, idempotent, `syncedAt` | — |
+| 6 | Server replay and validation; forged upload rejected | — |
+| 7 | Tables and RLS: level per player and operation, rank, percentile | only the server writes |
+| 8 | Leaderboard screen | played at phase end |
+| 9 | Name filter, charset limited to bundled fonts; report action | — |
+| 10 | Leaderboard for linked players only | — |
+| 11 | Cleanup of stale anonymous players and their hidden guest games | — |
+| 12 | Android compile-only CI job, weekly and on demand | — |
+
+If the server can't be deployed yet (host not confirmed), run it locally and in CI tests,
+finish everything else, and list what remains to deploy.
 
 Preview: `https://geriogerg.github.io/Math-Trainer/`, deployed on every push to `main`.
 
@@ -72,14 +77,15 @@ Non-negotiable without explicit discussion.
 
 - Local SQLite (web: WebAssembly + IndexedDB), keyed by the Supabase user id. Every answer stored
   with its own timestamp, operands, given answer, time, correctness, level.
-- **Levels**: integer hundredths (3742 = 37.42), shown as a whole number; generation reads the
-  whole part. Recomputable from history by a core function.
+- **Levels**: integer hundredths (3742 = 37.42), shown as a whole number with a progress bar
+  inside the level; generation reads the whole part. Recomputable from history by a core function.
+- **Sessions are self-contained**: everything deciding question order is stored with them.
 - **Session kinds**: game or placement. Placement answers become starting levels through a pure
   core function.
 - **Anonymous-first**: anonymous user created on first launch; linking keeps the same user id;
   email already used → sign in after a "guest progress replaced" warning, no merge; no sign-out
   for anonymous players; deletion via a `security definer` SQL function on `auth.uid()` only.
-  Detail: `doc/plan.md` section 6.3.
+  Only linked players appear on the leaderboard. Detail: `doc/plan.md` section 6.3.
 
 ## How a phase runs
 
@@ -148,24 +154,31 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 - `dart test` without the `test/domain` scope fails.
 - Integer levels round small steps to zero — never round before storing hundredths.
 - `Level` is an `int` at runtime: string interpolation prints hundredths, and `level ?? 1`
-  compiles (widens to `Object`). Display through `.whole` / `formatLevelChange`; fall back to
-  `Level.floor`.
+  compiles (widens to `Object`). Display through `.whole`; fall back to `Level.floor`.
+- `test/domain/determinism/determinism_references.dart` is generated
+  (`dart run tool/determinism_references.dart`) only by a change meant to alter sequences or
+  level updates — never to make a JavaScript failure pass.
+- `Random.secure()` throws under `-p node` (dart2js + Node 24); browsers are fine.
 - `web/sqlite3.wasm` and `web/sqflite_sw.js` come from `dart run sqflite_common_ffi_web:setup`;
   rerun with `--force` after upgrades. On GitHub Pages every path respects `/Math-Trainer/`.
 - Always web port 8080 locally: session and settings live in `localStorage`, scoped by port.
 - Signing out an anonymous user loses the account — never offer it.
 - Anonymous sign-ins are rate-limited (30/hour/IP); automated tests delete the accounts they
-  create (the smoke test through "Delete my data": it needs `delete_my_account()` installed).
-- SQL files in `supabase/` are run by hand by the owner; nothing applies them automatically.
-- Browser storage can be evicted until server sync (Phase 2).
-- Fallback fonts are never fetched from Google (`fontFallbackBaseUrl: 'fonts/'`): a glyph
-  missing from Inter renders as a box. Check new UI symbols in the network panel.
+  create (the smoke test through "Delete my data", which needs `delete_my_account()`).
+- SQL goes in versioned migrations applied by CI (from commit 2); never run SQL by hand, never
+  print the access token or database password.
+- Browser storage can be evicted until server sync is live.
+- Rotation by sampling debt makes question order depend on past games — store it with the
+  session or replay breaks.
+- No Google fonts at runtime (`fontFallbackBaseUrl: 'fonts/'` in `web/flutter_bootstrap.js`):
+  a glyph missing from the bundled fonts shows as a box. Check new UI symbols in the network
+  panel.
 - Web builds use `--no-web-resources-cdn` (CanvasKit from the site), locally too.
+- GitHub Pages serves gzip, not brotli: self-hosted CanvasKit loads slower than from Google.
+- The deployed release build has no timeout switch; automated tests answer instantly instead.
+- A release-build Supabase key must be a repository **secret** (not a variable, not an
+  environment secret) named exactly as the workflow reads it.
 - Integer arithmetic for perfect squares, never floating-point `sqrt()`.
-- `test/domain/determinism/determinism_references.dart` is generated
-  (`dart run tool/determinism_references.dart`) only by a change meant to alter sequences or
-  level updates — never to make a JavaScript failure pass.
-- `Random.secure()` throws under `-p node` (dart2js + Node 24); browsers are fine.
 - *Android, Phase 8*: use `build apk` + `adb install`, not attached `flutter run`;
   `kotlin.incremental=false` works around a Windows cross-drive Kotlin crash; corrupted Gradle
   cache → clear `D:\Users\GREgo\.gradle\caches\<version>\transforms`.

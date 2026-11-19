@@ -25,6 +25,12 @@ class _FlakySessionRepository implements SessionRepository {
   bool shouldFail = true;
 
   @override
+  Future<bool> hasCompletedSession(String playerId) async {
+    if (shouldFail) throw Exception('simulated failure');
+    return false;
+  }
+
+  @override
   Future<Map<ExerciseType, LevelCacheEntry>> currentLevels(
     String playerId,
   ) async {
@@ -134,6 +140,79 @@ void main() {
       tester.view.resetDevicePixelRatio();
     });
   }
+
+  group('placement from Profile (owner, end of Phase 1)', () {
+    Future<void> pumpProfile(
+      WidgetTester tester,
+      InMemorySessionRepository repository,
+    ) async {
+      await setTallSurface(tester);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildLightTheme(),
+          home: Scaffold(
+            body: ProfileScreen(
+              environment: AppEnvironment(
+                repository: repository,
+                playerId: 'test-player',
+                accountRepository: FakeAccountRepository(),
+                profileRepository: FakeProfileRepository(),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    PersistedSession game(int exerciseCount) => PersistedSession(
+      id: 'game',
+      playerId: 'test-player',
+      seed: 1,
+      enabledTypes: const {ExerciseType.addition},
+      exerciseCount: exerciseCount,
+      totalScore: 10,
+      levels: {ExerciseType.addition: Level.floor},
+      createdAt: DateTime.utc(2026, 11, 1),
+    );
+
+    PersistedAnswer anAnswer() => PersistedAnswer(
+      id: 'answer',
+      sessionId: 'game',
+      exerciseType: 'arithmetic',
+      operationType: 'addition',
+      operands: const {'left': 1, 'right': 1},
+      submittedValue: 2,
+      isCorrect: true,
+      elapsedMs: 900,
+      createdAt: DateTime.utc(2026, 11, 1),
+    );
+
+    testWidgets('offered while no session is completed', (tester) async {
+      final repository = InMemorySessionRepository();
+      // Interrupted: 1 answer out of 4.
+      await repository.recordSession(
+        session: game(4),
+        answers: [anAnswer()],
+        levelUpdates: const {},
+      );
+      await pumpProfile(tester, repository);
+
+      expect(find.text('Find my level'), findsOneWidget);
+    });
+
+    testWidgets('gone once a session is completed', (tester) async {
+      final repository = InMemorySessionRepository();
+      await repository.recordSession(
+        session: game(1),
+        answers: [anAnswer()],
+        levelUpdates: const {},
+      );
+      await pumpProfile(tester, repository);
+
+      expect(find.text('Find my level'), findsNothing);
+    });
+  });
 
   testWidgets(
     'shows the 7 types, one known level and "Not played" for the others',

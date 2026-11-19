@@ -113,6 +113,13 @@ void main() {
     await pumpResultScreen(tester, controller);
 
     expect(find.textContaining('Addition — level'), findsOneWidget);
+    // The whole level, then a bar for the progress inside it — never the
+    // hundredths as text (owner, end of Phase 1).
+    expect(find.textContaining('('), findsNothing);
+    expect(
+      find.bySemanticsLabel('Progress toward the next level'),
+      findsOneWidget,
+    );
     expect(find.textContaining('Score: '), findsOneWidget);
     expect(find.textContaining('Base: '), findsOneWidget);
     expect(find.textContaining('Speed bonus: '), findsOneWidget);

@@ -8,6 +8,7 @@
 // disagree: honest sessions would be rejected in Phase 2. Fix the cause —
 // never regenerate the references to make it pass.
 
+import 'package:math_trainer/core/domain/placement/placement.dart';
 import 'package:test/test.dart';
 
 import 'determinism_cases.dart';
@@ -45,6 +46,21 @@ void main() {
           expect(
             placementSequence(seed, pattern),
             placementSequenceReferences[key],
+            reason: 'reference missing or sequence changed',
+          );
+        });
+      }
+    }
+  });
+
+  group('placement v2 sequences (adaptive)', () {
+    for (final pattern in placementPatterns.keys) {
+      for (final seed in determinismSeeds) {
+        final key = '$pattern | $seed';
+        test(key, () {
+          expect(
+            placementSequence(seed, pattern, rules: placementRulesV2),
+            placementV2SequenceReferences[key],
             reason: 'reference missing or sequence changed',
           );
         });

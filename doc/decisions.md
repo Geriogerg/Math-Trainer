@@ -276,11 +276,12 @@ caught by a golden image showing "level 1200".
   convergence is the placement test's job (commit 6); the constants (`K_haut`, `K_calib`,
   calibration length) are the owner's Phase 3 decision. Not changed here.
 
-**Provisional (owner to confirm)**: the result screen shows the session's exact change next to
-the whole level — "level 14 (+2.76)" — so a session that moves the level by less than one step
-still visibly counts (pillar 2). The plan says only "displayed as a whole number". Profile shows
-the whole level and a continuous progress bar.
-**Reopen when** Phase 3 recalibrates the constants, or players read the hundredths as noise.
+**Display — owner decision (end of Phase 1)**: the level is always a whole number; the progress
+inside it is a bar, never the hundredths as text. The result screen animates the number and a
+bar from the level before to the level after (crossing a whole level, the bar wraps while the
+number goes up); Profile shows a continuous bar per operation. Phase 1's provisional
+"level 14 (+2.76)" is gone.
+**Reopen when** Phase 3 recalibrates the constants.
 
 ## Placement test (Phase 1, commit 6)
 
@@ -316,12 +317,32 @@ setting, both steepnesses), real staircase and real `LevelUpdater`:
   answer ~9 s (thought + correction pause), and a staircase is built to fail about half of its
   last questions. To check on the owner's phone; 5 questions per operation is the lever.
 
-Gaps filled — **provisional**: offered to a player with **no stored session at all** (a
-skipped offer is not remembered; an interrupted placement counts as history, so it is not
-offered again); the session screen says "finding your level" instead of a level; the result
+Gaps filled in Phase 1 (the offer rules were replaced by the owner, see version 2 below): the session screen says "finding your level" instead of a level; the result
 screen shows the starting levels and the mistakes, no score, and a single "Play".
 **Reopen when** real placements exist (Phase 3): compare placed levels with the levels the
 same players settle at.
+
+### Version 2 — owner decisions (end of Phase 1, applied in Phase 2 commit 0)
+
+`placementRulesV2` (`SessionKind.placementV2`); version 1 stays, so a stored `placementV1`
+replays with its own rules (both pinned in the determinism references).
+
+- **5 questions per operation** (20 in all), same start (35) and first step (25 levels). Rerun
+  of `tool/placement_check.dart` with 5 per operation: modelled median **81–82 s** (was ~100 s),
+  placed error 4.8 / 6.9 (w 6 / w 10, was 4.6 / 6.7), games to ±3 **5.6 / 20.0** (was 5.5 /
+  18.9). Pass 3 s still beats 3.5, 4, 5 and 6 s in every row.
+- **Pass time per operation, from `t_rapide`**: `passMaxElapsedMsByType`, each 1.5 ×
+  `t_rapide` (`placementPassTimeOverTRapide`; a test ties the values to `LevelingRules`).
+  **Today the four are equal (3 s)**: `LevelingRules` has a single `t_rapide`, 2 s, for every
+  operation, and no data says how much slower × and ÷ are. The structure is per operation; the
+  values diverge when Phase 3 gives `t_rapide` per operation from real answers. Lowering the bar
+  for × and ÷ in the placement alone would place players above where their games then pull
+  them, since games score speed against the same flat `t_rapide`.
+- **Offer**: on Play, to a player with **no completed session** (an interrupted session or
+  placement does not count — it is offered again) who has not skipped it. A skip is remembered
+  per player (`PlacementSkipStore`, `shared_preferences`); Profile keeps a "Find my level"
+  entry until the player completes a session. Play draws nothing until its local read resolves,
+  so the type selection no longer flashes before the offer.
 
 ## The number of questions is derived, not chosen
 
