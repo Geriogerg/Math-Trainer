@@ -446,6 +446,30 @@ memory. The package is still labelled experimental by its author.
 **Reopen when** browser eviction loses real data before server upload exists, or the package
 stalls.
 
+## First load: nothing from Google, a loading screen with real progress (Phase 1, commit 3)
+
+- **CanvasKit from the site** (`flutter build web --no-web-resources-cdn`): no third-party CDN
+  at runtime (privacy, availability, and one origin to measure). Cost: the build output keeps
+  every CanvasKit variant (~43 MB on disk); the browser fetches one.
+- **Fonts from the site**: the engine always fetches Roboto as its default fallback, and Noto
+  fonts for glyphs a bundled font lacks, from `fonts.gstatic.com`. `fontFallbackBaseUrl:
+  'fonts/'` (in `web/flutter_bootstrap.js`) points it at `web/fonts/`, where Roboto sits at the
+  exact path the engine requests (`roboto/v32/KFOm….woff2`, from Google Fonts). No Noto font is
+  hosted: a walk of every screen and all seven exercise types requested none — Inter covers
+  + − × ÷ √ % and the rest. A glyph outside Inter would now 404 and render as a box instead of
+  silently reaching Google: **a new symbol in the UI must be checked** (network panel).
+- **Licences**: the OFL texts of Inter and Roboto ship next to the fonts (`web/fonts/*/OFL.txt`);
+  Inter's had been missing since step 5.
+- **Loading screen** in `web/index.html`, plain HTML/CSS painted before any script: palette of
+  `doc/design.md`, the stored day/night choice, system font. The bar moves when each large file
+  has actually arrived (resource timing, weighted by size), then through engine start; removed
+  on Flutter's first frame. Not a byte counter: a 1.5 MB file moves the bar when it completes.
+  Rejected: fetching the files ahead with a streamed byte count — with gzip, the size on the
+  wire is unknown to the page, and a cache miss would download everything twice.
+- **Not done**: subsetting Inter (~450 KiB gzipped) — a lead if the slow-4G exit test fails.
+**Reopen when** a UI symbol needs a fallback font, or the Wasm renderer (`--wasm`, skwasm) is
+adopted.
+
 ## `material_ui` package rather than `package:flutter/material.dart`
 
 Flutter 3.47 moved the Material library out of the SDK into the `material_ui` package; the old

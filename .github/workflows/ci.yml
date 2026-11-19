@@ -72,9 +72,10 @@ jobs:
       - name: Web build
         # Served from https://<owner>.github.io/<repo>/: every URL in the build
         # (bootstrap, assets, sqflite_sw.js, sqlite3.wasm) resolves against
-        # this base.
+        # this base. --no-web-resources-cdn: CanvasKit comes from the site,
+        # never from Google's CDN (fonts too: web/flutter_bootstrap.js).
         run: >
-          flutter build web --release
+          flutter build web --release --no-web-resources-cdn
           --base-href "/${{ github.event.repository.name }}/"
           --dart-define-from-file=dart_defines.json
       - name: Upload the site
