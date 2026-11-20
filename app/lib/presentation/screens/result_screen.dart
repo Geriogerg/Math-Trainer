@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../kit/kit.dart';
+
 import 'package:math_core/leveling/level.dart';
 import 'package:math_core/models/answer_result.dart';
 import 'package:math_core/models/exercise_type.dart';
@@ -102,10 +104,15 @@ class ResultScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                 ],
                 if (!isPlacement) ...[
-                  Text(
-                    'Score: ${result.totalScore}',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.titleLarge,
+                  Center(
+                    child: SizedBox(
+                      width: 160,
+                      child: StatTile(
+                        value: '${result.totalScore}',
+                        label: 'Score',
+                        emphasis: true,
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -137,25 +144,30 @@ class ResultScreen extends StatelessWidget {
                 // Raw count, never a percentage presented as progress
                 // (`doc/design.md`): accuracy converges to p_cible by
                 // construction, it measures nothing (`doc/decisions.md`).
-                Text(
-                  '${result.correctCount} right · ${result.wrongCount} wrong · '
-                  '${result.timeoutCount} timed out',
-                  textAlign: TextAlign.center,
-                  style: labelStyle,
+                StatTileRow(
+                  tiles: [
+                    StatTile(value: '${result.correctCount}', label: 'Right'),
+                    StatTile(value: '${result.wrongCount}', label: 'Wrong'),
+                    StatTile(
+                      value: '${result.timeoutCount}',
+                      label: 'Timed out',
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  'Average time: ${result.averageElapsedMs.round()} ms',
-                  textAlign: TextAlign.center,
-                  style: labelStyle,
+                StatTileRow(
+                  tiles: [
+                    StatTile(
+                      value: '${result.averageElapsedMs.round()} ms',
+                      label: 'Average time',
+                    ),
+                    StatTile(
+                      value: '${result.bestStreak}',
+                      label: 'Best streak',
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Best streak: ${result.bestStreak}',
-                  textAlign: TextAlign.center,
-                  style: labelStyle,
-                ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 16),
                 Text(
                   'Types played: ${controller.config.enabledTypes.map(exerciseTypeLabel).join(', ')}',
                   textAlign: TextAlign.center,
@@ -189,11 +201,11 @@ class ResultScreen extends StatelessWidget {
                   // Replays the same write (`retryPersistence`): useful when
                   // the failure was transient (storage briefly unavailable).
                   // Disabled while an attempt is running.
-                  TextButton(
+                  AppButton.secondary(
                     onPressed: controller.isRetryingPersistence
                         ? null
                         : controller.retryPersistence,
-                    child: const Text('Retry saving'),
+                    label: 'Retry saving',
                   ),
                 ],
               ],
@@ -215,32 +227,24 @@ class ResultScreen extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               // Centred (`doc/design.md`) — Play again stays visually
-              // dominant through its filled style (`FilledButton`), not its
-              // position.
+              // dominant through its filled style (`AppButton.primary`), not
+              // its position.
               // After a placement, the next step is choosing what to play.
               if (isPlacement)
-                FilledButton(
-                  onPressed: onExitToSelection,
-                  child: const Text('Play'),
-                )
+                AppButton.primary(onPressed: onExitToSelection, label: 'Play')
               else
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    TextButton(
+                    AppButton.secondary(
                       onPressed: onExitToSelection,
-                      child: const Text('New selection'),
+                      label: 'New selection',
                     ),
                     const SizedBox(width: 16),
-                    FilledButton(
-                      onPressed: isRestarting ? null : onPlayAgain,
-                      child: isRestarting
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text('Play again'),
+                    AppButton.primary(
+                      onPressed: onPlayAgain,
+                      busy: isRestarting,
+                      label: 'Play again',
                     ),
                   ],
                 ),

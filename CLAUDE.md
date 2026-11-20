@@ -11,7 +11,7 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 ## Current phase
 
 **Phase 5 — Identity** (`doc/plan.md`, section 7), run in **one pass** while the beta runs.
-Done: 0–1. Next commit: **2**. Update this block at every commit.
+Done: 0–2. Next commit: **3**. Update this block at every commit.
 
 **Beta-safety rule**: nothing may change how players answer — keypad geometry, input paths,
 question order and difficulty, the 15 s timeout, the correction pause, when the next question
@@ -161,6 +161,9 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 - `session_layout_pin_test.dart` holds the beta's keypad and session geometry: never update its
   numbers to make a restyling pass — change the restyling. Sound and haptics go through
   `SessionEffects` (fire and forget, after the controller moved on), never inline in a widget.
+- Screens build buttons, chips, keys, figures and levels from `presentation/kit/` — never
+  `FilledButton`, `TextButton`, `FilterChip` or `ChoiceChip` directly. Find a level in tests
+  with `findLevelBadge(n)`, not its text.
 - Digits use `TextStyle.digits` (Space Grotesk subset: digits, operators, "of" only). A line
   mixing faces grows 1 px — keep each prompt in one face; anything else falls back to Inter.
 

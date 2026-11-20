@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../kit/kit.dart';
+
 import '../../core/state/beta_gate_controller.dart';
 import '../theme/app_theme.dart';
 import 'privacy_screen.dart';
@@ -89,23 +91,23 @@ class _BetaGateScreenState extends State<BetaGateScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      FilledButton(
+                      AppButton.primary(
                         onPressed: checking ? null : _submit,
-                        child: Text(checking ? 'Checking…' : 'Continue'),
+                        label: checking ? 'Checking…' : 'Continue',
                       ),
                       const SizedBox(height: 8),
-                      TextButton(
+                      AppButton.secondary(
                         onPressed: checking ? null : widget.onSignIn,
-                        child: const Text('I already have an account'),
+                        label: 'I already have an account',
                       ),
                       // Before giving any data (Phase 3a commit 4).
-                      TextButton(
+                      AppButton.secondary(
                         onPressed: () => Navigator.of(context).push(
                           MaterialPageRoute<void>(
                             builder: (_) => const PrivacyScreen(),
                           ),
                         ),
-                        child: const Text('Privacy'),
+                        label: 'Privacy',
                       ),
                     ],
                   );

@@ -483,3 +483,12 @@ streak, level-up), add to the home screen on Android and iPhone.
   The pins caught two 0.5 px moves (power prompt, mixed-face percentage) — fixed in the code,
   pins unchanged. Goldens of the session and result screens regenerated. Found: the profile
   golden depends on the time of day (0.01 %, passes once regenerated; pre-existing) — debt.
+- **Commit 2** *(A)* — Kit (`presentation/kit/`): `AppButton` (primary, secondary,
+  destructive, busy), `TypeChip`, `KeypadKey` (moved out of the session screen, pins and session
+  goldens unchanged — pixel-identical), `StatTile` (+ `StatTileRow`), `LevelBadge`; tokens
+  `radius`, `keyGap`, `controlHeight` in `AppMetrics`. Every screen moved: no
+  `FilledButton`/`TextButton`/`FilterChip`/`ChoiceChip` left in `screens/`. Result screen:
+  score tile, Right / Wrong / Timed out, Average time / Best streak tiles; Profile, Play and
+  Leaderboard levels as badges. Goldens: 10 kit (5 components × 2 themes) + the restyled
+  screens. Tests now find levels with `findLevelBadge` (a semantics finder misses badges
+  scrolled out of view). App 305 tests.

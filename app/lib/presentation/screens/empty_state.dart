@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../kit/kit.dart';
+
 /// Replaces a `SizedBox.shrink()` as a screen state (`doc/design.md`): an
 /// empty screen is a dead end, a message and an exit action are required.
 /// Shared by `SessionScreen` and `SessionFlowScreen` — both branches it
@@ -30,7 +32,7 @@ class EmptyState extends StatelessWidget {
             style: Theme.of(context).textTheme.bodyLarge,
           ),
           const SizedBox(height: 16),
-          FilledButton(onPressed: onAction, child: Text(actionLabel)),
+          AppButton.primary(onPressed: onAction, label: actionLabel),
         ],
       ),
     );

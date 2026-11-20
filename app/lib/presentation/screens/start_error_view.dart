@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../kit/kit.dart';
+
 import 'package:math_core/account/account_exception.dart';
 import '../theme/app_theme.dart';
 
@@ -52,7 +54,7 @@ class StartErrorView extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
-            FilledButton(onPressed: onRetry, child: const Text('Try again')),
+            AppButton.primary(onPressed: onRetry, label: 'Try again'),
           ],
         ),
       ),

@@ -74,8 +74,17 @@ const _motion = AppMotion(
 /// that coexisted before step 5, commit B (`all(24)`, `fromLTRB(24,16,24,8)`,
 /// none). `keypadHeight`: `doc/design.md` requires a fixed value (never a
 /// ratio of the screen) but does not set the number — 300 stays close to the
-/// earlier rendering (`0.38 × ~800 dp` on a common phone).
-const _metrics = AppMetrics(rootPadding: EdgeInsets.all(24), keypadHeight: 300);
+/// earlier rendering (`0.38 × ~800 dp` on a common phone). `radius` and
+/// `keyGap`: the keypad's corner and spacing as the beta started (pinned by
+/// `session_layout_pin_test.dart`), shared by the whole kit (Phase 5
+/// commit 2). `controlHeight`: the kit's buttons, a thumb's height.
+const _metrics = AppMetrics(
+  rootPadding: EdgeInsets.all(24),
+  keypadHeight: 300,
+  radius: 16,
+  keyGap: 4,
+  controlHeight: 52,
+);
 
 ThemeData _buildTheme({
   required ColorScheme colorScheme,
@@ -192,7 +201,13 @@ class AppPalette extends ThemeExtension<AppPalette> {
 
 @immutable
 class AppMetrics extends ThemeExtension<AppMetrics> {
-  const AppMetrics({required this.rootPadding, required this.keypadHeight});
+  const AppMetrics({
+    required this.rootPadding,
+    required this.keypadHeight,
+    required this.radius,
+    required this.keyGap,
+    required this.controlHeight,
+  });
 
   /// Uniform padding of each screen's root content.
   final EdgeInsets rootPadding;
@@ -201,12 +216,29 @@ class AppMetrics extends ThemeExtension<AppMetrics> {
   /// screen — the layout must not move from one device to another).
   final double keypadHeight;
 
+  /// Corner radius of keys, buttons, tiles and badges.
+  final double radius;
+
+  /// Space around each keypad key (half the gap between two keys).
+  final double keyGap;
+
+  /// Minimum height of the kit's buttons.
+  final double controlHeight;
+
   @override
-  AppMetrics copyWith({EdgeInsets? rootPadding, double? keypadHeight}) =>
-      AppMetrics(
-        rootPadding: rootPadding ?? this.rootPadding,
-        keypadHeight: keypadHeight ?? this.keypadHeight,
-      );
+  AppMetrics copyWith({
+    EdgeInsets? rootPadding,
+    double? keypadHeight,
+    double? radius,
+    double? keyGap,
+    double? controlHeight,
+  }) => AppMetrics(
+    rootPadding: rootPadding ?? this.rootPadding,
+    keypadHeight: keypadHeight ?? this.keypadHeight,
+    radius: radius ?? this.radius,
+    keyGap: keyGap ?? this.keyGap,
+    controlHeight: controlHeight ?? this.controlHeight,
+  );
 
   @override
   AppMetrics lerp(ThemeExtension<AppMetrics>? other, double t) {
@@ -216,6 +248,10 @@ class AppMetrics extends ThemeExtension<AppMetrics> {
           EdgeInsets.lerp(rootPadding, other.rootPadding, t) ?? rootPadding,
       keypadHeight:
           lerpDouble(keypadHeight, other.keypadHeight, t) ?? keypadHeight,
+      radius: lerpDouble(radius, other.radius, t) ?? radius,
+      keyGap: lerpDouble(keyGap, other.keyGap, t) ?? keyGap,
+      controlHeight:
+          lerpDouble(controlHeight, other.controlHeight, t) ?? controlHeight,
     );
   }
 }

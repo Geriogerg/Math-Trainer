@@ -916,3 +916,15 @@ in the subset), and the power prompt's raised exponent depends on the face's met
 fixed at the 57 px it measured in Inter).
 **Reopen when** the owner picks another candidate (regenerate with the script, change
 `digitFontFamily`), or a public name brings a brand face (Phase 6).
+
+## The kit wraps Material, styled by tokens (Phase 5, commit 2)
+
+`AppButton` and `TypeChip` are built on `FilledButton`, `TextButton` and `FilterChip`, not drawn
+from scratch: focus rings, keyboard activation, disabled handling and semantics come for free and
+stay consistent with dialogs and text fields. Identity comes from the tokens (accent, radius 16
+shared with the keypad, control height, the digit face for numbers); screens never use the
+Material widgets directly in those roles. A busy primary button keeps the accent (the player's
+own action is running); only a truly disabled one greys out. Delete stays a secondary in the
+error colour: an irreversible action is never the filled button. The leaderboard's own row keeps
+its weight-700 emphasis, outside the kit (noted, not changed).
+**Reopen when** a component needs a behaviour Material cannot give (a duel's live state, Phase 7).

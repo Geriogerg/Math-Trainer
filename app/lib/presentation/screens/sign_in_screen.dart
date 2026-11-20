@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../kit/kit.dart';
+
 import 'package:math_core/account/account_repository.dart';
 import 'package:math_core/account/profile_repository.dart';
 import '../../core/state/account_form_controller.dart';
@@ -137,19 +139,12 @@ class _SignInScreenState extends State<SignInScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                FilledButton(
-                  onPressed: busy ? null : _submit,
-                  child: busy
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(
-                          _replacesGuestProgress
-                              ? 'Sign in and replace guest progress'
-                              : 'Sign in',
-                        ),
+                AppButton.primary(
+                  onPressed: _submit,
+                  busy: busy,
+                  label: _replacesGuestProgress
+                      ? 'Sign in and replace guest progress'
+                      : 'Sign in',
                 ),
                 if (error != null) ...[
                   const SizedBox(height: 12),

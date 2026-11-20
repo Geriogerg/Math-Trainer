@@ -120,17 +120,19 @@ void main() {
       find.bySemanticsLabel('Progress toward the next level'),
       findsOneWidget,
     );
-    expect(find.textContaining('Score: '), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp(r'^Score: \d+$')), findsOneWidget);
     expect(find.textContaining('Base: '), findsOneWidget);
     expect(find.textContaining('Speed bonus: '), findsOneWidget);
     expect(find.textContaining('Streak bonus: '), findsOneWidget);
     expect(find.textContaining('Difficulty bonus: '), findsOneWidget);
+    expect(find.bySemanticsLabel('Right: 4'), findsOneWidget);
+    expect(find.bySemanticsLabel('Wrong: 0'), findsOneWidget);
+    expect(find.bySemanticsLabel('Timed out: 0'), findsOneWidget);
     expect(
-      find.textContaining('4 right · 0 wrong · 0 timed out'),
+      find.bySemanticsLabel(RegExp(r'^Average time: \d+ ms$')),
       findsOneWidget,
     );
-    expect(find.textContaining('Average time: '), findsOneWidget);
-    expect(find.textContaining('Best streak: 4'), findsOneWidget);
+    expect(find.bySemanticsLabel('Best streak: 4'), findsOneWidget);
     expect(find.textContaining('Types played: Addition'), findsOneWidget);
     // Never a percentage presented as progress (`doc/design.md`).
     expect(find.textContaining('%'), findsNothing);
@@ -310,6 +312,8 @@ void main() {
     await tester.pumpAndSettle();
 
     repository.failing = false;
+    // Below the stat tiles: scrolled into view first.
+    await tester.ensureVisible(find.text('Retry saving'));
     await tester.tap(find.text('Retry saving'));
     await tester.pump();
     await tester.pump();

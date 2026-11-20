@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../kit/kit.dart';
+
 import '../../composition_root.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/placement/placement.dart';
@@ -269,14 +271,27 @@ class _TypeSelectionView extends StatelessWidget {
             children: [
               Text('Math Trainer', style: theme.textTheme.titleMedium),
               const SizedBox(height: 8),
-              Text(
-                hasHistory
-                    ? 'Overall level: ${globalLevel?.round() ?? '—'}'
-                    : 'Difficulty adapts to your answers.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.extension<AppPalette>()!.textMuted,
+              if (hasHistory)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Overall level',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.extension<AppPalette>()!.textMuted,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    LevelBadge(level: globalLevel?.round()),
+                  ],
+                )
+              else
+                Text(
+                  'Difficulty adapts to your answers.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.extension<AppPalette>()!.textMuted,
+                  ),
                 ),
-              ),
               const SizedBox(height: 24),
               Wrap(
                 spacing: 8,
@@ -284,23 +299,18 @@ class _TypeSelectionView extends StatelessWidget {
                 alignment: WrapAlignment.center,
                 children: [
                   for (final type in ExerciseType.values)
-                    FilterChip(
-                      label: Text(exerciseTypeLabel(type)),
+                    TypeChip(
+                      label: exerciseTypeLabel(type),
                       selected: selectedTypes.contains(type),
                       onSelected: (selected) => _toggle(type, selected),
                     ),
                 ],
               ),
               const SizedBox(height: 24),
-              FilledButton(
+              AppButton.primary(
                 onPressed: onStart,
-                child: isStarting
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Start'),
+                busy: isStarting,
+                label: 'Start',
               ),
               if (selectedTypes.isEmpty) ...[
                 const SizedBox(height: 8),
@@ -401,18 +411,13 @@ class _PlacementOfferView extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
-            FilledButton(
+            AppButton.primary(
               onPressed: onStart,
-              child: isStarting
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('Find my level'),
+              busy: isStarting,
+              label: 'Find my level',
             ),
             const SizedBox(height: 8),
-            TextButton(onPressed: onSkip, child: const Text('Skip')),
+            AppButton.secondary(onPressed: onSkip, label: 'Skip'),
             if (startError != null) ...[
               const SizedBox(height: 8),
               Text(

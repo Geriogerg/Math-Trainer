@@ -16,6 +16,7 @@ import 'package:math_trainer/presentation/theme/app_theme.dart';
 
 import '../fake_account_repository.dart';
 import '../fake_profile_repository.dart';
+import 'kit_finders.dart';
 
 /// Fails while [shouldFail] is true, succeeds afterwards — simulates a
 /// network/disk that recovers, to test the "Retry" button.
@@ -312,7 +313,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Level 42'), findsOneWidget);
+      expect(findLevelBadge(42), findsOneWidget);
       expect(find.text('Not played'), findsNWidgets(6));
       for (final type in ExerciseType.values) {
         expect(find.text(_labelFor(type)), findsOneWidget);
@@ -376,7 +377,7 @@ void main() {
       await pump(true);
       await tester.pumpAndSettle();
 
-      expect(find.text('Level 42'), findsOneWidget);
+      expect(findLevelBadge(42), findsOneWidget);
       expect(find.text('Not played'), findsNWidgets(6));
     },
   );
@@ -431,7 +432,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Could not load the profile.'), findsNothing);
-    expect(find.text('Level 7'), findsOneWidget);
+    expect(findLevelBadge(7), findsOneWidget);
   });
 
   testWidgets(
@@ -533,7 +534,7 @@ void main() {
 
       expect(find.text('Profile'), findsOneWidget);
       // (50 + 6 × 1 floor for the 6 types not played) / 7 = 8.
-      expect(find.textContaining('Overall level: 8'), findsOneWidget);
+      expect(findLevelBadge(8), findsOneWidget);
       // Overall level after the window's first session (36/7) then after the
       // last (56/7): 20/7 ≈ +3 — the last game counts.
       expect(find.textContaining('30-day change: +3'), findsOneWidget);
@@ -541,7 +542,7 @@ void main() {
       // no previous session to compare with.
       expect(find.text('+1'), findsNWidgets(2));
       expect(find.text('Not enough data for the last 30 days.'), findsNothing);
-      expect(find.textContaining('Level 50 · 1500 ms'), findsOneWidget);
+      expect(findLevelBadge(50), findsOneWidget);
       expect(find.textContaining('Score 70'), findsOneWidget);
       expect(find.textContaining('Score 60'), findsOneWidget);
       expect(find.textContaining('Score 50'), findsOneWidget);

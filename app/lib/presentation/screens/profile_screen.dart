@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 
+import '../kit/kit.dart';
+
 import '../../composition_root.dart';
 import 'package:math_core/account/account.dart';
 import 'package:math_core/account/player_profile.dart';
@@ -258,16 +260,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     'undone.',
         ),
         actions: [
-          TextButton(
+          AppButton.secondary(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancel'),
+            label: 'Cancel',
           ),
-          TextButton(
-            style: TextButton.styleFrom(
-              foregroundColor: Theme.of(dialogContext).colorScheme.error,
-            ),
+          AppButton.secondary(
+            destructive: true,
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Delete'),
+            label: 'Delete',
           ),
         ],
       ),
@@ -395,9 +395,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _FindLevelBlock(onStart: _findLevel),
             ],
             const SizedBox(height: 24),
-            Text(
-              'Overall level: ${globalLevel == null ? '—' : globalLevel.round()}',
-              style: theme.textTheme.titleLarge,
+            Row(
+              children: [
+                Text('Overall level', style: theme.textTheme.titleMedium),
+                const SizedBox(width: 12),
+                LevelBadge(level: globalLevel?.round(), large: true),
+              ],
             ),
             const SizedBox(height: 4),
             Text(
@@ -436,37 +439,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
             // The beta's feedback field (Phase 3a commit 5).
             if (widget.environment.feedbackRepository case final feedback?)
               Center(
-                child: TextButton(
+                child: AppButton.secondary(
                   onPressed: () => _sendFeedback(feedback),
-                  child: const Text('Send feedback'),
+                  label: 'Send feedback',
                 ),
               ),
             // What is stored and how to delete it (Phase 3a commit 4), right
             // above the deletion it describes.
             Center(
-              child: TextButton(
+              child: AppButton.secondary(
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(
                     builder: (_) => const PrivacyScreen(),
                   ),
                 ),
-                child: const Text('Privacy'),
+                label: 'Privacy',
               ),
             ),
             // Last and quiet on purpose: irreversible, never next to the
             // everyday actions. Every player has it, guests included
             // (plan, section 6.3).
             Center(
-              child: TextButton(
-                style: TextButton.styleFrom(
-                  foregroundColor: theme.colorScheme.error,
-                ),
+              child: AppButton.secondary(
+                destructive: true,
                 onPressed: () => _deleteData(data.account),
-                child: Text(
-                  data.account.isAnonymous
-                      ? 'Delete my data'
-                      : 'Delete my account',
-                ),
+                label: data.account.isAnonymous
+                    ? 'Delete my data'
+                    : 'Delete my account',
               ),
             ),
           ],
@@ -496,10 +495,9 @@ class _FindLevelBlock extends StatelessWidget {
           style: theme.textTheme.bodyMedium,
         ),
         const SizedBox(height: 8),
-        FilledButton.tonal(
-          onPressed: onStart,
-          child: const Text('Find my level'),
-        ),
+        // Not the screen's main action: secondary, as `FilledButton.tonal`
+        // was before the kit.
+        AppButton.secondary(onPressed: onStart, label: 'Find my level'),
       ],
     );
   }
@@ -553,11 +551,11 @@ class _DisplayNameDialogState extends State<_DisplayNameDialog> {
         onSubmitted: (_) => _submit(),
       ),
       actions: [
-        TextButton(
+        AppButton.secondary(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          label: 'Cancel',
         ),
-        FilledButton(onPressed: _submit, child: const Text('Save')),
+        AppButton.primary(onPressed: _submit, label: 'Save'),
       ],
     );
   }
@@ -636,18 +634,18 @@ class _IdentityBlock extends StatelessWidget {
             runSpacing: 8,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              FilledButton(
+              AppButton.primary(
                 onPressed: onSaveProgress,
-                child: const Text('Save your progress'),
+                label: 'Save your progress',
               ),
-              TextButton(
+              AppButton.secondary(
                 onPressed: onSignInExisting,
-                child: const Text('I already have an account'),
+                label: 'I already have an account',
               ),
             ],
           )
         else
-          TextButton(onPressed: onSignOut, child: const Text('Sign out')),
+          AppButton.secondary(onPressed: onSignOut, label: 'Sign out'),
       ],
     );
   }
@@ -694,14 +692,18 @@ class _OperationRow extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              Text(
-                level == null
-                    ? 'Not played'
-                    : averageElapsedMs == null
-                    ? 'Level ${level.whole}'
-                    : 'Level ${level.whole} · ${averageElapsedMs.round()} ms',
-                style: theme.textTheme.bodyMedium,
-              ),
+              if (level == null)
+                Text('Not played', style: theme.textTheme.bodyMedium)
+              else ...[
+                if (averageElapsedMs != null) ...[
+                  Text(
+                    '${averageElapsedMs.round()} ms',
+                    style: theme.textTheme.bodyMedium?.digits,
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                LevelBadge(level: level.whole),
+              ],
             ],
           ),
         ],

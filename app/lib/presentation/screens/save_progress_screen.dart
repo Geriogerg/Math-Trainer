@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../kit/kit.dart';
+
 import 'package:math_core/account/account_repository.dart';
 import 'package:math_core/account/profile_repository.dart';
 import '../../core/state/account_form_controller.dart';
@@ -154,15 +156,10 @@ class _SaveProgressScreenState extends State<SaveProgressScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                FilledButton(
-                  onPressed: busy ? null : _submit,
-                  child: busy
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Save'),
+                AppButton.primary(
+                  onPressed: _submit,
+                  busy: busy,
+                  label: 'Save',
                 ),
                 if (error != null) ...[
                   const SizedBox(height: 12),
@@ -175,9 +172,9 @@ class _SaveProgressScreenState extends State<SaveProgressScreen> {
                   ),
                 ],
                 if (_controller.failure == AccountFailure.emailAlreadyUsed)
-                  TextButton(
+                  AppButton.secondary(
                     onPressed: _signInInstead,
-                    child: const Text('Sign in to that account instead'),
+                    label: 'Sign in to that account instead',
                   ),
               ],
             );

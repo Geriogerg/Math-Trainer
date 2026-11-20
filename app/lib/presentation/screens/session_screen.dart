@@ -9,6 +9,7 @@ import '../../core/effects/session_effects.dart';
 import '../../core/state/session_controller.dart';
 import '../exercise_prompt.dart';
 import '../exercise_type_labels.dart';
+import '../kit/keypad_key.dart';
 import '../theme/app_theme.dart';
 import 'empty_state.dart';
 
@@ -480,9 +481,9 @@ class _NumericKeypad extends StatelessWidget {
               children: [
                 for (final digit in row)
                   Expanded(
-                    child: _KeypadKey(
+                    child: KeypadKey.digit(
+                      digit,
                       key: keypadKeyKey(digit),
-                      label: digit,
                       onTap: () => onDigit(digit),
                     ),
                   ),
@@ -493,24 +494,24 @@ class _NumericKeypad extends StatelessWidget {
           child: Row(
             children: [
               Expanded(
-                child: _KeypadKey(
+                child: KeypadKey.icon(
+                  Icons.backspace_outlined,
                   key: keypadKeyKey('backspace'),
-                  icon: Icons.backspace_outlined,
                   semanticLabel: 'Backspace',
                   onTap: onBackspace,
                 ),
               ),
               Expanded(
-                child: _KeypadKey(
+                child: KeypadKey.digit(
+                  '0',
                   key: keypadKeyKey('0'),
-                  label: '0',
                   onTap: () => onDigit('0'),
                 ),
               ),
               Expanded(
-                child: _KeypadKey(
+                child: KeypadKey.icon(
+                  Icons.check,
                   key: keypadKeyKey('submit'),
-                  icon: Icons.check,
                   semanticLabel: 'Submit',
                   onTap: onValidate,
                   isPrimary: true,
@@ -520,82 +521,6 @@ class _NumericKeypad extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-/// Key/backspace on `Surface`, submit on `Accent` ("primary action",
-/// doc/design.md). 60 ms easeOut press animation (`AppMotion.keyPress`, set
-/// up in commit A, first consumer here).
-class _KeypadKey extends StatefulWidget {
-  const _KeypadKey({
-    super.key,
-    this.label,
-    this.icon,
-    this.semanticLabel,
-    required this.onTap,
-    this.isPrimary = false,
-  });
-
-  final String? label;
-  final IconData? icon;
-
-  /// Read by screen readers for keys without text (icons).
-  final String? semanticLabel;
-  final VoidCallback onTap;
-  final bool isPrimary;
-
-  @override
-  State<_KeypadKey> createState() => _KeypadKeyState();
-}
-
-class _KeypadKeyState extends State<_KeypadKey> {
-  bool _pressed = false;
-
-  void _setPressed(bool value) => setState(() => _pressed = value);
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final motion = theme.extension<AppMotion>()!.keyPress;
-    final background = widget.isPrimary
-        ? colorScheme.primary
-        : colorScheme.surfaceContainerHigh;
-    final foreground = widget.isPrimary
-        ? colorScheme.onPrimary
-        : colorScheme.onSurface;
-
-    return GestureDetector(
-      onTapDown: (_) => _setPressed(true),
-      onTapUp: (_) => _setPressed(false),
-      onTapCancel: () => _setPressed(false),
-      onTap: widget.onTap,
-      child: AnimatedScale(
-        scale: _pressed ? 0.92 : 1.0,
-        duration: motion.duration,
-        curve: motion.curve,
-        child: Container(
-          margin: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: background,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          alignment: Alignment.center,
-          child: widget.icon != null
-              ? Icon(
-                  widget.icon,
-                  color: foreground,
-                  semanticLabel: widget.semanticLabel,
-                )
-              : Text(
-                  widget.label!,
-                  style: theme.textTheme.displaySmall?.copyWith(
-                    color: foreground,
-                  ),
-                ),
-        ),
-      ),
     );
   }
 }

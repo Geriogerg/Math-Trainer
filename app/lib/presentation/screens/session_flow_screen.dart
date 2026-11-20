@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../kit/kit.dart';
+
 import '../../composition_root.dart';
 import '../../core/state/session_controller.dart';
 import '../../core/state/session_state.dart';
@@ -91,13 +93,13 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
           'The session will be interrupted. Answers already given stay saved.',
         ),
         actions: [
-          TextButton(
+          AppButton.secondary(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancel'),
+            label: 'Cancel',
           ),
-          TextButton(
+          AppButton.secondary(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Quit'),
+            label: 'Quit',
           ),
         ],
       ),

@@ -1,4 +1,6 @@
 import 'package:material_ui/material_ui.dart';
+
+import '../kit/kit.dart';
 import 'package:math_core/feedback/feedback.dart';
 
 import '../../core/state/feedback_controller.dart';
@@ -62,9 +64,9 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 24),
-                      FilledButton(
+                      AppButton.primary(
                         onPressed: () => Navigator.of(context).pop(),
-                        child: const Text('Back'),
+                        label: 'Back',
                       ),
                     ],
                   ),
@@ -96,11 +98,11 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                FilledButton(
+                AppButton.primary(
                   onPressed: sending
                       ? null
                       : () => controller.send(_text.text).ignore(),
-                  child: Text(sending ? 'Sending…' : 'Send'),
+                  label: sending ? 'Sending…' : 'Send',
                 ),
               ],
             );

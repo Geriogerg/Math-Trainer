@@ -7,9 +7,11 @@ import 'package:math_core/persistence/in_memory_session_repository.dart';
 import 'package:math_trainer/composition_root.dart';
 import 'package:math_trainer/presentation/screens/leaderboard_screen.dart';
 import 'package:math_trainer/presentation/theme/app_theme.dart';
+import 'package:math_trainer/presentation/kit/kit.dart';
 
 import '../fake_account_repository.dart';
 import '../fake_profile_repository.dart';
+import 'kit_finders.dart';
 
 /// Answers per board from maps; counts calls; can fail.
 class _FakeLeaderboard implements LeaderboardRepository {
@@ -104,7 +106,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(360, 740));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await pump(tester);
-    final chips = find.byType(ChoiceChip);
+    final chips = find.byType(TypeChip);
     expect(chips, findsNWidgets(LeaderboardBoard.all.length));
     final top = tester.getTopLeft(chips.first).dy;
     for (final element in chips.evaluate()) {
@@ -115,8 +117,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Percentages'));
     await tester.pumpAndSettle();
-    final selected = tester.widget<ChoiceChip>(
-      find.widgetWithText(ChoiceChip, 'Percentages'),
+    final selected = tester.widget<TypeChip>(
+      find.widgetWithText(TypeChip, 'Percentages'),
     );
     expect(selected.selected, isTrue);
   });
@@ -130,7 +132,7 @@ void main() {
     await tester.tap(find.text('Top 100'));
     await tester.pumpAndSettle();
     expect(find.text('Zoe'), findsOneWidget);
-    expect(find.text('Level 61'), findsOneWidget);
+    expect(findLevelBadge(61), findsOneWidget);
 
     await tester.ensureVisible(find.text('Division')); // one sideways line
     await tester.tap(find.text('Division'));

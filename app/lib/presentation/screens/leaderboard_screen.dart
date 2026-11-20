@@ -1,4 +1,6 @@
 import 'package:material_ui/material_ui.dart';
+
+import '../kit/kit.dart';
 import 'package:math_core/leaderboard/leaderboard.dart';
 
 import '../../composition_root.dart';
@@ -174,13 +176,13 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           'reported by several players is hidden until it is reviewed.',
         ),
         actions: [
-          TextButton(
+          AppButton.secondary(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancel'),
+            label: 'Cancel',
           ),
-          FilledButton(
+          AppButton.primary(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Report'),
+            label: 'Report',
           ),
         ],
       ),
@@ -218,8 +220,8 @@ class _BoardChips extends StatelessWidget {
         children: [
           for (final (i, board) in LeaderboardBoard.all.indexed) ...[
             if (i > 0) const SizedBox(width: 8),
-            ChoiceChip(
-              label: Text(boardLabel(board)),
+            TypeChip(
+              label: boardLabel(board),
               selected: board == selected,
               onSelected: (_) => onSelected(board),
             ),
@@ -301,9 +303,9 @@ class _NotRankedView extends StatelessWidget {
           Text(message, style: theme.textTheme.bodyLarge),
           if (standing.reason == NotRankedReason.notLinked) ...[
             const SizedBox(height: 16),
-            FilledButton(
+            AppButton.primary(
               onPressed: onSaveProgress,
-              child: const Text('Save your progress'),
+              label: 'Save your progress',
             ),
           ],
         ],
@@ -355,7 +357,7 @@ class _EntryRow extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          Text('Level ${entry.level.whole}', style: style),
+          LevelBadge(level: entry.level.whole),
           // Another player's chosen name can be reported; a nameless row
           // ("Player") or one's own cannot.
           SizedBox(

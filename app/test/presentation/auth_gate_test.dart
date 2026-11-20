@@ -21,6 +21,7 @@ import 'package:math_trainer/presentation/theme/app_theme.dart';
 
 import '../fake_account_repository.dart';
 import '../fake_profile_repository.dart';
+import 'kit_finders.dart';
 
 /// Controllable — unlike `FakeAccountRepository`
 /// (`test/fake_account_repository.dart`), which starts signed in and only
@@ -353,7 +354,7 @@ void main() {
 
         accountRepository.resolveSession(accountA);
         await tester.pumpAndSettle();
-        expect(find.text('Overall level: 7'), findsOneWidget);
+        expect(findLevelBadge(7), findsOneWidget);
 
         // Signed out: a guest is being created (pending) — a spinner,
         // which never settles.
@@ -369,7 +370,7 @@ void main() {
         await tester.pump();
         accountRepository.resolveSession(accountA);
         await tester.pumpAndSettle();
-        expect(find.text('Overall level: 7'), findsOneWidget);
+        expect(findLevelBadge(7), findsOneWidget);
       },
     );
 
@@ -381,7 +382,7 @@ void main() {
       await playOnDevice(environment);
       accountRepository.resolveSession(accountA);
       await tester.pumpAndSettle();
-      expect(find.text('Overall level: 7'), findsOneWidget);
+      expect(findLevelBadge(7), findsOneWidget);
 
       accountRepository.resolveSession(accountB);
       await tester.pumpAndSettle();

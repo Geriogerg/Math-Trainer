@@ -197,6 +197,24 @@ each game (`doc/decisions.md`): one scale everywhere, whatever types were played
 Operations never played appear in a "not played" state rather than hidden — that is what makes
 visible what the default selection leaves out.
 
+## Kit (Phase 5)
+
+Five components, `app/lib/presentation/kit/`, replace stock Material in their roles; every
+screen uses them. Shared tokens in `AppMetrics`: `radius` 16 (the keypad's corner), `keyGap` 4,
+`controlHeight` 52.
+
+| Component | Role | Look |
+|---|---|---|
+| `AppButton.primary` | the screen's main action, one per screen | filled accent, 52 high, radius 16, title style |
+| `AppButton.secondary` | every other action, in-text links, dialog actions; `destructive` for Delete | accent (or error) text only |
+| `TypeChip` | an operation or a board to pick | surface, outline; selected: accent outline, tinted, check mark |
+| `KeypadKey` | a key of the session keypad | **geometry pinned for the beta** |
+| `StatTile` | one figure and its label | surface tile, number in the digit face, muted label |
+| `LevelBadge` | a level, whole number | digit face in the accent, accent outline; a dash when not played |
+
+Selection and emphasis never rely on colour alone: a selected chip has a check mark, the
+player's own row stays bold with "(You)", a badge reads "Level 12" to screen readers.
+
 ## Layout rules
 
 - **Uniform root padding on every screen** (`AppMetrics`).

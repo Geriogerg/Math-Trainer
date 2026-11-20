@@ -15,6 +15,7 @@ import 'package:math_trainer/presentation/theme/app_theme.dart';
 import '../fake_account_repository.dart';
 import '../fake_placement_skip_store.dart';
 import '../fake_profile_repository.dart';
+import 'kit_finders.dart';
 
 /// In-memory store — no shared test infrastructure for a single class of a
 /// few lines (project convention).
@@ -350,7 +351,7 @@ void main() {
     await pumpPlayTab(tester, environment);
 
     // (42 + 6 × 1 floor for the 6 types not played) / 7 ≈ 6.86 → 7.
-    expect(find.text('Overall level: 7'), findsOneWidget);
+    expect(findLevelBadge(7), findsOneWidget);
     expect(find.text('Difficulty adapts to your answers.'), findsNothing);
   });
 }
