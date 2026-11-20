@@ -1,0 +1,81 @@
+name: Deploy to Cloudflare Pages
+description: >-
+  Publishes a built site to one Cloudflare Pages project (production or
+  staging, Phase 5.2): the large files pre-compressed and served by the
+  Pages Function of tool/cloudflare/ (Phase 5.1). The job has checked out
+  the repository and set up Node 22.
+inputs:
+  api-token:
+    description: CLOUDFLARE_API_TOKEN.
+    required: true
+  account-id:
+    description: CLOUDFLARE_ACCOUNT_ID.
+    required: true
+  project:
+    description: The Pages project's name (created on the first run).
+    required: true
+  site:
+    description: The built site's directory, absolute.
+    required: true
+  expected-url:
+    description: >-
+      When set, the project's address must be exactly this (production: the
+      GitHub Pages redirect points there).
+    required: false
+    default: ''
+outputs:
+  url:
+    description: The project's address, https://<subdomain>.
+    value: ${{ steps.address.outputs.url }}
+runs:
+  using: composite
+  steps:
+    - name: Pre-compress the large files (brotli 11)
+      shell: bash
+      env:
+        SITE: ${{ inputs.site }}
+      run: node tool/cloudflare/precompress.mjs "$SITE"
+    - name: Create the project (first run)
+      shell: bash
+      env:
+        CLOUDFLARE_API_TOKEN: ${{ inputs.api-token }}
+        CLOUDFLARE_ACCOUNT_ID: ${{ inputs.account-id }}
+        PROJECT: ${{ inputs.project }}
+      run: |
+        npx --yes wrangler@4 pages project list | grep -q " $PROJECT " \
+          || npx --yes wrangler@4 pages project create "$PROJECT" --production-branch=main
+    - name: The project's address
+      # A taken name gets a suffix (math-trainer-xyz.pages.dev): read it from
+      # the project. The address is public; the token is never printed.
+      id: address
+      shell: bash
+      env:
+        CLOUDFLARE_API_TOKEN: ${{ inputs.api-token }}
+        CLOUDFLARE_ACCOUNT_ID: ${{ inputs.account-id }}
+        PROJECT: ${{ inputs.project }}
+        WANTED: ${{ inputs.expected-url }}
+      run: |
+        sub=$(curl -fsS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+          "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PROJECT" \
+          | jq -r '.result.subdomain // empty')
+        [ -n "$sub" ] || { echo "::error::Could not read the Cloudflare project's address ($PROJECT)"; exit 1; }
+        url="https://$sub"
+        echo "url=$url" >> "$GITHUB_OUTPUT"
+        echo "Cloudflare Pages address ($PROJECT): $url" >> "$GITHUB_STEP_SUMMARY"
+        if [ -n "$WANTED" ]; then
+          wanted=$(printf '%s' "$WANTED" | tr -d '[:space:]'); wanted=${wanted%/}
+          if [ "$wanted" != "$url" ]; then
+            echo "::error::The Cloudflare project's address is $url but the repository variable PREVIEW_URL is '$WANTED'. Set PREVIEW_URL to $url and re-run CI; the GitHub Pages redirect and the smoke test wait until they match."
+            exit 1
+          fi
+        fi
+    - name: Deploy
+      # From tool/cloudflare/: wrangler picks up ./functions there.
+      shell: bash
+      working-directory: tool/cloudflare
+      env:
+        CLOUDFLARE_API_TOKEN: ${{ inputs.api-token }}
+        CLOUDFLARE_ACCOUNT_ID: ${{ inputs.account-id }}
+        PROJECT: ${{ inputs.project }}
+        SITE: ${{ inputs.site }}
+      run: npx --yes wrangler@4 pages deploy "$SITE" --project-name="$PROJECT" --branch=main --commit-dirty=true

@@ -11,8 +11,9 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 ## Current phase
 
 **Phase 5.2 — Staging and online groundwork** (`doc/plan.md`, section 7), run in **one pass**
-while the beta runs. Done: 0 (1/2; the measurement waits for the owner's code file). Next
-commit: **1**. Update this block at every commit.
+while the beta runs. Done: 0 (1/2; the measurement waits for the owner's code file), 1 (live
+on staging once the owner's setup is done). Next commit: **2**. Update this block at every
+commit.
 
 **Beta-safety rule** (Phase 5, still in force): nothing may change how players answer — keypad
 geometry, input paths, question order and difficulty, the 15 s timeout, the correction pause,
@@ -217,6 +218,11 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 - The dashboard prints testers' data: run it locally only, never from CI (logs outlive any
   change of the repository's visibility). A new
   view goes in `owner_dashboard`, never in `public` (the API serves `public`).
+- Tests never write to production (Phase 5.2): with `STAGING=on` the full smoke test runs on
+  staging, production's is read-only (`SMOKE_READ_ONLY=1`). Never point a test, probe or
+  script that creates accounts at the production project.
+- Render services deploy only through CI's hooks (`tool/ci/render_deploy.sh`, after that
+  environment's migrations); a new deploy step goes after migrations, staging before production.
 - Deploy jobs run on a push **or** a manual run on `main` (`event_name != 'pull_request'`):
   owner steps that say "Run workflow" rely on it.
 - `*.pages.dev` names are global: `math-trainer.pages.dev` is someone else's site, ours has a

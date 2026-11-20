@@ -1,8 +1,9 @@
 # CI: core, app, SQL and tooling tests, analyzers and the web build on every
 # push; a push to main (or Actions → CI → Run workflow on main) that passes
-# them applies the Supabase migrations and
-# deploys the preview to GitHub Pages (https://<owner>.github.io/<repo>/),
-# then smoke-tests it. Monorepo (Phase 2 commit 3): app/ (Flutter),
+# them goes to staging first when STAGING=on (migrations, server, site, the
+# full smoke test: Phase 5.2), then applies production's migrations, deploys
+# its server and the preview (Cloudflare Pages), and smoke-tests it
+# read-only. Monorepo (Phase 2 commit 3): app/ (Flutter),
 # packages/math_core/ (pure Dart, shared with the server), tool/.
 name: CI
 
@@ -129,78 +130,53 @@ jobs:
       - name: Migrations and SQL tests
         run: bash tool/sql/test_sql.sh postgresql://postgres:postgres@localhost:5432/postgres
 
-  migrations:
-    # The live project gets every migration not yet applied, on main only,
-    # once the SQL tests pass (plan: no SQL run by hand from Phase 2
-    # commit 2). The access token and database password are secrets: GitHub
-    # masks them, and nothing here echoes them.
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+  # --- Staging (Phase 5.2 commit 1) -----------------------------------------
+  # With the repository variable STAGING=on, every push to main goes through
+  # staging first: its migrations, its server, its site, the full smoke test
+  # there — and only then production. Off, these jobs are skipped and
+  # production deploys as before. doc/online.md, "Staging".
+
+  migrations-staging:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.STAGING == 'on'
     needs: [core, server, test, sql]
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # One push to the database at a time, never cancelled half-way.
     concurrency:
-      group: supabase-migrations
+      group: supabase-migrations-staging
       cancel-in-progress: false
-    env:
-      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
     steps:
       - uses: actions/checkout@v4
-      - name: Secrets present
-        id: secrets
-        run: |
-          if [ -z "$SUPABASE_ACCESS_TOKEN" ] || [ -z "$SUPABASE_DB_PASSWORD" ] || [ -z "$SUPABASE_URL" ]; then
-            echo "::warning::SUPABASE_ACCESS_TOKEN or SUPABASE_DB_PASSWORD missing: migrations not applied (doc/online.md)."
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "ready=true" >> "$GITHUB_OUTPUT"
-          fi
-      - uses: supabase/setup-cli@v1
-        if: steps.secrets.outputs.ready == 'true'
+      - uses: ./.github/actions/supabase-migrate
         with:
-          version: latest
-      - name: Apply pending migrations
-        if: steps.secrets.outputs.ready == 'true'
-        # The project ref is the subdomain of the project URL.
-        # On failure the CLI's last lines also become an annotation: job
-        # logs need a signed-in reader, annotations don't. GitHub masks the
-        # secrets in both; the literal replacements below are a second guard.
-        run: |
-          ref="${SUPABASE_URL#https://}"
-          ref="${ref%%.*}"
-          supabase --version
-          run_cli() {
-            local what="$1"
-            shift
-            if "$@" > cli.log 2>&1; then
-              cat cli.log
-              return 0
-            fi
-            cat cli.log
-            local msg
-            msg="$(tail -n 12 cli.log)"
-            msg="${msg//"$SUPABASE_DB_PASSWORD"/***}"
-            msg="${msg//"$SUPABASE_ACCESS_TOKEN"/***}"
-            msg="${msg//'%'/%25}"
-            msg="${msg//$'\r'/}"
-            msg="${msg//$'\n'/%0A}"
-            echo "::error title=supabase ${what} failed::${msg}"
-            return 1
-          }
-          run_cli link supabase link --project-ref "$ref"
-          # `--remote`: newer CLIs push to a local stack unless told
-          # otherwise (the first live run failed on 127.0.0.1:54322).
-          # `--yes`: no one is there to answer the confirmation prompt.
-          run_cli "db push" supabase db push --remote --yes
+          access-token: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          db-password: ${{ secrets.STAGING_SUPABASE_DB_PASSWORD }}
+          supabase-url: ${{ secrets.STAGING_SUPABASE_URL }}
+          label: staging
 
-  web:
+  server-staging:
+    # The staging server at this commit (deploy hook), once its database
+    # has this commit's migrations.
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.STAGING == 'on'
+    needs: [migrations-staging]
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    concurrency:
+      group: render-staging
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Deploy and wait for this commit
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_STAGING }}
+          SERVER_URL: ${{ vars.STAGING_SERVER_URL }}
+        run: bash tool/ci/render_deploy.sh "$SERVER_URL" "$GITHUB_SHA"
+
+  web-staging:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.STAGING == 'on'
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    defaults:
-      run:
-        working-directory: app
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -209,45 +185,148 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
       - run: flutter pub get
-      - name: Supabase configuration from secrets
-        # Empty secrets still compile: the app then shows "Missing
-        # configuration" instead of starting. SERVER_URL is a repository
-        # *variable* (public, not a secret), set once the server is
-        # deployed; empty, the app keeps its sessions local and pending.
+        working-directory: app
+      # No beta gate on staging: the smoke test plays without a code, and
+      # the staging server does not ask for one (render.yaml).
+      - uses: ./.github/actions/web-build
+        with:
+          supabase-url: ${{ secrets.STAGING_SUPABASE_URL }}
+          publishable-key: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
+          server-url: ${{ vars.STAGING_SERVER_URL }}
+          beta-gate: ''
+          base-href: /
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-site-staging
+          path: app/build/web
+          if-no-files-found: error
+
+  deploy-staging:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.STAGING == 'on'
+    needs: [web-staging, migrations-staging]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: cloudflare-pages-staging
+      cancel-in-progress: false
+    outputs:
+      url: ${{ steps.pages.outputs.url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-site-staging
+          path: site
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - id: pages
+        uses: ./.github/actions/cloudflare-pages
+        with:
+          api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          project: ${{ vars.CLOUDFLARE_STAGING_PROJECT || 'math-trainer-staging' }}
+          site: ${{ github.workspace }}/site
+
+  smoke-staging:
+    # The full visit, on staging: a guest, a game, a reload, the upload and
+    # the server levels, then the account deletes itself.
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.STAGING == 'on'
+    needs: [deploy-staging, server-staging]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Smoke test on staging
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          APP_URL: ${{ needs.deploy-staging.outputs.url }}
+          SMOKE_SUPABASE_URL: ${{ vars.STAGING_SERVER_URL && secrets.STAGING_SUPABASE_URL || '' }}
+          SMOKE_SUPABASE_KEY: ${{ vars.STAGING_SERVER_URL && secrets.STAGING_SUPABASE_PUBLISHABLE_KEY || '' }}
+        run: node tool/smoke/preview_smoke.mjs "$APP_URL" google-chrome
+      - name: Screenshot of the failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-failure-staging
+          path: smoke-failure.png
+          if-no-files-found: ignore
+
+  # --- Production ------------------------------------------------------------
+
+  migrations:
+    # The live project gets every migration not yet applied, on main only,
+    # once the SQL tests pass (plan: no SQL run by hand from Phase 2
+    # commit 2) — and, with STAGING=on, once staging passed its smoke test
+    # (a skipped staging is fine: !failure()).
+    if: >
+      github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+      && !failure() && !cancelled()
+    needs: [core, server, test, sql, smoke-staging]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # One push to the database at a time, never cancelled half-way.
+    concurrency:
+      group: supabase-migrations
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/supabase-migrate
+        with:
+          access-token: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          db-password: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          supabase-url: ${{ secrets.SUPABASE_URL }}
+          label: production
+
+  server-production:
+    # The production server at this commit, after production's migrations
+    # (render.yaml: no automatic deploys). Skipped when neither the server
+    # nor the core changed (tool/ci/render_deploy.sh).
+    if: >
+      github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+      && !failure() && !cancelled() && vars.SERVER_URL != ''
+    needs: [migrations]
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    concurrency:
+      group: render-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Deploy and wait for this commit
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_PRODUCTION }}
           SERVER_URL: ${{ vars.SERVER_URL }}
-          # The beta gate (Phase 3a commit 3): "true" from the repository
-          # variable BETA_GATE once the owner sends the invitations.
-          BETA_GATE: ${{ vars.BETA_GATE }}
-        # APP_VERSION: the build's commit, stored with feedback (commit 5).
-        # PREVIEW_BUILD: this pipeline only builds the preview (the owner's
-        # tools, such as the typeface specimen, open there; Phase 5).
-        run: |
-          jq -n --arg url "$SUPABASE_URL" --arg key "$SUPABASE_PUBLISHABLE_KEY" \
-            --arg server "$SERVER_URL" --arg gate "$BETA_GATE" \
-            --arg version "${GITHUB_SHA::7}" \
-            '{SUPABASE_URL: $url, SUPABASE_PUBLISHABLE_KEY: $key, SERVER_URL: $server, BETA_GATE: $gate, APP_VERSION: $version, PREVIEW_BUILD: "true"}' \
-            > dart_defines.json
-      - name: Web build
-        # Every URL in the build (bootstrap, assets, sqflite_sw.js,
-        # sqlite3.wasm) resolves against the base: https://<owner>.github.io/
-        # <repo>/ on GitHub Pages, the root on Cloudflare Pages (Phase 3a
-        # commit 1: repository variable PREVIEW_HOST=cloudflare, set by the
-        # owner). --no-web-resources-cdn: CanvasKit comes from the site,
-        # never from Google's CDN (fonts too: web/flutter_bootstrap.js).
-        env:
-          BASE_HREF: ${{ vars.PREVIEW_HOST == 'cloudflare' && '/' || format('/{0}/', github.event.repository.name) }}
-        run: >
-          flutter build web --release --no-web-resources-cdn
-          --base-href "$BASE_HREF"
-          --dart-define-from-file=dart_defines.json
-      - name: Boot sign-in settings into index.html
-        # The page signs in while the files download (Phase 5.1 commit 1):
-        # the Supabase address, the publishable key and the gate switch,
-        # from the same dart_defines.json (refuses a secret key).
-        run: node ../tool/web/boot_config.mjs build/web dart_defines.json
+        run: bash tool/ci/render_deploy.sh "$SERVER_URL" "$GITHUB_SHA"
+
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - run: flutter pub get
+        working-directory: app
+      # Production. Every URL in the build resolves against the base:
+      # https://<owner>.github.io/<repo>/ on GitHub Pages, the root on
+      # Cloudflare Pages (Phase 3a commit 1: PREVIEW_HOST=cloudflare).
+      # SERVER_URL is a repository variable; empty, the app keeps its
+      # sessions local. BETA_GATE: "true" since the invitations went out.
+      - uses: ./.github/actions/web-build
+        with:
+          supabase-url: ${{ secrets.SUPABASE_URL }}
+          publishable-key: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          server-url: ${{ vars.SERVER_URL }}
+          beta-gate: ${{ vars.BETA_GATE }}
+          base-href: ${{ vars.PREVIEW_HOST == 'cloudflare' && '/' || format('/{0}/', github.event.repository.name) }}
       - name: Upload the site (Cloudflare Pages)
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.PREVIEW_HOST == 'cloudflare'
         uses: actions/upload-artifact@v4
@@ -261,7 +340,6 @@ jobs:
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.PREVIEW_HOST == 'cloudflare'
         env:
           PREVIEW_URL: ${{ vars.PREVIEW_URL }}
-        working-directory: .
         run: |
           # Pasted values carry spaces or line breaks: drop them.
           url=$(printf '%s' "$PREVIEW_URL" | tr -d '[:space:]'); url=${url%/}
@@ -307,72 +385,45 @@ jobs:
         uses: actions/deploy-pages@v4
 
   deploy-cloudflare:
-    # Phase 3a commit 1, dormant until the owner sets the repository variable
-    # PREVIEW_HOST=cloudflare (with PREVIEW_URL, and the secrets
-    # CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID): Cloudflare Pages serves
-    # brotli, GitHub Pages only gzip (doc/decisions.md, "Preview host").
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.PREVIEW_HOST == 'cloudflare'
-    needs: [core, server, test, web, migrations]
+    # The production preview (Phase 3a commit 1), once PREVIEW_HOST=cloudflare
+    # (with PREVIEW_URL, and the secrets CLOUDFLARE_API_TOKEN /
+    # CLOUDFLARE_ACCOUNT_ID). After production's migrations and server.
+    if: >
+      github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+      && vars.PREVIEW_HOST == 'cloudflare' && !failure() && !cancelled()
+    needs: [core, server, test, web, migrations, server-production]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     concurrency:
       group: cloudflare-pages
       cancel-in-progress: false
-    env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      PROJECT: ${{ vars.CLOUDFLARE_PROJECT || 'math-trainer' }}
-      PREVIEW_URL: ${{ vars.PREVIEW_URL }}
     outputs:
-      url: ${{ steps.address.outputs.url }}
+      url: ${{ steps.pages.outputs.url }}
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           name: web-site
           path: site
-      # The Pages Function and the pre-compression script (Phase 5.1
-      # commit 1): wrangler picks up ./functions from where it runs.
-      - uses: actions/checkout@v4
-        with:
-          path: repo
-          sparse-checkout: tool/cloudflare
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Pre-compress the large files (brotli 11)
-        run: node repo/tool/cloudflare/precompress.mjs site
-      - name: Create the Cloudflare Pages project (first run)
-        run: |
-          npx --yes wrangler@4 pages project list | grep -q " $PROJECT " \
-            || npx --yes wrangler@4 pages project create "$PROJECT" --production-branch=main
-      - name: The project's address must be PREVIEW_URL
-        # A taken name gets a suffix (math-trainer-xyz.pages.dev): the plain
-        # name then belongs to a stranger, and the redirect would send
-        # players there. The address is public; the token is never printed.
-        id: address
-        run: |
-          sub=$(curl -fsS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PROJECT" \
-            | jq -r '.result.subdomain // empty')
-          [ -n "$sub" ] || { echo "::error::Could not read the Cloudflare project's address"; exit 1; }
-          url="https://$sub"
-          echo "url=$url" >> "$GITHUB_OUTPUT"
-          echo "Cloudflare Pages address: $url" >> "$GITHUB_STEP_SUMMARY"
-          wanted=$(printf '%s' "$PREVIEW_URL" | tr -d '[:space:]'); wanted=${wanted%/}
-          if [ "$wanted" != "$url" ]; then
-            echo "::error::The Cloudflare project's address is $url but the repository variable PREVIEW_URL is '$PREVIEW_URL'. Set PREVIEW_URL to $url and re-run CI; the GitHub Pages redirect and the smoke test wait until they match."
-            exit 1
-          fi
-      - name: Deploy to Cloudflare Pages
-        working-directory: repo/tool/cloudflare
-        run: npx --yes wrangler@4 pages deploy "$GITHUB_WORKSPACE/site" --project-name="$PROJECT" --branch=main --commit-dirty=true
+      - id: pages
+        uses: ./.github/actions/cloudflare-pages
+        with:
+          api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          project: ${{ vars.CLOUDFLARE_PROJECT || 'math-trainer' }}
+          site: ${{ github.workspace }}/site
+          expected-url: ${{ vars.PREVIEW_URL }}
 
   smoke:
-    # The deployed preview, played like a new visitor (Phase 1 commit 8):
-    # fresh browser, anonymous player, a full game, a reload, history kept,
-    # then the account deletes itself. tool/smoke/preview_smoke.mjs.
-    # On Cloudflare once PREVIEW_HOST=cloudflare (the skipped deploy job
-    # must not skip this one: hence !failure()).
+    # The deployed production preview (Phase 1 commit 8). With STAGING=on
+    # (Phase 5.2) it is read-only: the full visit ran on staging, and here
+    # the browser blocks every write — the testers' project never sees a
+    # test account. It checks the first screen, installability and that
+    # this commit's build is served. Without staging, the full visit as
+    # before (a guest that deletes itself).
     if: >
       github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
       && !failure() && !cancelled()
@@ -385,16 +436,19 @@ jobs:
         with:
           # Global WebSocket (no npm dependency) needs Node 22+.
           node-version: 22
-      - name: Smoke test on the preview
+      - name: Smoke test on the production preview
         env:
           APP_URL: ${{ vars.PREVIEW_HOST == 'cloudflare' && needs.deploy-cloudflare.outputs.url || needs.deploy.outputs.page_url }}
-          # A code for the beta gate, when it is on (doc/online.md).
-          SMOKE_BETA_CODE: ${{ secrets.SMOKE_BETA_CODE }}
-          # With a server in the build: also check the game was uploaded,
-          # validated and turned into server levels (the public key only).
-          SMOKE_SUPABASE_URL: ${{ vars.SERVER_URL && secrets.SUPABASE_URL || '' }}
-          SMOKE_SUPABASE_KEY: ${{ vars.SERVER_URL && secrets.SUPABASE_PUBLISHABLE_KEY || '' }}
-        run: node tool/smoke/preview_smoke.mjs "$APP_URL" google-chrome
+          SMOKE_READ_ONLY: ${{ vars.STAGING == 'on' && '1' || '' }}
+          SMOKE_EXPECT_VERSION: ${{ vars.STAGING == 'on' && vars.PREVIEW_HOST == 'cloudflare' && github.sha || '' }}
+          # Full visit only (STAGING off): a code for the beta gate, and the
+          # server-levels check with the public key.
+          SMOKE_BETA_CODE: ${{ vars.STAGING != 'on' && secrets.SMOKE_BETA_CODE || '' }}
+          SMOKE_SUPABASE_URL: ${{ vars.STAGING != 'on' && vars.SERVER_URL && secrets.SUPABASE_URL || '' }}
+          SMOKE_SUPABASE_KEY: ${{ vars.STAGING != 'on' && vars.SERVER_URL && secrets.SUPABASE_PUBLISHABLE_KEY || '' }}
+        run: |
+          if [ -n "$SMOKE_EXPECT_VERSION" ]; then export SMOKE_EXPECT_VERSION="${SMOKE_EXPECT_VERSION::7}"; fi
+          node tool/smoke/preview_smoke.mjs "$APP_URL" google-chrome
       - name: Screenshot of the failure
         if: failure()
         uses: actions/upload-artifact@v4

@@ -1,0 +1,73 @@
+name: Apply Supabase migrations
+description: >-
+  Every migration not yet applied, pushed to one Supabase project (staging
+  or production, Phase 5.2). Secrets come in as inputs: GitHub masks them,
+  nothing here echoes them, and the CLI's error lines are scrubbed too.
+inputs:
+  access-token:
+    description: SUPABASE_ACCESS_TOKEN (account-wide).
+    required: true
+  db-password:
+    description: The project's database password.
+    required: true
+  supabase-url:
+    description: https://<project ref>.supabase.co
+    required: true
+  label:
+    description: staging or production, for the messages.
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Secrets present
+      shell: bash
+      env:
+        TOKEN: ${{ inputs.access-token }}
+        PASSWORD: ${{ inputs.db-password }}
+        URL: ${{ inputs.supabase-url }}
+        LABEL: ${{ inputs.label }}
+      run: |
+        if [ -z "$TOKEN" ] || [ -z "$PASSWORD" ] || [ -z "$URL" ]; then
+          echo "::error title=$LABEL migrations::the access token, database password or project URL is missing (doc/online.md)."
+          exit 1
+        fi
+    - uses: supabase/setup-cli@v1
+      with:
+        version: latest
+    - name: Apply pending migrations
+      shell: bash
+      # The project ref is the subdomain of the project URL. On failure the
+      # CLI's last lines also become an annotation (readable without the job
+      # log's permissions), the secrets replaced as a second guard.
+      env:
+        SUPABASE_ACCESS_TOKEN: ${{ inputs.access-token }}
+        SUPABASE_DB_PASSWORD: ${{ inputs.db-password }}
+        SUPABASE_URL: ${{ inputs.supabase-url }}
+        LABEL: ${{ inputs.label }}
+      run: |
+        url=$(printf '%s' "$SUPABASE_URL" | tr -d '[:space:]')
+        ref="${url#https://}"
+        ref="${ref%%.*}"
+        supabase --version
+        run_cli() {
+          local what="$1"
+          shift
+          if "$@" > cli.log 2>&1; then
+            cat cli.log
+            return 0
+          fi
+          cat cli.log
+          local msg
+          msg="$(tail -n 12 cli.log)"
+          msg="${msg//"$SUPABASE_DB_PASSWORD"/***}"
+          msg="${msg//"$SUPABASE_ACCESS_TOKEN"/***}"
+          msg="${msg//'%'/%25}"
+          msg="${msg//$'\r'/}"
+          msg="${msg//$'\n'/%0A}"
+          echo "::error title=supabase ${what} failed ($LABEL)::${msg}"
+          return 1
+        }
+        run_cli link supabase link --project-ref "$ref"
+        # `--remote`: newer CLIs push to a local stack unless told otherwise.
+        # `--yes`: no one is there to answer the confirmation prompt.
+        run_cli "db push" supabase db push --remote --yes

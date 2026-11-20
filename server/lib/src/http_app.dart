@@ -51,10 +51,29 @@ Response jsonResponse(int status, Object body) => Response(
 /// Only listed origins get the CORS headers; others are refused by the
 /// browser, never by a server-side check of `Origin` (not a security
 /// boundary: the bearer token is).
+/// Whether [origin] is one of [allowed]: an exact address, or a pattern
+/// with one `*` standing for letters, digits and dashes inside a single
+/// label (Phase 5.2: `https://math-trainer-staging*.pages.dev` matches the
+/// staging site whatever suffix Cloudflare gave it, never another domain).
+bool originAllowed(String origin, Set<String> allowed) {
+  for (final pattern in allowed) {
+    if (pattern == origin) return true;
+    final star = pattern.indexOf('*');
+    if (star < 0 || pattern.indexOf('*', star + 1) >= 0) continue;
+    final regex = RegExp(
+      '^${RegExp.escape(pattern.substring(0, star))}'
+      '[a-z0-9-]*'
+      '${RegExp.escape(pattern.substring(star + 1))}\$',
+    );
+    if (regex.hasMatch(origin)) return true;
+  }
+  return false;
+}
+
 Middleware _cors(Set<String> allowedOrigins) =>
     (inner) => (request) async {
       final origin = request.headers['origin'];
-      final allowed = origin != null && allowedOrigins.contains(origin);
+      final allowed = origin != null && originAllowed(origin, allowedOrigins);
       final headers = {
         if (allowed) ...{
           'access-control-allow-origin': origin,

@@ -636,3 +636,14 @@ Plan v2.7 (20 Nov 2026). Runs during the beta; the beta-safety rule still applie
   builds; Phase 6's entry says "Phases 3–5 done" (5.1 and 5.2 now exist); Phase 4 item 4
   (structural features) partly exists since 5.1. (2/2, parked) the live slow-4G measurement
   with the CI beta code: waits for `D:\mathtrainer\smoke_code.txt` (owner step 1).
+- **Commit 1** *(A)* — Staging. CI: with `STAGING=on`, staging migrations → staging server
+  (deploy hook, waits for `/health`) and site (`math-trainer-staging`, no gate) → full smoke
+  on staging → production migrations → production server (hook; skipped when server and core
+  are unchanged) → site → read-only smoke on production. Composite actions for migrations, web
+  build, Cloudflare deploy; `tool/ci/render_deploy.sh`; `render.yaml` gains the staging service,
+  both without automatic deploys; server CORS accepts one-label patterns (`originAllowed`,
+  1 test). Smoke test: `SMOKE_READ_ONLY=1` (writes blocked, first screen, installability,
+  `SMOKE_EXPECT_VERSION`) — run against production: gate shown, installable, nothing
+  attempted; a wrong version fails. `render_deploy.sh` checked against production (unchanged
+  server: no deploy). **Parked**: the owner's staging setup (doc/online.md, "Staging"); green
+  on staging is verified at the end of the phase.

@@ -23,6 +23,13 @@
 //      anonymous sign-ins are rate-limited per IP, and the project must not
 //      fill with test players).
 //
+// SMOKE_READ_ONLY=1 (production since Phase 5.2, where tests must leave no
+// trace): every request that could write — anything but GET, HEAD and
+// OPTIONS to another origin than the site — is blocked by the browser; the
+// visit stops at the first screen (the beta gate, or the placement offer),
+// after checking it is installable. SMOKE_EXPECT_VERSION=<short sha> also
+// checks the site serves that build.
+//
 // The app draws on a canvas: the script turns Flutter's accessibility tree
 // on and finds widgets by their text in that DOM. Only Node (>= 22, global
 // WebSocket) and Chrome — nothing to install.
@@ -124,12 +131,29 @@ ws.addEventListener('message', (ev) => {
   if (msg.id && pending.has(msg.id)) {
     pending.get(msg.id)(msg);
     pending.delete(msg.id);
+  } else if (msg.method === 'Fetch.requestPaused') {
+    guardWrite(msg.params);
   } else if (msg.method?.startsWith('Network.') && trace) {
     traceEvent(msg.method, msg.params);
   } else if (msg.method === 'Runtime.exceptionThrown') {
     consoleErrors.push(msg.params.exceptionDetails.exception?.description ?? msg.params.exceptionDetails.text);
   }
 });
+// --- read-only mode (SMOKE_READ_ONLY=1) -------------------------------------
+const readOnly = process.env.SMOKE_READ_ONLY === '1';
+const blockedWrites = [];
+function guardWrite({ requestId, request }) {
+  const url = new URL(request.url);
+  const write = !['GET', 'HEAD', 'OPTIONS'].includes(request.method);
+  if (write && url.origin !== new URL(appUrl).origin) {
+    // The path only: queries may carry keys.
+    blockedWrites.push(`${request.method} ${url.hostname.split('.')[0]}:${url.pathname}`);
+    send('Fetch.failRequest', { requestId, errorReason: 'BlockedByClient' }).catch(() => {});
+  } else {
+    send('Fetch.continueRequest', { requestId }).catch(() => {});
+  }
+}
+
 const send = (method, params = {}) =>
   new Promise((resolve, reject) => {
     const id = nextId++;
@@ -141,6 +165,10 @@ const evaluate = async (expression) =>
 
 await send('Page.enable');
 await send('Runtime.enable');
+if (readOnly) {
+  await send('Fetch.enable', { patterns: [{ urlPattern: '*', requestStage: 'Request' }] });
+  console.log('read-only: writes to other origins are blocked');
+}
 // Sound (Phase 5): count the tones the page schedules. Every answer plays
 // one (on by default); a game with none means the audio never unlocked or
 // the Web Audio code broke.
@@ -276,6 +304,31 @@ const guestId = () =>
     return u && u.is_anonymous ? u.id : null;
   })()`);
 
+/// The read-only visit ends at the first screen: it rendered, the site is
+/// installable, the build is the expected one, nothing was written.
+async function readOnlyEnd(gate) {
+  const shown = gate || (await findText('Find my level'));
+  if (!shown) await fail('no first screen (beta gate or placement offer) within 60 s');
+  console.log(`  first screen: ${gate ? 'beta gate' : 'placement offer'} (${((Date.now() - started) / 1000).toFixed(1)} s from navigation)`);
+  const { installabilityErrors = [] } = await send('Page.getInstallabilityErrors');
+  if (installabilityErrors.length) {
+    await fail(`not installable: ${installabilityErrors.map((e) => e.errorId).join(', ')}`);
+  }
+  console.log('  installable: yes');
+  const want = process.env.SMOKE_EXPECT_VERSION;
+  if (want) {
+    // As the string literal the compiler wrote ("f40ece0"): bare, seven hex
+    // characters can occur anywhere in 3 MB of code.
+    const has = await evaluate(`fetch('main.dart.js', { cache: 'no-store' }).then((r) => r.text()).then((t) => t.includes(${JSON.stringify(JSON.stringify(want))}))`);
+    if (!has) await fail(`the site does not serve build ${want}`);
+    console.log(`  build ${want}: served`);
+  }
+  if (consoleErrors.length) await fail('page exceptions');
+  console.log(`  writes blocked: ${blockedWrites.length ? blockedWrites.join(', ') : 'none attempted'}`);
+  console.log(`SMOKE PASSED (read-only) in ${Math.round((Date.now() - started) / 1000)} s`);
+  await shutdown(0);
+}
+
 // --- the visit -------------------------------------------------------------
 const step = (s) => console.log(`- ${s}`);
 const started = Date.now();
@@ -298,6 +351,7 @@ await enableSemantics();
     }
     await sleep(300);
   }
+  if (readOnly) await readOnlyEnd(gate);
   if (gate) {
     step(`beta gate shown (${((Date.now() - started) / 1000).toFixed(1)} s from navigation): enter the invitation code`);
     const code = process.env.SMOKE_BETA_CODE;

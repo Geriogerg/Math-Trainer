@@ -153,6 +153,51 @@ the owner says yes:
    GitHub **repository variable** (not a secret: it is public) named `SERVER_URL` — the web
    build passes it to the app (commit 5).
 
+### Staging (Phase 5.2 commit 1)
+
+Tests never touch the testers' project. With the repository variable `STAGING=on`, a push to
+`main` runs, in order: staging migrations → staging server (deploy hook) and staging site
+(Cloudflare project `math-trainer-staging`, no beta gate) → **the full smoke test on staging** →
+production migrations → production server (deploy hook, only when `server/` or
+`packages/math_core/` changed) → production site → **a read-only smoke test on production**
+(the browser blocks every write; it checks the first screen, installability and that this
+commit's build is served). A staging failure stops production. `STAGING` unset: staging is
+skipped and production smoke plays the full visit, as before.
+
+| | Production | Staging |
+|---|---|---|
+| Supabase project | the current one (testers' data) | `math-trainer-staging` (throwaway) |
+| Render service | `math-trainer-server` | `math-trainer-server-staging` |
+| Site | `math-trainer-kjc.pages.dev` | `math-trainer-staging….pages.dev` (CI reads it) |
+| Beta gate | app and server on | off (app built without it, server `BETA_GATE=false`) |
+| Smoke test | read-only | full visit, account deleted |
+
+Neither Render service deploys by itself (`render.yaml`, `autoDeploy: false`):
+`tool/ci/render_deploy.sh` calls the service's deploy hook with this commit and waits for
+`/health` to report it (a missing hook is a warning, nothing deployed). The staging server
+accepts `https://math-trainer-staging*.pages.dev` (one-label pattern, `originAllowed`).
+
+**Owner steps, once** (until step 4, CI behaves as before):
+
+1. supabase.com → **New project** `math-trainer-staging`, same organisation and region as
+   production; keep the database password. In it: **Authentication → Sign In / Providers** →
+   *Allow anonymous sign-ins* on, *Confirm email* as in production (off). **Project Settings →
+   API Keys**: copy the publishable and the secret key.
+2. GitHub → Settings → Secrets and variables → Actions → **secrets**: `STAGING_SUPABASE_URL`
+   (`https://<ref>.supabase.co`), `STAGING_SUPABASE_PUBLISHABLE_KEY`,
+   `STAGING_SUPABASE_DB_PASSWORD`. `SUPABASE_ACCESS_TOKEN` already covers both projects.
+3. Render → the Math Trainer Blueprint → **Sync** (if it did not sync by itself): it creates
+   `math-trainer-server-staging` and asks for `SUPABASE_URL` and `SUPABASE_SECRET_KEY` — the
+   **staging** ones. Then, on each service, **Settings → Deploy Hook** → copy into GitHub
+   secrets `RENDER_DEPLOY_HOOK_STAGING` and `RENDER_DEPLOY_HOOK_PRODUCTION`. GitHub **variable**
+   `STAGING_SERVER_URL` = the staging service's address (top of its page).
+4. GitHub **variable** `STAGING` = `on`, then Actions → CI → **Run workflow** on `main`.
+
+Free plans: Supabase pauses a project after 7 days without activity — every push wakes
+staging, but after a quiet week the first staging run may fail until it is resumed (Supabase
+dashboard → the project → *Restore*). Render's free hours (750 a month) are shared by both
+services; they sleep when idle.
+
 ### Moving the preview to Cloudflare Pages (Phase 3a commit 1) — after the owner's yes
 
 Brotli instead of gzip: ~920 KB and ~4.6 s less on slow 4G (`doc/decisions.md`, "Preview

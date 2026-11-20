@@ -90,6 +90,27 @@ void main() {
       );
     });
 
+    test('a pattern: one label, letters, digits and dashes only', () {
+      const staging = {'https://math-trainer-staging*.pages.dev'};
+      for (final ok in [
+        'https://math-trainer-staging.pages.dev',
+        'https://math-trainer-staging-x7q.pages.dev',
+      ]) {
+        expect(originAllowed(ok, staging), isTrue, reason: ok);
+      }
+      for (final no in [
+        'https://math-trainer-staging.evil.dev/x.pages.dev',
+        'https://math-trainer-staging.x.pages.dev',
+        'https://abc.math-trainer-staging.pages.dev',
+        'http://math-trainer-staging.pages.dev',
+        'https://math-trainer.pages.dev',
+      ]) {
+        expect(originAllowed(no, staging), isFalse, reason: no);
+      }
+      expect(originAllowed('https://a.b', {'https://a.b'}), isTrue);
+      expect(originAllowed('https://axb', {'https://a.b'}), isFalse);
+    });
+
     test('another origin gets none', () async {
       final response = await send(
         'GET',

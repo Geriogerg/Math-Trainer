@@ -1,0 +1,62 @@
+name: Web build
+description: >-
+  The Flutter web release build for one backend (production or staging,
+  Phase 5.2), with the boot sign-in settings written into index.html. The
+  job has checked out the repository, set up Flutter and run pub get in app/.
+inputs:
+  supabase-url:
+    description: The Supabase project URL.
+    required: true
+  publishable-key:
+    description: Its publishable key (public, but kept as a secret).
+    required: true
+  server-url:
+    description: The Dart server's URL; empty keeps sessions local.
+    required: false
+    default: ''
+  beta-gate:
+    description: '"true" shows the invitation gate.'
+    required: false
+    default: ''
+  base-href:
+    description: Where the site is served from.
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: dart_defines.json
+      # Empty secrets still compile: the app then shows "Missing
+      # configuration" instead of starting. APP_VERSION: the build's commit
+      # (feedback, the read-only smoke test). PREVIEW_BUILD: these builds are
+      # previews (the owner's tools, such as the typeface specimen; Phase 5).
+      shell: bash
+      working-directory: app
+      env:
+        SUPABASE_URL: ${{ inputs.supabase-url }}
+        SUPABASE_PUBLISHABLE_KEY: ${{ inputs.publishable-key }}
+        SERVER_URL: ${{ inputs.server-url }}
+        BETA_GATE: ${{ inputs.beta-gate }}
+      run: |
+        clean() { printf '%s' "$1" | tr -d '[:space:]'; }
+        jq -n --arg url "$(clean "$SUPABASE_URL")" --arg key "$(clean "$SUPABASE_PUBLISHABLE_KEY")" \
+          --arg server "$(clean "$SERVER_URL")" --arg gate "$(clean "$BETA_GATE")" \
+          --arg version "${GITHUB_SHA::7}" \
+          '{SUPABASE_URL: $url, SUPABASE_PUBLISHABLE_KEY: $key, SERVER_URL: $server, BETA_GATE: $gate, APP_VERSION: $version, PREVIEW_BUILD: "true"}' \
+          > dart_defines.json
+    - name: Web build
+      # --no-web-resources-cdn: CanvasKit comes from the site, never from
+      # Google's CDN (fonts too: web/flutter_bootstrap.js).
+      shell: bash
+      working-directory: app
+      env:
+        BASE_HREF: ${{ inputs.base-href }}
+      run: |
+        rm -rf build/web
+        flutter build web --release --no-web-resources-cdn \
+          --base-href "$BASE_HREF" --dart-define-from-file=dart_defines.json
+    - name: Boot sign-in settings into index.html
+      # The page signs in while the files download (Phase 5.1 commit 1),
+      # from the same dart_defines.json (refuses a secret key).
+      shell: bash
+      working-directory: app
+      run: node ../tool/web/boot_config.mjs build/web dart_defines.json

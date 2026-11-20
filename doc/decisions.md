@@ -1133,3 +1133,35 @@ sets it to `false`); `/health` reports the switch and the deployed commit (`REND
 The migration went out one push before the server (the server asks a function CI must have
 created first; uploads in between would only have been retried). **Reopen when** Phase 6
 removes the gate, or Turnstile protects the anonymous sign-up itself.
+
+## Staging: a second project, deploys in order, production smoke read-only (Phase 5.2, commit 1) — provisional
+
+The plan asks for a second Supabase project and Render service, staging first, production
+untouched by tests. Choices made to get there, **provisional**:
+
+- **Order enforced by CI, not by the hosts.** Both Render services stop deploying on push
+  (`autoDeploy: false`); CI calls each service's deploy hook with the exact commit, after that
+  environment's migrations, and waits for `/health` to report it. Production's server and site
+  go only after the full smoke test passed on staging. A deploy is skipped when neither
+  `server/` nor `packages/math_core/` changed since the running commit (a Docker build on the
+  free plan takes minutes). A missing hook is a warning — the site keeps deploying while the
+  owner sets things up.
+- **Production smoke: read-only.** The full visit creates and deletes an account; production
+  now gets a visit where the browser itself blocks every request that could write (anything
+  but GET/HEAD/OPTIONS leaving the site), stopping at the first screen: it proves the site
+  boots, is installable and serves this commit's build (`SMOKE_EXPECT_VERSION`, matched as
+  the compiler's string literal). With the gate on, the page attempts no write at all.
+  **Reopen at Phase 6**: with the gate off, the page's early sign-up is a write — the
+  read-only visit will then see a start error, and must accept it or stop before sign-in.
+- **Staging has no beta gate** (app and server): the smoke test plays without a code and no
+  code ever has to exist in staging. The gate stays covered by widget and server tests, the
+  read-only production visit (the gate screen must show) and the gate probe.
+- **The staging site's address is read, not configured**: Cloudflare may suffix the name; CI
+  reads it from the API, and the staging server accepts `https://math-trainer-staging*.pages.dev`
+  (one DNS label: `originAllowed`), so nobody has to copy it anywhere.
+- **Composite actions** (`.github/actions/`): the migrations, the web build and the Cloudflare
+  deploy exist once, used by both environments.
+
+**Rejected**: Supabase branching (paid plan); one project with a test schema (tests would
+still write `auth.users` in the testers' project). **Reopen when** Phase 6 adds the domain
+(production becomes the real site; the preview may become staging).

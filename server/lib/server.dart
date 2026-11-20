@@ -9,7 +9,8 @@ import 'src/session_endpoint.dart';
 import 'src/supabase_gateway.dart';
 
 export 'src/config.dart';
-export 'src/http_app.dart' show buildHandler, jsonResponse, Route;
+export 'src/http_app.dart'
+    show buildHandler, jsonResponse, originAllowed, Route;
 export 'src/session_endpoint.dart';
 export 'src/supabase_gateway.dart';
 

@@ -1,8 +1,12 @@
-# Render Blueprint for the Math Trainer server (Phase 2 commit 4).
-# PREPARED, NOT DEPLOYED: a host costs money or has limits, so it is the
-# owner's decision (plan, section 8). Nothing happens until the owner
-# creates a Blueprint from this repository in the Render dashboard; the
-# steps are in doc/online.md ("Deploying the server").
+# Render Blueprint for the Math Trainer server (Phase 2 commit 4; staging
+# since Phase 5.2). The owner created the Blueprint from this repository
+# (doc/online.md, "Deploying the server" and "Staging").
+#
+# Neither service deploys by itself on a push: CI deploys them through
+# their deploy hooks (secrets RENDER_DEPLOY_HOOK_STAGING / _PRODUCTION), in
+# order — staging after its migrations, production only once the smoke test
+# passed on staging (Phase 5.2 commit 1). tool/ci/render_deploy.sh skips a
+# deploy when neither the server nor the core changed.
 services:
   - type: web
     name: math-trainer-server
@@ -15,23 +19,43 @@ services:
     dockerfilePath: ./server/Dockerfile
     dockerContext: .
     healthCheckPath: /health
-    autoDeploy: true
-    # Redeploy only when the server or the core changes.
-    buildFilter:
-      paths:
-        - server/**
-        - packages/math_core/**
+    autoDeploy: false
     envVars:
       # Values are entered in the Render dashboard, never committed.
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SECRET_KEY
         sync: false
-      # The Cloudflare Pages preview (Phase 3a commit 1; math-trainer.pages.dev
-      # is someone else's) and the old GitHub Pages address, now a redirect.
       # Uploads from anonymous players need an invitation code (Phase 5.1);
       # "false" at the public launch (Phase 6). Unset means on.
       - key: BETA_GATE
         value: "true"
+      # The Cloudflare Pages preview (Phase 3a commit 1; math-trainer.pages.dev
+      # is someone else's) and the old GitHub Pages address, now a redirect.
       - key: ALLOWED_ORIGINS
         value: https://math-trainer-kjc.pages.dev,https://geriogerg.github.io
+
+  # Staging (Phase 5.2): the same server on the staging Supabase project.
+  # The smoke test plays here; production is never touched by tests.
+  - type: web
+    name: math-trainer-server-staging
+    runtime: docker
+    plan: free
+    branch: main
+    dockerfilePath: ./server/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeploy: false
+    envVars:
+      # The staging project's URL and secret key, entered in the dashboard.
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      # Staging builds have no gate: the smoke test plays without a code.
+      - key: BETA_GATE
+        value: "false"
+      # The staging site, whatever suffix Cloudflare gave its name (one
+      # label only: server/lib/src/http_app.dart, originAllowed).
+      - key: ALLOWED_ORIGINS
+        value: https://math-trainer-staging*.pages.dev
