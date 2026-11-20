@@ -39,6 +39,8 @@ import 'infrastructure/backend/supabase_leaderboard_repository.dart';
 import 'infrastructure/backend/supabase_account_repository.dart';
 import 'infrastructure/backend/supabase_profile_repository.dart';
 import 'infrastructure/backend/supabase_server_levels_source.dart';
+import 'core/effects/session_effects.dart';
+import 'infrastructure/effects/haptic_session_effects.dart';
 import 'infrastructure/persistence/database.dart';
 import 'infrastructure/persistence/persistent_storage.dart';
 import 'infrastructure/persistence/shared_preferences_abandoned_guest_store.dart';
@@ -77,6 +79,7 @@ class AppEnvironment {
     this.betaCodes,
     this.betaCodeStore = const SharedPreferencesBetaCodeStore(),
     this.feedbackRepository,
+    this.sessionEffects = const HapticSessionEffects(),
   });
 
   final SessionRepository repository;
@@ -146,6 +149,9 @@ class AppEnvironment {
   /// do not care — Profile then shows no "Send feedback".
   final FeedbackRepository? feedbackRepository;
 
+  /// Haptics during a game (and sound from Phase 5 commit 4).
+  final SessionEffects sessionEffects;
+
   AppEnvironment forPlayer(String playerId) => AppEnvironment(
     repository: repository,
     playerId: playerId,
@@ -161,6 +167,7 @@ class AppEnvironment {
     betaCodes: betaCodes,
     betaCodeStore: betaCodeStore,
     feedbackRepository: feedbackRepository,
+    sessionEffects: sessionEffects,
     uploadQueue: switch (uploadClient) {
       final client? => SessionUploadQueue(
         repository: repository,

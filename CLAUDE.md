@@ -11,7 +11,7 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 ## Current phase
 
 **Phase 5 — Identity** (`doc/plan.md`, section 7), run in **one pass** while the beta runs.
-Next commit: **0**. Update this block at every commit.
+Done: 0. Next commit: **1**. Update this block at every commit.
 
 **Beta-safety rule**: nothing may change how players answer — keypad geometry, input paths,
 question order and difficulty, the 15 s timeout, the correction pause, when the next question
@@ -156,6 +156,10 @@ bash tool/dashboard/dashboard.sh [command]        # owner report and chores (liv
 the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 
 ## Pitfalls (append new ones)
+
+- `session_layout_pin_test.dart` holds the beta's keypad and session geometry: never update its
+  numbers to make a restyling pass — change the restyling. Sound and haptics go through
+  `SessionEffects` (fire and forget, after the controller moved on), never inline in a widget.
 
 - CI analyzes with `--fatal-infos` (core and tooling): run `dart analyze --fatal-infos` locally,
   an info-level lint fails the build.

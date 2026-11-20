@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import 'package:math_core/leveling/level.dart';
 import 'package:math_core/models/input_device.dart';
+import '../../core/effects/session_effects.dart';
 import '../../core/state/session_controller.dart';
 import '../exercise_prompt.dart';
 import '../exercise_type_labels.dart';
@@ -41,10 +42,25 @@ final _digitKeys = {
   PhysicalKeyboardKey.numpad9: '9',
 };
 
+/// Stable handles on what the Phase 5 beta-safety rule pins (keypad
+/// geometry, question and answer positions):
+/// `test/presentation/session_layout_pin_test.dart`.
+const sessionQuestionKey = ValueKey('session-question');
+const sessionAnswerKey = ValueKey('session-answer');
+ValueKey<String> keypadKeyKey(String name) => ValueKey('keypad-$name');
+
 class SessionScreen extends StatefulWidget {
-  const SessionScreen({super.key, required this.controller});
+  const SessionScreen({
+    super.key,
+    required this.controller,
+    this.effects = const NoSessionEffects(),
+  });
 
   final SessionController controller;
+
+  /// Haptics (and sound, Phase 5): called after the controller has moved
+  /// on, never awaited (`SessionEffects`).
+  final SessionEffects effects;
 
   @override
   State<SessionScreen> createState() => _SessionScreenState();
@@ -109,6 +125,7 @@ class _SessionScreenState extends State<SessionScreen>
     // the same way (rule 14).
     if (outcomes.length > _seenOutcomes && outcomes.last.isTimeout) {
       _playFeedback(false);
+      _safely(widget.effects.timedOut);
     }
     _seenOutcomes = outcomes.length;
   }
@@ -123,6 +140,7 @@ class _SessionScreenState extends State<SessionScreen>
   void _appendDigit(String digit, InputDevice device) {
     if (widget.controller.state.isCorrecting) return;
     widget.controller.registerActivity(device);
+    _safely(widget.effects.keyPressed);
     if (_typedDigits.length >= _maxTypedDigits) return;
     setState(() => _typedDigits += digit);
   }
@@ -156,6 +174,7 @@ class _SessionScreenState extends State<SessionScreen>
   void _backspace(InputDevice device) {
     if (widget.controller.state.isCorrecting) return;
     widget.controller.registerActivity(device);
+    _safely(widget.effects.keyPressed);
     if (_typedDigits.isEmpty) return;
     setState(
       () => _typedDigits = _typedDigits.substring(0, _typedDigits.length - 1),
@@ -175,15 +194,29 @@ class _SessionScreenState extends State<SessionScreen>
     final isCorrect = exercise.isCorrectAnswer(value);
     widget.controller.submitAnswer(value, device: device);
     _playFeedback(isCorrect);
+    _safely(
+      () => widget.effects.answered(
+        correct: isCorrect,
+        streak: widget.controller.state.currentStreak,
+      ),
+    );
+  }
+
+  /// An effect that throws (an audio context the browser refused, a
+  /// vibration API missing) must never break the game.
+  void _safely(void Function() effect) {
+    try {
+      effect();
+    } on Object catch (_) {
+      // Fire and forget: the answer is already recorded, the next question
+      // already chosen.
+    }
   }
 
   /// Shared by an explicit submit and a timeout (`didUpdateWidget`) — in
   /// both cases the answer to the question that just ended is known, only
   /// the trigger differs.
   void _playFeedback(bool isCorrect) {
-    HapticFeedback.lightImpact();
-    if (!isCorrect) HapticFeedback.heavyImpact();
-
     final motion = Theme.of(context).extension<AppMotion>()!.feedback;
     _feedbackController.duration = motion.duration;
     setState(() {
@@ -259,26 +292,30 @@ class _SessionScreenState extends State<SessionScreen>
                     ),
                   ),
                   const SizedBox(height: 16),
-                  AnimatedSwitcher(
-                    duration: theme
-                        .extension<AppMotion>()!
-                        .questionTransition
-                        .duration,
-                    switchInCurve: theme
-                        .extension<AppMotion>()!
-                        .questionTransition
-                        .curve,
-                    switchOutCurve: theme
-                        .extension<AppMotion>()!
-                        .questionTransition
-                        .curve,
-                    child: ExercisePrompt(
-                      key: ValueKey(exercise),
-                      exercise: exercise,
+                  KeyedSubtree(
+                    key: sessionQuestionKey,
+                    child: AnimatedSwitcher(
+                      duration: theme
+                          .extension<AppMotion>()!
+                          .questionTransition
+                          .duration,
+                      switchInCurve: theme
+                          .extension<AppMotion>()!
+                          .questionTransition
+                          .curve,
+                      switchOutCurve: theme
+                          .extension<AppMotion>()!
+                          .questionTransition
+                          .curve,
+                      child: ExercisePrompt(
+                        key: ValueKey(exercise),
+                        exercise: exercise,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 24),
                   _AnswerDisplay(
+                    key: sessionAnswerKey,
                     typedDigits: correction == null
                         ? _typedDigits
                         : '${correction.exercise.correctAnswer}',
@@ -361,6 +398,7 @@ class _TopBar extends StatelessWidget {
 /// [...] on the input field").
 class _AnswerDisplay extends StatelessWidget {
   const _AnswerDisplay({
+    super.key,
     required this.typedDigits,
     required this.feedback,
     required this.feedbackCorrect,
@@ -443,6 +481,7 @@ class _NumericKeypad extends StatelessWidget {
                 for (final digit in row)
                   Expanded(
                     child: _KeypadKey(
+                      key: keypadKeyKey(digit),
                       label: digit,
                       onTap: () => onDigit(digit),
                     ),
@@ -455,16 +494,22 @@ class _NumericKeypad extends StatelessWidget {
             children: [
               Expanded(
                 child: _KeypadKey(
+                  key: keypadKeyKey('backspace'),
                   icon: Icons.backspace_outlined,
                   semanticLabel: 'Backspace',
                   onTap: onBackspace,
                 ),
               ),
               Expanded(
-                child: _KeypadKey(label: '0', onTap: () => onDigit('0')),
+                child: _KeypadKey(
+                  key: keypadKeyKey('0'),
+                  label: '0',
+                  onTap: () => onDigit('0'),
+                ),
               ),
               Expanded(
                 child: _KeypadKey(
+                  key: keypadKeyKey('submit'),
                   icon: Icons.check,
                   semanticLabel: 'Submit',
                   onTap: onValidate,
@@ -484,6 +529,7 @@ class _NumericKeypad extends StatelessWidget {
 /// up in commit A, first consumer here).
 class _KeypadKey extends StatefulWidget {
   const _KeypadKey({
+    super.key,
     this.label,
     this.icon,
     this.semanticLabel,

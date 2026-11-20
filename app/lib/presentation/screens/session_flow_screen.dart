@@ -160,6 +160,7 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
                 ),
                 SessionStatus.inProgress => SessionScreen(
                   controller: _controller,
+                  effects: widget.environment.sessionEffects,
                 ),
                 SessionStatus.finished ||
                 SessionStatus.interrupted => ResultScreen(

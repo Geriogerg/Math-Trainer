@@ -458,3 +458,20 @@ input device and app version to be recorded before the invitations.
   keypad/keyboard/mixed in the screen, v8 round-trip and migration), SQL 95.
   **Owner next**: codes, `SMOKE_BETA_CODE`, `BETA_GATE=true`, the phone checklist,
   invitations.
+
+## Phase 5 — Identity
+
+Plan v2.5 (20 Nov 2026), run in one pass **during the beta**. Beta-safety rule: nothing may
+change how players answer (keypad geometry, input paths, question order and difficulty, the
+15 s timeout, the correction pause, when the next question appears). Owner hand actions, all at
+the end: confirm the typeface on the specimen, judge the feel on a phone (sound, haptics,
+streak, level-up), add to the home screen on Android and iPhone.
+
+- **Commit 0** *(A)* — Pins. `test/presentation/session_layout_pin_test.dart`, measured with
+  Inter loaded, at 412×915 and 360×640, both themes: every keypad cell and its visible key (4 px
+  margin), the question's centre (the same for all operations), the empty answer field's top
+  and height per operation; a mutation (keypad 301 instead of 300) fails it. Effects moved
+  behind `SessionEffects` (`core/effects/`; `HapticSessionEffects` keeps the earlier haptics,
+  `AppEnvironment.sessionEffects`): called after the controller has moved on, never awaited,
+  every call guarded — a test with effects that throw shows the next question in the same
+  frame and the correction pause unchanged (1 s; timeout 15 s). App 293 tests.
