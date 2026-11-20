@@ -3,33 +3,34 @@
 Competitive mental-arithmetic game in Flutter, for teens and adults. UI, code, docs and commits
 in English.
 
-**`doc/plan.md` (version 2.3) is the product plan.** Read it at the start of every phase; never
+**`doc/plan.md` (version 2.5) is the product plan.** Read it at the start of every phase; never
 edit it. This file is the working file: keep it short, update it as the project moves, keep it
 consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/decisions.md`,
 `doc/design.md`, `doc/online.md`, `doc/progress.md`. The plan wins any conflict — report it.
 
 ## Current phase
 
-**Phase 3a — Build the beta** (`doc/plan.md`, section 7), run in **one pass**.
-Done: 0–8 (1: preview moved to Cloudflare Pages on 19 Nov, owner's yes). Exit test run,
-phase report given. Update this block at every commit.
+**Phase 5 — Identity** (`doc/plan.md`, section 7), run in **one pass** while the beta runs.
+Next commit: **0**. Update this block at every commit.
+
+**Beta-safety rule**: nothing may change how players answer — keypad geometry, input paths,
+question order and difficulty, the 15 s timeout, the correction pause, when the next question
+appears. Commit 0 pins them with tests; they must pass at every commit.
 
 | # | Commit | Note |
 |---|---|---|
-| 0 | Close Phase 2: plan-alignment fixes, leaderboard chips on one line on a phone | — |
-| 1 | Preview moved to a free brotli host | propose with measurements; **move only after owner's yes, and before any tester** |
-| 2 | Server levels fetched before each game; refused sessions explained | — |
-| 3 | Beta gate: invitation code before anonymous sign-in, codes table with use limit | — |
-| 4 | Short privacy notice in the app | — |
-| 5 | In-app feedback, stored with the app version | — |
-| 6 | Owner dashboard: SQL views + report script, name-review queue | — |
-| 7 | First game on a never-played type = short placement | played at phase end |
-| 8 | Data check for Phase 3b | — |
+| 0 | Pin keypad geometry, session layout, no delay from sound/haptics | before any restyling |
+| 1 | Digit typeface: specimen screen (not in release), provisional pick, bundle it | ≤ +50 KB first load |
+| 2 | Kit: `AppButton`, `TypeChip`, `KeypadKey`, `StatTile`, `LevelBadge`; goldens both themes | `KeypadKey` keeps pinned geometry |
+| 3 | Operator icon family; favicon and web app icons | — |
+| 4 | Sound, on by default, own toggle; unlocked on first tap; CC0 or self-made | played at phase end |
+| 5 | Haptics behind an interface, own toggle; no-op where unsupported | played at phase end |
+| 6 | Streak escalation at 5/10/20, level-up moment; reduced motion respected | played at phase end |
+| 7 | Web app manifest, home-screen icons (incl. apple-touch-icon) | — |
 
-After the report: decisions confirmed, input device and app version recorded (schema v8),
-dashboard connected. Waiting on the owner: codes, `SMOKE_BETA_CODE` and `BETA_GATE=true`, the
-phone checklist, the invitations. Server (Render) and migrations are live.
-Phase 3b (calibration) starts only when the dashboard shows ~300 sessions from 10+ testers.
+Owner steps still open from Phase 3a (do not block this phase): beta codes,
+`SMOKE_BETA_CODE`, `BETA_GATE=true`, invitations. Phase 3b starts at ~300 sessions from
+10+ testers; Phase 4 comes after 3b, never during the beta.
 
 Preview: `https://math-trainer-kjc.pages.dev/` (Cloudflare Pages), deployed on every push to
 `main`; the old `https://geriogerg.github.io/Math-Trainer/` redirects there.
