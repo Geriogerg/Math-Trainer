@@ -624,3 +624,15 @@ Plan v2.6 (20 Nov 2026). Runs during the beta; the beta-safety rule of Phase 5 s
   `beta_code_required`; the probe's guest deleted. Testers with a code: covered by the CI smoke
   test's upload check on every push (results visible to the owner only).
 - Totals: core 631 (VM) / 607 (JavaScript), app 333, server 28; SQL tests passed.
+
+## Phase 5.2 — Staging and online groundwork
+
+Plan v2.7 (20 Nov 2026). Runs during the beta; the beta-safety rule still applies.
+
+- **Commit 0** *(A)* — Close Phase 5.1. (1/2) Plan alignment: v2.7 settled the Phase 5.1
+  report's points (Phase 4 item 1, section 8, the risk table, section 10). Still open, for the
+  owner: section 4 is "after Phase 5" (tests 582/577/332/20 and 24.4 s — now 631/607/333/28,
+  gate at 15–17 s); Phase 7 still lists the duel configuration and Glicko-2, which Phase 5.2
+  builds; Phase 6's entry says "Phases 3–5 done" (5.1 and 5.2 now exist); Phase 4 item 4
+  (structural features) partly exists since 5.1. (2/2, parked) the live slow-4G measurement
+  with the CI beta code: waits for `D:\mathtrainer\smoke_code.txt` (owner step 1).

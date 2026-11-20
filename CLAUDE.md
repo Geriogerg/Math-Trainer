@@ -11,7 +11,8 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 ## Current phase
 
 **Phase 5.2 — Staging and online groundwork** (`doc/plan.md`, section 7), run in **one pass**
-while the beta runs. Done: none yet. Next commit: **0**. Update this block at every commit.
+while the beta runs. Done: 0 (1/2; the measurement waits for the owner's code file). Next
+commit: **1**. Update this block at every commit.
 
 **Beta-safety rule** (Phase 5, still in force): nothing may change how players answer — keypad
 geometry, input paths, question order and difficulty, the 15 s timeout, the correction pause,
