@@ -601,3 +601,26 @@ Plan v2.6 (20 Nov 2026). Runs during the beta; the beta-safety rule of Phase 5 s
   refusal); linked accounts never asked; `BETA_GATE=false` turns it off (Phase 6); `/health`
   reports the switch and the deployed commit. Server tests 20 → 28. Probe
   `server/tool/gate_probe.dart`: a throwaway guest with no code calls the live API directly.
+
+### Phase 5.1 exit test (20 Nov 2026)
+
+- **Pinning tests still pass**: yes — `session_layout_pin_test.dart` unchanged, green at every
+  commit; the session screen's goldens never moved (the Inter cut moved 16 other goldens by
+  under 0.2 % of their pixels, sub-pixel edges).
+- **Slow-4G first question measured (target < 20 s)**: partly. Live preview (gate on, fresh
+  browser, slow 4G): the gate screen at **15.1, 15.2, 17.2 s** (three runs). The rest — code
+  check, sign-up, Skip, Start — needs an invitation code the script does not have (owner step
+  1, `D:\mathtrainer\smoke_code.txt`, not provided yet); from the local traces it takes
+  2.5–3 s, so an **estimated 18–20 s**, not measured. Before the phase: 24.4 s to the first
+  question (no gate then). Live bytes: `canvaskit.wasm` 2,011 → 1,551 KB, `main.dart.js`
+  901 → 705, `Inter.ttf` 437 → 175 (pre-compression + the cut). Local A/B without a gate
+  (both at brotli 5): 19.0–19.8 s vs 19.8–20.6 s.
+- **Detector and features tested on VM and JavaScript**: yes — 16 + 7 tests on both, plus 19
+  SQL-parity tests (VM) and the SQL tests.
+- **The report shows beta progress**: yes, against the test database (`test_sql.sh` runs every
+  dashboard command); on the live data, the owner's `dashboard.sh`.
+- **Server gate**: the live server (`/health`: `cd4e2f4`, gate on, deployed by Render from the
+  private repository) answers a code-less anonymous player's direct upload with 403
+  `beta_code_required`; the probe's guest deleted. Testers with a code: covered by the CI smoke
+  test's upload check on every push (results visible to the owner only).
+- Totals: core 631 (VM) / 607 (JavaScript), app 333, server 28; SQL tests passed.
