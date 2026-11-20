@@ -299,7 +299,7 @@ await enableSemantics();
     await sleep(300);
   }
   if (gate) {
-    step('beta gate: enter the invitation code');
+    step(`beta gate shown (${((Date.now() - started) / 1000).toFixed(1)} s from navigation): enter the invitation code`);
     const code = process.env.SMOKE_BETA_CODE;
     if (!code) await fail('the build has the beta gate on, but SMOKE_BETA_CODE is not set');
     await tapText('Invitation code');
