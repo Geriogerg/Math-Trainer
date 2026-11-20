@@ -94,9 +94,15 @@ class ProfileScreen extends StatefulWidget {
     super.key,
     required this.environment,
     this.isActive = true,
+    this.clock = DateTime.now,
   });
 
   final AppEnvironment environment;
+
+  /// The time the curve and the recent games are placed against. Golden
+  /// tests pass a fixed one: with the real clock, dates shown as `dd/mm`
+  /// change every day and the image with them.
+  final DateTime Function() clock;
 
   /// True when this tab is the one shown by `AppShell`. `IndexedStack`
   /// keeps this widget mounted after its first visit (`app_shell.dart`), so
@@ -134,7 +140,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final environment = widget.environment;
     final repository = environment.repository;
     final playerId = environment.playerId;
-    final now = DateTime.now().toUtc();
+    final now = widget.clock().toUtc();
     final since = now.subtract(_windowDuration);
     _data =
         Future.wait([

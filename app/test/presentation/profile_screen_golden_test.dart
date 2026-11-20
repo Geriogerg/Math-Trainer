@@ -16,10 +16,9 @@ import '../fake_profile_repository.dart';
 import 'golden_test_utils.dart';
 
 /// Fixed levels for two types, the other five stay "Not played" — enough to
-/// see both states in the same golden. Session dates relative to
-/// `DateTime.now()` (computed once at construction): the screen positions
-/// the curve relative to "now", hard-coded dates would drift out of the
-/// 30-day window over time and make the golden non-reproducible.
+/// see both states in the same golden. Session dates relative to [_now],
+/// which the screen also uses as its clock: the image is the same on any
+/// day, at any hour, in any time zone from UTC−11 to UTC+11.
 class _FixedLevelsRepository implements SessionRepository {
   @override
   Future<List<PersistedSession>> pendingUploads(String playerId) async => [];
@@ -151,6 +150,9 @@ class _FixedLevelsRepository implements SessionRepository {
       throw UnimplementedError();
 }
 
+/// Noon UTC: the same calendar day everywhere CI and the owner run tests.
+final _now = DateTime.utc(2026, 11, 20, 12);
+
 void main() {
   setUpAll(loadInterFontForGoldens);
 
@@ -161,7 +163,7 @@ void main() {
     testWidgets('profile screen — ${mode.name}', (tester) async {
       await setGoldenSurfaceSize(tester);
       final environment = AppEnvironment(
-        repository: _FixedLevelsRepository(DateTime.now().toUtc()),
+        repository: _FixedLevelsRepository(_now),
         playerId: 'golden-player',
         accountRepository: FakeAccountRepository(),
         profileRepository: FakeProfileRepository()..displayName = 'Alex',
@@ -170,7 +172,9 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: mode.theme,
-          home: Scaffold(body: ProfileScreen(environment: environment)),
+          home: Scaffold(
+            body: ProfileScreen(environment: environment, clock: () => _now),
+          ),
         ),
       );
       await tester.pumpAndSettle();

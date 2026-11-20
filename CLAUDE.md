@@ -11,7 +11,7 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 ## Current phase
 
 **Phase 5.1 — Beta-period groundwork** (`doc/plan.md`, section 7), run in **one pass** while
-the beta runs. Done: none yet. Next commit: **0**. Update this block at every commit.
+the beta runs. Done: 0. Next commit: **1**. Update this block at every commit.
 
 **Beta-safety rule** (Phase 5, still in force): nothing may change how players answer — keypad
 geometry, input paths, question order and difficulty, the 15 s timeout, the correction pause,
@@ -203,7 +203,8 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   create (the smoke test through "Delete my data", which needs `delete_my_account()`).
 - SQL goes in versioned migrations applied by CI (from commit 2); never run SQL by hand, never
   print the access token or database password.
-- The dashboard prints testers' data: run it locally only, never from CI (public logs). A new
+- The dashboard prints testers' data: run it locally only, never from CI (logs outlive any
+  change of the repository's visibility). A new
   view goes in `owner_dashboard`, never in `public` (the API serves `public`).
 - Deploy jobs run on a push **or** a manual run on `main` (`event_name != 'pull_request'`):
   owner steps that say "Run workflow" rely on it.
@@ -225,7 +226,7 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 - Level updates have one implementation: `gameLevelUpdates` / `placementLevelUpdates`, used by
   the app's orchestrators and the server's validation. Never compute levels elsewhere.
 - The beta gate is a build switch (`BETA_GATE=true`): with it on, the smoke test needs the
-  `SMOKE_BETA_CODE` secret. Never put a real code in the repository — it is public.
+  `SMOKE_BETA_CODE` secret. Never put a real code in the repository, private or not.
 - `RejectionReason` and `ValidationFlag` names are stored server-side and sent to the app:
   renaming breaks both. Same for `InputDevice` names (answers, uploads).
 - Tests apply every migration twice: a later migration must not change the columns of a view

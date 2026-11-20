@@ -341,10 +341,10 @@ class _EntryRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    // The player's own row: bold and labelled "You" — never by colour
-    // alone (rule 14).
+    // The player's own row: weight 500 (the design's two weights: 400 and
+    // 500, never 700) and labelled "You" — never by colour alone (rule 14).
     final style = entry.isMe
-        ? theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700)
+        ? theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500)
         : theme.textTheme.bodyLarge;
     // A fixed height: rows with and without a report button line up.
     return SizedBox(

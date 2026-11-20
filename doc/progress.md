@@ -551,3 +551,18 @@ streak, level-up), add to the home screen on Android and iPhone.
   passed through deploy each time; the smoke results themselves are not visible to Claude since
   the repository went private. Locally on release builds: smoke passed with 11 tones,
   installable.
+
+## Phase 5.1 — Beta-period groundwork
+
+Plan v2.6 (20 Nov 2026). Runs during the beta; the beta-safety rule of Phase 5 still applies
+(`session_layout_pin_test.dart` green at every commit).
+
+- **Commit 0** *(A)* — Close Phase 5. The player's own leaderboard row in weight 500 instead of
+  700 (`doc/design.md`: two weights only), still labelled "(You)"; leaderboard goldens
+  regenerated. `ProfileScreen.clock`: the profile golden runs at a fixed instant (20 Nov 2026,
+  noon UTC) — with the real clock, the recent games' `dd/mm` dates changed every day.
+  Plan alignment: the Phase 5 report's six points are all settled by plan v2.6 (timeout not
+  stored, section 4, the Cloudflare timing, the typeface wording of section 10, the private
+  repository). CLAUDE.md no longer calls the repository public. New, for the owner: section
+  10 lists the app name twice and still asks to invite testers "at the end of Phase 3a.1"
+  (done); section 4's weakness table says Phase 3 for the level constants (now 3b).
