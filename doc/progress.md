@@ -661,3 +661,22 @@ Plan v2.7 (20 Nov 2026). Runs during the beta; the beta-safety rule still applie
   professional review (language, minors, transfers, a private publisher, beta data).
   Written against the migrations and the server; found: the in-app notice does not mention
   the input device, the app version or timing flags — for Phase 6's pages.
+
+### Phase 5.2 exit test (20 Nov 2026)
+
+- **Smoke green on staging and production**: production yes, staging not yet. The
+  restructured CI deployed production twice with `STAGING` unset (`352f1d5`, `2d54fbb` live);
+  the read-only visit on production at `2d54fbb`: gate shown, installable, this build served,
+  no write attempted. Staging waits for the owner's setup (doc/online.md, "Staging"): no
+  staging run has happened, so the staging half is unverified.
+- **Production untouched by tests**: only once `STAGING=on`. Until then CI's production smoke
+  still plays the full visit (an account created and deleted in production), as before.
+- **Duel configuration and Glicko-2 tested**: yes — 10 tests VM and JavaScript (three pinned
+  duels); 7 server tests incl. Glickman's worked example.
+- **Legal drafts ready for review**: yes — `doc/legal/`.
+- **Commit 0's measurement** (slow-4G first question with the CI beta code): not done — no
+  code file yet.
+- The production server stays at `352f1d5` (Render deployed it by itself before the Blueprint
+  took `autoDeploy: false`); later server commits (Glicko-2, unused at runtime) wait for the
+  production deploy hook.
+- Totals: core 641 (VM) / 617 (JavaScript), app 333, server 36; SQL tests unchanged.
