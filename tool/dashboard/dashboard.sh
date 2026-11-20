@@ -11,6 +11,7 @@
 #   bash tool/dashboard/dashboard.sh clear-name <player id>
 #   bash tool/dashboard/dashboard.sh feedback [count, default 50]
 #   bash tool/dashboard/dashboard.sh data-check          what Phase 3b needs, stored?
+#   bash tool/dashboard/dashboard.sh features            answers by structural feature
 #
 # Connection: the environment variable DASHBOARD_DB_URL, else the first
 # line of tool/dashboard/connection.txt (git-ignored): Supabase → Connect →
@@ -56,6 +57,11 @@ case "$command" in
     ;;
   data-check)
     run < "$here/data_check.sql"
+    ;;
+  features)
+    # Per operation and feature value: answers, % right, median time of the
+    # right ones (Phase 5.1 commit 3). Per answer: owner_dashboard.answer_features.
+    echo "select operation, feature, value, answers, correct_pct as \"right %\", median_ms_right as \"median ms (right)\" from owner_dashboard.feature_summary;" | run
     ;;
   new-code)
     need "${2:-}"

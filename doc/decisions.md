@@ -1090,3 +1090,23 @@ exercises (sums and differences to 300, products to 120 × 120, squares to 130, 
 
 `Strategy` names will be stored once tips are shown: never renamed. **Reopen when** Phase 4
 shows tips (wording, thresholds by level) or Phase 3b data shows which moves help.
+
+## Structural features: Dart and SQL, one list of cases (Phase 5.1, commit 3) — provisional
+
+`math_core/difficulty/structural_features.dart`: per exercise, **carries** (columns that carry
+in an addition), **borrows** (columns that borrow in a subtraction), **digits 6–9** (among the
+operands shown; a power's exponent not counted), **distance from a round number** (the
+smallest, among operands of 10 or more, to the nearest multiple of ten; none when all are
+single digits). Analysis only: generation never reads them.
+
+The answers live on the server as the upload's JSON, so the dashboard needs the same rules in
+SQL (`owner_dashboard.structural_features`, migration `…_structural_features.sql`). Rather than
+store the features at upload (the server would need a change, and answers already uploaded
+would lack them), the view computes them on read: `owner_dashboard.answer_features` (every
+stored answer, games and placements) and `feature_summary` (per operation and value: answers,
+% right, median time of the right ones; `dashboard.sh features`). One list of cases holds both
+together: the SQL test's cases (`96_structural_features_test.sql`) are read and run against the
+Dart code by `structural_features_sql_parity_test.dart` — a rule changed in one place fails
+there. **Provisional**: the definitions above (the plan names the features, not their exact
+counting). **Reopen when** Phase 3b fits a model on them (a feature may need splitting:
+carries into the tens vs the hundreds; distance to 100 vs to 10).

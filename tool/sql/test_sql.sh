@@ -78,4 +78,5 @@ dashboard disable-code dashtest
 dashboard approve-name 00000000-0000-0000-0000-0000000000d5
 dashboard feedback 5
 dashboard data-check
+dashboard features
 echo "SQL tests passed"

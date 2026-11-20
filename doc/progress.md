@@ -582,3 +582,9 @@ Plan v2.6 (20 Nov 2026). Runs during the beta; the beta-safety rule of Phase 5 s
   seven examples one by one, each rule's edges, the priority when two fit, and every move's
   answer checked over ~100,000 exercises. Thresholds provisional (`doc/decisions.md`).
   Nothing in the app calls it.
+- **Commit 3** *(A)* — Structural features, analysis only: `structuralFeatures` (core;
+  7 tests VM and JavaScript, incl. carries and borrows against an independent count over
+  ~16,000 pairs); the same rules in SQL with views `owner_dashboard.answer_features` and
+  `feature_summary`, `dashboard.sh features`; the SQL test's 18 cases run against Dart
+  (`structural_features_sql_parity_test.dart`, 19 tests). SQL tests passed locally
+  (migrations twice, every dashboard command). Generation untouched.
