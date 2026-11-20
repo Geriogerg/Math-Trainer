@@ -11,7 +11,7 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 ## Current phase
 
 **Phase 5 — Identity** (`doc/plan.md`, section 7), run in **one pass** while the beta runs.
-Done: 0–5. Next commit: **6**. Update this block at every commit.
+Done: 0–6. Next commit: **7**. Update this block at every commit.
 
 **Beta-safety rule**: nothing may change how players answer — keypad geometry, input paths,
 question order and difficulty, the 15 s timeout, the correction pause, when the next question

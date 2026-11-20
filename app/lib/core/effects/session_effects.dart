@@ -18,6 +18,9 @@ abstract interface class SessionEffects {
 
   /// The question's time ran out.
   void timedOut();
+
+  /// A level went up, shown on the result screen (Phase 5 commit 6).
+  void levelUp();
 }
 
 /// No effect at all: tests, and screens built without an environment.
@@ -32,4 +35,7 @@ class NoSessionEffects implements SessionEffects {
 
   @override
   void timedOut() {}
+
+  @override
+  void levelUp() {}
 }

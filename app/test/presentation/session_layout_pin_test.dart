@@ -195,6 +195,9 @@ class _ThrowingEffects implements SessionEffects {
 
   @override
   void timedOut() => _note('timeout');
+
+  @override
+  void levelUp() => _note('levelUp');
 }
 
 void main() {

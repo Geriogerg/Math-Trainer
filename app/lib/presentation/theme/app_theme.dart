@@ -68,6 +68,7 @@ const _motion = AppMotion(
   ),
   tabChange: AnimationSpec(Duration(milliseconds: 200), Curves.easeInOut),
   levelUp: AnimationSpec(Duration(milliseconds: 600), Curves.easeOutCubic),
+  pulse: AnimationSpec(Duration(milliseconds: 240), Curves.easeOut),
 );
 
 /// `rootPadding`: the only value shared by the three root padding variants
@@ -272,6 +273,7 @@ class AppMotion extends ThemeExtension<AppMotion> {
     required this.questionTransition,
     required this.tabChange,
     required this.levelUp,
+    required this.pulse,
   });
 
   /// Flash + shake/pulse of the right/wrong answer.
@@ -290,6 +292,10 @@ class AppMotion extends ThemeExtension<AppMotion> {
   /// (`doc/design.md`).
   final AnimationSpec levelUp;
 
+  /// A short scale pulse (Phase 5): the streak reaching 5, 10, 20; the
+  /// "Level up" mark appearing. Never under reduced motion.
+  final AnimationSpec pulse;
+
   @override
   AppMotion copyWith({
     AnimationSpec? feedback,
@@ -297,12 +303,14 @@ class AppMotion extends ThemeExtension<AppMotion> {
     AnimationSpec? questionTransition,
     AnimationSpec? tabChange,
     AnimationSpec? levelUp,
+    AnimationSpec? pulse,
   }) => AppMotion(
     feedback: feedback ?? this.feedback,
     keyPress: keyPress ?? this.keyPress,
     questionTransition: questionTransition ?? this.questionTransition,
     tabChange: tabChange ?? this.tabChange,
     levelUp: levelUp ?? this.levelUp,
+    pulse: pulse ?? this.pulse,
   );
 
   @override

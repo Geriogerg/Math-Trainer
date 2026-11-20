@@ -6,6 +6,7 @@ import 'package:math_core/leveling/level.dart';
 import 'package:math_core/models/answer_result.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/persistence/level_cache_entry.dart';
+import '../../core/effects/session_effects.dart';
 import '../../core/state/session_controller.dart';
 import '../../core/state/session_state.dart';
 import '../exercise_prompt.dart';
@@ -20,9 +21,13 @@ class ResultScreen extends StatelessWidget {
     required this.onExitToSelection,
     required this.isRestarting,
     required this.restartError,
+    this.effects = const NoSessionEffects(),
   });
 
   final SessionController controller;
+
+  /// The level-up sound (Phase 5 commit 6), once per result.
+  final SessionEffects effects;
 
   /// Immediate replay: same types, updated levels, new seed (step 4.2,
   /// commit C — `doc/decisions.md`).
@@ -101,6 +106,13 @@ class ResultScreen extends StatelessWidget {
                       updates: controller.lastLevelUpdates,
                       type: type,
                     ),
+                  _LevelUpCue(
+                    leveledUp: leveledUp(
+                      controller.config.levels,
+                      controller.lastLevelUpdates,
+                    ),
+                    effects: effects,
+                  ),
                   const SizedBox(height: 16),
                 ],
                 if (!isPlacement) ...[
@@ -233,14 +245,19 @@ class ResultScreen extends StatelessWidget {
               if (isPlacement)
                 AppButton.primary(onPressed: onExitToSelection, label: 'Play')
               else
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                // A Wrap, not a Row: with a large system text size the two
+                // no longer fit side by side and stack instead of
+                // overflowing.
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 16,
+                  runSpacing: 8,
                   children: [
                     AppButton.secondary(
                       onPressed: onExitToSelection,
                       label: 'New selection',
                     ),
-                    const SizedBox(width: 16),
                     AppButton.primary(
                       onPressed: onPlayAgain,
                       busy: isRestarting,
@@ -343,6 +360,8 @@ class _LevelChangeRow extends StatelessWidget {
     }
 
     final motion = theme.extension<AppMotion>()!.levelUp;
+    // Reduced motion: the final level at once, no count-up, no pulse.
+    final reduced = MediaQuery.disableAnimationsOf(context);
     // The whole level animates (truncated, like everywhere it is shown),
     // and a bar shows the progress inside it (owner, end of Phase 1): a
     // session that moves the level by less than one step still visibly
@@ -351,7 +370,7 @@ class _LevelChangeRow extends StatelessWidget {
     // length, never in a colour alone (rule 14).
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: before.value, end: entry.level.value),
-      duration: motion.duration,
+      duration: reduced ? Duration.zero : motion.duration,
       curve: motion.curve,
       builder: (context, value, _) => Column(
         children: [
@@ -360,6 +379,9 @@ class _LevelChangeRow extends StatelessWidget {
             textAlign: TextAlign.center,
             style: style,
           ),
+          // The moment the whole number goes up (Phase 5 commit 6): a mark
+          // in words — never the colour alone — that pulses once.
+          if (value.floor() > before.whole) const _LevelUpMark(),
           const SizedBox(height: 4),
           _ProgressInsideLevel(fraction: value - value.floor()),
           const SizedBox(height: 8),
@@ -393,4 +415,110 @@ class _ProgressInsideLevel extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Whether any whole level went up this game (`lastLevelUpdates` against
+/// the levels the game froze). `null` updates (not computed yet, or an
+/// interrupted game): no.
+bool leveledUp(
+  Map<ExerciseType, Level> before,
+  Map<ExerciseType, LevelCacheEntry>? updates,
+) =>
+    updates != null &&
+    updates.entries.any(
+      (e) => e.value.level.whole > (before[e.key] ?? Level.floor).whole,
+    );
+
+/// "Level up", under the number that just went up: pulses once as it
+/// appears (`AppMotion.pulse`), still under reduced motion.
+class _LevelUpMark extends StatefulWidget {
+  const _LevelUpMark();
+
+  @override
+  State<_LevelUpMark> createState() => _LevelUpMarkState();
+}
+
+class _LevelUpMarkState extends State<_LevelUpMark>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse = AnimationController(
+    vsync: this,
+    duration: Duration.zero,
+  );
+  late final Animation<double> _scale = TweenSequence<double>([
+    TweenSequenceItem(tween: Tween(begin: 1, end: 1.18), weight: 1),
+    TweenSequenceItem(tween: Tween(begin: 1.18, end: 1), weight: 1),
+  ]).animate(_pulse);
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_pulse.isAnimating || _pulse.isCompleted) return;
+    if (MediaQuery.disableAnimationsOf(context)) return;
+    _pulse
+      ..duration = Theme.of(context).extension<AppMotion>()!.pulse.duration
+      ..forward();
+  }
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ScaleTransition(
+      scale: _scale,
+      child: Text(
+        '▲ Level up',
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: theme.colorScheme.primary,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+}
+
+/// Plays the level-up sound once, when the game's level updates show a
+/// whole level gained (they arrive after the result screen is up).
+class _LevelUpCue extends StatefulWidget {
+  const _LevelUpCue({required this.leveledUp, required this.effects});
+
+  final bool leveledUp;
+  final SessionEffects effects;
+
+  @override
+  State<_LevelUpCue> createState() => _LevelUpCueState();
+}
+
+class _LevelUpCueState extends State<_LevelUpCue> {
+  bool _played = false;
+
+  void _maybePlay() {
+    if (_played || !widget.leveledUp) return;
+    _played = true;
+    try {
+      widget.effects.levelUp();
+    } on Object catch (_) {
+      // Fire and forget, like every effect.
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _maybePlay();
+  }
+
+  @override
+  void didUpdateWidget(_LevelUpCue oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _maybePlay();
+  }
+
+  // Lays out nothing: a cue, not a part of the screen.
+  @override
+  Widget build(BuildContext context) => const SizedBox();
 }

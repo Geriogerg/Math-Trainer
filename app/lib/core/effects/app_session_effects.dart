@@ -45,4 +45,10 @@ class AppSessionEffects implements SessionEffects {
     if (settings.sound) sound.wrong();
     if (settings.haptics) haptics.warning();
   }
+
+  @override
+  void levelUp() {
+    if (settings.sound) sound.levelUp();
+    if (settings.haptics) haptics.success();
+  }
 }

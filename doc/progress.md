@@ -521,3 +521,11 @@ streak, level-up), add to the home screen on Android and iPhone.
   Profile switches (4). Local release build + smoke passed (11 tones). Found locally: an
   incremental `flutter build web` on Windows dropped `web/` files (sqlite3.wasm…) from the output
   — a clean `build/web` fixes it; CI always builds clean. **To play at phase end** (Android).
+- **Commit 6** *(C)* — Streak escalation and level-up: `streak_tier.dart` (tiers at 5, 10,
+  20; colours from the theme); the streak line (`Text.rich`, its own colour) pulses on reaching
+  a tier, the timer bar's colour steps; `AppMotion.pulse` (240 ms). Result: "▲ Level up" mark
+  (pulses once), `SessionEffects.levelUp` (sound arpeggio + success vibration) once per result
+  (`leveledUp`); reduced motion: no pulse, instant count-up. Result actions in a `Wrap` (they
+  overflowed with wide text). Tests: 8 (tiers, colours, pulse and its absence, level-up once,
+  none without a whole level, instant count-up); pins and session goldens unchanged.
+  **To play at phase end.**

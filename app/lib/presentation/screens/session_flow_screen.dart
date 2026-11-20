@@ -171,6 +171,7 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
                   onExitToSelection: _exitToSelection,
                   isRestarting: _isRestarting,
                   restartError: _restartError,
+                  effects: widget.environment.sessionEffects,
                 ),
               },
             ),

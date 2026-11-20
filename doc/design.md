@@ -176,9 +176,24 @@ Snappy temperament, no whimsy. No bounce, no `elasticOut`, no decorative transit
 | Transition between questions | ≤ 150 ms | `easeOut` |
 | Tab change | ≤ 200 ms | `easeInOut` |
 | Level-up (result screen) | 600 ms | `easeOutCubic` |
+| Pulse (streak tier, "Level up" mark) | 240 ms | `easeOut` |
 
 The level-up is the only animation allowed to take its time: it is the emotional moment of solo
 play, the only place where the player watches instead of reacting.
+
+**Streak escalation** (Phase 5): at 5, 10 and 20 in a row the streak's words step from muted to
+secondary text to the accent, the timer bar's colour moves toward the primary text colour
+(brighter at night, deeper by day), and the streak line pulses once (scale 1 → 1.12 → 1). Colour
+and a transform only: no size, position or timing on the session screen changes (beta-safety
+rule). The number stays the information; the colour only adds to it.
+
+**Level-up moment**: when a whole level goes up, the number counts up over 600 ms, "▲ Level up"
+appears under it in the accent and pulses once, and the level-up sound plays (an arpeggio) with a
+success vibration — once per result screen.
+
+**Reduced motion** (the system setting): no pulse, and the level count-up shows the final value at
+once. The answer feedback and the question transition keep their motion while the beta runs: they
+are part of how players answer (beta-safety rule, `doc/decisions.md`).
 
 ## Result screen
 

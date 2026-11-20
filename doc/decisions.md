@@ -971,3 +971,19 @@ disabled with "This browser cannot vibrate" (a disabled state explains why). Out
 Replaces the pre-Phase-5 haptics (a light tap on every answer, a heavy one added on a mistake):
 the key tap is new, for the on-screen keypad only, like the sound.
 **Reopen when** the owner finds the pulses too strong or too weak on a phone.
+
+## Streak escalation and level-up within the beta-safety rule (Phase 5, commit 6)
+
+The plan asks the streak counter and the timer bar to "intensify" at 5, 10, 20 — colour step and
+a short pulse, never a delay. The bar's height stays 4 px (a thicker bar would push the question
+down: the pins would fail); the pulse is a `ScaleTransition` on the streak line, which moves
+nothing in layout; colours are derived from the theme (no new palette entry). Level-up: the
+existing 600 ms count-up, a "▲ Level up" mark in words (rule 14) and the sound, once per result,
+also after the level updates arrive late.
+**Reduced motion, scoped**: no pulse, an instant count-up. The answer feedback (flash, shake,
+scale) and the 150 ms question fade are **not** changed under reduced motion during the beta —
+they shape how players answer, and the beta-safety rule freezes them. To revisit after the beta.
+Found on the way: the result screen's two buttons overflowed with a wide text (a large system
+text size); they are a `Wrap` now and stack instead.
+**Reopen when** the beta ends (reduced motion for the answer feedback), or the owner finds the
+escalation too strong.

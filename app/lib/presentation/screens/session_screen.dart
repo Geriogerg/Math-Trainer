@@ -10,6 +10,7 @@ import '../../core/state/session_controller.dart';
 import '../exercise_prompt.dart';
 import '../exercise_type_labels.dart';
 import '../kit/keypad_key.dart';
+import '../streak_tier.dart';
 import '../theme/app_theme.dart';
 import 'empty_state.dart';
 
@@ -48,6 +49,7 @@ final _digitKeys = {
 /// `test/presentation/session_layout_pin_test.dart`.
 const sessionQuestionKey = ValueKey('session-question');
 const sessionAnswerKey = ValueKey('session-answer');
+const sessionStreakLineKey = ValueKey('session-streak-line');
 ValueKey<String> keypadKeyKey(String name) => ValueKey('keypad-$name');
 
 class SessionScreen extends StatefulWidget {
@@ -83,6 +85,12 @@ class _SessionScreenState extends State<SessionScreen>
   late final AnimationController _chronoController;
   late final AnimationController _feedbackController;
 
+  /// The streak line's pulse when the streak reaches 5, 10, 20 (Phase 5
+  /// commit 6): a scale transform — it moves nothing on screen.
+  late final AnimationController _streakPulse;
+  late final Animation<double> _streakScale;
+  int _streakTier = 0;
+
   @override
   void initState() {
     super.initState();
@@ -99,6 +107,12 @@ class _SessionScreenState extends State<SessionScreen>
       vsync: this,
       duration: Duration.zero,
     );
+    // Duration set from `AppMotion.pulse` before each run, like feedback.
+    _streakPulse = AnimationController(vsync: this, duration: Duration.zero);
+    _streakScale = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 1, end: 1.12), weight: 1),
+      TweenSequenceItem(tween: Tween(begin: 1.12, end: 1), weight: 1),
+    ]).animate(_streakPulse);
   }
 
   @override
@@ -129,12 +143,23 @@ class _SessionScreenState extends State<SessionScreen>
       _safely(widget.effects.timedOut);
     }
     _seenOutcomes = outcomes.length;
+
+    // Reaching 5, 10 or 20 in a row: a short pulse — none under the
+    // system's reduced-motion setting. Losing the streak: no pulse.
+    final tier = streakTier(state.currentStreak);
+    if (tier > _streakTier && !MediaQuery.disableAnimationsOf(context)) {
+      _streakPulse
+        ..duration = Theme.of(context).extension<AppMotion>()!.pulse.duration
+        ..forward(from: 0);
+    }
+    _streakTier = tier;
   }
 
   @override
   void dispose() {
     _chronoController.dispose();
     _feedbackController.dispose();
+    _streakPulse.dispose();
     super.dispose();
   }
 
@@ -274,6 +299,7 @@ class _SessionScreenState extends State<SessionScreen>
                   state.outcomes.length + (correction == null ? 1 : 0),
               totalQuestions: widget.controller.config.exerciseCount,
               chrono: _chronoController,
+              barColor: timerBarColor(theme, streakTier(state.currentStreak)),
             ),
           ),
           Expanded(
@@ -281,15 +307,36 @@ class _SessionScreenState extends State<SessionScreen>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    // Streak shown only if > 0: no "streak 0" noise on every
-                    // first question (`doc/decisions.md` — currentStreak shown
-                    // during the session).
-                    state.currentStreak > 0
-                        ? '${exerciseTypeLabel(exercise.type)} · $levelText · streak ${state.currentStreak}'
-                        : '${exerciseTypeLabel(exercise.type)} · $levelText',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.extension<AppPalette>()!.textMuted,
+                  ScaleTransition(
+                    scale: _streakScale,
+                    child: Text.rich(
+                      key: sessionStreakLineKey,
+                      TextSpan(
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.extension<AppPalette>()!.textMuted,
+                        ),
+                        children: [
+                          TextSpan(
+                            text:
+                                '${exerciseTypeLabel(exercise.type)} · $levelText',
+                          ),
+                          // Streak shown only if > 0: no "streak 0" noise on
+                          // every first question (`doc/decisions.md` —
+                          // currentStreak shown during the session). Its
+                          // colour steps up at 5, 10, 20 (Phase 5); the
+                          // number itself says it, never the colour alone.
+                          if (state.currentStreak > 0)
+                            TextSpan(
+                              text: ' · streak ${state.currentStreak}',
+                              style: TextStyle(
+                                color: streakTextColor(
+                                  theme,
+                                  streakTier(state.currentStreak),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -358,11 +405,15 @@ class _TopBar extends StatelessWidget {
     required this.questionIndex,
     required this.totalQuestions,
     required this.chrono,
+    required this.barColor,
   });
 
   final int questionIndex;
   final int totalQuestions;
   final Animation<double> chrono;
+
+  /// Intensifies with the streak (`timerBarColor`); its size never changes.
+  final Color barColor;
 
   @override
   Widget build(BuildContext context) {
@@ -385,7 +436,7 @@ class _TopBar extends StatelessWidget {
               value: 1 - chrono.value,
               minHeight: 4,
               backgroundColor: colorScheme.outline,
-              valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
+              valueColor: AlwaysStoppedAnimation<Color>(barColor),
             ),
           ),
         ),
