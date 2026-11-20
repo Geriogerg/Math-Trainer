@@ -5,7 +5,8 @@
 > from the owner. The day-to-day working rules live in `CLAUDE.md`, which must always stay
 > consistent with this plan (section 11).
 >
-> Version 2.5 — 20 November 2026: Phase 3a.1 done; Phase 5 detailed with the beta-safety rule.
+> Version 2.6 — 20 November 2026: Phase 5 outcome; Phase 5.1 (beta-period groundwork) added;
+> alignment fixes. Version 2.5 — Phase 3a.1 done; Phase 5 detailed with the beta-safety rule.
 > Version 2.4 — 19 November 2026: Phase 3a outcome; close-out 3a.1 before invitations; during
 > the beta only Phase 5 runs, Phase 4 moves after 3b. Version 2.3 — Phase 2 outcome; Phase 3 split into 3a (build the beta, one
 > pass) and 3b (calibrate on its data). Version 2.2 — Phase 1 outcome, Phase 2 revised (self-contained sessions,
@@ -92,13 +93,17 @@ Supabase accounts (anonymous-first since Phase 1, email linking), player name, P
 tab with overall level, 30-day curve, per-operation level and average time, recent games.
 Day and night themes. Tabs: Play, Online (preview), Profile, Leaderboard.
 
-## 4. Current state (19 November 2026, after Phase 3a)
+## 4. Current state (20 November 2026, after Phase 5)
 
-- Phases 0–2 done: CI (VM and JavaScript, weekly Android compile), preview on GitHub Pages,
-  anonymous-first accounts, placement test, continuous levels, monorepo with `packages/math_core`,
-  Dart server with replay validation, leaderboard, SQL migrations applied by CI.
-- About 1,350 tests (core 548 VM / 541 JavaScript, app 242, server 20, tooling 10, 5 SQL).
-- First question on slow 4G from a fresh browser: 26.5 s on the preview.
+- Phases 0, 1, 2, 3a and 5 done: CI (VM and JavaScript, weekly Android compile), preview on
+  Cloudflare Pages (`math-trainer-kjc.pages.dev`), anonymous-first accounts, beta gate, placement
+  and type placement, continuous levels, monorepo with `packages/math_core`, Dart server on Render
+  with replay validation, leaderboard, SQL migrations applied by CI, owner dashboard, digit
+  typeface, component kit, operator icons, sound, haptics, home-screen install.
+- Tests: core 582 (VM) / 577 (JavaScript), app 332, server 20, plus tooling and SQL tests.
+- First question on slow 4G from a fresh browser: 24.4 s. Download is no longer the bottleneck:
+  sign-in round trips are.
+- The repository is **private** since 20 November.
 - Web-only: mobile development is paused.
 
 | Weakness | Why it matters | Fixed in |
@@ -475,8 +480,8 @@ starts after 3b.
 ### Phase 3a outcome (19 November)
 
 All nine commits delivered, CI green, server live on Render, first question on slow 4G 23.1 s.
-The repository is public: anything committed is public, so tester data stays out of CI logs and
-the dashboard runs locally. Owner decisions on the provisional choices:
+The repository was public at the time (private since 20 November); tester data stays out of CI
+logs and the dashboard runs locally either way. Owner decisions on the provisional choices:
 
 - Preview host: **Cloudflare Pages, yes** (brotli, ~4.6 s less on slow 4G). Moved before any
   invitation.
@@ -486,8 +491,8 @@ the dashboard runs locally. Owner decisions on the provisional choices:
   invite-only beta. Server-side enforcement before Phase 6 if the gate stays.
 - Names: an approved name is never hidden again; a cleared name is removed until a new one: kept.
 - Timing-flag thresholds and the 03:17 UTC cleanup schedule: kept.
-- **Data gaps closed before invitations**: input device, app version and the timeout in force are
-  stored with every answer. Answers played without them cannot get them back.
+- **Data gaps closed before invitations**: input device per answer and app version per session.
+  The timeout in force is not stored: it is 15 s for every answer until Phase 3b.
 
 ### Phase 3a.1 — Close-out before invitations (done, 19 November)
 
@@ -555,6 +560,51 @@ dashboard can split data before and after this phase.
 load within +50 KB of Phase 3a; the owner confirms the typeface and approves the feel on a phone
 (sound, haptics, streak, level-up).
 
+### Phase 5 outcome (20 November)
+
+All eight commits delivered, live on the preview. Keypad and session layout pinned by tests to
+the pixel; sound and haptics proven unable to delay a question. First load +16.4 KB (budget
++50). Owner decisions on the provisional choices:
+
+- Digit typeface: **Space Grotesk**, unless the owner prefers another after `?specimen`.
+- Sound on by default, synthesised in the browser (no files, nothing to license): kept.
+- Vibration on by default; one pulse right, two wrong; disabled with an explanation where the
+  browser can't vibrate: kept.
+- Streak tiers 5, 10, 20 and their colours: kept.
+- Reduced motion covers only the new effects; the answer flash, shake and question fade stay
+  until after the beta (frozen by the beta-safety rule): kept, revisit after Phase 3b.
+- App icon: + − × ÷ in a 2 × 2 grid (seven operators are unreadable at icon size): kept.
+- "of" in "25% of 80" drawn in the digit face (avoids a mixed line): kept.
+- Key tick and key tap on the on-screen keypad only: kept.
+
+### Phase 5.1 — Beta-period groundwork (one pass)
+
+**Goal:** use the beta weeks for work that prepares Phases 3b, 4 and 6 **without changing how
+players answer**. The beta-safety rule of Phase 5 still applies, and its pinning tests must pass
+at every commit.
+
+0. *(A)* **Close Phase 5**: own-row leaderboard weight 700 → 500 (`doc/design.md`); the profile
+   golden test no longer depends on the time of day; plan-alignment points recorded.
+1. *(A)* **First load: overlap sign-in with boot.** Restore the session or start the anonymous
+   sign-in while Flutter loads, instead of after; cache what can be cached. Measure on slow 4G
+   from a fresh browser; target under 20 s to the first question. Question order, timing and
+   input untouched.
+2. *(A)* **Strategy detector in the core, no UI** (Phase 4, commit 1, moved earlier): for any
+   exercise, the best strategy of section 6.1 or none; one test per strategy, VM and JavaScript.
+   Nothing in the app calls it yet.
+3. *(A)* **Structural features in the core, for analysis only**: carries, borrows, digits 6–9,
+   distance from a round number, per exercise. A dashboard view attaches them to every stored
+   answer, so Phase 3b can measure which features predict slow or wrong answers. Generation does
+   not use them.
+4. *(A)* **Beta progress in the dashboard report**: sessions and testers against the Phase 3b
+   entry threshold (~300 sessions, 10+ testers), sessions per tester, days since each tester's
+   last game.
+5. *(A)* **Server-side gate enforcement** (prerequisite of Phase 6): an anonymous user without a
+   valid code cannot upload; existing testers unaffected; tested against a direct API call.
+
+**Exit:** pinning tests still pass; slow-4G first question measured (target < 20 s); detector and
+features tested on VM and JavaScript; the report shows beta progress.
+
 ### Phase 6 — Public web launch
 
 **Entry:** Phases 3–5 done; name chosen; domain bought.
@@ -606,8 +656,7 @@ name and domain, ads or payments) are prepared but not applied until the owner c
 | Wider name alphabets (bigger bundled font) | Before Phase 6 |
 | New level constants | Phase 3b, commit 1 |
 | Server-side gate enforcement | Before Phase 6 |
-| Digit typeface (provisional pick, owner confirms) | Phase 5 |
-| Sound on by default | Phase 5 |
+| ~~Phase 5 provisional choices~~ — see Phase 5 outcome | Phase 5 |
 | App name and domain | Phase 6 |
 | Opening live duels | Phase 7, step 6 |
 | Ads, payments, analytics | After Phase 7 |
@@ -621,7 +670,7 @@ owner. Silence never turns a guess into the product.
 |---|---|
 | Browser storage wiped before server sync exists | Persistent storage request (P0); server backup (P2) |
 | Too few beta testers for calibration | Recruit 10–20 people before Phase 3 starts |
-| Flutter web too slow on first load | Slow 4G: 23.1 s to first question (P3a); ~18 s expected on Cloudflare (P3a.1) |
+| Flutter web too slow on first load | Slow 4G: 24.4 s on Cloudflare (P5); sign-in round trips dominate — overlapped with boot in P5.1 |
 | Player names in scripts Inter does not cover show as boxes | Name charset restricted to Inter's coverage (P2) |
 | Generation or level maths differ between web (JavaScript) and server (Dart VM) | Cross-platform determinism test in P1; levels in integer hundredths |
 | Levels take too long to settle | Continuous levels and placement test in P1; recalibration in P3 |
@@ -637,7 +686,8 @@ owner. Silence never turns a guess into the product.
 - Keep the repo on GitHub (CI and preview deployment depend on it).
 - Invite 10–20 beta testers at the end of Phase 3a.1, one code each (`dashboard.sh new-code`).
 - Choose the app name and buy the domain before Phase 6.
-- Choose the digit typeface before Phase 5.
+- Confirm the digit typeface (Phase 5 picked Space Grotesk provisionally).
+- Choose the app name before Phase 6; the domain, SMTP sender and store listings depend on it.
 - Play the preview URL on a phone at every checkpoint.
 
 ## 11. Keeping CLAUDE.md aligned with this plan

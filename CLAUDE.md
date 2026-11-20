@@ -3,35 +3,37 @@
 Competitive mental-arithmetic game in Flutter, for teens and adults. UI, code, docs and commits
 in English.
 
-**`doc/plan.md` (version 2.5) is the product plan.** Read it at the start of every phase; never
+**`doc/plan.md` (version 2.6) is the product plan.** Read it at the start of every phase; never
 edit it. This file is the working file: keep it short, update it as the project moves, keep it
 consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/decisions.md`,
 `doc/design.md`, `doc/online.md`, `doc/progress.md`. The plan wins any conflict — report it.
 
 ## Current phase
 
-**Phase 5 — Identity** (`doc/plan.md`, section 7), run in **one pass** while the beta runs.
-Done: 0–7. Exit test run, phase report given (20 Nov). Waiting on the owner: confirm the
-typeface (`?specimen` on the preview), judge sound, vibration, streak and level-up on a phone,
-add to the home screen (Android, iPhone), and the report's provisional decisions. Update this
-block at every commit.
+**Phase 5.1 — Beta-period groundwork** (`doc/plan.md`, section 7), run in **one pass** while
+the beta runs. Done: none yet. Next commit: **0**. Update this block at every commit.
 
-**Beta-safety rule**: nothing may change how players answer — keypad geometry, input paths,
-question order and difficulty, the 15 s timeout, the correction pause, when the next question
-appears. Commit 0 pins them with tests; they must pass at every commit.
+**Beta-safety rule** (Phase 5, still in force): nothing may change how players answer — keypad
+geometry, input paths, question order and difficulty, the 15 s timeout, the correction pause,
+when the next question appears. `session_layout_pin_test.dart` must pass at every commit.
 
 | # | Commit | Note |
 |---|---|---|
-| 0 | Pin keypad geometry, session layout, no delay from sound/haptics | before any restyling |
-| 1 | Digit typeface: specimen screen (not in release), provisional pick, bundle it | ≤ +50 KB first load |
-| 2 | Kit: `AppButton`, `TypeChip`, `KeypadKey`, `StatTile`, `LevelBadge`; goldens both themes | `KeypadKey` keeps pinned geometry |
-| 3 | Operator icon family; favicon and web app icons | — |
-| 4 | Sound, on by default, own toggle; unlocked on first tap; CC0 or self-made | played at phase end |
-| 5 | Haptics behind an interface, own toggle; no-op where unsupported | played at phase end |
-| 6 | Streak escalation at 5/10/20, level-up moment; reduced motion respected | played at phase end |
-| 7 | Web app manifest, home-screen icons (incl. apple-touch-icon) | — |
+| 0 | Close Phase 5: own leaderboard row 700 → 500; profile golden independent of the time of day; plan-alignment points recorded | — |
+| 1 | First load: overlap session restore / anonymous sign-in with boot; cache what can be | slow 4G, fresh browser: target < 20 s to first question (24.4 s now) |
+| 2 | Strategy detector in the core, no UI (section 6.1's seven strategies) | one test per strategy, VM and JS; nothing in the app calls it |
+| 3 | Structural features in the core (carries, borrows, digits 6–9, distance from a round number); dashboard view per stored answer | analysis only — generation never uses them |
+| 4 | Beta progress in the dashboard report: sessions and testers vs ~300 / 10+, sessions per tester, days since last game | — |
+| 5 | Server-side gate enforcement: an anonymous user without a valid code cannot upload; existing testers unaffected | tested with a direct API call |
 
-Phase 3a's owner steps are done: the gate is on and the beta is running (owner, 20 Nov).
+**Exit:** pinning tests still pass; slow-4G first question measured; detector and features
+tested on VM and JavaScript; the report shows beta progress.
+
+**Owner steps**: a beta code for Claude's slow-4G measurements, saved outside the repository
+(`D:\mathtrainer\smoke_code.txt`); check that Render still deploys from the private repository;
+at the end, run the dashboard report and confirm the provisional decisions. Phase 5's typeface
+confirmation (`?specimen`) is still open.
+
 Phase 3b starts at ~300 sessions from 10+ testers; Phase 4 comes after 3b, never during the
 beta. The repository is private since 20 Nov: CI results are visible to the owner only — a push
 is verified by its commit appearing in the live `main.dart.js` (deploy runs only after the tests).
