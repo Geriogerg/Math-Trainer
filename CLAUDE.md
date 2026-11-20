@@ -3,16 +3,15 @@
 Competitive mental-arithmetic game in Flutter, for teens and adults. UI, code, docs and commits
 in English.
 
-**`doc/plan.md` (version 2.6) is the product plan.** Read it at the start of every phase; never
+**`doc/plan.md` (version 2.7) is the product plan.** Read it at the start of every phase; never
 edit it. This file is the working file: keep it short, update it as the project moves, keep it
 consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/decisions.md`,
 `doc/design.md`, `doc/online.md`, `doc/progress.md`. The plan wins any conflict — report it.
 
 ## Current phase
 
-**Phase 5.1 — Beta-period groundwork** (`doc/plan.md`, section 7), run in **one pass** while
-the beta runs. Done: 0–5. Exit test run, phase report given (20 Nov); the live slow-4G
-first question still needs the owner's measurement code. Update this block at every commit.
+**Phase 5.2 — Staging and online groundwork** (`doc/plan.md`, section 7), run in **one pass**
+while the beta runs. Done: none yet. Next commit: **0**. Update this block at every commit.
 
 **Beta-safety rule** (Phase 5, still in force): nothing may change how players answer — keypad
 geometry, input paths, question order and difficulty, the 15 s timeout, the correction pause,
@@ -20,20 +19,18 @@ when the next question appears. `session_layout_pin_test.dart` must pass at ever
 
 | # | Commit | Note |
 |---|---|---|
-| 0 | Close Phase 5: own leaderboard row 700 → 500; profile golden independent of the time of day; plan-alignment points recorded | — |
-| 1 | First load: overlap session restore / anonymous sign-in with boot; cache what can be | slow 4G, fresh browser: target < 20 s to first question (24.4 s now) |
-| 2 | Strategy detector in the core, no UI (section 6.1's seven strategies) | one test per strategy, VM and JS; nothing in the app calls it |
-| 3 | Structural features in the core (carries, borrows, digits 6–9, distance from a round number); dashboard view per stored answer | analysis only — generation never uses them |
-| 4 | Beta progress in the dashboard report: sessions and testers vs ~300 / 10+, sessions per tester, days since last game | — |
-| 5 | Server-side gate enforcement: an anonymous user without a valid code cannot upload; existing testers unaffected | tested with a direct API call |
+| 0 | Close Phase 5.1: plan-alignment points; live slow-4G first question measured with the CI beta code | needs the owner's code file |
+| 1 | Staging: second Supabase project + second Render service; CI migrates staging, smoke on a staging build, then migrates and deploys production | production stays the current project; tests never touch it |
+| 2 | Duel configuration in the core (Phase 7 commit 1): fixed quotas per type, difficulty from a rating bracket, never from levels | same (seed, duel config) → same questions on VM and JS; no UI |
+| 3 | Glicko-2 on the server, no endpoint | Glickman's worked example; rating periods with no games |
+| 4 | Legal drafts in `doc/legal/`: privacy policy, legal notice (mentions légales), placeholders | not published; owner and a professional review before Phase 6 |
 
-**Exit:** pinning tests still pass; slow-4G first question measured; detector and features
-tested on VM and JavaScript; the report shows beta progress.
+**Exit:** smoke green on staging and production; production untouched by tests; duel config and
+Glicko-2 tested; legal drafts ready for review.
 
-**Owner steps**: a beta code for Claude's slow-4G measurements, saved outside the repository
-(`D:\mathtrainer\smoke_code.txt`); check that Render still deploys from the private repository;
-at the end, run the dashboard report and confirm the provisional decisions. Phase 5's typeface
-confirmation (`?specimen`) is still open.
+**Owner steps**: the CI beta code in `D:\mathtrainer\smoke_code.txt` (commit 0); the staging
+Supabase project, Render staging service, deploy hooks and CI secrets (commit 1, exact steps in
+`doc/online.md`, "Staging"); review the legal drafts at the end.
 
 Phase 3b starts at ~300 sessions from 10+ testers; Phase 4 comes after 3b, never during the
 beta. The repository is private since 20 Nov: CI results are visible to the owner only — a push
