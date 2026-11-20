@@ -1165,3 +1165,26 @@ untouched by tests. Choices made to get there, **provisional**:
 **Rejected**: Supabase branching (paid plan); one project with a test schema (tests would
 still write `auth.users` in the testers' project). **Reopen when** Phase 6 adds the domain
 (production becomes the real site; the preview may become staging).
+
+## Duel configuration: quotas, a bracket's level, one stream (Phase 5.2, commit 2) — provisional
+
+`math_core/duel/duel_config.dart`: `DuelConfig(seed, quotas, bracket)` → `questions()`. Both
+players get the same questions; the server can regenerate them (Phase 7 commit 2). Choices,
+**provisional** (Phase 7 tunes them on play):
+
+- **Difficulty from the rating alone.** Fifteen brackets of 100 Glicko points (≤ 899, 900–999,
+  …, ≥ 2200; a new player's 1500 is bracket 7); a bracket's level is 5 + 5 × bracket (5 to 75;
+  bracket 7 → 40), the same for every type. No input takes a player's levels. Two players of
+  different ratings: the server picks the bracket (their mean's, Phase 7).
+- **Fixed quotas per type.** The standard duel: 12 questions — the four operations twice each,
+  percentages twice, one power, one square root. Up to 40 questions.
+- **Order: the quotas shuffled by the seed.** The multiset is listed by `ExerciseType.index`
+  (never a `Set`'s order), shuffled (Fisher–Yates, `nextInt` only) with `Random(seed)`, and
+  the same stream then draws the values through the game's own generators
+  (`CompositeExerciseGenerator`, `FixedTypeSequence`): a type at a level is drawn exactly as in
+  a game.
+- Three sequences are pinned in the test (brackets 0, 7, 14) and run on the VM and in
+  JavaScript. Strict JSON (`toJson`/`fromJson`), `==` independent of the quotas' map order.
+
+**Reopen when** Phase 7 measures duels: the level per bracket (players' real levels by
+rating), per-type levels if one type is much harder at the same level, the quotas.

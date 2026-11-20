@@ -647,3 +647,8 @@ Plan v2.7 (20 Nov 2026). Runs during the beta; the beta-safety rule still applie
   attempted; a wrong version fails. `render_deploy.sh` checked against production (unchanged
   server: no deploy). **Parked**: the owner's staging setup (doc/online.md, "Staging"); green
   on staging is verified at the end of the phase.
+- **Commit 2** *(A)* — Duel configuration, core only (`duel/duel_config.dart`): fixed quotas
+  per type, the level of a rating bracket (15 brackets of 100 points, levels 5–75), the quotas
+  shuffled by the seed then drawn by the game's generators on one stream. 10 tests on VM and
+  JavaScript: three pinned sequences, determinism, quotas, the bracket alone setting
+  difficulty, invalid configurations throwing, strict JSON. No UI.

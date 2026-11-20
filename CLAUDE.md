@@ -12,7 +12,7 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 
 **Phase 5.2 — Staging and online groundwork** (`doc/plan.md`, section 7), run in **one pass**
 while the beta runs. Done: 0 (1/2; the measurement waits for the owner's code file), 1 (live
-on staging once the owner's setup is done). Next commit: **2**. Update this block at every
+on staging once the owner's setup is done), 2. Next commit: **3**. Update this block at every
 commit.
 
 **Beta-safety rule** (Phase 5, still in force): nothing may change how players answer — keypad
@@ -196,6 +196,8 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 - The useless `nextInt(1)` in `CompositeExerciseGenerator` stays: removing it changes every
   sequence.
 - `ExerciseType` and `SessionKind` names are stored discriminants; renaming breaks history.
+- `duel_config_test.dart` pins three duels' questions: a change to generation that moves them
+  breaks every stored duel (Phase 7) — never update the pins to make a test pass.
   `Strategy` names will be too (Phase 4 tips).
 - Changing `placementRulesV1` changes stored placements' replay: add a `placementV2` instead.
 - A new player's first Start is a type placement (`typePlacementV3`), not a game: tests that
