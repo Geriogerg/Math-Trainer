@@ -588,3 +588,9 @@ Plan v2.6 (20 Nov 2026). Runs during the beta; the beta-safety rule of Phase 5 s
   `feature_summary`, `dashboard.sh features`; the SQL test's 18 cases run against Dart
   (`structural_features_sql_parity_test.dart`, 19 tests). SQL tests passed locally
   (migrations twice, every dashboard command). Generation untouched.
+- **Commit 4** *(A)* — Beta progress, first in `dashboard.sh report`: views
+  `owner_dashboard.beta_progress` (completed games and testers against 300 / 10, games per
+  tester, median, last 7 days, days to 300 at this pace, beta day) and `tester_activity`
+  (every player who uploaded: code label, name, games, interrupted, placements, last game,
+  days since). SQL test `97_beta_progress_test.sql` (incl. an empty beta: no division by
+  zero). A tester is a player with a completed game, as in `calibration_readiness`.

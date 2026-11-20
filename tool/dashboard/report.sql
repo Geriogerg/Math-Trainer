@@ -6,9 +6,24 @@
 \pset null '—'
 
 \echo
-\echo '== Ready for Phase 3b? (~300 completed games from 10+ testers)'
-select completed_games, testers, case when ready then 'yes' else 'not yet' end as ready
-from owner_dashboard.calibration_readiness;
+\echo '== Beta progress: Phase 3b starts at ~300 completed games from 10+ testers'
+select
+  completed_games || ' / ' || games_needed || ' (' || games_pct || ' %)' as games,
+  testers || ' / ' || testers_needed || ' (' || testers_pct || ' %)' as testers,
+  case when ready then 'yes' else 'not yet' end as ready,
+  games_per_tester as "games per tester",
+  median_games_per_tester as "median",
+  games_last_7_days as "games, last 7 days",
+  days_to_300_at_this_pace as "days to 300 at this pace",
+  days_since_first_game as "beta day"
+from owner_dashboard.beta_progress;
+
+\echo
+\echo '== Testers: games and days since the last one (who to nudge)'
+select player, invited_as, name, games_completed as games, games_interrupted as interrupted,
+  placements, to_char(last_game_at, 'YYYY-MM-DD') as last_game,
+  days_since_last_game as "days since"
+from owner_dashboard.tester_activity;
 
 \echo
 \echo '== Active testers (at least one game uploaded)'

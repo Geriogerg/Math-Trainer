@@ -11,8 +11,8 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 ## Current phase
 
 **Phase 5.1 — Beta-period groundwork** (`doc/plan.md`, section 7), run in **one pass** while
-the beta runs. Done: 0, 1 (live slow-4G measurement pending the owner's code), 2, 3. Next
-commit: **4**. Update this block at every commit.
+the beta runs. Done: 0, 1 (live slow-4G measurement pending the owner's code), 2, 3, 4.
+Next commit: **5**. Update this block at every commit.
 
 **Beta-safety rule** (Phase 5, still in force): nothing may change how players answer — keypad
 geometry, input paths, question order and difficulty, the 15 s timeout, the correction pause,
