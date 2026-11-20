@@ -278,6 +278,16 @@ const id = await guestId();
 if (!id) await fail('no anonymous session stored');
 console.log(`  guest ${id} (${((Date.now() - started) / 1000).toFixed(1)} s from navigation)`);
 
+// Home screen (Phase 5 commit 7): the browser's own verdict on the web app
+// manifest. Reported after the account is deleted, like the server.
+let installProblem = null;
+{
+  const { installabilityErrors = [] } = await send('Page.getInstallabilityErrors');
+  const errors = installabilityErrors.map((e) => e.errorId);
+  console.log(`  installable: ${errors.length === 0 ? 'yes' : errors.join(', ')}`);
+  if (errors.length > 0) installProblem = `not installable: ${errors.join(', ')}`;
+}
+
 step('skip the placement, start the default 2-type selection');
 await tapText('Skip', 30000, { exact: true });
 await tapText('Start', 30000, { exact: true });
@@ -398,5 +408,6 @@ await tapText('Delete', 30000, { exact: true });
 
 if (serverProblem) await fail(serverProblem);
 if (soundProblem) await fail(soundProblem);
+if (installProblem) await fail(installProblem);
 console.log(`SMOKE PASSED in ${((Date.now() - started) / 1000).toFixed(0)} s`);
 await shutdown(0);

@@ -987,3 +987,16 @@ Found on the way: the result screen's two buttons overflowed with a wide text (a
 text size); they are a `Wrap` now and stack instead.
 **Reopen when** the beta ends (reduced motion for the answer feedback), or the owner finds the
 escalation too strong.
+
+## Home screen: the manifest, Safari's own tags, and the browser's verdict (Phase 5, commit 7)
+
+`web/manifest.json`: a stable `id`, `scope` and `start_url` of `./` (the preview serves from the
+root; relative stays right if a domain changes it in Phase 6), standalone, portrait, dark
+Background as splash and theme colour (it matches the loading screen), icons `any` and
+`maskable` at 192 and 512. Safari on iPhone ignores most of it: `index.html` carries the 180 px
+`apple-touch-icon` (full bleed, iOS rounds it) and `apple-mobile-web-app-capable` for a
+full-screen launch; `theme-color` per system theme so the browser bar matches day or night.
+Checked by `test/web_manifest_test.dart` (every icon at its declared size) and, on the live
+preview at every push, by the smoke test asking Chrome itself (`Page.getInstallabilityErrors`:
+none). The owner adds it to a home screen on both phones at the end of the phase.
+**Reopen when** the domain and the name arrive (Phase 6): `name`, `short_name`, icons.

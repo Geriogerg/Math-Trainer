@@ -1,23 +1,29 @@
 {
+    "id": "./",
     "name": "Math Trainer",
     "short_name": "Math Trainer",
-    "start_url": ".",
+    "description": "Competitive mental math: difficulty adapts to your answers.",
+    "lang": "en",
+    "start_url": "./",
+    "scope": "./",
     "display": "standalone",
+    "orientation": "portrait-primary",
     "background_color": "#101528",
     "theme_color": "#101528",
-    "description": "Competitive mental math: difficulty adapts to your answers.",
-    "orientation": "portrait-primary",
+    "categories": ["games", "education"],
     "prefer_related_applications": false,
     "icons": [
         {
             "src": "icons/Icon-192.png",
             "sizes": "192x192",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any"
         },
         {
             "src": "icons/Icon-512.png",
             "sizes": "512x512",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any"
         },
         {
             "src": "icons/Icon-maskable-192.png",

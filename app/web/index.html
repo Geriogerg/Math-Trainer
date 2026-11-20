@@ -20,11 +20,21 @@
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="Competitive mental math: difficulty adapts to your answers.">
 
-  <!-- iOS meta tags & icons -->
+  <!--
+    Home screen (Phase 5 commit 7): manifest.json for Chrome on Android;
+    Safari on iPhone reads its own tags — the 180 px touch icon (full bleed,
+    iOS rounds it) and apple-mobile-web-app-capable for a full-screen
+    launch. Icons are rendered from the operator family
+    (app/tool/icons/render_web_icons_test.dart).
+  -->
   <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="Math Trainer">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+  <!-- The browser bar takes the page's background, day or night. -->
+  <meta name="theme-color" content="#F4F6FB" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#101528" media="(prefers-color-scheme: dark)">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>

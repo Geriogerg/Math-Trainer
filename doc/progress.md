@@ -529,3 +529,8 @@ streak, level-up), add to the home screen on Android and iPhone.
   overflowed with wide text). Tests: 8 (tiers, colours, pulse and its absence, level-up once,
   none without a whole level, instant count-up); pins and session goldens unchanged.
   **To play at phase end.**
+- **Commit 7** *(A)* — Web app manifest: `id`, `scope`, explicit icon purposes; Safari's
+  180 px `apple-touch-icon` + `apple-mobile-web-app-capable`; `theme-color` per system theme.
+  `test/web_manifest_test.dart` (4: fields, every icon at its declared size, iOS tags,
+  favicon). Smoke test: Chrome's installability verdict (local release build: installable,
+  11 tones, passed).
