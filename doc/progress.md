@@ -534,3 +534,20 @@ streak, level-up), add to the home screen on Android and iPhone.
   `test/web_manifest_test.dart` (4: fields, every icon at its declared size, iOS tags,
   favicon). Smoke test: Chrome's installability verdict (local release build: installable,
   11 tones, passed).
+
+### Phase 5 exit test (20 Nov 2026)
+
+- **The layout pins still pass**: yes — `session_layout_pin_test.dart` unchanged since commit 0,
+  green at every commit (a keypad 1 px taller fails it; two half-pixel moves were caught and
+  fixed in the code). Session goldens unchanged by commits 2–7.
+- **Golden tests on every kit component in both themes**: yes — 12 (`AppButton`, `TypeChip`,
+  `KeypadKey`, `StatTile`, `LevelBadge`, `OperatorIcon`; dark and light).
+- **First load within +50 KB of Phase 3a**: yes — **+16.4 KB** brotli (3,025.2 → 3,041.7 KB:
+  `main.dart.js` +12.3, the digit face +2.6, favicon and manifests +1.5), both builds made the
+  same way (`0bdf9d9` in a worktree vs `3eaca42`).
+- **The owner confirms the typeface and approves the feel on a phone**: owner — the typeface on
+  `?specimen`, sound, vibration (Android), streak, level-up, home screen.
+- Live: every commit's build reached the preview (its version found in `main.dart.js`), so CI
+  passed through deploy each time; the smoke results themselves are not visible to Claude since
+  the repository went private. Locally on release builds: smoke passed with 11 tones,
+  installable.

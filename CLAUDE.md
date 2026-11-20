@@ -11,7 +11,10 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 ## Current phase
 
 **Phase 5 — Identity** (`doc/plan.md`, section 7), run in **one pass** while the beta runs.
-Done: 0–7. Exit test next. Update this block at every commit.
+Done: 0–7. Exit test run, phase report given (20 Nov). Waiting on the owner: confirm the
+typeface (`?specimen` on the preview), judge sound, vibration, streak and level-up on a phone,
+add to the home screen (Android, iPhone), and the report's provisional decisions. Update this
+block at every commit.
 
 **Beta-safety rule**: nothing may change how players answer — keypad geometry, input paths,
 question order and difficulty, the 15 s timeout, the correction pause, when the next question
@@ -28,9 +31,10 @@ appears. Commit 0 pins them with tests; they must pass at every commit.
 | 6 | Streak escalation at 5/10/20, level-up moment; reduced motion respected | played at phase end |
 | 7 | Web app manifest, home-screen icons (incl. apple-touch-icon) | — |
 
-Owner steps still open from Phase 3a (do not block this phase): beta codes,
-`SMOKE_BETA_CODE`, `BETA_GATE=true`, invitations. Phase 3b starts at ~300 sessions from
-10+ testers; Phase 4 comes after 3b, never during the beta.
+Phase 3a's owner steps are done: the gate is on and the beta is running (owner, 20 Nov).
+Phase 3b starts at ~300 sessions from 10+ testers; Phase 4 comes after 3b, never during the
+beta. The repository is private since 20 Nov: CI results are visible to the owner only — a push
+is verified by its commit appearing in the live `main.dart.js` (deploy runs only after the tests).
 
 Preview: `https://math-trainer-kjc.pages.dev/` (Cloudflare Pages), deployed on every push to
 `main`; the old `https://geriogerg.github.io/Math-Trainer/` redirects there.
