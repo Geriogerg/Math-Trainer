@@ -12,12 +12,19 @@ import '../fake_profile_repository.dart';
 
 class _EffectStore implements EffectSettingsStore {
   bool? sound;
+  bool? haptics;
 
   @override
   Future<bool?> readSound() async => sound;
 
   @override
   Future<void> writeSound(bool on) async => sound = on;
+
+  @override
+  Future<bool?> readHaptics() async => haptics;
+
+  @override
+  Future<void> writeHaptics(bool on) async => haptics = on;
 }
 
 /// Phase 5: the game's effects are switched in Profile, per device.
@@ -63,6 +70,36 @@ void main() {
     expect(settings.sound, isFalse);
     expect(store.sound, isFalse);
     expect(tester.widget<SwitchListTile>(sound).value, isFalse);
+  });
+
+  testWidgets('the vibration switch: on by default, remembered', (
+    tester,
+  ) async {
+    final store = _EffectStore();
+    final settings = EffectSettings(store: store);
+    await pumpProfile(tester, settings: settings);
+
+    final vibration = find.widgetWithText(SwitchListTile, 'Vibration');
+    expect(tester.widget<SwitchListTile>(vibration).value, isTrue);
+    await tester.ensureVisible(vibration);
+    await tester.tap(vibration);
+    await tester.pump();
+
+    expect(settings.haptics, isFalse);
+    expect(store.haptics, isFalse);
+  });
+
+  testWidgets('a browser that cannot vibrate: the switch is off, disabled, '
+      'and says why', (tester) async {
+    await pumpProfile(
+      tester,
+      settings: EffectSettings(store: _EffectStore(), hapticsSupported: false),
+    );
+    final vibration = find.widgetWithText(SwitchListTile, 'Vibration');
+    final tile = tester.widget<SwitchListTile>(vibration);
+    expect(tile.value, isFalse);
+    expect(tile.onChanged, isNull);
+    expect(find.text('This browser cannot vibrate'), findsOneWidget);
   });
 
   testWidgets('no effect settings (tests, tools): no switches', (tester) async {

@@ -1,8 +1,8 @@
 import 'package:math_core/models/input_device.dart';
 import 'package:math_trainer/core/effects/app_session_effects.dart';
 import 'package:math_trainer/core/effects/effect_settings.dart';
+import 'package:math_trainer/core/effects/game_haptics.dart';
 import 'package:math_trainer/core/effects/game_sound.dart';
-import 'package:math_trainer/core/effects/session_effects.dart';
 import 'package:test/test.dart';
 
 class _RecordingSound implements GameSound {
@@ -21,24 +21,27 @@ class _RecordingSound implements GameSound {
   void levelUp() => played.add('levelUp');
 }
 
-class _RecordingHaptics implements SessionEffects {
+class _RecordingHaptics implements GameHaptics {
   final List<String> felt = [];
 
   @override
-  void keyPressed(InputDevice device) => felt.add('key ${device.name}');
+  bool get supported => true;
 
   @override
-  void answered({required bool correct, required int streak}) =>
-      felt.add(correct ? 'correct' : 'wrong');
+  void key() => felt.add('key');
 
   @override
-  void timedOut() => felt.add('timeout');
+  void success() => felt.add('success');
+
+  @override
+  void warning() => felt.add('warning');
 }
 
 class _MemoryStore implements EffectSettingsStore {
-  _MemoryStore([this.sound]);
+  _MemoryStore({this.sound, this.haptics});
 
   bool? sound;
+  bool? haptics;
   bool failRead = false;
   bool failWrite = false;
   int writes = 0;
@@ -55,6 +58,19 @@ class _MemoryStore implements EffectSettingsStore {
     if (failWrite) throw Exception('storage full');
     sound = on;
   }
+
+  @override
+  Future<bool?> readHaptics() async {
+    if (failRead) throw Exception('storage unavailable');
+    return haptics;
+  }
+
+  @override
+  Future<void> writeHaptics(bool on) async {
+    writes++;
+    if (failWrite) throw Exception('storage full');
+    haptics = on;
+  }
 }
 
 void main() {
@@ -62,60 +78,83 @@ void main() {
     late _RecordingSound sound;
     late _RecordingHaptics haptics;
     late EffectSettings settings;
-    late AppSessionEffects effects;
+
+    AppSessionEffects effects() =>
+        AppSessionEffects(sound: sound, haptics: haptics, settings: settings);
 
     setUp(() {
       sound = _RecordingSound();
       haptics = _RecordingHaptics();
       settings = EffectSettings(store: _MemoryStore());
-      effects = AppSessionEffects(
-        sound: sound,
-        haptics: haptics,
-        settings: settings,
-      );
     });
 
-    test('a game: ticks on the keypad, a chime that knows the streak, a '
-        'low tone on a mistake or a timeout', () {
-      effects
+    test('a game: the keypad ticks and taps, a right answer chimes with '
+        'its streak and pulses, a mistake or a timeout warns', () {
+      effects()
         ..keyPressed(InputDevice.keypad)
         ..answered(correct: true, streak: 3)
         ..answered(correct: false, streak: 0)
         ..timedOut();
       expect(sound.played, ['tick', 'correct 3', 'wrong', 'wrong']);
-      expect(haptics.felt, ['key keypad', 'correct', 'wrong', 'timeout']);
+      expect(haptics.felt, ['key', 'success', 'warning', 'warning']);
     });
 
-    test('a physical keyboard key does not tick (the player hears it)', () {
-      effects.keyPressed(InputDevice.keyboard);
+    test('a physical keyboard key: no tick, no tap', () {
+      effects().keyPressed(InputDevice.keyboard);
       expect(sound.played, isEmpty);
-      expect(haptics.felt, ['key keyboard']);
+      expect(haptics.felt, isEmpty);
     });
 
-    test('sound off: silence, at the very next effect', () {
+    test('each switch silences only its own effect, at the next one', () {
       settings.setSound(false);
-      effects
+      effects()
         ..keyPressed(InputDevice.keypad)
-        ..answered(correct: true, streak: 1)
-        ..timedOut();
+        ..answered(correct: true, streak: 1);
       expect(sound.played, isEmpty);
-      expect(haptics.felt, hasLength(3));
+      expect(haptics.felt, ['key', 'success']);
+
+      settings
+        ..setSound(true)
+        ..setHaptics(false);
+      effects().timedOut();
+      expect(sound.played, ['wrong']);
+      expect(haptics.felt, ['key', 'success']);
+    });
+
+    test('a device that cannot vibrate never asks, whatever the switch', () {
+      settings = EffectSettings(store: _MemoryStore(), hapticsSupported: false);
+      effects()
+        ..keyPressed(InputDevice.keypad)
+        ..answered(correct: false, streak: 0);
+      expect(haptics.felt, isEmpty);
+      expect(settings.hapticsChosen, isTrue);
+      expect(settings.haptics, isFalse);
     });
   });
 
   group('EffectSettings', () {
-    test('sound is on by default, and when never set', () async {
-      expect(EffectSettings(store: _MemoryStore()).sound, isTrue);
-      expect((await EffectSettings.load(_MemoryStore())).sound, isTrue);
+    test('both on by default, and when never set', () async {
+      final fresh = EffectSettings(store: _MemoryStore());
+      expect([fresh.sound, fresh.haptics], [true, true]);
+      final loaded = await EffectSettings.load(
+        _MemoryStore(),
+        hapticsSupported: true,
+      );
+      expect([loaded.sound, loaded.haptics], [true, true]);
     });
 
-    test('the stored choice is read back', () async {
-      expect((await EffectSettings.load(_MemoryStore(false))).sound, isFalse);
+    test('the stored choices are read back', () async {
+      final loaded = await EffectSettings.load(
+        _MemoryStore(sound: false, haptics: false),
+        hapticsSupported: true,
+      );
+      expect([loaded.sound, loaded.haptics], [false, false]);
     });
 
-    test('a failed read keeps the default', () async {
-      final store = _MemoryStore(false)..failRead = true;
-      expect((await EffectSettings.load(store)).sound, isTrue);
+    test('a failed read keeps the defaults', () async {
+      final store = _MemoryStore(sound: false)..failRead = true;
+      final loaded = await EffectSettings.load(store, hapticsSupported: true);
+      expect([loaded.sound, loaded.haptics], [true, true]);
     });
 
     test('a change notifies and is stored; the same value writes nothing', () {
@@ -125,11 +164,12 @@ void main() {
       settings.addListener(() => notified++);
       settings
         ..setSound(false)
-        ..setSound(false);
-      expect(settings.sound, isFalse);
-      expect(notified, 1);
-      expect(store.writes, 1);
-      expect(store.sound, isFalse);
+        ..setSound(false)
+        ..setHaptics(false);
+      expect([settings.sound, settings.haptics], [false, false]);
+      expect(notified, 2);
+      expect(store.writes, 2);
+      expect([store.sound, store.haptics], [false, false]);
     });
 
     test('a failed write keeps the choice for this run', () async {

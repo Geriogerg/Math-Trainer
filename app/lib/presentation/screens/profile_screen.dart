@@ -901,8 +901,9 @@ class _LevelCurvePainter extends CustomPainter {
       oldDelegate.points != points || oldDelegate.color != color;
 }
 
-/// The game's effects, switched per device (Phase 5): sound now, vibration
-/// from commit 5. Both on by default.
+/// The game's effects, switched per device (Phase 5): sound and vibration,
+/// both on by default. A device that cannot vibrate (Safari on iPhone)
+/// shows the switch disabled, and says why.
 class _EffectSwitches extends StatelessWidget {
   const _EffectSwitches({required this.settings});
 
@@ -926,6 +927,18 @@ class _EffectSwitches extends StatelessWidget {
             ),
             value: settings.sound,
             onChanged: settings.setSound,
+          ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text('Vibration', style: theme.textTheme.bodyLarge),
+            subtitle: Text(
+              settings.hapticsSupported
+                  ? 'A tap on each key, a pulse for each answer'
+                  : 'This browser cannot vibrate',
+              style: theme.textTheme.bodyMedium,
+            ),
+            value: settings.haptics,
+            onChanged: settings.hapticsSupported ? settings.setHaptics : null,
           ),
         ],
       ),

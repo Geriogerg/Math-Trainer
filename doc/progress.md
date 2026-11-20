@@ -513,3 +513,11 @@ streak, level-up), add to the home screen on Android and iPhone.
   `SharedPreferences`), Profile's "During a game" → Sound switch. Tests: effects and settings
   (10), the Profile switch (2). Smoke test: counts the tones of its game (11 on a local release
   build; fails at zero). **To play at phase end.**
+- **Commit 5** *(C)* — Haptics: `GameHaptics` (`core/effects/`), web via `navigator.vibrate`
+  (feature-detected), `HapticFeedback` elsewhere (conditional import);
+  `HapticSessionEffects` removed, `AppSessionEffects` now drives both effects, each behind its
+  switch; `EffectSettings.haptics` (on by default, stored) and Profile's "Vibration" switch,
+  disabled with a reason where the browser cannot vibrate. Tests: effects and settings (11),
+  Profile switches (4). Local release build + smoke passed (11 tones). Found locally: an
+  incremental `flutter build web` on Windows dropped `web/` files (sqlite3.wasm…) from the output
+  — a clean `build/web` fixes it; CI always builds clean. **To play at phase end** (Android).

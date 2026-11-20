@@ -52,6 +52,10 @@ the action colour. And in any case:
 
 Haptics are absent in Safari on iOS; colour + motion still satisfies the rule.
 
+**Vibration** (Phase 5, on by default, its own switch in Profile): 8 ms on each on-screen key,
+one 15 ms pulse on a right answer, two pulses (30–50–30 ms) on a wrong answer or a timeout —
+told apart without looking. Where the browser cannot vibrate, the switch is disabled and says so.
+
 **Sound** (Phase 5, on by default, one switch in Profile): synthesised, short and quiet —
 a 18 ms tick for each on-screen key (not for a physical keyboard, which the player already
 hears); a soft chime on a right answer that climbs a pentatonic scale from C5 with the streak,

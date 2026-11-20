@@ -8,6 +8,7 @@ class SharedPreferencesEffectSettingsStore implements EffectSettingsStore {
   const SharedPreferencesEffectSettingsStore();
 
   static const _soundKey = 'effects.sound';
+  static const _hapticsKey = 'effects.haptics';
 
   @override
   Future<bool?> readSound() async =>
@@ -16,4 +17,12 @@ class SharedPreferencesEffectSettingsStore implements EffectSettingsStore {
   @override
   Future<void> writeSound(bool on) async =>
       (await SharedPreferences.getInstance()).setBool(_soundKey, on);
+
+  @override
+  Future<bool?> readHaptics() async =>
+      (await SharedPreferences.getInstance()).getBool(_hapticsKey);
+
+  @override
+  Future<void> writeHaptics(bool on) async =>
+      (await SharedPreferences.getInstance()).setBool(_hapticsKey, on);
 }

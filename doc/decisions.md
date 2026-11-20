@@ -959,3 +959,15 @@ is silence; **mobile replacement (Phase 8)**: an audio package behind the same `
 **Provisional (owner confirms on a phone)**: sound **on by default** (plan section 8), the
 sounds themselves, their loudness.
 **Reopen when** the owner finds them tiring or too quiet, or Phase 8 brings native audio.
+
+## Haptics: the browser's vibration API, a switch that says when it cannot (Phase 5, commit 5)
+
+`GameHaptics` (key, success, warning) behind the player's switch, on by default. Web:
+`navigator.vibrate` directly (`dart:js_interop`), for patterns Flutter's `HapticFeedback` cannot
+express on the web — a warning is two pulses, a success one. Feature-detected: Safari on iPhone
+has no vibration, so `supported` is false, nothing is called, and Profile shows the switch
+disabled with "This browser cannot vibrate" (a disabled state explains why). Outside the browser
+(Phase 8) Flutter's `HapticFeedback` (selection click, light, heavy) behind the same interface.
+Replaces the pre-Phase-5 haptics (a light tap on every answer, a heavy one added on a mistake):
+the key tap is new, for the on-screen keypad only, like the sound.
+**Reopen when** the owner finds the pulses too strong or too weak on a phone.

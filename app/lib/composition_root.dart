@@ -42,8 +42,8 @@ import 'infrastructure/backend/supabase_server_levels_source.dart';
 import 'core/effects/app_session_effects.dart';
 import 'core/effects/effect_settings.dart';
 import 'core/effects/session_effects.dart';
+import 'infrastructure/effects/game_haptics_factory.dart';
 import 'infrastructure/effects/game_sound_factory.dart';
-import 'infrastructure/effects/haptic_session_effects.dart';
 import 'infrastructure/persistence/database.dart';
 import 'infrastructure/persistence/persistent_storage.dart';
 import 'infrastructure/persistence/shared_preferences_abandoned_guest_store.dart';
@@ -83,7 +83,7 @@ class AppEnvironment {
     this.betaCodes,
     this.betaCodeStore = const SharedPreferencesBetaCodeStore(),
     this.feedbackRepository,
-    this.sessionEffects = const HapticSessionEffects(),
+    this.sessionEffects = const NoSessionEffects(),
     this.effectSettings,
   });
 
@@ -301,14 +301,16 @@ Future<AppEnvironment> buildAppEnvironment() async {
   );
 
   final accountRepository = SupabaseAccountRepository(Supabase.instance.client);
+  final haptics = createGameHaptics();
   final effectSettings = await EffectSettings.load(
     const SharedPreferencesEffectSettingsStore(),
+    hapticsSupported: haptics.supported,
   );
   return AppEnvironment(
     effectSettings: effectSettings,
     sessionEffects: AppSessionEffects(
       sound: createGameSound(),
-      haptics: const HapticSessionEffects(),
+      haptics: haptics,
       settings: effectSettings,
     ),
     repository: repository,
