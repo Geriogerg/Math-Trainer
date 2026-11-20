@@ -576,3 +576,9 @@ Plan v2.6 (20 Nov 2026). Runs during the beta; the beta-safety rule of Phase 5 s
   weights 400–500 (174 KB brotli; 16 goldens moved sub-pixel, session goldens and pins not).
   Smoke test: request waterfall (`SMOKE_TRACE=1`); the reload step now expires the session
   and checks the page refreshed it. Local A/B (slow 4G, no gate): 19.0–19.8 s vs 19.8–20.6 s.
+- **Commit 2** *(A)* — Strategy detector, core only (`strategies/strategy.dart`):
+  `bestStrategy` → one of seven moves (sealed `StrategyMove`, `==`/`hashCode`, each
+  recomputing the answer its own way) or `null`. 16 tests on VM and JavaScript: the table's
+  seven examples one by one, each rule's edges, the priority when two fit, and every move's
+  answer checked over ~100,000 exercises. Thresholds provisional (`doc/decisions.md`).
+  Nothing in the app calls it.

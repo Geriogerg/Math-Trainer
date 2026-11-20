@@ -1063,3 +1063,30 @@ preview adds the pre-compression above; its measurement is in `doc/progress.md`.
 skips the code screen); preloading `sqlite3.wasm` (the link is saturated during the download:
 it would only push CanvasKit later). **Reopen when** Turnstile arrives (Phase 6: the page's
 sign-up would need the token — skip it then), or supabase_flutter changes its storage key.
+
+## Strategy detector: the plan's table made exact (Phase 5.1, commit 2) — provisional
+
+`math_core/strategies/strategy.dart`: `bestStrategy(exercise)` returns the move of section
+6.1's table that fits, with the numbers of its worked line (`CompensationMove(kept: 47,
+rounded: 70, adjustment: 2)` for 47 + 68), or `null`. No UI: Phase 4 writes the tip from it.
+Each move recomputes the answer through its own steps, and a test checks that over ~100,000
+exercises (sums and differences to 300, products to 120 × 120, squares to 130, percentages to
+100% of 400): a tip can never teach a wrong line. The table's words left open; my reading,
+**provisional**:
+
+- **Compensation** (addition only): an operand ending in 9, 8 or 7 goes to the next ten; when
+  both do, the one closer to it; single digits count (47 + 9 = 47 + 10 − 1).
+- **Subtract via a round number**: the subtrahend within 3 of a round number but not on it,
+  the coarsest such (298 → 300, 1003 → 1000, 47 → 50); 7–9 → 10.
+- **Doubling and halving**: 5 (other even) → 10, 25 (other a multiple of 4) → 100, 50 (other
+  even) → 100 — only when the result stays whole.
+- **Split the factor**: one digit 2–9 × two digits 11–99, not a multiple of ten.
+- **Square near a base**: within 5 of 50 or 100, not on it (45–55, 95–105).
+- **Difference of squares**: factors evenly around a multiple of ten, 1 to 9 away.
+- **Swap the percentage**: p% of n when n is friendly (10, 20, 25, 50, 75) and p is not.
+- **Two fit, fewer steps win**: doubling and halving, then difference of squares, then split
+  (5 × 46 → 10 × 23; 48 × 52 → 50² − 2²).
+- Division and square roots: none (the table has no row for them).
+
+`Strategy` names will be stored once tips are shown: never renamed. **Reopen when** Phase 4
+shows tips (wording, thresholds by level) or Phase 3b data shows which moves help.

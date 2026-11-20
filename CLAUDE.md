@@ -11,8 +11,8 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 ## Current phase
 
 **Phase 5.1 — Beta-period groundwork** (`doc/plan.md`, section 7), run in **one pass** while
-the beta runs. Done: 0, 1 (live slow-4G measurement pending the owner's code). Next commit:
-**2**. Update this block at every commit.
+the beta runs. Done: 0, 1 (live slow-4G measurement pending the owner's code), 2. Next
+commit: **3**. Update this block at every commit.
 
 **Beta-safety rule** (Phase 5, still in force): nothing may change how players answer — keypad
 geometry, input paths, question order and difficulty, the 15 s timeout, the correction pause,
@@ -196,6 +196,7 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 - The useless `nextInt(1)` in `CompositeExerciseGenerator` stays: removing it changes every
   sequence.
 - `ExerciseType` and `SessionKind` names are stored discriminants; renaming breaks history.
+  `Strategy` names will be too (Phase 4 tips).
 - Changing `placementRulesV1` changes stored placements' replay: add a `placementV2` instead.
 - A new player's first Start is a type placement (`typePlacementV3`), not a game: tests that
   mean a game give the player levels first (`widget_test.dart`'s shared repository).
