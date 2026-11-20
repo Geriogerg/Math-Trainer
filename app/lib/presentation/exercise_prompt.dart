@@ -44,6 +44,8 @@ String _operatorSymbol(OperationType type) => switch (type) {
 /// stop at 3). The `WidgetSpan` aligned to the top of the line gives the
 /// offset: smaller text aligned to the top of the line sits visually higher
 /// than the base.
+const _powerLineHeight = 57 / 48;
+
 class _PowerPrompt extends StatelessWidget {
   const _PowerPrompt({required this.exercise, required this.style});
 
@@ -52,10 +54,19 @@ class _PowerPrompt extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final exponentStyle = style?.copyWith(
-      fontSize: (style!.fontSize ?? 48) * 0.55,
-    );
+    final fontSize = style?.fontSize ?? 48;
+    final exponentStyle = style?.copyWith(fontSize: fontSize * 0.55);
     return Text.rich(
+      // The raised exponent makes this line taller than the others, by an
+      // amount that depends on the face's metrics. Fixed at what it was in
+      // Inter when the beta started (57 px at 48 sp): the digit face must
+      // not move the answer below it (Phase 5 beta-safety rule,
+      // `session_layout_pin_test.dart`).
+      strutStyle: StrutStyle(
+        fontSize: fontSize,
+        height: _powerLineHeight,
+        forceStrutHeight: true,
+      ),
       TextSpan(
         style: style,
         children: [

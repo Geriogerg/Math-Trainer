@@ -74,10 +74,10 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
-  # To add assets to your application, add an assets section, like this:
-  # assets:
-  #   - images/a_dot_burr.jpeg
-  #   - images/a_dot_ham.jpeg
+  # Plain assets are fetched only when the app asks for them: the specimen's
+  # candidate faces (Phase 5 commit 1) never load for a player.
+  assets:
+    - assets/fonts/specimen/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
@@ -93,3 +93,9 @@ flutter:
     - family: Inter
       fonts:
         - asset: assets/fonts/Inter.ttf
+    # The digit face (Phase 5 commit 1, provisional pick, owner confirms):
+    # Space Grotesk (SIL OFL, assets/fonts/licences/), weight 500, cut to
+    # digits and operators by tool/fonts/subset_digits.py — 4.5 KB.
+    - family: Space Grotesk Digits
+      fonts:
+        - asset: assets/fonts/SpaceGroteskDigits.ttf

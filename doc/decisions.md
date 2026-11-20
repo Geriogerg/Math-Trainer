@@ -883,3 +883,36 @@ app side). Three things that would matter to calibration were not stored anywher
   validated payload, so no new column: the dashboard reads them from it
   (`answer_times_by_input`, `app_versions`, two more `data_check` rows).
 **Reopen when** Phase 3b stores the timeout with the session.
+
+## Digit typeface: Space Grotesk, cut to digits (Phase 5, commit 1)
+
+The plan's four candidates (section 6.2), each from google/fonts (SIL OFL, no Reserved Font
+Name, licences in `app/assets/fonts/licences/`), cut by `tool/fonts/subset_digits.py` to a static
+weight-500 instance of digits, operators and "of":
+
+| Face | Tabular at play size | Glyphs | Subset, brotli |
+|---|---|---|---|
+| Space Grotesk | yes (`tnum`; 111111 = 888888 = 119.0 px at 32 sp) | all | 2.7 KB |
+| Sora | yes (`tnum`) | **no √** (falls back to Inter) | 2.6 KB |
+| Manrope | yes (`tnum`) | all | 2.4 KB |
+| JetBrains Mono | yes (monospaced) | all | 2.0 KB |
+
+All four pass the size and licence criteria; the choice is on legibility at speed, judged on
+close-ups at play size (48 sp, weight 500, both themes; the specimen goldens record them):
+- **Space Grotesk**: the 1 carries a long flag, unmistakable for a 7; the 3's flat top keeps it
+  apart from 8; 6 and 9 are open, never read as 0 or 8. Proportional operators keep "24 × 7"
+  compact. The most character of the four — the plan's "recognisable at a glance".
+- JetBrains Mono: the least ambiguous (based 1, dotted 0), but monospaced operators open wide
+  gaps ("24  ×  7") and it reads as a code editor.
+- Manrope: its 1 is a plain stroke, closer to 7 at speed; lighter at 500.
+- Sora: no √ — a root prompt would mix two faces.
+
+**Provisional (owner confirms on the specimen, `?specimen` on the preview).** Used by the three
+digit styles (operation, typed answer, keypad) and, from commit 2, the kit's numbers; Inter stays
+for interface text and draws every letter but "of". First load: +2.7 KB (budget +50 KB).
+Line boxes stay Material 3's (`height` per style), so no session position moves; two exceptions
+found by the pins and fixed rather than re-measured: a prompt in two faces grows 1 px (hence "of"
+in the subset), and the power prompt's raised exponent depends on the face's metrics (its line is
+fixed at the 57 px it measured in Inter).
+**Reopen when** the owner picks another candidate (regenerate with the script, change
+`digitFontFamily`), or a public name brings a brand face (Phase 6).

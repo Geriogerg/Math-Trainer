@@ -11,7 +11,7 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 ## Current phase
 
 **Phase 5 — Identity** (`doc/plan.md`, section 7), run in **one pass** while the beta runs.
-Done: 0. Next commit: **1**. Update this block at every commit.
+Done: 0–1. Next commit: **2**. Update this block at every commit.
 
 **Beta-safety rule**: nothing may change how players answer — keypad geometry, input paths,
 question order and difficulty, the 15 s timeout, the correction pause, when the next question
@@ -150,6 +150,7 @@ dart format app/lib app/test packages server tool   # what CI checks
 node tool/smoke/preview_smoke.mjs <url> [chrome]   # smoke test; SMOKE_NETWORK=slow4g to time it
 bash tool/sql/test_sql.sh <postgres admin url>     # migrations (twice) + SQL tests, scratch DB
 bash tool/dashboard/dashboard.sh [command]        # owner report and chores (live DB, local only)
+python -P -E tool/fonts/subset_digits.py <Font[wght].ttf> <out.ttf>  # digit face subset (fonttools)
 ```
 
 `app/dart_defines.json` (not versioned) holds the Supabase URL and public key; in CI they come from
@@ -160,6 +161,8 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 - `session_layout_pin_test.dart` holds the beta's keypad and session geometry: never update its
   numbers to make a restyling pass — change the restyling. Sound and haptics go through
   `SessionEffects` (fire and forget, after the controller moved on), never inline in a widget.
+- Digits use `TextStyle.digits` (Space Grotesk subset: digits, operators, "of" only). A line
+  mixing faces grows 1 px — keep each prompt in one face; anything else falls back to Inter.
 
 - CI analyzes with `--fatal-infos` (core and tooling): run `dart analyze --fatal-infos` locally,
   an info-level lint fails the build.

@@ -222,11 +222,13 @@ jobs:
           # variable BETA_GATE once the owner sends the invitations.
           BETA_GATE: ${{ vars.BETA_GATE }}
         # APP_VERSION: the build's commit, stored with feedback (commit 5).
+        # PREVIEW_BUILD: this pipeline only builds the preview (the owner's
+        # tools, such as the typeface specimen, open there; Phase 5).
         run: |
           jq -n --arg url "$SUPABASE_URL" --arg key "$SUPABASE_PUBLISHABLE_KEY" \
             --arg server "$SERVER_URL" --arg gate "$BETA_GATE" \
             --arg version "${GITHUB_SHA::7}" \
-            '{SUPABASE_URL: $url, SUPABASE_PUBLISHABLE_KEY: $key, SERVER_URL: $server, BETA_GATE: $gate, APP_VERSION: $version}' \
+            '{SUPABASE_URL: $url, SUPABASE_PUBLISHABLE_KEY: $key, SERVER_URL: $server, BETA_GATE: $gate, APP_VERSION: $version, PREVIEW_BUILD: "true"}' \
             > dart_defines.json
       - name: Web build
         # Every URL in the build (bootstrap, assets, sqflite_sw.js,

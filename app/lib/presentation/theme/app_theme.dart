@@ -12,6 +12,21 @@ import 'package:material_ui/material_ui.dart';
 
 const _fontFamily = 'Inter';
 
+/// The display face for digits (`doc/plan.md` section 6.2; Phase 5 commit
+/// 1, provisional pick — `doc/decisions.md`): operations, typed answers,
+/// keypad digits, and the numbers of the kit (scores, levels). Only digits
+/// and operators are bundled; anything else (the "of" of a percentage,
+/// "Level") falls back to Inter.
+const digitFontFamily = 'Space Grotesk Digits';
+
+extension DigitFace on TextStyle {
+  /// This style, drawn in the digit face.
+  TextStyle get digits => copyWith(
+    fontFamily: digitFontFamily,
+    fontFamilyFallback: const [_fontFamily],
+  );
+}
+
 ThemeData buildLightTheme() => _buildTheme(
   colorScheme: const ColorScheme.light(
     surface: Color(0xFFF4F6FB),
@@ -81,7 +96,10 @@ ThemeData _buildTheme({
 
 /// The 5 sizes of `doc/design.md` sit on 5 of the 15 named styles of the
 /// Material 3 `TextTheme` (an arbitrary mapping, no standard role matches
-/// natively). The other 10 keep Material 3's default size but still inherit
+/// natively). The three digit roles — the operation (`displayMedium`), the
+/// typed answer (`headlineMedium`), the keypad (`displaySmall`) — use the
+/// digit face; their line heights stay Material 3's, so no position on the
+/// session screen moves (`session_layout_pin_test.dart`). The other 10 keep Material 3's default size but still inherit
 /// the weight cap and tabular figures: "never 600/700" and "tabular figures
 /// everywhere" apply to the whole `TextTheme`, not just the 5 named sizes.
 TextTheme _textThemeFor(TextTheme base) {
@@ -89,14 +107,16 @@ TextTheme _textThemeFor(TextTheme base) {
     TextStyle? style, {
     double? fontSize,
     FontWeight? fontWeight,
+    bool digits = false,
   }) {
     if (style == null) return null;
     final cappedWeight = fontWeight ?? _capWeight(style.fontWeight);
-    return style.copyWith(
+    final finalized = style.copyWith(
       fontSize: fontSize,
       fontWeight: cappedWeight,
       fontFeatures: const [FontFeature.tabularFigures()],
     );
+    return digits ? finalized.digits : finalized;
   }
 
   return base.copyWith(
@@ -105,13 +125,15 @@ TextTheme _textThemeFor(TextTheme base) {
       base.displayMedium,
       fontSize: 48,
       fontWeight: FontWeight.w500,
+      digits: true,
     ),
-    displaySmall: finalize(base.displaySmall),
+    displaySmall: finalize(base.displaySmall, digits: true),
     headlineLarge: finalize(base.headlineLarge),
     headlineMedium: finalize(
       base.headlineMedium,
       fontSize: 32,
       fontWeight: FontWeight.w500,
+      digits: true,
     ),
     headlineSmall: finalize(base.headlineSmall),
     titleLarge: finalize(base.titleLarge),

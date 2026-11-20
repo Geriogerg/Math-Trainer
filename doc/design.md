@@ -70,9 +70,13 @@ mistake.
 
 ## Typography
 
-`Inter` (bundled in `assets/fonts/`, never fetched at runtime). Two weights only: 400 for running
-text, 500 for digits and titles. Never 600 or 700. A display typeface for digits is planned for
-Phase 5 (owner's choice).
+`Inter` (bundled in `assets/fonts/`, never fetched at runtime) for interface text. Two weights
+only: 400 for running text, 500 for digits and titles. Never 600 or 700.
+
+**Digits** — operations, typed answers, keypad, and the kit's scores and levels — use the display
+face **Space Grotesk** (Phase 5, provisional pick, `doc/decisions.md`), weight 500, bundled as a
+4.8 KB subset of digits, operators and "of" (`tool/fonts/subset_digits.py`); `TextStyle.digits`
+(`app_theme.dart`) applies it with Inter as the fallback for letters.
 
 **Tabular figures everywhere** (`FontFeature.tabularFigures()`). Without them, the answer being
 typed shifts at every key and the eye loses its anchor.

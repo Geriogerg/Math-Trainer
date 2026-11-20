@@ -475,3 +475,11 @@ streak, level-up), add to the home screen on Android and iPhone.
   `AppEnvironment.sessionEffects`): called after the controller has moved on, never awaited,
   every call guarded — a test with effects that throw shows the next question in the same
   frame and the correction pause unchanged (1 s; timeout 15 s). App 293 tests.
+- **Commit 1** *(A)* — Digit typeface. The four candidates cut to digits, operators and "of"
+  (`tool/fonts/subset_digits.py`, fonttools): all tabular at play size, Sora lacks √; specimen
+  screen (`?specimen` on debug and preview builds, `PREVIEW_BUILD` from CI; candidates loaded on
+  demand from plain assets, never by a player), goldens in both themes. Provisional pick: **Space
+  Grotesk** (`doc/decisions.md`), on the operation, typed answer and keypad. First load +2.7 KB.
+  The pins caught two 0.5 px moves (power prompt, mixed-face percentage) — fixed in the code,
+  pins unchanged. Goldens of the session and result screens regenerated. Found: the profile
+  golden depends on the time of day (0.01 %, passes once regenerated; pre-existing) — debt.

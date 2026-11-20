@@ -223,6 +223,14 @@ const _betaGate = bool.fromEnvironment('BETA_GATE');
 /// every feedback message; `dev` for a local build.
 const appVersion = String.fromEnvironment('APP_VERSION', defaultValue: 'dev');
 
+/// `true` in the CI's preview builds (the beta's site): tools for the owner
+/// such as the typeface specimen. A public release (Phase 6) leaves it
+/// unset.
+const previewBuild = bool.fromEnvironment('PREVIEW_BUILD');
+
+/// The digit-typeface specimen opens with `?specimen` (Phase 5 commit 1).
+const specimenAvailable = kDebugMode || previewBuild;
+
 /// Build started without `--dart-define-from-file=dart_defines.json` (see
 /// `dart_defines.example.json`). Without this check the app still started
 /// on the sign-in gate with an address-less Supabase client: every attempt

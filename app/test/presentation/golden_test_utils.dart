@@ -10,6 +10,11 @@ import 'package:flutter_test/flutter_test.dart';
 /// real rendering.
 Future<void> loadInterFontForGoldens() async {
   await _loadFont('Inter', 'assets/fonts/Inter.ttf');
+  // The digit face (Phase 5 commit 1): operations, answers, keypad.
+  await _loadFont(
+    'Space Grotesk Digits',
+    'assets/fonts/SpaceGroteskDigits.ttf',
+  );
   // Key without "packages/flutter/": `uses-material-design: true` injects it
   // in this exact form into the asset manifest (flutter_tools, asset.dart,
   // kMaterialFonts), not as a regular package asset.
