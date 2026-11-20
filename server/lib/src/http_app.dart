@@ -12,7 +12,18 @@ typedef Route = ({String method, String path, Handler handler});
 /// dependency.
 Handler buildHandler(ServerConfig config, {List<Route> routes = const []}) {
   final all = <Route>[
-    (method: 'GET', path: '/health', handler: _health),
+    (
+      method: 'GET',
+      path: '/health',
+      handler: (_) => jsonResponse(200, {
+        'status': 'ok',
+        'service': 'math_trainer_server',
+        // Which commit runs (Phase 5.1): the repository is private, so a
+        // deploy is checked from outside by asking the server itself.
+        'version': config.version,
+        'betaGate': config.requireBetaCode,
+      }),
+    ),
     ...routes,
   ];
   return const Pipeline()
@@ -28,9 +39,6 @@ Handler buildHandler(ServerConfig config, {List<Route> routes = const []}) {
         return jsonResponse(405, {'error': 'method_not_allowed'});
       });
 }
-
-Response _health(Request request) =>
-    jsonResponse(200, {'status': 'ok', 'service': 'math_trainer_server'});
 
 Response jsonResponse(int status, Object body) => Response(
   status,

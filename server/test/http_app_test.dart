@@ -47,6 +47,8 @@ void main() {
     expect(jsonDecode(await response.readAsString()), {
       'status': 'ok',
       'service': 'math_trainer_server',
+      'version': 'dev',
+      'betaGate': true,
     });
   });
 

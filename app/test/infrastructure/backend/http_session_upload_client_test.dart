@@ -94,6 +94,11 @@ void main() {
     await expectUnavailable(
       clientAnswering((_) => json(503, {'error': 'unavailable'})),
     );
+    // The server-side beta gate (Phase 5.1): kept and retried, never
+    // recorded as refused — a code redeemed later lets it through.
+    await expectUnavailable(
+      clientAnswering((_) => json(403, {'error': 'beta_code_required'})),
+    );
     await expectUnavailable(
       clientAnswering((_) => http.Response('<html>waking up</html>', 502)),
     );

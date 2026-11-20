@@ -16,5 +16,10 @@ export 'src/supabase_gateway.dart';
 /// The production handler: every route, wired to the real Supabase.
 Handler buildServerHandler(ServerConfig config) => buildHandler(
   config,
-  routes: [SessionEndpoint(HttpSupabaseGateway(config)).route],
+  routes: [
+    SessionEndpoint(
+      HttpSupabaseGateway(config),
+      requireBetaCode: config.requireBetaCode,
+    ).route,
+  ],
 );

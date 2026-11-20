@@ -594,3 +594,10 @@ Plan v2.6 (20 Nov 2026). Runs during the beta; the beta-safety rule of Phase 5 s
   (every player who uploaded: code label, name, games, interrupted, placements, last game,
   days since). SQL test `97_beta_progress_test.sql` (incl. an empty beta: no division by
   zero). A tester is a player with a completed game, as in `calibration_readiness`.
+- **Commit 5** *(A)* — Server-side gate. (1/2, `3288b0b`) `upload_allowed(player)`: a code
+  redeemed or an accepted session already; SQL test `98_upload_gate_test.sql`. Pushed first,
+  so the function exists before the server asks. (2/2) The server asks it for anonymous
+  players before storing anything: 403 `beta_code_required` (retried by the app, never a
+  refusal); linked accounts never asked; `BETA_GATE=false` turns it off (Phase 6); `/health`
+  reports the switch and the deployed commit. Server tests 20 → 28. Probe
+  `server/tool/gate_probe.dart`: a throwaway guest with no code calls the live API directly.

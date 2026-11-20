@@ -11,8 +11,8 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 ## Current phase
 
 **Phase 5.1 — Beta-period groundwork** (`doc/plan.md`, section 7), run in **one pass** while
-the beta runs. Done: 0, 1 (live slow-4G measurement pending the owner's code), 2, 3, 4.
-Next commit: **5**. Update this block at every commit.
+the beta runs. Done: 0, 1 (live slow-4G measurement pending the owner's code), 2, 3, 4, 5.
+Exit test next. Update this block at every commit.
 
 **Beta-safety rule** (Phase 5, still in force): nothing may change how players answer — keypad
 geometry, input paths, question order and difficulty, the 15 s timeout, the correction pause,
@@ -152,6 +152,7 @@ flutter run -d edge --web-port=8080 --dart-define-from-file=dart_defines.json
 # server/
 dart test
 docker build -f server/Dockerfile .          # from the repo root
+dart run tool/gate_probe.dart <server> <supabase url> <key>  # in server/: direct-API gate probe
 # repo root
 dart format app/lib app/test packages server tool   # what CI checks
 node tool/smoke/preview_smoke.mjs <url> [chrome]   # smoke test; SMOKE_NETWORK=slow4g to time it
@@ -237,6 +238,9 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   all: a new table of player data must cascade from `auth.users` and be named there.
 - Level updates have one implementation: `gameLevelUpdates` / `placementLevelUpdates`, used by
   the app's orchestrators and the server's validation. Never compute levels elsewhere.
+- The server enforces the gate too (`upload_allowed`, env `BETA_GATE`, on unless `false`): a
+  blocked upload is a 403 the app retries, never a refusal — keep it so, or late-redeemed
+  testers lose games. Check a deploy with `/health` (`version`, `betaGate`).
 - The beta gate is a build switch (`BETA_GATE=true`): with it on, the smoke test needs the
   `SMOKE_BETA_CODE` secret. Never put a real code in the repository, private or not.
 - `RejectionReason` and `ValidationFlag` names are stored server-side and sent to the app:

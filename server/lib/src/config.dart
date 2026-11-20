@@ -7,6 +7,8 @@ class ServerConfig {
     required this.supabaseSecretKey,
     this.port = 8080,
     this.allowedOrigins = const {},
+    this.requireBetaCode = true,
+    this.version = 'dev',
   }) {
     if (supabaseUrl.scheme != 'https' && supabaseUrl.host != 'localhost') {
       throw ArgumentError.value(
@@ -31,9 +33,11 @@ class ServerConfig {
     }
   }
 
-  /// From `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `PORT` (default 8080) and
+  /// From `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `PORT` (default 8080),
   /// `ALLOWED_ORIGINS` (comma-separated web origins allowed to call the
-  /// server from a browser, e.g. `https://geriogerg.github.io`).
+  /// server from a browser, e.g. `https://geriogerg.github.io`) and
+  /// `BETA_GATE` (`false` turns the invitation check off — the public
+  /// launch, Phase 6; anything else, or unset, keeps it on).
   factory ServerConfig.fromEnvironment(Map<String, String> env) {
     String required(String name) {
       final value = env[name]?.trim() ?? '';
@@ -52,6 +56,12 @@ class ServerConfig {
         for (final origin in (env['ALLOWED_ORIGINS'] ?? '').split(','))
           if (origin.trim().isNotEmpty) origin.trim(),
       },
+      requireBetaCode: env['BETA_GATE']?.trim().toLowerCase() != 'false',
+      // Render sets RENDER_GIT_COMMIT to the deployed commit.
+      version: switch (env['RENDER_GIT_COMMIT']?.trim()) {
+        final sha? when sha.length >= 7 => sha.substring(0, 7),
+        _ => 'dev',
+      },
     );
   }
 
@@ -64,9 +74,17 @@ class ServerConfig {
   final int port;
   final Set<String> allowedOrigins;
 
+  /// Uploads from anonymous players need an invitation code (Phase 5.1
+  /// commit 5). On by default: the beta is invite-only until Phase 6.
+  final bool requireBetaCode;
+
+  /// The deployed commit, short (`/health`); `dev` outside Render.
+  final String version;
+
   /// Never prints the key.
   @override
   String toString() =>
       'ServerConfig(supabaseUrl: $supabaseUrl, port: $port, '
-      'allowedOrigins: $allowedOrigins, supabaseSecretKey: <redacted>)';
+      'allowedOrigins: $allowedOrigins, requireBetaCode: $requireBetaCode, '
+      'supabaseSecretKey: <redacted>)';
 }

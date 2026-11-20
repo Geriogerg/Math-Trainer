@@ -31,6 +31,9 @@ class FakeGateway implements SupabaseGateway {
   final levels = <String, Map<String, Object?>>{};
   final flags = <String, List<Object?>>{};
 
+  /// Players who redeemed an invitation code (`beta_code_uses`).
+  final withCode = <String>{};
+
   @override
   Future<AuthenticatedUser?> userForToken(String accessToken) async {
     if (down) throw const GatewayUnavailable('down');
@@ -99,6 +102,10 @@ class FakeGateway implements SupabaseGateway {
         return [
           {'outcome': 'applied', 'received_at': at},
         ];
+      case 'upload_allowed':
+        final player = p['p_player_id'] as String;
+        return withCode.contains(player) ||
+            accepted.values.any((a) => a.player == player);
       case 'record_rejected_upload':
         rejected.putIfAbsent(
           p['p_session_id'] as String,
@@ -223,6 +230,102 @@ void main() {
       expect((await post(honest('s').toJson())).$1, 503);
       gateway.down = false;
       expect((await post('x' * (maxUploadBytes + 1))).$1, 413);
+    });
+  });
+
+  // Phase 5.1 commit 5: the invitation, enforced by the server.
+  group('beta gate on the server', () {
+    late Handler gated;
+
+    setUp(() {
+      gateway.users['token-linked'] = (id: 'linked', isAnonymous: false);
+      gated = buildHandler(
+        ServerConfig(
+          supabaseUrl: Uri.parse('https://example.supabase.co'),
+          supabaseSecretKey: 'sb_secret_test',
+        ),
+        routes: [
+          SessionEndpoint(
+            gateway,
+            clock: () => DateTime.utc(2026, 11, 20, 10),
+            requireBetaCode: true,
+          ).route,
+        ],
+      );
+    });
+
+    Future<(int, Map<String, Object?>)> postGated(
+      SessionUpload upload, {
+      String token = 'token-p1',
+    }) async {
+      final response = await gated(
+        Request(
+          'POST',
+          Uri.parse('http://localhost/v1/sessions'),
+          headers: {'authorization': 'Bearer $token'},
+          body: jsonEncode(upload.toJson()),
+        ),
+      );
+      return (
+        response.statusCode,
+        (jsonDecode(await response.readAsString()) as Map)
+            .cast<String, Object?>(),
+      );
+    }
+
+    test('an anonymous player without a code: 403, nothing stored', () async {
+      final (status, body) = await postGated(honest('s1'));
+      expect(status, 403);
+      expect(body, {'error': 'beta_code_required'});
+      // Not a refusal: no "status" for the app to record — it retries.
+      expect(body.containsKey('status'), isFalse);
+      expect(gateway.accepted, isEmpty);
+      expect(gateway.rejected, isEmpty);
+      expect(gateway.calls, ['upload_allowed']);
+    });
+
+    test('with a code: accepted', () async {
+      gateway.withCode.add('p1');
+      expect((await postGated(honest('s1'))).$1, 200);
+    });
+
+    test('a code redeemed later: the kept session goes through', () async {
+      expect((await postGated(honest('s1'))).$1, 403);
+      gateway.withCode.add('p1');
+      expect((await postGated(honest('s1'))).$1, 200);
+    });
+
+    test(
+      'a tester already in (accepted sessions, no code): accepted',
+      () async {
+        // Played before the gate existed: the ungated endpoint took it.
+        expect((await post(honest('s1').toJson())).$1, 200);
+        final next = honest(
+          's2',
+          minute: 5,
+          levels: {
+            for (final t in _types)
+              t: Level.fromHundredths(
+                (gateway.levels['p1']![t.name] as Map)['level'] as int,
+              ),
+          },
+        );
+        expect((await postGated(next)).$1, 200);
+      },
+    );
+
+    test('a linked account is never asked', () async {
+      final (status, _) = await postGated(
+        honest('s1', player: 'linked'),
+        token: 'token-linked',
+      );
+      expect(status, 200);
+      expect(gateway.calls, isNot(contains('upload_allowed')));
+    });
+
+    test('Supabase down during the check: 503, retried later', () async {
+      gateway.down = true;
+      expect((await postGated(honest('s1'))).$1, 503);
     });
   });
 

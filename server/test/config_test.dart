@@ -19,6 +19,36 @@ void main() {
     expect(ServerConfig.fromEnvironment({...env, 'PORT': '9000'}).port, 9000);
   });
 
+  // Phase 5.1 commit 5: on unless explicitly off (the public launch).
+  test('the beta gate: on by default, off only with BETA_GATE=false', () {
+    expect(ServerConfig.fromEnvironment(env).requireBetaCode, isTrue);
+    expect(
+      ServerConfig.fromEnvironment({
+        ...env,
+        'BETA_GATE': 'true',
+      }).requireBetaCode,
+      isTrue,
+    );
+    expect(
+      ServerConfig.fromEnvironment({
+        ...env,
+        'BETA_GATE': ' False ',
+      }).requireBetaCode,
+      isFalse,
+    );
+  });
+
+  test('the deployed commit from Render, short', () {
+    expect(ServerConfig.fromEnvironment(env).version, 'dev');
+    expect(
+      ServerConfig.fromEnvironment({
+        ...env,
+        'RENDER_GIT_COMMIT': '781e8671234567890abcdef',
+      }).version,
+      '781e867',
+    );
+  });
+
   test('never prints the secret key', () {
     expect(
       ServerConfig.fromEnvironment(env).toString(),

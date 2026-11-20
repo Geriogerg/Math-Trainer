@@ -17,13 +17,26 @@ const maxUploadBytes = 256 * 1024;
 /// - 400 / 409 `{status: refused, reason}` — malformed or refused for good:
 ///   the app records it and never resends;
 /// - 401 no or bad token, 413 too large, 503 Supabase unavailable: the app
-///   retries later.
+///   retries later;
+/// - 403 `{error: beta_code_required}` ([requireBetaCode]): an anonymous
+///   player who never redeemed an invitation code and has nothing accepted
+///   yet. Not a refusal: the app keeps the session and retries, so a tester
+///   whose code is redeemed later loses nothing.
 class SessionEndpoint {
-  SessionEndpoint(this.gateway, {DateTime Function()? clock})
-    : _clock = clock ?? DateTime.now;
+  SessionEndpoint(
+    this.gateway, {
+    DateTime Function()? clock,
+    this.requireBetaCode = false,
+  }) : _clock = clock ?? DateTime.now;
 
   final SupabaseGateway gateway;
   final DateTime Function() _clock;
+
+  /// The invite-only beta, enforced here too (Phase 5.1 commit 5): the app's
+  /// gate is a screen, and the API is reachable without it. Linked
+  /// (email) accounts pass; so does any player with an invitation code or
+  /// an accepted session (`upload_allowed`, SQL) — the testers already in.
+  final bool requireBetaCode;
 
   Route get route => (method: 'POST', path: '/v1/sessions', handler: handle);
 
@@ -60,6 +73,14 @@ class SessionEndpoint {
     }
 
     try {
+      if (requireBetaCode && user.isAnonymous) {
+        final allowed = await gateway.rpc('upload_allowed', {
+          'p_player_id': user.id,
+        });
+        if (allowed != true) {
+          return jsonResponse(403, {'error': 'beta_code_required'});
+        }
+      }
       return await store(upload, receivedAt: _clock().toUtc());
     } on GatewayUnavailable {
       return jsonResponse(503, {'error': 'unavailable'});

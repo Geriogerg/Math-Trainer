@@ -29,5 +29,9 @@ services:
         sync: false
       # The Cloudflare Pages preview (Phase 3a commit 1; math-trainer.pages.dev
       # is someone else's) and the old GitHub Pages address, now a redirect.
+      # Uploads from anonymous players need an invitation code (Phase 5.1);
+      # "false" at the public launch (Phase 6). Unset means on.
+      - key: BETA_GATE
+        value: "true"
       - key: ALLOWED_ORIGINS
         value: https://math-trainer-kjc.pages.dev,https://geriogerg.github.io

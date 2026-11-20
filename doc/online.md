@@ -197,9 +197,15 @@ the move happens before the invitations.
   "I already have an account" signs in without a code. The accepted code is kept on the device
   (`BetaCodeStore`): a later guest on that device (after signing out of an email account) is not
   asked again, and `redeemDeviceBetaCode` ties each new guest to it after sign-in.
-- **Not enforced server-side**: someone calling Supabase directly can create a guest without a
-  code; their data shows as "no code" in the dashboard. Enough for an invite-only beta
-  (`doc/decisions.md`).
+- **Enforced by the server since Phase 5.1 (commit 5)**: anyone can still create a guest by
+  calling Supabase directly, but the server stores no session of an anonymous player unless
+  `upload_allowed(player)` — a redeemed code, or an accepted session already (the testers in
+  before the gate). Otherwise `POST /v1/sessions` answers **403** `beta_code_required`: not a
+  refusal — the app keeps the session and retries, so a code redeemed later loses nothing.
+  Linked (email) accounts are never asked. Switch: the server's environment variable
+  `BETA_GATE` (`false` = off, the public launch; unset = on); `/health` reports it, with the
+  deployed commit. Probe from outside: `cd server && dart run tool/gate_probe.dart <server>
+  <supabase url> <publishable key>` (a throwaway guest, deleted at the end).
 
 ### Turning the gate on — owner, when sending the invitations
 

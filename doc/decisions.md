@@ -1110,3 +1110,26 @@ Dart code by `structural_features_sql_parity_test.dart` — a rule changed in on
 there. **Provisional**: the definitions above (the plan names the features, not their exact
 counting). **Reopen when** Phase 3b fits a model on them (a feature may need splitting:
 carries into the tens vs the hundreds; distance to 100 vs to 10).
+
+## Server-side gate: who is "already in", and a 403 that is not a refusal (Phase 5.1, commit 5) — provisional
+
+Plan: "an anonymous user without a valid code cannot upload; existing testers unaffected". The
+server asks `upload_allowed(player)` (SQL, service role only) before storing an anonymous
+player's session: **a redeemed code, or at least one accepted session**. The second clause is
+what keeps every existing tester in: players from before the gate (no code), and a device whose
+code redemption has not reached the server yet but whose player uploaded before. A guest made
+by calling Supabase directly has neither, and never gets a first session in. Linked (email)
+accounts are never asked: they came through the app, and linking is a step a script gains
+nothing from during the beta.
+
+The answer to a blocked upload is **403 `beta_code_required`, not a refusal**: refusals are
+final (the app records them and never resends), while a 403 is "try later" (the app's queue
+retries with back-off). A tester whose code redeems late — offline at sign-in; the app redeems
+in the background, again at every start — loses nothing: the queued sessions go once the code
+lands. Default **on** when `BETA_GATE` is unset (the beta is invite-only until Phase 6, which
+sets it to `false`); `/health` reports the switch and the deployed commit (`RENDER_GIT_COMMIT`)
+— with the repository private, that is how a deploy is checked from outside.
+
+The migration went out one push before the server (the server asks a function CI must have
+created first; uploads in between would only have been retried). **Reopen when** Phase 6
+removes the gate, or Turnstile protects the anonymous sign-up itself.
