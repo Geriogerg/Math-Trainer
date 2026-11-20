@@ -492,3 +492,8 @@ streak, level-up), add to the home screen on Android and iPhone.
   Leaderboard levels as badges. Goldens: 10 kit (5 components × 2 themes) + the restyled
   screens. Tests now find levels with `findLevelBadge` (a semantics finder misses badges
   scrolled out of view). App 305 tests.
+- *Fix after commit 2* — the smoke test clicked "Delete my data" by the centre of a node only
+  half on screen (the Profile grew with the level badges): the click missed, the test account
+  stayed (one locally, `41d3e85e…`, probably one from CI; the 30-day cleanup removes them). It
+  now clicks only a node whose centre is on screen and on top there. Checked on a local
+  release build of commit 2: passed, account deleted.

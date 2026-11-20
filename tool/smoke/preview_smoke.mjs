@@ -167,9 +167,16 @@ const findText = (text, exact = false) =>
       if (!labels.some((t) => (exact ? t === want : t.includes(want)))) continue;
       const r = el.getBoundingClientRect();
       if (r.width === 0 || r.height === 0) continue;
-      if (r.bottom <= 0 || r.top >= innerHeight) continue;
+      // Its centre must be on screen and on top there: a node half under
+      // the bottom edge (a long Profile) would take a click that lands
+      // nowhere — keep scrolling instead.
+      const x = r.left + r.width / 2;
+      const y = r.top + r.height / 2;
+      if (y <= 0 || y >= innerHeight || x <= 0 || x >= innerWidth) continue;
+      const top = document.elementFromPoint(x, y);
+      if (top && !el.contains(top) && !top.contains(el)) continue;
       if (!best || r.width * r.height < best.area) {
-        best = { x: r.left + r.width / 2, y: r.top + r.height / 2, area: r.width * r.height };
+        best = { x, y, area: r.width * r.height };
       }
     }
     return best;
