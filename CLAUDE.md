@@ -12,7 +12,7 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 
 **Phase 5.2 — Staging and online groundwork** (`doc/plan.md`, section 7), run in **one pass**
 while the beta runs. Done: 0 (1/2; the measurement waits for the owner's code file), 1 (live
-on staging once the owner's setup is done), 2, 3. Next commit: **4**. Update this block at
+on staging once the owner's setup is done), 2, 3, 4. Exit test next. Update this block at
 every commit.
 
 **Beta-safety rule** (Phase 5, still in force): nothing may change how players answer — keypad

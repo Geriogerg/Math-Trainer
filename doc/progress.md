@@ -655,3 +655,9 @@ Plan v2.7 (20 Nov 2026). Runs during the beta; the beta-safety rule still applie
 - **Commit 3** *(A)* — Glicko-2 on the server (`rating/glicko2.dart`), no endpoint: 7 tests —
   Glickman's worked example to the published precision, periods without games (deviation
   grows, capped at 350), symmetry, volatility on upsets, invalid input. Server tests 29 → 36.
+- **Commit 4** *(A)* — Legal drafts in `doc/legal/`: privacy policy (what is stored, why and
+  on what basis, where, who sees it, how long, rights, the in-app deletion), legal notice
+  (publisher, hosts, IP), and a README with the placeholders and five questions for the
+  professional review (language, minors, transfers, a private publisher, beta data).
+  Written against the migrations and the server; found: the in-app notice does not mention
+  the input device, the app version or timing flags — for Phase 6's pages.
