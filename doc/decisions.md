@@ -939,3 +939,23 @@ favicon size. Maskable icons keep the grid inside the 80 % safe circle; the Appl
 full bleed (iOS rounds it). On a selected chip the check mark moves before the label so the
 operator stays visible (a selected chip still has a non-colour signal, rule 14).
 **Reopen when** the app gets its real name (Phase 6): the app icon may become a mark.
+
+## Sound: synthesised in the browser, on by default (Phase 5, commit 4)
+
+The plan asks for self-made or CC0 sounds with their licence recorded. The sounds are
+**synthesised** with the Web Audio API (oscillators and gain envelopes, a few nodes per sound):
+self-made by construction, nothing to license, **zero bytes to download** (the first-load
+budget), and the chime's pitch follows the streak exactly. Through `dart:js_interop` behind a
+conditional import, like `persistent_storage` — no new dependency. Elsewhere `createGameSound()`
+is silence; **mobile replacement (Phase 8)**: an audio package behind the same `GameSound`.
+- Unlock: the `AudioContext` is created on the first `pointerdown`/`keydown` (capture phase,
+  before Flutter handles it); sounds before that are skipped, never queued.
+- Hidden page: the context is suspended, nothing is scheduled.
+- Mix for twenty questions in a row: peaks of 0.03 (tick) to 0.1 (chime), 5 ms attacks (no
+  click), exponential decays of 18–200 ms; a pentatonic climb so no streak step clashes.
+- The key tick plays for the on-screen keypad only.
+- Checked in a real browser: the smoke test counts the tones a game schedules (11 for its
+  10 answers) and fails at zero.
+**Provisional (owner confirms on a phone)**: sound **on by default** (plan section 8), the
+sounds themselves, their loudness.
+**Reopen when** the owner finds them tiring or too quiet, or Phase 8 brings native audio.

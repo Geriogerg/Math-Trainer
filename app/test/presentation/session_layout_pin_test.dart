@@ -7,6 +7,7 @@ import 'package:math_core/generation/exercise_source.dart';
 import 'package:math_core/leveling/level.dart';
 import 'package:math_core/models/exercise.dart';
 import 'package:math_core/models/exercise_type.dart';
+import 'package:math_core/models/input_device.dart';
 import 'package:math_core/models/operation_type.dart';
 import 'package:math_core/models/session_config.dart';
 import 'package:math_core/persistence/in_memory_session_repository.dart';
@@ -186,7 +187,7 @@ class _ThrowingEffects implements SessionEffects {
   }
 
   @override
-  void keyPressed() => _note('key');
+  void keyPressed(InputDevice device) => _note('key');
 
   @override
   void answered({required bool correct, required int streak}) =>

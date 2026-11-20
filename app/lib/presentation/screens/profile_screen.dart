@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import '../kit/kit.dart';
 
 import '../../composition_root.dart';
+import '../../core/effects/effect_settings.dart';
 import 'package:math_core/account/account.dart';
 import 'package:math_core/account/player_profile.dart';
 import 'package:math_core/leveling/level.dart';
@@ -436,6 +437,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ? data.recentSessions[i + 1]
                       : null,
                 ),
+            if (widget.environment.effectSettings case final settings?) ...[
+              const SizedBox(height: 24),
+              _EffectSwitches(settings: settings),
+            ],
             const SizedBox(height: 32),
             // The beta's feedback field (Phase 3a commit 5).
             if (widget.environment.feedbackRepository case final feedback?)
@@ -894,4 +899,36 @@ class _LevelCurvePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _LevelCurvePainter oldDelegate) =>
       oldDelegate.points != points || oldDelegate.color != color;
+}
+
+/// The game's effects, switched per device (Phase 5): sound now, vibration
+/// from commit 5. Both on by default.
+class _EffectSwitches extends StatelessWidget {
+  const _EffectSwitches({required this.settings});
+
+  final EffectSettings settings;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ListenableBuilder(
+      listenable: settings,
+      builder: (context, _) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('During a game', style: theme.textTheme.titleMedium),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text('Sound', style: theme.textTheme.bodyLarge),
+            subtitle: Text(
+              'Key ticks, a chime that climbs with your streak',
+              style: theme.textTheme.bodyMedium,
+            ),
+            value: settings.sound,
+            onChanged: settings.setSound,
+          ),
+        ],
+      ),
+    );
+  }
 }

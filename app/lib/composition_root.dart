@@ -39,12 +39,16 @@ import 'infrastructure/backend/supabase_leaderboard_repository.dart';
 import 'infrastructure/backend/supabase_account_repository.dart';
 import 'infrastructure/backend/supabase_profile_repository.dart';
 import 'infrastructure/backend/supabase_server_levels_source.dart';
+import 'core/effects/app_session_effects.dart';
+import 'core/effects/effect_settings.dart';
 import 'core/effects/session_effects.dart';
+import 'infrastructure/effects/game_sound_factory.dart';
 import 'infrastructure/effects/haptic_session_effects.dart';
 import 'infrastructure/persistence/database.dart';
 import 'infrastructure/persistence/persistent_storage.dart';
 import 'infrastructure/persistence/shared_preferences_abandoned_guest_store.dart';
 import 'infrastructure/persistence/shared_preferences_beta_code_store.dart';
+import 'infrastructure/persistence/shared_preferences_effect_settings_store.dart';
 import 'infrastructure/persistence/shared_preferences_placement_skip_store.dart';
 import 'infrastructure/persistence/shared_preferences_player_id_provider.dart';
 import 'infrastructure/persistence/shared_preferences_theme_mode_store.dart';
@@ -80,6 +84,7 @@ class AppEnvironment {
     this.betaCodeStore = const SharedPreferencesBetaCodeStore(),
     this.feedbackRepository,
     this.sessionEffects = const HapticSessionEffects(),
+    this.effectSettings,
   });
 
   final SessionRepository repository;
@@ -149,8 +154,12 @@ class AppEnvironment {
   /// do not care — Profile then shows no "Send feedback".
   final FeedbackRepository? feedbackRepository;
 
-  /// Haptics during a game (and sound from Phase 5 commit 4).
+  /// Sound and haptics during a game (Phase 5).
   final SessionEffects sessionEffects;
+
+  /// The Profile's effect switches; `null` in tests that do not care —
+  /// Profile then shows none.
+  final EffectSettings? effectSettings;
 
   AppEnvironment forPlayer(String playerId) => AppEnvironment(
     repository: repository,
@@ -168,6 +177,7 @@ class AppEnvironment {
     betaCodeStore: betaCodeStore,
     feedbackRepository: feedbackRepository,
     sessionEffects: sessionEffects,
+    effectSettings: effectSettings,
     uploadQueue: switch (uploadClient) {
       final client? => SessionUploadQueue(
         repository: repository,
@@ -291,7 +301,16 @@ Future<AppEnvironment> buildAppEnvironment() async {
   );
 
   final accountRepository = SupabaseAccountRepository(Supabase.instance.client);
+  final effectSettings = await EffectSettings.load(
+    const SharedPreferencesEffectSettingsStore(),
+  );
   return AppEnvironment(
+    effectSettings: effectSettings,
+    sessionEffects: AppSessionEffects(
+      sound: createGameSound(),
+      haptics: const HapticSessionEffects(),
+      settings: effectSettings,
+    ),
     repository: repository,
     playerId: playerId,
     accountRepository: accountRepository,

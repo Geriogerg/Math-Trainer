@@ -11,7 +11,7 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 ## Current phase
 
 **Phase 5 — Identity** (`doc/plan.md`, section 7), run in **one pass** while the beta runs.
-Done: 0–3. Next commit: **4**. Update this block at every commit.
+Done: 0–4. Next commit: **5**. Update this block at every commit.
 
 **Beta-safety rule**: nothing may change how players answer — keypad geometry, input paths,
 question order and difficulty, the 15 s timeout, the correction pause, when the next question
@@ -165,6 +165,8 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 - Screens build buttons, chips, keys, figures and levels from `presentation/kit/` — never
   `FilledButton`, `TextButton`, `FilterChip` or `ChoiceChip` directly. Find a level in tests
   with `findLevelBadge(n)`, not its text.
+- Sound goes through `GameSound` (Web Audio synthesis, no files); the smoke test fails if a
+  game schedules no tone — a change that silences the game breaks CI on purpose.
 - Digits use `TextStyle.digits` (Space Grotesk subset: digits, operators, "of" only). A line
   mixing faces grows 1 px — keep each prompt in one face; anything else falls back to Inter.
 

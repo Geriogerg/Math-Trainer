@@ -50,8 +50,14 @@ the action colour. And in any case:
   vibration where the platform has one.
 - **Wrong** — `#E24B4A` flash, low-amplitude horizontal shake, longer vibration where available.
 
-Haptics are absent in Safari on iOS; colour + motion still satisfies the rule. Sound joins in
-Phase 5 (`doc/plan.md`, section 6.2).
+Haptics are absent in Safari on iOS; colour + motion still satisfies the rule.
+
+**Sound** (Phase 5, on by default, one switch in Profile): synthesised, short and quiet —
+a 18 ms tick for each on-screen key (not for a physical keyboard, which the player already
+hears); a soft chime on a right answer that climbs a pentatonic scale from C5 with the streak,
+up to 10 in a row; a low falling tone (G3) on a wrong answer or a timeout; a rising four-note
+arpeggio for a level-up. Unlocked by the first tap or key (browser rule), silent while the page
+is hidden. Never delays anything: scheduled after the answer is recorded.
 
 **After a correct answer**: no intermediate screen, no "next" button, no pause beyond 150 ms. The
 next question arrives as the flash fades.

@@ -505,3 +505,11 @@ streak, level-up), add to the home screen on Android and iPhone.
   screen goldens regenerated; flow tests press the submit key by its handle (a selected chip's
   check mark is a second `Icons.check`). Also: the specimen's baseline now names Inter (the
   theme's digit styles carry the chosen face). App 307 tests.
+- **Commit 4** *(C)* — Sound: `GameSound` (key tick, streak chime, low tone, level-up) in
+  `core/effects/`; Web Audio synthesis in `infrastructure/effects/web_audio_game_sound.dart`
+  (conditional import, silence elsewhere), unlocked by the first gesture, silent when hidden;
+  `AppSessionEffects` plays sound then haptics, the tick for the keypad only
+  (`SessionEffects.keyPressed` now takes the device); `EffectSettings` (on by default,
+  `SharedPreferences`), Profile's "During a game" → Sound switch. Tests: effects and settings
+  (10), the Profile switch (2). Smoke test: counts the tones of its game (11 on a local release
+  build; fails at zero). **To play at phase end.**

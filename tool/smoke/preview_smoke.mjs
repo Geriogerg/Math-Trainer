@@ -13,7 +13,8 @@
 //      placement on the never-played operations since Phase 3a) is played
 //      to its result screen — every answer typed at once ("1", Enter), so the
 //      per-question timeout (always on in a release build) never fires;
-//   3. reload → Profile shows the game's answers (history survived);
+//   3. reload → Profile shows the game's answers (history survived); the
+//      game scheduled sounds (Phase 5: on by default);
 //   4. "Delete my data" → the account is deleted (cleans up after itself:
 //      anonymous sign-ins are rate-limited per IP, and the project must not
 //      fill with test players).
@@ -104,6 +105,21 @@ const evaluate = async (expression) =>
 
 await send('Page.enable');
 await send('Runtime.enable');
+// Sound (Phase 5): count the tones the page schedules. Every answer plays
+// one (on by default); a game with none means the audio never unlocked or
+// the Web Audio code broke.
+await send('Page.addScriptToEvaluateOnNewDocument', {
+  source: `(() => {
+    window.__mathTrainerTones = 0;
+    const AC = window.AudioContext;
+    if (!AC) return;
+    const create = AC.prototype.createOscillator;
+    AC.prototype.createOscillator = function () {
+      window.__mathTrainerTones++;
+      return create.apply(this, arguments);
+    };
+  })();`,
+});
 await send('Emulation.setDeviceMetricsOverride', { width: 412, height: 800, deviceScaleFactor: 1, mobile: false });
 // Same profiles as the first-load measurements (doc/architecture.md).
 const networks = {
@@ -306,6 +322,11 @@ for (let q = 0; q < questions; q++) {
   if (!done) await fail('neither "Session complete" nor "Your starting levels" appeared');
 }
 
+// Checked after the account is deleted, like the server (no guest left).
+const tones = (await evaluate('window.__mathTrainerTones')) ?? 0;
+console.log(`  ${tones} tones scheduled during the game`);
+const soundProblem = tones > 0 ? null : 'no sound was scheduled during the game';
+
 step('reload: same guest, history kept');
 await send('Page.reload', {});
 await enableSemantics();
@@ -376,5 +397,6 @@ await tapText('Delete', 30000, { exact: true });
 }
 
 if (serverProblem) await fail(serverProblem);
+if (soundProblem) await fail(soundProblem);
 console.log(`SMOKE PASSED in ${((Date.now() - started) / 1000).toFixed(0)} s`);
 await shutdown(0);

@@ -141,7 +141,7 @@ class _SessionScreenState extends State<SessionScreen>
   void _appendDigit(String digit, InputDevice device) {
     if (widget.controller.state.isCorrecting) return;
     widget.controller.registerActivity(device);
-    _safely(widget.effects.keyPressed);
+    _safely(() => widget.effects.keyPressed(device));
     if (_typedDigits.length >= _maxTypedDigits) return;
     setState(() => _typedDigits += digit);
   }
@@ -175,7 +175,7 @@ class _SessionScreenState extends State<SessionScreen>
   void _backspace(InputDevice device) {
     if (widget.controller.state.isCorrecting) return;
     widget.controller.registerActivity(device);
-    _safely(widget.effects.keyPressed);
+    _safely(() => widget.effects.keyPressed(device));
     if (_typedDigits.isEmpty) return;
     setState(
       () => _typedDigits = _typedDigits.substring(0, _typedDigits.length - 1),

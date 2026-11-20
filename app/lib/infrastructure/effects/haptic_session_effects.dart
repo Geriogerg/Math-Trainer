@@ -1,4 +1,5 @@
 import 'package:flutter/services.dart';
+import 'package:math_core/models/input_device.dart';
 
 import '../../core/effects/session_effects.dart';
 
@@ -10,7 +11,7 @@ class HapticSessionEffects implements SessionEffects {
   const HapticSessionEffects();
 
   @override
-  void keyPressed() {}
+  void keyPressed(InputDevice device) {}
 
   @override
   void answered({required bool correct, required int streak}) {
