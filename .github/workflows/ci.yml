@@ -325,9 +325,17 @@ jobs:
         with:
           name: web-site
           path: site
+      # The Pages Function and the pre-compression script (Phase 5.1
+      # commit 1): wrangler picks up ./functions from where it runs.
+      - uses: actions/checkout@v4
+        with:
+          path: repo
+          sparse-checkout: tool/cloudflare
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Pre-compress the large files (brotli 11)
+        run: node repo/tool/cloudflare/precompress.mjs site
       - name: Create the Cloudflare Pages project (first run)
         run: |
           npx --yes wrangler@4 pages project list | grep -q " $PROJECT " \
@@ -351,7 +359,8 @@ jobs:
             exit 1
           fi
       - name: Deploy to Cloudflare Pages
-        run: npx --yes wrangler@4 pages deploy site --project-name="$PROJECT" --branch=main --commit-dirty=true
+        working-directory: repo/tool/cloudflare
+        run: npx --yes wrangler@4 pages deploy "$GITHUB_WORKSPACE/site" --project-name="$PROJECT" --branch=main --commit-dirty=true
 
   smoke:
     # The deployed preview, played like a new visitor (Phase 1 commit 8):

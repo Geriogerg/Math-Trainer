@@ -6,6 +6,8 @@
 // SMOKE_NETWORK=slow4g (or fast4g) emulates that network with an empty
 // cache — the plan's exit test: the first question within 30 s on slow 4G
 // from a fresh browser. The times are printed either way.
+// SMOKE_TRACE=1 also prints every request up to the first question (start,
+// end, path without its query) — where the first-load time goes.
 //
 // Steps, each failing loudly with a screenshot (smoke-failure.png):
 //   1. fresh profile → an anonymous player is created (no form);
@@ -85,11 +87,43 @@ await new Promise((r) => ws.addEventListener('open', r, { once: true }));
 let nextId = 1;
 const pending = new Map();
 const consoleErrors = [];
+
+// --- request waterfall (SMOKE_TRACE=1) ---------------------------------------
+const trace = process.env.SMOKE_TRACE === '1';
+const requests = new Map();
+function traceEvent(method, p) {
+  if (method === 'Network.requestWillBeSent') {
+    const url = new URL(p.request.url);
+    if (!/^https?:$/.test(url.protocol)) return;
+    // The path only: queries carry tokens and keys, never printed.
+    const where = url.origin === new URL(appUrl).origin ? '' : url.hostname.split('.')[0] + ':';
+    requests.set(p.requestId, { name: `${p.request.method} ${where}${url.pathname}`, start: Date.now(), end: null });
+  } else if (method === 'Network.loadingFinished' || method === 'Network.loadingFailed') {
+    const r = requests.get(p.requestId);
+    if (r && r.end === null) {
+      r.end = Date.now();
+      r.bytes = p.encodedDataLength ?? 0;
+      r.failed = method === 'Network.loadingFailed';
+    }
+  }
+}
+function printWaterfall(until) {
+  const s = (t) => ((t - started) / 1000).toFixed(1).padStart(5);
+  console.log('  requests (s from navigation: start → end, KB on the wire):');
+  for (const r of [...requests.values()].sort((a, b) => a.start - b.start)) {
+    if (r.start > until) continue;
+    const end = r.end === null ? '    …' : s(r.end);
+    const kb = r.end === null ? '' : `${(r.bytes / 1024).toFixed(1).padStart(7)}${r.failed ? ' failed' : ''}`;
+    console.log(`  ${s(r.start)} → ${end} ${kb}  ${r.name}`);
+  }
+}
 ws.addEventListener('message', (ev) => {
   const msg = JSON.parse(ev.data);
   if (msg.id && pending.has(msg.id)) {
     pending.get(msg.id)(msg);
     pending.delete(msg.id);
+  } else if (msg.method?.startsWith('Network.') && trace) {
+    traceEvent(msg.method, msg.params);
   } else if (msg.method === 'Runtime.exceptionThrown') {
     consoleErrors.push(msg.params.exceptionDetails.exception?.description ?? msg.params.exceptionDetails.text);
   }
@@ -127,8 +161,8 @@ const networks = {
   slow4g: { latency: 150, downloadThroughput: (1600 * 1024) / 8, uploadThroughput: (750 * 1024) / 8 },
 };
 const network = networks[process.env.SMOKE_NETWORK ?? ''];
+if (network || trace) await send('Network.enable');
 if (network) {
-  await send('Network.enable');
   await send('Network.setCacheDisabled', { cacheDisabled: true });
   await send('Network.emulateNetworkConditions', { offline: false, ...network });
   console.log(`network: ${process.env.SMOKE_NETWORK}, cache disabled`);
@@ -315,6 +349,7 @@ let questions = null;
 // Two taps (Skip, Start) included: what a new visitor going straight to a
 // game experiences, at script speed.
 console.log(`  first question ${((Date.now() - started) / 1000).toFixed(1)} s from navigation (${questions} questions)`);
+if (trace) printWaterfall(Date.now());
 
 step(`answer the ${questions} questions`);
 for (let q = 0; q < questions; q++) {

@@ -1000,3 +1000,24 @@ Checked by `test/web_manifest_test.dart` (every icon at its declared size) and, 
 preview at every push, by the smoke test asking Chrome itself (`Page.getInstallabilityErrors`:
 none). The owner adds it to a home screen on both phones at the end of the phase.
 **Reopen when** the domain and the name arrive (Phase 6): `name`, `short_name`, icons.
+
+## First load: pre-compressed files on Cloudflare (Phase 5.1, commit 1)
+
+Measured on the live preview (20 Nov): Cloudflare compresses on the fly at a lower brotli
+quality than the files allow — `canvaskit.wasm` 2,011 KB served vs 1,514 KB at quality 11,
+`main.dart.js` 901 vs 687, `Inter.ttf` 437 vs 356, `sqlite3.wasm` 355 vs 307: about 840 KB,
+four seconds on slow 4G (200 KB/s), on a load that is bandwidth-bound (the files arrive one
+after another at full link speed; nothing waits on a round trip until the engine starts).
+Cloudflare Pages cannot serve a pre-compressed file by itself, so a Pages Function does it
+(`tool/cloudflare/functions/[[path]].js`): for the paths of `_routes.json` only (the big
+files; the rest stays plain static), when the browser accepts brotli and the file has a copy
+listed in `_precompressed.json`, it answers with the `.br` bytes as they are
+(`encodeBody: 'manual'`), the right content type (`application/wasm` for streaming
+compilation), the asset's ETag (revalidation still answers 304), `Vary: Accept-Encoding`.
+Anything else falls through to the static server unchanged. CI's Cloudflare deploy writes the
+copies (`tool/cloudflare/precompress.mjs`, Node's own brotli: no dependency) and deploys from
+`tool/cloudflare/` so wrangler finds the Function. Free plan: 100,000 Function calls a day;
+a first visit makes about five. **Alternatives**: a Worker in front of Pages (same code, one
+more thing to deploy); smaller files (Inter subset: later in this commit if needed).
+**Reopen when** Cloudflare Pages serves pre-compressed files natively, or the host changes
+(Phase 6).
