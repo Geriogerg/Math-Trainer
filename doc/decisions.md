@@ -1188,3 +1188,19 @@ players get the same questions; the server can regenerate them (Phase 7 commit 2
 
 **Reopen when** Phase 7 measures duels: the level per bracket (players' real levels by
 rating), per-type levels if one type is much harder at the same level, the quotas.
+
+## Glicko-2 on the server (Phase 5.2, commit 3) — provisional parameters
+
+`server/lib/src/rating/glicko2.dart`: `glicko2Update(player, games, tau)`, steps 1–8 of
+Glickman's "Example of the Glicko-2 system" (2013), the volatility by the Illinois algorithm
+(ε = 0.000001). In the server, not the core: ratings are computed by the server alone (rule
+17), and the maths needs `exp`/`log` and doubles — rule 18 (integers, no `exp`) covers what
+must match between the VM and JavaScript, which ratings never need to. No endpoint, no
+storage yet (Phase 7). **Provisional**: τ = 0.5 (the example's; Glickman suggests 0.3–1.2), a
+new player at 1500 / RD 350 / σ 0.06, and the deviation **capped at 350** after periods
+without games (a player away for long is as uncertain as a new one, no more — the paper
+leaves it uncapped). Tested: the worked example (r′ 1464.06, RD′ 151.52, σ′ 0.05999, and μ′,
+φ′ on the Glicko-2 scale), a period without games (φ′ = √(φ² + σ²), rating and σ unchanged,
+the cap), win/loss/draw symmetry, volatility rising on upsets, invalid input throwing.
+**Reopen when** Phase 7 chooses the rating period (per day? per N duels?) and the provisional
+flag's threshold.

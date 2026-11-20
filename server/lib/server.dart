@@ -9,6 +9,7 @@ import 'src/session_endpoint.dart';
 import 'src/supabase_gateway.dart';
 
 export 'src/config.dart';
+export 'src/rating/glicko2.dart';
 export 'src/http_app.dart'
     show buildHandler, jsonResponse, originAllowed, Route;
 export 'src/session_endpoint.dart';

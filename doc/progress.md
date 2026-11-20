@@ -652,3 +652,6 @@ Plan v2.7 (20 Nov 2026). Runs during the beta; the beta-safety rule still applie
   shuffled by the seed then drawn by the game's generators on one stream. 10 tests on VM and
   JavaScript: three pinned sequences, determinism, quotas, the bracket alone setting
   difficulty, invalid configurations throwing, strict JSON. No UI.
+- **Commit 3** *(A)* — Glicko-2 on the server (`rating/glicko2.dart`), no endpoint: 7 tests —
+  Glickman's worked example to the published precision, periods without games (deviation
+  grows, capped at 350), symmetry, volatility on upsets, invalid input. Server tests 29 → 36.
