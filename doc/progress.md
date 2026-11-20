@@ -566,3 +566,13 @@ Plan v2.6 (20 Nov 2026). Runs during the beta; the beta-safety rule of Phase 5 s
   repository). CLAUDE.md no longer calls the repository public. New, for the owner: section
   10 lists the app name twice and still asks to invite testers "at the end of Phase 3a.1"
   (done); section 4's weakness table says Phase 3 for the level constants (now 3b).
+- **Commit 1** *(A)* — First load. (1/2, `9669a70`) Cloudflare serves the large files
+  pre-compressed at brotli 11 through a Pages Function (`tool/cloudflare/`): live,
+  `canvaskit.wasm` 2,011 → 1,551 KB, `main.dart.js` 901 → 705, `Inter.ttf` 437 → 365,
+  `sqlite3.wasm` 355 → 314; right content types, revalidation 304, small files untouched.
+  (2/2) The page signs in during the download (refresh or anonymous sign-up where no gate
+  asks) and the app waits for it before starting Supabase; server levels read ahead of Start
+  (`PrefetchedServerLevels`, 7 core tests + 1 app test); Inter cut to optical size 14 and
+  weights 400–500 (174 KB brotli; 16 goldens moved sub-pixel, session goldens and pins not).
+  Smoke test: request waterfall (`SMOKE_TRACE=1`); the reload step now expires the session
+  and checks the page refreshed it. Local A/B (slow 4G, no gate): 19.0–19.8 s vs 19.8–20.6 s.

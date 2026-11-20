@@ -243,6 +243,11 @@ jobs:
           flutter build web --release --no-web-resources-cdn
           --base-href "$BASE_HREF"
           --dart-define-from-file=dart_defines.json
+      - name: Boot sign-in settings into index.html
+        # The page signs in while the files download (Phase 5.1 commit 1):
+        # the Supabase address, the publishable key and the gate switch,
+        # from the same dart_defines.json (refuses a secret key).
+        run: node ../tool/web/boot_config.mjs build/web dart_defines.json
       - name: Upload the site (Cloudflare Pages)
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.PREVIEW_HOST == 'cloudflare'
         uses: actions/upload-artifact@v4

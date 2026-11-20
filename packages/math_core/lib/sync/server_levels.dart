@@ -73,3 +73,63 @@ bool _sameLevels(
   }
   return true;
 }
+
+/// The server's levels read ahead of the first game (Phase 5.1 commit 1):
+/// [start] fetches them while the player is still on the Play tab, and the
+/// next [fetch] — the one `syncLevelsBeforeGame` makes when Start is
+/// pressed — gets that answer instead of a new round trip.
+///
+/// The early answer is used once, and only if it still describes the
+/// server: nothing was waiting for upload when it was read (pending
+/// sessions are about to change the server's levels), and no session has
+/// been stored on this device since (its upload changes them too). Anything
+/// else reads the server again, as before. A game on another device in
+/// between is the one case it misses — exactly as a read made at Start
+/// would miss a game finishing there a second later; the server refuses
+/// the next session and the app adopts the levels it sends.
+class PrefetchedServerLevels implements ServerLevelsSource {
+  PrefetchedServerLevels({
+    required this.source,
+    required this.repository,
+    required this.playerId,
+  });
+
+  final ServerLevelsSource source;
+  final SessionRepository repository;
+  final String playerId;
+
+  /// The read in flight or done, and the latest stored session when it
+  /// started (`null`: none).
+  ({Future<Map<ExerciseType, LevelCacheEntry>> levels, String? latest})? _early;
+
+  /// Starts the early read, unless sessions wait for upload. Never throws:
+  /// a failure only means [fetch] reads again.
+  Future<void> start() async {
+    try {
+      if ((await repository.pendingUploads(playerId)).isNotEmpty) return;
+      final latest = await repository.recentSessions(playerId, limit: 1);
+      final levels = source.fetch();
+      // Its error, if any, is seen by whoever awaits it in [fetch].
+      levels.ignore();
+      _early = (
+        levels: levels,
+        latest: latest.isEmpty ? null : latest.first.id,
+      );
+    } on Exception catch (_) {
+      _early = null;
+    }
+  }
+
+  @override
+  Future<Map<ExerciseType, LevelCacheEntry>> fetch() async {
+    final early = _early;
+    _early = null;
+    if (early != null) {
+      final latest = await repository.recentSessions(playerId, limit: 1);
+      if ((latest.isEmpty ? null : latest.first.id) == early.latest) {
+        return early.levels;
+      }
+    }
+    return source.fetch();
+  }
+}

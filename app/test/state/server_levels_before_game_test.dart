@@ -76,6 +76,23 @@ void main() {
     expect(server.calls, 1);
   });
 
+  // Phase 5.1 commit 1: read at sign-in, used at Start — one round trip,
+  // made before the player pressed anything.
+  test('the levels read ahead are the ones the game starts from', () async {
+    final env = environment();
+    await env.serverLevelsAhead!.start();
+    expect(server.calls, 1);
+    final controller = await buildSessionController(env, {
+      ExerciseType.addition,
+    });
+    addTearDown(controller.dispose);
+    expect(
+      controller.config.levels[ExerciseType.addition],
+      Level.fromHundredths(1850),
+    );
+    expect(server.calls, 1);
+  });
+
   test('a build without a server never asks, never resets', () async {
     final controller = await buildSessionController(
       environment(withServer: false),

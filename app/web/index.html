@@ -120,6 +120,80 @@
       };
     })();
   </script>
+  <script>
+    // Filled by tool/web/boot_config.mjs after `flutter build web` (CI does
+    // it): the Supabase address and public key, and whether the beta gate is
+    // on. Left null (a plain `flutter run`), the app signs in by itself.
+    window.mtBootConfig = null; /*__MT_BOOT_CONFIG__*/
+  </script>
+  <script>
+    // Sign-in during the download (Phase 5.1 commit 1). The app needs a
+    // signed-in player before its first screen; asking only once Flutter has
+    // started costs a round trip or two after a 15-second download. So:
+    // - a stored session close to expiry is refreshed now, not by the app;
+    // - with no session, the anonymous player is created now — only where
+    //   the app would create it at once: no beta gate, or this device passed
+    //   it (its code is stored). A new visitor to the gated beta still sees
+    //   the gate first, and no player exists before a code.
+    // The result lands where supabase_flutter keeps its session; the app
+    // waits for window.mtBootAuth before starting its client
+    // (infrastructure/web/boot_sign_in.dart), so the two never race. Any
+    // failure leaves storage as it was: the app then does what it always did.
+    window.mtBootAuth = (function () {
+      var config = window.mtBootConfig;
+      if (!config || !window.fetch || !window.Promise) return Promise.resolve('none');
+      var link = document.createElement('link');
+      link.rel = 'preconnect';
+      link.href = config.supabaseUrl;
+      link.crossOrigin = 'anonymous';
+      document.head.appendChild(link);
+
+      var key = 'sb-' + new URL(config.supabaseUrl).hostname.split('.')[0] + '-auth-token';
+      function read(k) { try { return localStorage.getItem(k); } catch (_) { return null; } }
+      function call(path, body) {
+        var abort = new AbortController();
+        var timer = setTimeout(function () { abort.abort(); }, 15000);
+        return fetch(config.supabaseUrl + path, {
+          method: 'POST',
+          headers: { apikey: config.publishableKey, 'content-type': 'application/json' },
+          body: JSON.stringify(body),
+          signal: abort.signal,
+        }).then(function (r) {
+          clearTimeout(timer);
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.json();
+        });
+      }
+      // The token's own expiry (`exp`, seconds) when the session lacks it.
+      function expiry(jwt) {
+        try {
+          var part = String(jwt).split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+          return JSON.parse(atob(part)).exp || 0;
+        } catch (_) { return 0; }
+      }
+      function store(session) {
+        if (!session || !session.access_token || !session.refresh_token || !session.user) {
+          throw new Error('no session');
+        }
+        localStorage.setItem(key, JSON.stringify(session));
+      }
+      var stored = read(key);
+      var job;
+      if (stored) {
+        var session;
+        try { session = JSON.parse(stored); } catch (_) { return Promise.resolve('unreadable'); }
+        var left = (session && (session.expires_at || expiry(session.access_token)) || 0) - Date.now() / 1000;
+        if (!session || !session.refresh_token || left > 120) return Promise.resolve('fresh');
+        job = call('/auth/v1/token?grant_type=refresh_token', { refresh_token: session.refresh_token })
+          .then(store).then(function () { return 'refreshed'; });
+      } else if (!config.betaGate || read('flutter.beta_code')) {
+        job = call('/auth/v1/signup', {}).then(store).then(function () { return 'signed up'; });
+      } else {
+        return Promise.resolve('gate');
+      }
+      return job.catch(function () { return 'failed'; });
+    })();
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

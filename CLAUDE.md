@@ -11,7 +11,8 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 ## Current phase
 
 **Phase 5.1 — Beta-period groundwork** (`doc/plan.md`, section 7), run in **one pass** while
-the beta runs. Done: 0. Next commit: **1**. Update this block at every commit.
+the beta runs. Done: 0, 1 (live slow-4G measurement pending the owner's code). Next commit:
+**2**. Update this block at every commit.
 
 **Beta-safety rule** (Phase 5, still in force): nothing may change how players answer — keypad
 geometry, input paths, question order and difficulty, the 15 s timeout, the correction pause,
@@ -157,6 +158,9 @@ node tool/smoke/preview_smoke.mjs <url> [chrome]   # smoke test; SMOKE_NETWORK=s
 bash tool/sql/test_sql.sh <postgres admin url>     # migrations (twice) + SQL tests, scratch DB
 bash tool/dashboard/dashboard.sh [command]        # owner report and chores (live DB, local only)
 python -P -E tool/fonts/subset_digits.py <Font[wght].ttf> <out.ttf>  # digit face subset (fonttools)
+python -P -E tool/fonts/instance_inter.py <Inter[opsz,wght].ttf> app/assets/fonts/Inter.ttf
+node tool/web/boot_config.mjs app/build/web app/dart_defines.json  # after a local release build
+SMOKE_TRACE=1 node tool/smoke/preview_smoke.mjs <url> [chrome]  # + request waterfall
 # app/: flutter test tool/icons/render_web_icons_test.dart  # favicon + web app icons from OperatorIconPainter
 ```
 
@@ -173,6 +177,13 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   with `findLevelBadge(n)`, not its text.
 - Local `flutter build web` on Windows can drop `web/` files (sqlite3.wasm, manifest) from an
   incremental build: `rm -rf build/web` first when testing a local release build.
+- The page signs in before Flutter starts (`web/index.html`, `window.mtBootAuth`): it must
+  never create a player where the app would ask for a beta code first, and the app must await
+  it (`waitForBootSignIn`) before `Supabase.initialize`. A local release build needs
+  `tool/web/boot_config.mjs` to get it; without, the app signs in by itself.
+- Cloudflare serves the big files from `.br` copies (`tool/cloudflare/`): a new large asset
+  outside `_routes.json` is served by Cloudflare's weaker on-the-fly brotli — add its path.
+- `Inter.ttf` holds weights 400–500 only: a style asking for 600+ renders at 500.
 - Vibration goes through `GameHaptics` (feature-detected; none on iPhone Safari).
 - Sound goes through `GameSound` (Web Audio synthesis, no files); the smoke test fails if a
   game schedules no tone — a change that silences the game breaks CI on purpose.

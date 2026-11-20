@@ -1021,3 +1021,45 @@ a first visit makes about five. **Alternatives**: a Worker in front of Pages (sa
 more thing to deploy); smaller files (Inter subset: later in this commit if needed).
 **Reopen when** Cloudflare Pages serves pre-compressed files natively, or the host changes
 (Phase 6).
+
+## First load: sign-in during the download, levels read ahead, Inter cut (Phase 5.1, commit 1)
+
+Where the slow-4G time went (request waterfall, `SMOKE_TRACE=1`): about 17 s of downloads at
+full link speed, then — only once the engine runs — the database worker, the anonymous
+sign-up (CORS preflight + request, ~0.9 s), the first screen, and at Start the server levels
+(~0.9 s). Three changes, none touching question order, timing or input:
+
+- **The page signs in while the files download** (`web/index.html`, `window.mtBootAuth`). A
+  stored session that expires within two minutes is refreshed there (returning players: the
+  token lives one hour, so nearly every visit); with no session, the anonymous player is
+  created there — **only where the app would create it at once**: no beta gate, or a device
+  whose code is stored. A new visitor to the gated beta still meets the gate before any player
+  exists (the gate's rule, Phase 3a, unchanged). The result goes where supabase_flutter keeps
+  its session (`sb-<ref>-auth-token`, the auth API's own JSON); the app waits for the page's
+  promise before starting its client (`infrastructure/web/boot_sign_in.dart`, at most 16 s),
+  so the two never sign in side by side. Any failure leaves storage untouched and the app
+  does what it always did. The settings (Supabase address, publishable key, gate switch) are
+  written into `index.html` after the build by `tool/web/boot_config.mjs` from the same
+  `dart_defines.json` — it refuses a secret key; a build without them (`flutter run`) simply
+  skips the early sign-in. The page also preconnects to Supabase. Checked by the smoke test:
+  "signed up" on a fresh visit without a gate, "refreshed" after a reload with a session
+  about to expire, same player.
+- **Server levels read ahead** (`PrefetchedServerLevels`, math_core): read once the sign-in's
+  uploads are settled, used by the next Start instead of a round trip — once, and only if
+  nothing waited for upload when it was read and no session was stored since (either would
+  change the server's levels). Otherwise Start reads as before.
+- **Inter cut to the app's use** (`tool/fonts/instance_inter.py`): optical size pinned at its
+  default (14, what Flutter renders without a variation), weight narrowed to 400–500 (the
+  design's two weights; the theme caps every style to them). Every character stays — player
+  names keep Latin, Greek, Cyrillic and Vietnamese (`name_charset_font_test.dart`): 356 →
+  174 KB brotli. Weight-500 advances round a hair differently: 16 goldens moved by under
+  0.2 % of their pixels (sub-pixel edges, no reflow); the session screen's goldens and the
+  layout pins did not move.
+
+Measured locally, same machine, alternating runs (slow 4G, fresh browser, no gate, local
+server at brotli 5 for both): first question 19.0–19.8 s vs 19.8–20.6 s before. The live
+preview adds the pre-compression above; its measurement is in `doc/progress.md`.
+**Rejected**: creating the guest before the gate (would bypass it: an account on the device
+skips the code screen); preloading `sqlite3.wasm` (the link is saturated during the download:
+it would only push CanvasKit later). **Reopen when** Turnstile arrives (Phase 6: the page's
+sign-up would need the token — skip it then), or supabase_flutter changes its storage key.

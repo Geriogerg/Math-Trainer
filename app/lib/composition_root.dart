@@ -48,6 +48,7 @@ import 'infrastructure/persistence/database.dart';
 import 'infrastructure/persistence/persistent_storage.dart';
 import 'infrastructure/persistence/shared_preferences_abandoned_guest_store.dart';
 import 'infrastructure/persistence/shared_preferences_beta_code_store.dart';
+import 'infrastructure/web/boot_sign_in.dart';
 import 'infrastructure/persistence/shared_preferences_effect_settings_store.dart';
 import 'infrastructure/persistence/shared_preferences_placement_skip_store.dart';
 import 'infrastructure/persistence/shared_preferences_player_id_provider.dart';
@@ -78,6 +79,7 @@ class AppEnvironment {
     this.abandonedGuestStore = const SharedPreferencesAbandonedGuestStore(),
     this.uploadClient,
     this.uploadQueue,
+    this.serverLevelsAhead,
     this.leaderboardRepository,
     this.serverLevelsSource,
     this.betaCodes,
@@ -133,6 +135,12 @@ class AppEnvironment {
   /// every session flow; disposed by `AuthGate` when the player changes.
   final SessionUploadQueue? uploadQueue;
 
+  /// This player's server levels, read ahead of the first game
+  /// (`forPlayer`, Phase 5.1 commit 1): `AuthGate` starts the read once the
+  /// sign-in's uploads are settled, and Start uses its answer instead of a
+  /// round trip. `null` where [serverLevelsSource] is.
+  final PrefetchedServerLevels? serverLevelsAhead;
+
   /// The boards (Supabase); `null` in tests that do not care — the tab
   /// then says it is unavailable.
   final LeaderboardRepository? leaderboardRepository;
@@ -178,6 +186,14 @@ class AppEnvironment {
     feedbackRepository: feedbackRepository,
     sessionEffects: sessionEffects,
     effectSettings: effectSettings,
+    serverLevelsAhead: switch (serverLevelsSource) {
+      final source? => PrefetchedServerLevels(
+        source: source,
+        repository: repository,
+        playerId: playerId,
+      ),
+      null => null,
+    },
     uploadQueue: switch (uploadClient) {
       final client? => SessionUploadQueue(
         repository: repository,
@@ -295,6 +311,9 @@ Future<AppEnvironment> buildAppEnvironment() async {
   // frame, and a refusal changes nothing in how the app runs.
   unawaited(requestPersistentStorage());
 
+  // The page may have signed in while the files downloaded (Phase 5.1
+  // commit 1): its session must be in storage before the client reads it.
+  await waitForBootSignIn();
   await Supabase.initialize(
     url: _supabaseUrl,
     publishableKey: _supabasePublishableKey,
@@ -357,10 +376,11 @@ Future<SessionController> buildSessionController(
   // settled: after a game on another device, the local ones are behind and
   // this game would be refused (plan v2.3, Phase 3a commit 2). At most 2 s;
   // offline or pending uploads → the local levels, as before.
-  if ((environment.serverLevelsSource, environment.uploadQueue) case (
-    final source?,
-    _?,
-  )) {
+  if ((
+        environment.serverLevelsAhead ?? environment.serverLevelsSource,
+        environment.uploadQueue,
+      )
+      case (final source?, _?)) {
     await syncLevelsBeforeGame(
       repository: environment.repository,
       source: source,

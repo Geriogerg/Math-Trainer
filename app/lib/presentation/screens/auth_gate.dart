@@ -108,8 +108,20 @@ class _AuthGateState extends State<AuthGate> {
       return;
     }
     setState(() => _playerEnvironment = playerEnvironment);
-    // Whatever was played offline (or before a server existed) goes now.
-    playerEnvironment.uploadQueue?.flush().ignore();
+    // Whatever was played offline (or before a server existed) goes now;
+    // then the server's levels are read ahead of the first game (Phase 5.1
+    // commit 1) — skipped if sessions still wait (offline, server asleep).
+    final ahead = playerEnvironment.serverLevelsAhead;
+    switch (playerEnvironment.uploadQueue) {
+      case final queue?:
+        queue
+            .flush()
+            .then((_) => ahead?.start())
+            .catchError((Object _) {})
+            .ignore();
+      case null:
+        ahead?.start().ignore();
+    }
     if (widget.environment.betaCodes case final codes?) {
       redeemDeviceBetaCode(
         store: widget.environment.betaCodeStore,

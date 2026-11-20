@@ -15,14 +15,14 @@
 (function () {
   var loader = window.mtLoader;
 
-  // Weights ≈ gzipped sizes in KiB: the bar advances in proportion to the
-  // bytes that have actually arrived. A file missing from this list simply
-  // does not move the bar.
+  // Weights ≈ sizes on the wire in KiB (brotli 11, Phase 5.1): the bar
+  // advances in proportion to the bytes that have actually arrived. A file
+  // missing from this list simply does not move the bar.
   var files = [
-    { match: /canvaskit\.wasm$/, weight: 1530 },
-    { match: /main\.dart\.js$/, weight: 850 },
-    { match: /Inter\.ttf$/, weight: 450 },
-    { match: /canvaskit\.js$/, weight: 25 },
+    { match: /canvaskit\.wasm$/, weight: 1515 },
+    { match: /main\.dart\.js$/, weight: 690 },
+    { match: /Inter\.ttf$/, weight: 175 },
+    { match: /canvaskit\.js$/, weight: 24 },
   ];
   var total = files.reduce(function (s, f) { return s + f.weight; }, 0);
   var arrived = 0;

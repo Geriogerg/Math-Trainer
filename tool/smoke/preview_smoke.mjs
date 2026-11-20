@@ -15,8 +15,10 @@
 //      placement on the never-played operations since Phase 3a) is played
 //      to its result screen — every answer typed at once ("1", Enter), so the
 //      per-question timeout (always on in a release build) never fires;
-//   3. reload → Profile shows the game's answers (history survived); the
-//      game scheduled sounds (Phase 5: on by default);
+//   3. reload with the session about to expire → the page refreshes it
+//      while the files download (Phase 5.1), same player; Profile shows the
+//      game's answers (history survived); the game scheduled sounds
+//      (Phase 5: on by default);
 //   4. "Delete my data" → the account is deleted (cleans up after itself:
 //      anonymous sign-ins are rate-limited per IP, and the project must not
 //      fill with test players).
@@ -311,6 +313,10 @@ await waitForText('Find my level', 60000);
 const id = await guestId();
 if (!id) await fail('no anonymous session stored');
 console.log(`  guest ${id} (${((Date.now() - started) / 1000).toFixed(1)} s from navigation)`);
+// The page's early sign-in (Phase 5.1 commit 1): 'signed up' without a
+// gate, 'gate' behind it, 'none' on a build without its settings.
+const bootSignIn = () => evaluate('window.mtBootAuth');
+console.log(`  page sign-in during the download: ${await bootSignIn()}`);
 
 // Home screen (Phase 5 commit 7): the browser's own verdict on the web app
 // manifest. Reported after the account is deleted, like the server.
@@ -372,9 +378,22 @@ const tones = (await evaluate('window.__mathTrainerTones')) ?? 0;
 console.log(`  ${tones} tones scheduled during the game`);
 const soundProblem = tones > 0 ? null : 'no sound was scheduled during the game';
 
-step('reload: same guest, history kept');
+step('reload with the session about to expire: same guest, history kept');
+// Its expiry moved to 30 s from now: the page must refresh it before the app
+// starts (Phase 5.1 commit 1), and the player must stay the same.
+await evaluate(`(() => {
+  const k = Object.keys(localStorage).find((k) => k.endsWith('-auth-token'));
+  const s = JSON.parse(localStorage.getItem(k));
+  s.expires_at = Math.floor(Date.now() / 1000) + 30;
+  localStorage.setItem(k, JSON.stringify(s));
+})()`);
 await send('Page.reload', {});
 await enableSemantics();
+{
+  const outcome = await bootSignIn();
+  console.log(`  page sign-in during the download: ${outcome}`);
+  if (outcome === 'failed') await fail('the page could not refresh the session');
+}
 await tapText('Profile', 60000, { exact: true });
 if ((await guestId()) !== id) await fail('a reload changed the player');
 await waitForText(' ms'); // "Level 1 · 1234 ms" — an operation with answers
