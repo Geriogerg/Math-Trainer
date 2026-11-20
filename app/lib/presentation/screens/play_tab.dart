@@ -300,6 +300,7 @@ class _TypeSelectionView extends StatelessWidget {
                 children: [
                   for (final type in ExerciseType.values)
                     TypeChip(
+                      leading: OperatorIcon(type),
                       label: exerciseTypeLabel(type),
                       selected: selectedTypes.contains(type),
                       onSelected: (selected) => _toggle(type, selected),

@@ -928,3 +928,14 @@ own action is running); only a truly disabled one greys out. Delete stays a seco
 error colour: an irreversible action is never the filled button. The leaderboard's own row keeps
 its weight-700 emphasis, outside the kit (noted, not changed).
 **Reopen when** a component needs a behaviour Material cannot give (a duel's live state, Phase 7).
+
+## Operator icons: one painter, the app icon from the same family (Phase 5, commit 3)
+
+Drawn in code (`CustomPainter`) rather than as an icon font or SVG files: no new dependency, no
+asset to load, crisp at any size, colour from the theme — and the app icon is rendered by the
+same painter, so the family cannot drift. The app icon is + − × ÷ in a grid (the game's four
+basic operations, recognisable at 16 px), not the whole family: seven glyphs do not read at
+favicon size. Maskable icons keep the grid inside the 80 % safe circle; the Apple touch icon is
+full bleed (iOS rounds it). On a selected chip the check mark moves before the label so the
+operator stays visible (a selected chip still has a non-colour signal, rule 14).
+**Reopen when** the app gets its real name (Phase 6): the app icon may become a mark.

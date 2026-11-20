@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
+import 'package:math_core/models/exercise_type.dart';
 import 'package:math_trainer/presentation/kit/kit.dart';
 import 'package:math_trainer/presentation/theme/app_theme.dart';
 
@@ -34,8 +35,18 @@ void main() {
       spacing: 8,
       runSpacing: 8,
       children: [
-        TypeChip(label: 'Addition', selected: true, onSelected: (_) {}),
-        TypeChip(label: 'Powers', selected: false, onSelected: (_) {}),
+        TypeChip(
+          leading: const OperatorIcon(ExerciseType.addition),
+          label: 'Addition',
+          selected: true,
+          onSelected: (_) {},
+        ),
+        TypeChip(
+          leading: const OperatorIcon(ExerciseType.power),
+          label: 'Powers',
+          selected: false,
+          onSelected: (_) {},
+        ),
         const TypeChip(label: 'Overall', selected: false, onSelected: null),
       ],
     ),
@@ -77,6 +88,23 @@ void main() {
             StatTile(value: '1', label: 'Timed out'),
           ],
         ),
+      ],
+    ),
+    // The family at chip size and at a large size: same stroke, same box.
+    'operator_icon': Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (final size in const [18.0, 40.0])
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Wrap(
+              spacing: 12,
+              children: [
+                for (final type in ExerciseType.values)
+                  OperatorIcon(type, size: size),
+              ],
+            ),
+          ),
       ],
     ),
     'level_badge': const Wrap(

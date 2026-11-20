@@ -7,5 +7,6 @@ library;
 export 'app_button.dart';
 export 'keypad_key.dart';
 export 'level_badge.dart';
+export 'operator_icon.dart';
 export 'stat_tile.dart';
 export 'type_chip.dart';

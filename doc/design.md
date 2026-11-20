@@ -211,6 +211,15 @@ screen uses them. Shared tokens in `AppMetrics`: `radius` 16 (the keypad's corne
 | `KeypadKey` | a key of the session keypad | **geometry pinned for the beta** |
 | `StatTile` | one figure and its label | surface tile, number in the digit face, muted label |
 | `LevelBadge` | a level, whole number | digit face in the accent, accent outline; a dash when not played |
+| `OperatorIcon` | the operation, next to its name | the family below, in the accent |
+
+**Operator icons** (`OperatorIconPainter`): + − × ÷ x² √ % drawn as one family on a unit square —
+one stroke weight (11 % of the side), round caps, the same box; the root keeps its bar, the
+power is a small x with a raised, thinner 2. On the type chips (always visible, the check mark
+goes before the label when selected), the Profile's operation rows, the leaderboard's boards.
+Decorative next to a label: excluded from semantics. The favicon and the web app icons are the
+four basic operators in a 2 × 2 grid, dark Accent on dark Background, rendered from the same
+painter (`app/tool/icons/render_web_icons_test.dart`).
 
 Selection and emphasis never rely on colour alone: a selected chip has a check mark, the
 player's own row stays bold with "(You)", a badge reads "Level 12" to screen readers.

@@ -497,3 +497,11 @@ streak, level-up), add to the home screen on Android and iPhone.
   stayed (one locally, `41d3e85e…`, probably one from CI; the 30-day cleanup removes them). It
   now clicks only a node whose centre is on screen and on top there. Checked on a local
   release build of commit 2: passed, account deleted.
+- **Commit 3** *(A)* — Operator icons: `OperatorIcon` / `OperatorIconPainter` (kit), the
+  seven operators as one family; on type chips (check mark before the label when selected),
+  Profile operation rows, leaderboard boards. Favicon, `Icon-192/512`, maskable 192/512 and a
+  new `apple-touch-icon.png` (180) rendered from the painter by
+  `app/tool/icons/render_web_icons_test.dart` (not in the suite). Kit goldens + the family;
+  screen goldens regenerated; flow tests press the submit key by its handle (a selected chip's
+  check mark is a second `Icons.check`). Also: the specimen's baseline now names Inter (the
+  theme's digit styles carry the chosen face). App 307 tests.

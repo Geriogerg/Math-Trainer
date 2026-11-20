@@ -221,6 +221,10 @@ class _BoardChips extends StatelessWidget {
           for (final (i, board) in LeaderboardBoard.all.indexed) ...[
             if (i > 0) const SizedBox(width: 8),
             TypeChip(
+              leading: switch (board.type) {
+                final type? => OperatorIcon(type),
+                null => null,
+              },
               label: boardLabel(board),
               selected: board == selected,
               onSelected: (_) => onSelected(board),

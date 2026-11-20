@@ -133,7 +133,7 @@ void main() {
     await settlePageTransition(tester);
 
     expect(find.text('7'), findsOneWidget);
-    expect(find.byIcon(Icons.check), findsOneWidget);
+    expect(find.byKey(keypadKeyKey('submit')), findsOneWidget);
     expect(find.byIcon(Icons.backspace_outlined), findsOneWidget);
   });
 
@@ -155,7 +155,7 @@ void main() {
 
     // Still on the selection screen: the disabled button triggered nothing.
     expect(find.text('Math Trainer'), findsOneWidget);
-    expect(find.byIcon(Icons.check), findsNothing);
+    expect(find.byKey(keypadKeyKey('submit')), findsNothing);
   });
 
   testWidgets('a single selected type starts a single-type session', (
@@ -168,7 +168,7 @@ void main() {
     await tester.tap(find.text('Start'));
     await settlePageTransition(tester);
 
-    expect(find.byIcon(Icons.check), findsOneWidget);
+    expect(find.byKey(keypadKeyKey('submit')), findsOneWidget);
   });
 
   testWidgets(
@@ -178,7 +178,7 @@ void main() {
 
       await tester.tap(find.text('Start'));
       await settlePageTransition(tester);
-      expect(find.byIcon(Icons.check), findsOneWidget);
+      expect(find.byKey(keypadKeyKey('submit')), findsOneWidget);
 
       // No visible back button (`doc/design.md`: the session screen carries
       // no navigation): trigger the pop attempt as the system gesture would,
@@ -201,7 +201,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 200));
       expect(find.text('Quit the game?'), findsNothing);
-      expect(find.byIcon(Icons.check), findsOneWidget);
+      expect(find.byKey(keypadKeyKey('submit')), findsOneWidget);
 
       // New attempt, confirmed this time: the session is interrupted.
       await attemptPop();
@@ -225,7 +225,7 @@ void main() {
       i++
     ) {
       await tester.tap(find.text('1'));
-      await tester.tap(find.byIcon(Icons.check));
+      await tester.tap(find.byKey(keypadKeyKey('submit')));
       await tester.pump();
       await tester.pump(SessionController.defaultCorrectionDelay);
     }
@@ -280,7 +280,7 @@ void main() {
         i++
       ) {
         await tester.tap(find.text('1'));
-        await tester.tap(find.byIcon(Icons.check));
+        await tester.tap(find.byKey(keypadKeyKey('submit')));
         await tester.pump();
         await tester.pump(SessionController.defaultCorrectionDelay);
       }
@@ -314,7 +314,7 @@ void main() {
       // new first question, never the "Math Trainer" screen.
       expect(find.text('Math Trainer'), findsNothing);
       expect(find.text('1 / 8'), findsOneWidget);
-      expect(find.byIcon(Icons.check), findsOneWidget);
+      expect(find.byKey(keypadKeyKey('submit')), findsOneWidget);
     },
   );
 

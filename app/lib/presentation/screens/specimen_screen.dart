@@ -94,7 +94,11 @@ class SpecimenScreen extends StatelessWidget {
             : ListView(
                 padding: metrics.rootPadding,
                 children: [
-                  const _Sample(name: 'Inter (today)', family: null),
+                  // The face the beta started with, as the baseline.
+                  const _Sample(
+                    name: 'Inter (before Phase 5)',
+                    family: 'Inter',
+                  ),
                   for (final c in specimenCandidates)
                     _Sample(
                       name: c.family.replaceFirst('Specimen ', ''),
@@ -112,12 +116,12 @@ class _Sample extends StatelessWidget {
 
   final String name;
 
-  /// `null`: Inter, the app's face.
-  final String? family;
+  /// Named explicitly, Inter included: the theme's digit styles already
+  /// carry the chosen face.
+  final String family;
 
-  TextStyle? _in(TextStyle? style) => family == null
-      ? style
-      : style?.copyWith(fontFamily: family, fontFamilyFallback: ['Inter']);
+  TextStyle? _in(TextStyle? style) =>
+      style?.copyWith(fontFamily: family, fontFamilyFallback: ['Inter']);
 
   @override
   Widget build(BuildContext context) {

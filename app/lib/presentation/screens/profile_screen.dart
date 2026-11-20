@@ -418,6 +418,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 8),
             for (final type in ExerciseType.values)
               _OperationRow(
+                type: type,
                 label: exerciseTypeLabel(type),
                 level: data.levels[type]?.level,
                 averageElapsedMs: data.avgElapsedMs[type],
@@ -653,11 +654,13 @@ class _IdentityBlock extends StatelessWidget {
 
 class _OperationRow extends StatelessWidget {
   const _OperationRow({
+    required this.type,
     required this.label,
     required this.level,
     required this.averageElapsedMs,
   });
 
+  final ExerciseType type;
   final String label;
   final Level? level;
   final double? averageElapsedMs;
@@ -672,7 +675,13 @@ class _OperationRow extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: theme.textTheme.bodyLarge),
+          Row(
+            children: [
+              OperatorIcon(type),
+              const SizedBox(width: 8),
+              Text(label, style: theme.textTheme.bodyLarge),
+            ],
+          ),
           const SizedBox(height: 4),
           Row(
             children: [
