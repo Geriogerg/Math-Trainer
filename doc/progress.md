@@ -781,3 +781,15 @@ lifted for this phase.
   screen, the keypad, the correction line by line, Play again / Home). The keypad moved to
   the kit (`NumericKeypad`, `physicalDigitKeys`, `keypadKeyKey` re-exported by the game
   screen) — the pins are unchanged. Goldens: a chain screen and its correction, both themes.
+- **Commit 8** *(C)* — Get the count. Core (`challenges/count.dart`): `CountPuzzle` (invariants
+  by `throw`), `generateCountPuzzle` — the six numbers first, then the target drawn among the
+  values in [101, 999] they can make, so a solution always exists (argument in
+  `doc/decisions.md`) — `solveCount` (dynamic programme over the 63 subsets, the smallest one
+  reaching the target is the shortest solution), `CountBoard` (combine under the rules, undo,
+  reset, solved, closest value). Tests: 2000 seeds on the VM (target in range, the solution
+  replayed under the rules), a 40-seed sample and a pin on VM and JavaScript, the rules, the
+  board. App: `CountController` (45 s ticking, tile / operator / tile, a forbidden move drops
+  the operator, undo, reset; stats on the device), `CountFlowScreen` / `CountScreen` per
+  mockup 5 and its correction; the card plays a round at once. Profile: a "Challenges" block
+  (games, solved, best, for both challenges). Goldens: the round and its correction, both
+  themes; the chain's correction is now centred the same way.

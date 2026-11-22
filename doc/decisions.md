@@ -169,6 +169,27 @@ beta-safety rule".
   ones (no rejection). A 250 ms blank between screens. Setup defaults 2 s and 10 operations,
   kept for the app's lifetime, not stored. The best time runs from the keypad's appearance to
   the answer. A round quit before the answer is not counted.
+- **Get the count, the gaps**:
+  - *Why a target always exists* (with B the largest big and the smalls' running sums, each
+    step at most 9): B = 25 — the smalls (at least five, two of each value at most) sum to at
+    least 9, so some running sum lies in [5, 13] and 25 × it is in [125, 325]; B = 50 — at
+    least 3 smalls summing to ≥ 4, a running sum lands in [3, 11], 50 × it in [150, 550];
+    B = 75 — a running sum in [2, 10], 75 × it in [150, 750]; B = 100 — any small in [2, 9]
+    gives 100 × s in [200, 900], and there is one (at most two 1s among three or more smalls).
+    The generator throws if the set is ever empty; 2000 seeds are checked on the VM.
+  - The target is drawn uniformly among every value in [101, 999] the six numbers can make.
+  - The solver is a dynamic programme over the 63 subsets (a subset of k numbers needs k − 1
+    operations): the smallest subset reaching the target is the shortest solution. ~10 ms a
+    puzzle on the VM, computed once with the puzzle at the start of a round. Intermediate
+    values are not capped.
+  - Results must be positive: 0 is refused (useless, and a division by zero).
+  - A result takes the second tile's place; the first fades where it was (the mockup shows six
+    places). The closest value counts every value that was on the board, undone moves left out.
+  - A forbidden move drops the operator and keeps the first tile. Undo and reset are inert
+    until a move is made. A round quit before its end is not counted; time up counts as a
+    game, not solved.
+  - The stats show on Profile ("Challenges": games, solved, best) — the mockups show no place
+    for them, and Profile already holds the player's numbers.
 - **Correction pause without words**: the wrong answer is shown struck through under the right
   one, a timeout as an hourglass icon, instead of "Your answer: 54" / "Time's up".
 

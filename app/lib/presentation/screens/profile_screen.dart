@@ -19,6 +19,7 @@ import 'package:math_core/feedback/feedback.dart';
 import '../account_messages.dart';
 import '../exercise_type_labels.dart';
 import '../upload_refusal_text.dart';
+import 'package:math_core/challenges/challenge_stats.dart';
 import 'package:math_core/leveling/main_level.dart';
 import '../../core/state/account_form_controller.dart';
 import '../../core/state/feedback_controller.dart';
@@ -129,6 +130,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   /// line, not the local statistics.
   late Future<PlayerProfile> _profile;
 
+  /// The challenges' records, on the device (Redesign phase). A failed read
+  /// shows zeros, never an error.
+  late Future<Map<Challenge, ChallengeStats>> _challengeStats;
+
   @override
   void initState() {
     super.initState();
@@ -170,6 +175,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         );
     _loadProfile();
+    _challengeStats = _loadChallengeStats();
+  }
+
+  Future<Map<Challenge, ChallengeStats>> _loadChallengeStats() async {
+    final store = widget.environment.challengeStatsStore;
+    try {
+      return {for (final c in Challenge.values) c: await store.load(c)};
+    } on Exception catch (_) {
+      return {};
+    }
   }
 
   void _loadProfile() {
@@ -446,6 +461,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ? data.recentSessions[i + 1]
                       : null,
                 ),
+            const SizedBox(height: 24),
+            FutureBuilder(
+              future: _challengeStats,
+              builder: (context, snapshot) =>
+                  _ChallengesBlock(stats: snapshot.data ?? const {}),
+            ),
             if (widget.environment.effectSettings != null ||
                 widget.onToggleTheme != null) ...[
               const SizedBox(height: 24),
@@ -917,6 +938,58 @@ class _LevelCurvePainter extends CustomPainter {
 /// The game's effects, switched per device (Phase 5): sound and vibration,
 /// both on by default. A device that cannot vibrate (Safari on iPhone)
 /// shows the switch disabled, and says why.
+/// The two challenges' records: games, solved, best time (labels only).
+class _ChallengesBlock extends StatelessWidget {
+  const _ChallengesBlock({required this.stats});
+
+  final Map<Challenge, ChallengeStats> stats;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Challenges', style: theme.textTheme.titleMedium),
+        for (final challenge in Challenge.values) ...[
+          const SizedBox(height: 12),
+          Text(switch (challenge) {
+            Challenge.getTheCount => 'Get the count',
+            Challenge.chainOperations => 'Chain operations',
+          }, style: theme.textTheme.bodyLarge),
+          const SizedBox(height: 8),
+          Builder(
+            builder: (context) {
+              final s = stats[challenge] ?? ChallengeStats.none;
+              final best = s.bestTimeMs;
+              return Row(
+                children: [
+                  Expanded(
+                    child: StatTile(value: '${s.games}', label: 'Games'),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: StatTile(value: '${s.solved}', label: 'Solved'),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: StatTile(
+                      value: best == null
+                          ? '—'
+                          : '${(best / 1000).toStringAsFixed(1)} s',
+                      label: 'Best',
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
+      ],
+    );
+  }
+}
+
 /// Labels only (Redesign phase): the switch says what it is.
 class _SettingsBlock extends StatelessWidget {
   const _SettingsBlock({required this.settings, required this.onToggleTheme});

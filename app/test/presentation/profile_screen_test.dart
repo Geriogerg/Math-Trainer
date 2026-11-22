@@ -1,3 +1,5 @@
+import '../fake_stores.dart';
+import 'package:math_core/challenges/challenge_stats.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -833,6 +835,42 @@ void main() {
       expect(find.text('Delete my account'), findsOneWidget);
       expect(find.text('Delete my data'), findsNothing);
     });
+  });
+
+  testWidgets('the challenges: games, solved, best time (Redesign phase)', (
+    WidgetTester tester,
+  ) async {
+    await setTallSurface(tester);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildLightTheme(),
+        home: Scaffold(
+          body: ProfileScreen(
+            environment: AppEnvironment(
+              repository: InMemorySessionRepository(),
+              playerId: 'test-player',
+              accountRepository: FakeAccountRepository(),
+              profileRepository: FakeProfileRepository(),
+              challengeStatsStore: FakeChallengeStatsStore({
+                Challenge.getTheCount: const ChallengeStats(
+                  games: 7,
+                  solved: 4,
+                  bestTimeMs: 12340,
+                ),
+              }),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Chain operations'), 200);
+    expect(find.text('Challenges'), findsOneWidget);
+    expect(find.text('Get the count'), findsOneWidget);
+    expect(find.text('12.3 s'), findsOneWidget);
+    expect(find.text('7'), findsOneWidget);
+    // Never played: zeros and a dash.
+    expect(find.text('—'), findsWidgets);
   });
 }
 

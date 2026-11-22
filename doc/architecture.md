@@ -27,6 +27,8 @@ packages/math_core/        # pure Dart, no dependency — imported by path by ap
     replay/                # replaySessionQuestions: a stored session's questions from what it
                            # stores alone (seed, kind, frozen levels, type sequence)
     challenges/            # the solo challenges (Redesign phase): chain.dart (Chain, generateChain),
+                           # count.dart (CountPuzzle, generateCountPuzzle[WithSolution], the
+                           # subset-DP solver solveCount, CountBoard),
                            # challenge_stats.dart (ChallengeStats, ChallengeStatsStore interface)
     leaderboard/           # LeaderboardBoard, LeaderboardEntry, Standing (Ranked/NotRanked),
                            # LeaderboardRepository (interface), JSON parsing

@@ -322,6 +322,7 @@ class _ChainCorrection extends StatelessWidget {
           child: SingleChildScrollView(
             padding: metrics.rootPadding,
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Icon(
                   controller.solved ? Icons.check_circle : Icons.cancel,
@@ -356,23 +357,34 @@ class _ChainCorrection extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 24),
-                Text('${chain.start}', style: line),
+                Text(
+                  '${chain.start}',
+                  textAlign: TextAlign.center,
+                  style: line,
+                ),
                 for (final (i, step) in chain.steps.indexed)
-                  Text('$step = ${values[i + 1]}', style: line),
+                  Text(
+                    '$step = ${values[i + 1]}',
+                    textAlign: TextAlign.center,
+                    style: line,
+                  ),
               ],
             ),
           ),
         ),
         Padding(
           padding: metrics.rootPadding.copyWith(top: 8),
-          child: Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 16,
-            runSpacing: 8,
-            children: [
-              AppButton.secondary(onPressed: onHome, label: 'Home'),
-              AppButton.primary(onPressed: onPlayAgain, label: 'Play again'),
-            ],
+          child: SizedBox(
+            width: double.infinity,
+            child: Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 16,
+              runSpacing: 8,
+              children: [
+                AppButton.secondary(onPressed: onHome, label: 'Home'),
+                AppButton.primary(onPressed: onPlayAgain, label: 'Play again'),
+              ],
+            ),
           ),
         ),
       ],

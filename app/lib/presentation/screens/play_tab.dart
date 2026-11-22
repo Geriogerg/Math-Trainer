@@ -13,6 +13,7 @@ import '../exercise_type_labels.dart';
 import '../kit/kit.dart';
 import '../theme/app_theme.dart';
 import 'chain_screen.dart';
+import 'count_screen.dart';
 import 'session_flow_screen.dart';
 
 /// Addition and subtraction ticked for a player who never chose: inverse
@@ -266,7 +267,7 @@ class _PlayTabState extends State<PlayTab> {
       selectionOf: _selectionOf,
       onToggle: _toggle,
       onPlay: _openSetup,
-      onGetTheCount: null,
+      onGetTheCount: () => playCount(context, widget.environment),
       onChainOperations: () => setState(() => _chainSetup = true),
     );
   }

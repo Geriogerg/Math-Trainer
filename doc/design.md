@@ -147,6 +147,14 @@ between, then the answer field and the keypad. The correction: a check or a cros
 wrong answer struck through beside the right one — never the icon alone), the chain line by
 line ("× 9 = 117"), then Home and Play again.
 
+## Get the count (Redesign phase, mockup 5)
+
+From its card, straight to the round, full screen: ✕ and the time left (`0:31`), its bar, the
+target (`displayMedium`, the digit face), six tiles in a 3 × 2 grid (picked: the thicker accent
+outline over a tint; used: faded to 25 %), the four operators (picked: accent fill and weight
+500), undo and reset. The correction: a check or a cross, the target, the time (solved) or the
+closest value, the shortest solution line by line, then Home and Play again.
+
 ## Built-in keypad
 
 **Always visible, never the native keyboard.** The system keyboard hides the field and the timer,
