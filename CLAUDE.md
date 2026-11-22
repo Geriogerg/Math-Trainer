@@ -3,41 +3,84 @@
 Competitive mental-arithmetic game in Flutter, for teens and adults. UI, code, docs and commits
 in English.
 
-**`doc/plan.md` (version 2.7) is the product plan.** Read it at the start of every phase; never
+**`doc/plan.md` (version 2.9) is the product plan.** Read it at the start of every phase; never
 edit it. This file is the working file: keep it short, update it as the project moves, keep it
 consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/decisions.md`,
 `doc/design.md`, `doc/online.md`, `doc/progress.md`. The plan wins any conflict — report it.
 
 ## Current phase
 
-**Phase 5.2 — Staging and online groundwork** (`doc/plan.md`, section 7), run in **one pass**
-while the beta runs. Done: 0 (1/2; the measurement waits for the owner's code file), 1 (live
-on staging once the owner's setup is done), 2, 3, 4. Exit test run, report given (20 Nov);
-open: the owner's staging setup and code file, then staging green and the measurement.
+**Redesign phase — Game modes and new interface** (`doc/plan.md`, section 7), run in **one
+pass**. Reference screens: `doc/mockups/redesign.html` — their layout and content are binding;
+colours, type and spacing come from `doc/design.md` and the theme. Done: 0.
 Update this block at every commit.
 
-**Beta-safety rule** (Phase 5, still in force): nothing may change how players answer — keypad
-geometry, input paths, question order and difficulty, the 15 s timeout, the correction pause,
-when the next question appears. `session_layout_pin_test.dart` must pass at every commit.
+**The beta-safety rule is lifted for this phase** (owner decision): this phase changes how
+players answer; the app version stored with every session separates the data, and the Phase 3b
+calibration window starts after the Redesign phase ships. The Phase 5 layout pins are updated
+deliberately to the new screens (commit 6), then pin them again.
+
+**Interface principle: minimal text.** No explanatory captions, hints or helper sentences on any
+screen; labels only ("Basics", "Advanced", "Challenges", "Questions", "Mode", "Play", "Start").
+
+**Product rules**
+- **Two families.** *Basics*: + − × ÷. *Advanced*: powers, square roots, percentages, integrals.
+- **Main level** = mean of the four basic operations only: shown top of Home, ranked on the main
+  board. Advanced operations keep their own levels and boards, never in the main level. Server
+  levels and leaderboard rows recomputed for the new definition.
+- **Timer 30 s per question** (was 15); a timeout is wrong; three silent timeouts in a row still
+  end the game. **Validate key kept; no auto-validation, no Skip.**
+- **Questions per operation: 4, 5, 10 or 20**, default 10, remembered. Each selected operation
+  gets exactly that many, order shuffled by the seed, counts stored with the session. Replaces
+  the derived count and the debt rotation for these games.
+- **Modes.** *Levelling*: difficulty follows the levels; moves levels; ranked. *Training*: Easy /
+  Medium / Hard (levels 15 / 40 / 70 per operation); never moves levels, never ranked; its own
+  session kind. The difficulty row appears only in Training.
+- **Placement** unchanged; its timer follows the 30 s.
+- **Integrals** (advanced): area under a small polynomial, built backwards from an
+  antiderivative with integer coefficients (degree 2–4, no constant), integer bounds a < b,
+  p ≥ 0 on [a, b]; whole-number answer. Full chain: codec, server replay, board, type placement,
+  determinism pinned VM/JS.
+- **Challenges** (solo for now, online in Phase 7): no levels, not ranked, not uploaded; stats on
+  the device (games, solved, best time); seeded, in the pure core. *Get the count*: 6 tiles (1–3
+  of {25, 50, 75, 100}, smalls 1–9 at most twice), target 101–999 built backwards (always
+  solvable), + − × ÷ on two tiles, whole and non-negative, exact division, 45 s, undo/reset,
+  correction = shortest solution + closest value. *Chain operations*: 1/2/3 s per screen, 5/10/15
+  operations, every value whole, ≥ 0, ≤ 999; keypad at the end; correction = the chain.
+- **Navigation.** Home: main level badge top right; Basics row of 4 multi-select buttons with
+  levels + Play; Advanced the same; Challenges two cards. Play dimmed and inert until its row has
+  a selection. Setup page: back, operators as title, Questions, Mode, difficulty (Training only),
+  Start. Games: ✕ (confirm; a Levelling game quit early is kept as interrupted), `n / N`, timer
+  bar, operation, answer, keypad — no bottom bar. Bottom bar on every other page.
+- **Accessibility**: targets ≥ 48 dp, text contrast ≥ 4.5:1 both themes, large text holds,
+  reduced motion respected everywhere.
 
 | # | Commit | Note |
 |---|---|---|
-| 0 | Close Phase 5.1: plan-alignment points; live slow-4G first question measured with the CI beta code | needs the owner's code file |
-| 1 | Staging: second Supabase project + second Render service; CI migrates staging, smoke on a staging build, then migrates and deploys production | production stays the current project; tests never touch it |
-| 2 | Duel configuration in the core (Phase 7 commit 1): fixed quotas per type, difficulty from a rating bracket, never from levels | same (seed, duel config) → same questions on VM and JS; no UI |
-| 3 | Glicko-2 on the server, no endpoint | Glickman's worked example; rating periods with no games |
-| 4 | Legal drafts in `doc/legal/`: privacy policy, legal notice (mentions légales), placeholders | not published; owner and a professional review before Phase 6 |
+| 0 | Owner decisions in `doc/decisions.md`; beta-safety pins lifted | |
+| 1 | Level structure: main level = 4 basics; advanced separate; server, boards, dashboard; levels recomputed | |
+| 2 | Session flow: 30 s timer; questions per operation (4/5/10/20) stored with the session | |
+| 3 | Training mode: fixed difficulty, own session kind, never moves levels, never ranked | |
+| 4 | Integrals end to end (core, display, codec, server, board, type placement) | |
+| 5 | *(C)* Home, setup page and navigation per the mockups | |
+| 6 | *(C)* Game screens per the mockups; quit confirmation; accessibility; new pins and goldens | |
+| 7 | *(C)* Chain operations (core generator, UI, setup page) | |
+| 8 | *(C)* Get the count (core generator, solver, tile UI, correction) | |
+| 9 | Smoke test and dashboard follow the new flow; first-load budget checked | |
 
-**Exit:** smoke green on staging and production; production untouched by tests; duel config and
-Glicko-2 tested; legal drafts ready for review.
+**Exit:** every screen matches the mockups in both themes; a Levelling game on basics moves the
+main level and the leaderboard, a Training game moves nothing; integrals generated, answered,
+validated by the server and ranked; both challenges playable end to end with their correction;
+every Get-the-count target solvable (thousands of seeds); all chain values whole, non-negative,
+≤ 999 (same).
 
-**Owner steps**: the CI beta code in `D:\mathtrainer\smoke_code.txt` (commit 0); the staging
-Supabase project, Render staging service, deploy hooks and CI secrets (commit 1, exact steps in
-`doc/online.md`, "Staging"); review the legal drafts at the end.
+Still open from Phase 5.2: the owner's staging setup (`doc/online.md`, "Staging") and the CI
+beta code file for the slow-4G measurement.
 
-Phase 3b starts at ~300 sessions from 10+ testers; Phase 4 comes after 3b, never during the
-beta. The repository is private since 20 Nov: CI results are visible to the owner only — a push
-is verified by its commit appearing in the live `main.dart.js` (deploy runs only after the tests).
+Phase 3b starts at ~300 sessions from 10+ testers, counted from the Redesign phase's release;
+Phase 4 comes after 3b. The repository is private since 20 Nov: CI results are visible to the
+owner only — a push is verified by its commit appearing in the live `main.dart.js` (deploy runs
+only after the tests).
 
 Preview: `https://math-trainer-kjc.pages.dev/` (Cloudflare Pages), deployed on every push to
 `main`; the old `https://geriogerg.github.io/Math-Trainer/` redirects there.
@@ -170,8 +213,9 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 
 ## Pitfalls (append new ones)
 
-- `session_layout_pin_test.dart` holds the beta's keypad and session geometry: never update its
-  numbers to make a restyling pass — change the restyling. Sound and haptics go through
+- `session_layout_pin_test.dart` holds the game screen's keypad and session geometry. Lifted for
+  the Redesign phase only: re-measured once at its commit 6 on the new screen, then never
+  updated to make a restyling pass — change the restyling. Sound and haptics go through
   `SessionEffects` (fire and forget, after the controller moved on), never inline in a widget.
 - Screens build buttons, chips, keys, figures and levels from `presentation/kit/` — never
   `FilledButton`, `TextButton`, `FilterChip` or `ChoiceChip` directly. Find a level in tests

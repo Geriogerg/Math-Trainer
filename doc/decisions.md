@@ -99,6 +99,57 @@ of the phase. Stops only where necessary — the hard stops of `CLAUDE.md`, or a
 proceed without the owner (then parked, the rest continues).
 **Reopen when** a phase shows that end-of-phase review lets a wrong direction run too long.
 
+## Redesign phase — owner decisions (plan v2.9, 22 Nov 2026)
+
+Decided by the owner in the plan; recorded here with their reason so they are not re-argued.
+Reference screens: `doc/mockups/redesign.html` (layout and content binding).
+
+- **Two families, a main level.** Basics (+ − × ÷) and Advanced (powers, roots, percentages,
+  integrals). The main level is the mean of the four basics only, an unplayed one counting as
+  1; it is the Home badge and the main board. Each advanced operation keeps its own level and
+  board and never counts in the main level. Why: the old overall level mixed seven operations a
+  player may never have chosen, so it measured selection as much as skill.
+- **30 s per question** (was 15). A timeout still counts as wrong; three silent timeouts in a
+  row still end the game. The validate key stays; no auto-validation, no Skip.
+- **Questions per operation are chosen**: 4, 5, 10 or 20 (default 10, remembered). Every
+  selected operation gets exactly that many, so each reaches `n_min` (4) and its level moves;
+  the order is shuffled by the seed and stored with the session (its type sequence). Replaces
+  the derived count (below) and the debt rotation for these games.
+- **Training mode**: Easy / Medium / Hard at a fixed difficulty; never moves a level, never
+  ranked, its own session kind. *Levelling* is the game as before.
+- **Integrals** join the advanced family, with the whole chain of a type.
+- **Two solo challenges**, Get the count and Chain operations: no level, not ranked, not
+  uploaded for now; seeded and in the pure core so Phase 7 can replay them on the server.
+- **Minimal text**: labels only, no explanatory captions, hints or helper sentences.
+- **The beta-safety rule is lifted for this phase.** The app version stored with every session
+  separates the data; the Phase 3b calibration window starts after the Redesign phase ships.
+  The Phase 5 pins (`session_layout_pin_test.dart`) are re-measured on the new game screen
+  (commit 6) and frozen again from then on.
+- **Accessibility**: touch targets ≥ 48 dp, text contrast ≥ 4.5:1 in both themes, layouts hold
+  at large text sizes, reduced motion respected everywhere (the Phase 5 exception for the
+  answer feedback ends).
+
+**Supersedes**: "The number of questions is derived, not chosen", "Overall level: unplayed
+types count as 1" (now over the four basics), "Difficulty is not a user setting" (still true of
+levels; Training picks a fixed difficulty that never touches them), the 15 s of "Per-question
+timeout", and the reduced-motion scope of "Streak escalation and level-up within the
+beta-safety rule".
+
+### Gaps filled by Claude Code — provisional, for the owner to confirm
+
+- **Contrast**: the palette's muted text (dark `#5A6B8C`: 3.4:1 on the background, 2.9:1 on a
+  surface; light `#7A8AA6`: 3.2:1) and the light theme's error red (`#E24B4A`: 3.6:1) fail the
+  4.5:1 rule. Nearest tones that pass on both background and surface: muted dark `#7F90B2`
+  (5.6 / 4.8), muted light `#5E6E8C` (4.8 / 5.1), error light `#BF3433` (5.2), error dark
+  `#F06968` (5.1 on a surface). Applied in commit 6; `doc/design.md` updated.
+- **Bottom bar label "Ranks"**, as in the mockups (the plan's text says Leaderboard): the
+  mockups' content is binding and the shorter word fits four tabs at large text sizes.
+- **Day/night toggle moves to Profile**: the mockups' Home has the level badge in that corner.
+- **A never-played operation shows level 1** on Home, as the mockups' ∫ does (the kit used to
+  show a dash): it is the level that counts in the main level.
+- **Correction pause without words**: the wrong answer is shown struck through under the right
+  one, a timeout as an hourglass icon, instead of "Your answer: 54" / "Time's up".
+
 ## `correctAnswer` typed `int`, not `num` (step 3)
 
 Originally `num`, with `/` for division — so a `double`. Rule 9 was then a documentary promise the
@@ -176,6 +227,8 @@ per operation, five anchor points checked by hand (1, 25, 50, 75, 100), and two 
 monotonicity and no brutal jump between consecutive levels.
 
 ## Per-question timeout: 15 s, counted as wrong
+
+*Superseded in part or whole by the Redesign phase (plan v2.9), above.*
 
 Automatic move to the next question after 15 s. Fixed value, not derived from `t_lent` — an
 assumed simplification: 15 s is probably too long for `7 + 4` at level 3 and maybe short for a
@@ -352,6 +405,8 @@ replays with its own rules (both pinned in the determinism references).
 
 ## The number of questions is derived, not chosen
 
+*Superseded in part or whole by the Redesign phase (plan v2.9), above.*
+
 `exerciseCount = n_min × active types`, capped at 24 (a target of ~90 s). With `n_min = 4`: one
 type → 4 questions, three types → 12, seven types → 24 (capped; types then rotate by sampling
 debt).
@@ -466,6 +521,8 @@ game and made switching from addition to multiplication look like a level drop.
 
 ## Overall level: unplayed types count as 1
 
+*Superseded in part or whole by the Redesign phase (plan v2.9), above.*
+
 The overall level averages all seven types, an unplayed type counting as 1 (not 0, outside the
 valid `[1, 100]` range of `LevelCacheEntry`). Averaging only played types inflated the overall level
 of a player who had tried two types out of seven.
@@ -479,6 +536,8 @@ full or blocked), and an in-memory queue would vanish on reload without guarante
 upload (Phase 2) relies on `synced_at`, already on every row.
 
 ## Difficulty is not a user setting
+
+*Superseded in part or whole by the Redesign phase (plan v2.9), above.*
 
 Rejected: a global easy/medium/hard selector, or a setting per type. Both contradict the meaning of
 the level — if the player chooses the difficulty, the level no longer measures skill and the

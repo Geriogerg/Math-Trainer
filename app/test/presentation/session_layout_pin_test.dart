@@ -18,12 +18,11 @@ import 'package:math_trainer/presentation/theme/app_theme.dart';
 
 import 'golden_test_utils.dart';
 
-/// Phase 5 beta-safety rule (`doc/plan.md`, Phase 5): the calibration data
-/// must stay comparable, so nothing may move the keypad's keys, the
-/// question or the answer, nor delay the next question. These numbers were
-/// measured on the session screen as the beta started (Phase 5 commit 0,
-/// Inter loaded as in the app) and must never change: a restyling that
-/// fails here changes how players answer.
+/// Game-screen geometry pins. Phase 5 froze the beta's numbers (beta-safety
+/// rule); the Redesign phase lifts that rule (plan v2.9) and re-measures
+/// them on the new game screen in its commit 6. From then on they are
+/// frozen again: a restyling that fails here changes how players answer —
+/// change the restyling, never the numbers.
 ///
 /// Rects are logical pixels, `left, top, width, height`.
 class _Source extends ExerciseSource {

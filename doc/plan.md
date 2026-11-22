@@ -5,7 +5,10 @@
 > from the owner. The day-to-day working rules live in `CLAUDE.md`, which must always stay
 > consistent with this plan (section 11).
 >
-> Version 2.7 — 20 November 2026: Phase 5.1 outcome; Phase 5.2 (staging and online groundwork)
+> Version 2.9 — 22 November 2026: the Redesign phase (game modes and new interface) added; it changes the
+> level structure, the session flow and the home screen — section 3 describes the game before it.
+> Version 2.8 — 22 November 2026: Phase 5.2 outcome; Phase 6 entry and environments; Phase 7
+> trimmed. Version 2.7 — 20 November 2026: Phase 5.1 outcome; Phase 5.2 (staging and online groundwork)
 > added; alignment fixes. Version 2.6 — Phase 5 outcome; Phase 5.1 (beta-period groundwork) added;
 > alignment fixes. Version 2.5 — Phase 3a.1 done; Phase 5 detailed with the beta-safety rule.
 > Version 2.4 — 19 November 2026: Phase 3a outcome; close-out 3a.1 before invitations; during
@@ -90,16 +93,18 @@ Supabase accounts (anonymous-first since Phase 1, email linking), player name, P
 tab with overall level, 30-day curve, per-operation level and average time, recent games.
 Day and night themes. Tabs: Play, Online (preview), Profile, Leaderboard.
  
-## 4. Current state (20 November 2026, after Phase 5)
+## 4. Current state (22 November 2026, after Phase 5.2)
  
 - Phases 0, 1, 2, 3a and 5 done: CI (VM and JavaScript, weekly Android compile), preview on
   Cloudflare Pages (`math-trainer-kjc.pages.dev`), anonymous-first accounts, beta gate, placement
   and type placement, continuous levels, monorepo with `packages/math_core`, Dart server on Render
   with replay validation, leaderboard, SQL migrations applied by CI, owner dashboard, digit
   typeface, component kit, operator icons, sound, haptics, home-screen install.
-- Tests: core 582 (VM) / 577 (JavaScript), app 332, server 20, plus tooling and SQL tests.
-- First question on slow 4G from a fresh browser: 24.4 s. Download is no longer the bottleneck:
-  sign-in round trips are.
+- Also done: early sign-in, server-side gate, strategy detector and structural features (unused
+  by the app), staging pipeline (waiting on its setup), duel configuration and Glicko-2 (no UI),
+  legal drafts in `doc/legal/`.
+- Tests: core 641 (VM) / 617 (JavaScript), app 333, server 36, plus tooling and SQL tests.
+- Gate shown at 15–17 s on slow 4G; first question estimated 18–20 s, not yet measured live.
 - The repository is **private** since 20 November.
 - Web-only: mobile development is paused.
 | Weakness | Why it matters | Fixed in |
@@ -623,9 +628,141 @@ launch, tests must run elsewhere.
 **Exit:** smoke green on staging and production; production untouched by tests; duel config and
 Glicko-2 tested; legal drafts ready for review.
  
+### Phase 5.2 outcome (22 November)
+ 
+All five commits pushed; staging and the live slow-4G measurement wait on the owner's setup.
+Owner decisions on the provisional choices — all kept:
+ 
+- Deploy order enforced by CI through Render deploy hooks; the server redeploys only when the
+  server or the core changed.
+- Production smoke test read-only; rethought at Phase 6, where the gate is off and the page's
+  early sign-in is itself a write.
+- Staging has no beta gate.
+- Duel brackets of 100 rating points, level 5 + 5 × bracket (1500 → level 40), standard duel of
+  12 questions (divisible by 3 and 4 types) — provisional until Phase 7 compares ratings with
+  real levels.
+- Glicko-2 with τ = 0.5 and uncertainty capped at 350.
+- Legal drafts based on contract performance and legitimate interest, not consent — to be
+  confirmed by the professional review.
+### Redesign phase — Game modes and new interface (one pass)
+ 
+**Goal:** a clearer game with more to play: two families of operations with separate levels,
+a setup page with modes, integrals, two solo challenges, and a cleaner interface.
+**Reference screens:** `doc/mockups/redesign.html`, approved by the owner. Their layout and
+content are binding; colours, type and spacing come from `doc/design.md` and the theme.
+ 
+**The beta-safety rule is lifted for this phase** (owner decision). This phase changes how players
+answer; the app version recorded with every session separates the data, and the Phase 3b
+calibration window starts after the Redesign phase ships. The layout pins of Phase 5 are updated
+deliberately to the new screens, then pin them again.
+ 
+**Interface principle:** minimal text. No explanatory captions, hints or helper sentences on any
+screen; labels only ("Basics", "Advanced", "Challenges", "Questions", "Mode", "Play", "Start").
+Players understand by themselves.
+ 
+#### Product rules
+ 
+- **Two families.** *Basics*: addition, subtraction, multiplication, division. *Advanced*:
+  powers, square roots, percentages, integrals.
+- **Main level** = the average of the four basic operations only. It is the level shown at the top
+  of Home and the one ranked on the main leaderboard.
+- **Advanced operations** each keep their own level and their own leaderboard; they never count in
+  the main level. Server levels and leaderboard rows are recomputed for the new definition.
+- **Timer: 30 seconds per question** (was 15). A timeout counts as wrong. Three timeouts in a row
+  without a key pressed still end the game.
+- **Validate key (✓) kept. No auto-validation, no Skip button.**
+- **Questions per operation: 4, 5, 10 or 20**, default 10, remembered. Each selected operation
+  gets exactly that many questions, order shuffled by the seed; the per-operation counts are stored
+  with the session (self-contained replay). Every operation therefore reaches `n_min` (4), so
+  levels always move in Levelling mode. Replaces the derived count and the rotation by sampling
+  debt for these games.
+- **Modes:**
+  - *Levelling*: difficulty follows the player's levels; the game moves levels and counts for the
+    leaderboards. Same as today.
+  - *Training*: the player picks Easy, Medium or Hard; fixed difficulty (proposed: the bounds of
+    levels 15, 40 and 70 for each operation); **never changes levels, never ranked**; stored as its
+    own session kind. The Easy/Medium/Hard row appears only in Training.
+- **Placement** unchanged in behaviour; its timer follows the new 30 s.
+#### Integrals
+ 
+- New advanced type: definite integral of a small polynomial, **area under the curve**, whole-number
+  answer, e.g. ∫₀³ 2x dx = 9, ∫₁² 3x² dx = 7.
+- **Generated backwards** (rule 10): draw an antiderivative F with integer coefficients and no
+  constant, degree 2–4, take p = F′, draw integer bounds a < b; answer F(b) − F(a). Integer
+  arithmetic only (rule 18).
+- **Area, not signed integral**: p ≥ 0 on [a, b], so the answer is a positive whole number.
+- Difficulty grows with the level: degree, coefficient size, width and position of the bounds.
+- Rendered like the mockup: integral sign, bounds top and bottom, polynomial with superscript
+  exponents, `dx`.
+- Full chain like any type: codec, server replay, its own leaderboard, short placement on first
+  play, determinism pinned on VM and JavaScript.
+#### Challenges (solo practice for now; online 1v1 in Phase 7)
+ 
+No levels, not ranked, not uploaded for now; personal stats kept on the device (games, solved,
+best time). Both are seeded and live in the pure core, so Phase 7 can replay them on the server.
+ 
+**Get the count**
+- 6 numbers: big ones from {25, 50, 75, 100}, each at most once; small ones from 1–9, each at most
+  twice. Between 1 big + 5 small and 3 big + 3 small.
+- Target 101–999, **built backwards** from the six numbers with valid operations, so **a solution
+  always exists**.
+- Rules: + − × ÷ on two available tiles; whole numbers only, no negatives, division only when
+  exact; each number used at most once; intermediate results become new tiles.
+- Input: tap a tile, an operator, another tile → the two fade, the result appears as a tile.
+  Undo (↶) and Reset (⟲).
+- **45 seconds.** A tile equal to the target ends the round as solved. At the end: the correction,
+  i.e. the shortest solution found by a solver in the core, and the player's closest value.
+**Chain operations**
+- Setup page like the others: seconds per screen 1, 2 or 3; operations 5, 10 or 15.
+- A starting number, then one operation per screen (+7, −2, ×3, ÷8), with a short blank between
+  screens so two identical steps stay distinguishable.
+- Every intermediate result a whole number, never negative, at most 999; division only when exact;
+  generated to satisfy this.
+- Final screen: the keypad with ✓. Then the result and the full chain as correction.
+#### Navigation and layout
+ 
+- **Home** (scrolls): main level badge top right; "Basics" — one row of 4 operation buttons, each
+  showing its level, multi-select, selection remembered — then a full-width, shorter **Play**
+  button centred under the row; "Advanced" — same; "Challenges" — two cards.
+- **Play** is dimmed and inert until at least one operation of its row is selected.
+- **Setup page**: back arrow top left, the selected operators as title, Questions (4 / 5 / 10 / 20),
+  Mode (Training / Levelling), difficulty row in Training only, Start at the bottom.
+- **Games**: ✕ top left (quit, with a confirmation; a Levelling game quit early is kept as
+  interrupted), progress `n / N` top right, timer bar, operation, answer, keypad
+  1–9 / ⌫ 0 ✓. No bottom bar during a game.
+- **Bottom bar** (Play, Online, Profile, Leaderboard) on every other page.
+- **Accessibility:** touch targets ≥ 48 dp, text contrast ≥ 4.5:1 in both themes, layouts hold at
+  large system text sizes, reduced motion respected everywhere (the Phase 5 freeze no longer
+  applies).
+#### Commits
+ 
+0. *(A)* Record the owner decisions above in `doc/decisions.md`; lift the beta-safety pins.
+1. *(A)* Level structure: main level = 4 basics; advanced levels separate; server, leaderboard
+   boards and dashboard updated; levels recomputed.
+2. *(A)* Session flow: 30 s timer; questions per operation (4/5/10/20) stored with the session.
+3. *(A)* Training mode: fixed difficulty, own session kind, never changes levels, never ranked.
+4. *(A)* Integrals, end to end (core, display, codec, server, leaderboard, type placement).
+5. *(C)* Home, setup page and navigation per the mockups.
+6. *(C)* Game screens cleaned per the mockups; quit confirmation; accessibility pass; new pins
+   and goldens in both themes.
+7. *(C)* Chain operations (core generator and UI, setup page).
+8. *(C)* Get the count (core generator, solver, tile UI, correction).
+9. *(A)* Smoke test and dashboard follow the new flow; first-load budget checked.
+**Exit:** every screen matches the mockups in both themes; a Levelling game on basics moves the
+main level and the leaderboard, a Training game moves nothing; integrals generated, answered,
+validated by the server and ranked; both challenges playable end to end with their correction;
+every Get-the-count target solvable (tested on thousands of seeds); all chain values whole,
+non-negative, ≤ 999 (same).
+ 
 ### Phase 6 — Public web launch
  
-**Entry:** Phases 3–5 done; name chosen; domain bought.
+**Entry:** Phases 3a, 3b, 4, 5, 5.1 and 5.2 done (staging running); name chosen; domain bought;
+legal drafts reviewed.
+ 
+**Environments after launch:** production = the domain (Cloudflare Pages project and current
+Supabase project); the old `math-trainer-kjc.pages.dev` address redirects to the domain; staging
+stays on `math-trainer-staging*.pages.dev` with its own Supabase project; the read-only production
+check moves to the domain and is rethought for an ungated page.
  
 1. *(A)* Production deployment on the domain, separate from preview.
 2. *(A)* Privacy policy and legal notice pages, linked in the app.
@@ -635,9 +772,10 @@ Glicko-2 tested; legal drafts ready for review.
 6. *(C)* Launch checklist run on a phone from a fresh browser.
 ### Phase 7 — Online play
  
-1. *(A)* Duel configuration in the core, determinism tested.
+1. ~~Duel configuration in the core~~ — done in Phase 5.2.
 2. *(A)* Duel runs stored and validated by the server.
-3. *(A)* Glicko-2 on the server, provisional flag.
+3. *(A)* Glicko-2 (built in Phase 5.2) wired to duel results; provisional flag for ~10 duels;
+   bracket mapping checked against real levels.
 4. *(C)* Ghost duel screen.
 5. *(C)* Friend challenges by link.
 6. Live duels when the owner decides concurrency allows it.

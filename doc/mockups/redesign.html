@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Math Trainer — Redesign phase mockups</title>
+<!-- Reference mockups for the Redesign phase, approved by the owner on 22 Nov 2026. Layout and content are
+     binding; exact pixel values come from doc/design.md and the theme. Dark theme shown; light theme
+     follows doc/design.md. Nav icons here are placeholders for the app's own operator/icon family. -->
+<style>
+body{margin:0;padding:24px;background:#0b0f1c;font-family:Inter,system-ui,sans-serif}
+.grid{display:grid;grid-template-columns:repeat(3,240px);gap:20px}
+.cap{font-size:13px;color:#8a93a8;margin:0 0 6px}
+.ph{background:#101528;border-radius:18px;padding:12px 10px;height:430px;display:flex;flex-direction:column;font-variant-numeric:tabular-nums;color:#E6F1FB;font-size:12px}
+.sec{color:#85B7EB;font-size:12px;margin:14px 0 7px}
+.row4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.op{background:#1B2340;border:1.5px solid #2A3352;border-radius:10px;height:50px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:21px;font-weight:500}
+.op small{font-size:10px;color:#85B7EB;font-weight:400;margin-top:1px}
+.on{border-color:#5DCAA5;background:#16384A}
+.play{margin:8px auto 0;width:100%;height:32px;border-radius:9px;background:#5DCAA5;color:#04342C;display:flex;align-items:center;justify-content:center;font-weight:500;font-size:14px}
+.dim{background:#1B2340;color:#5A6B8C}
+.card{background:#1B2340;border-radius:10px;padding:10px;margin-bottom:6px;font-weight:500;font-size:13px}
+.nav{margin-top:auto;display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid #2A3352;padding-top:7px;text-align:center;color:#5A6B8C;font-size:9px}
+.nav b{font-size:15px;display:block;font-weight:400}
+.top{display:flex;justify-content:space-between;align-items:center;color:#85B7EB;font-size:12px}
+.bar{height:5px;border-radius:3px;background:#2A3352;margin:8px 0}.bar div{height:100%;border-radius:3px;background:#5DCAA5}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:auto}
+.k{background:#1B2340;border-radius:9px;height:38px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.ok{background:#5DCAA5;color:#04342C;font-weight:500}
+.seg{display:grid;gap:5px}.seg div{background:#1B2340;border-radius:8px;height:36px;display:flex;align-items:center;justify-content:center;font-size:14px}
+.sel{background:#5DCAA5!important;color:#04342C;font-weight:500}
+.tile{background:#1B2340;border:1.5px solid #2A3352;border-radius:10px;height:44px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:500}
+</style></head><body><div class="grid">
+
+<div><p class="cap">1 · Home</p><div class="ph">
+<div class="top"><span style="color:#E6F1FB;font-size:16px;font-weight:500">Play</span><span style="background:#1B2340;border-radius:12px;padding:3px 10px;color:#E6F1FB;font-weight:500">34</span></div>
+<p class="sec">Basics</p>
+<div class="row4"><div class="op on">+<small>41</small></div><div class="op">−<small>36</small></div><div class="op on">×<small>29</small></div><div class="op">÷<small>30</small></div></div>
+<div class="play">Play</div>
+<p class="sec">Advanced</p>
+<div class="row4"><div class="op">x²<small>22</small></div><div class="op">√<small>18</small></div><div class="op">%<small>25</small></div><div class="op">∫<small>1</small></div></div>
+<div class="play dim">Play</div>
+<p class="sec">Challenges</p>
+<div class="card">Get the count</div><div class="card">Chain operations</div>
+<div class="nav"><div style="color:#5DCAA5"><b>▶</b>Play</div><div><b>⚔</b>Online</div><div><b>●</b>Profile</div><div><b>★</b>Ranks</div></div>
+</div></div>
+
+<div><p class="cap">2 · Game setup</p><div class="ph">
+<div class="top"><span style="font-size:20px;color:#E6F1FB">‹</span><span style="color:#E6F1FB;font-size:15px;font-weight:500">+ ×</span><span style="width:12px"></span></div>
+<p class="sec" style="margin-top:20px">Questions</p>
+<div class="seg" style="grid-template-columns:repeat(4,1fr)"><div>4</div><div>5</div><div class="sel">10</div><div>20</div></div>
+<p class="sec">Mode</p>
+<div class="seg" style="grid-template-columns:1fr 1fr"><div class="sel">Training</div><div>Levelling</div></div>
+<div class="seg" style="grid-template-columns:repeat(3,1fr);margin-top:6px"><div>Easy</div><div class="sel">Medium</div><div>Hard</div></div>
+<div class="play" style="height:42px;font-size:15px;margin-top:auto">Start</div>
+<div class="nav" style="margin-top:12px"><div style="color:#5DCAA5"><b>▶</b>Play</div><div><b>⚔</b>Online</div><div><b>●</b>Profile</div><div><b>★</b>Ranks</div></div>
+</div></div>
+
+<div><p class="cap">3 · Operation game</p><div class="ph">
+<div class="top"><span style="font-size:18px;color:#E6F1FB">✕</span><span>7 / 10</span></div>
+<div class="bar"><div style="width:58%"></div></div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px">
+<div style="font-size:36px;font-weight:500">47 × 8</div>
+<div style="font-size:26px;color:#5DCAA5;border-bottom:2px solid #5DCAA5;min-width:86px;text-align:center">37</div></div>
+<div class="pad"><div class="k">1</div><div class="k">2</div><div class="k">3</div><div class="k">4</div><div class="k">5</div><div class="k">6</div><div class="k">7</div><div class="k">8</div><div class="k">9</div><div class="k" style="color:#85B7EB">⌫</div><div class="k">0</div><div class="k ok">✓</div></div>
+</div></div>
+
+<div><p class="cap">4 · Integral</p><div class="ph">
+<div class="top"><span style="font-size:18px;color:#E6F1FB">✕</span><span>3 / 10</span></div>
+<div class="bar"><div style="width:76%"></div></div>
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px">
+<div style="display:flex;align-items:center;gap:4px"><span style="font-size:48px;font-weight:300;line-height:1">∫</span><span style="display:flex;flex-direction:column;font-size:13px;line-height:1.6;margin-left:-4px"><span>3</span><span style="margin-top:14px">0</span></span><span style="font-size:30px;font-weight:500;margin-left:4px">2x dx</span></div>
+<div style="font-size:26px;color:#5DCAA5;border-bottom:2px solid #5DCAA5;min-width:86px;text-align:center">&nbsp;</div></div>
+<div class="pad"><div class="k">1</div><div class="k">2</div><div class="k">3</div><div class="k">4</div><div class="k">5</div><div class="k">6</div><div class="k">7</div><div class="k">8</div><div class="k">9</div><div class="k" style="color:#85B7EB">⌫</div><div class="k">0</div><div class="k ok">✓</div></div>
+</div></div>
+
+<div><p class="cap">5 · Get the count</p><div class="ph">
+<div class="top"><span style="font-size:18px;color:#E6F1FB">✕</span><span>0:31</span></div>
+<div class="bar"><div style="width:69%"></div></div>
+<div style="text-align:center;margin:10px 0 14px;font-size:40px;font-weight:500">637</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px">
+<div class="tile" style="opacity:.25">75</div><div class="tile on">600</div><div class="tile">6</div>
+<div class="tile">3</div><div class="tile" style="opacity:.25">8</div><div class="tile">100</div></div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:auto">
+<div class="k" style="font-size:21px">+</div><div class="k" style="font-size:21px">−</div><div class="k" style="font-size:21px">×</div><div class="k" style="font-size:21px">÷</div></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px"><div class="k" style="font-size:16px;color:#85B7EB">↶</div><div class="k" style="font-size:16px;color:#85B7EB">⟲</div></div>
+</div></div>
+
+<div><p class="cap">6 · Chain operations</p><div class="ph">
+<div class="top"><span style="font-size:18px;color:#E6F1FB">✕</span><span>4 / 10</span></div>
+<div class="bar"><div style="width:40%"></div></div>
+<div style="flex:1;display:flex;align-items:center;justify-content:center"><span style="font-size:68px;font-weight:500">÷ 8</span></div>
+</div></div>
+
+</div></body></html>

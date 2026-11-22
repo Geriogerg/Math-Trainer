@@ -680,3 +680,15 @@ Plan v2.7 (20 Nov 2026). Runs during the beta; the beta-safety rule still applie
   took `autoDeploy: false`); later server commits (Glicko-2, unused at runtime) wait for the
   production deploy hook.
 - Totals: core 641 (VM) / 617 (JavaScript), app 333, server 36; SQL tests unchanged.
+
+## Redesign phase — Game modes and new interface
+
+Plan v2.9 (22 Nov 2026), reference screens `doc/mockups/redesign.html`. The beta-safety rule is
+lifted for this phase.
+
+- **Commit 0** *(A)* — Owner decisions recorded in `doc/decisions.md` ("Redesign phase — owner
+  decisions"), with the entries they supersede marked; gaps filled provisionally (contrast
+  tones, "Ranks", the theme toggle in Profile, level 1 for a never-played operation, the
+  wordless correction pause). Beta-safety pins lifted: the pin test's header and the CLAUDE.md
+  pitfall say they are re-measured once at commit 6. `doc/plan.md` v2.9 and the mockups
+  committed; CLAUDE.md's "Current phase" is the Redesign phase.
