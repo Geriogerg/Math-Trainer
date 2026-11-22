@@ -12,7 +12,7 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 
 **Redesign phase — Game modes and new interface** (`doc/plan.md`, section 7), run in **one
 pass**. Reference screens: `doc/mockups/redesign.html` — their layout and content are binding;
-colours, type and spacing come from `doc/design.md` and the theme. Done: 0.
+colours, type and spacing come from `doc/design.md` and the theme. Done: 0, 1.
 Update this block at every commit.
 
 **The beta-safety rule is lifted for this phase** (owner decision): this phase changes how
@@ -130,6 +130,8 @@ Non-negotiable without explicit discussion.
   with its own timestamp, operands, given answer, time, correctness, level.
 - **Levels**: integer hundredths (3742 = 37.42), shown as a whole number with a progress bar
   inside the level; generation reads the whole part. Recomputable from history by a core function.
+  The **main level** (`mainLevel`) is the mean of the four basics only; the main board keeps
+  the server key `overall` (cached builds call it by that name).
 - **Sessions are self-contained**: everything deciding question order is stored with them.
 - **Session kinds**: game or placement. Placement answers become starting levels through a pure
   core function.

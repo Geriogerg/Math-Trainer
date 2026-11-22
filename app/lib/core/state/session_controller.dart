@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:math_core/generation/exercise_source.dart';
 import 'package:math_core/leveling/level.dart';
 import 'package:math_core/leveling/level_cache_orchestrator.dart';
-import 'package:math_core/leveling/overall_level.dart';
+import 'package:math_core/leveling/main_level.dart';
 import 'package:math_core/models/answer_result.dart';
 import 'package:math_core/models/exercise.dart';
 import 'package:math_core/models/exercise_type.dart';
@@ -445,12 +445,12 @@ class SessionController extends ChangeNotifier {
       _notifyIfAlive();
     }
 
-    // Full cache (7 types) after this session, not only the types played:
-    // see `PersistedSession.overallLevelAfter`.
+    // The main level from the whole cache after this session, not only the
+    // types played: see `PersistedSession.overallLevelAfter`.
     double? overallLevelAfter;
     try {
       final cacheBefore = await repository.currentLevels(playerId);
-      overallLevelAfter = overallLevel({...cacheBefore, ...levelUpdates});
+      overallLevelAfter = mainLevel({...cacheBefore, ...levelUpdates});
     } on Exception catch (_) {
       // One point fewer on the Profile curve, nothing more — does not block
       // writing the session itself.

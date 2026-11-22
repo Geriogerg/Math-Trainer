@@ -19,7 +19,7 @@ import 'package:math_core/feedback/feedback.dart';
 import '../account_messages.dart';
 import '../exercise_type_labels.dart';
 import '../upload_refusal_text.dart';
-import 'package:math_core/leveling/overall_level.dart';
+import 'package:math_core/leveling/main_level.dart';
 import '../../core/state/account_form_controller.dart';
 import '../../core/state/feedback_controller.dart';
 import '../theme/app_theme.dart';
@@ -85,7 +85,7 @@ class _ProfileData {
 /// existing statistics — an explicit owner decision revising the "profile
 /// as a corner icon, no 5th tab" rule of `doc/design.md`.
 ///
-/// Five blocks, from general to detailed: identity, overall level and its
+/// Five blocks, from general to detailed: identity, main level and its
 /// recent change, 30-day level curve, breakdown per operation (level +
 /// average time), recent sessions. Never an accuracy rate nor a score as a
 /// measure of progress (`doc/decisions.md`) — what progresses is the level.
@@ -359,9 +359,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           return const Center(child: CircularProgressIndicator());
         }
         final data = snapshot.data!;
-        final globalLevel = data.levels.isEmpty
-            ? null
-            : overallLevel(data.levels);
+        final globalLevel = data.levels.isEmpty ? null : mainLevel(data.levels);
         // Same points as the curve: the change is the gap between its first
         // and last points, never a separate computation.
         final windowLevels = [
@@ -404,7 +402,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 24),
             Row(
               children: [
-                Text('Overall level', style: theme.textTheme.titleMedium),
+                Text('Main level', style: theme.textTheme.titleMedium),
                 const SizedBox(width: 12),
                 LevelBadge(level: globalLevel?.round(), large: true),
               ],

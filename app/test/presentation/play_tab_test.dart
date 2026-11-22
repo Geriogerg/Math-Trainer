@@ -312,7 +312,7 @@ void main() {
     await pumpPlayTab(tester, environment);
 
     expect(find.text('Difficulty adapts to your answers.'), findsOneWidget);
-    expect(find.textContaining('Overall level'), findsNothing);
+    expect(find.textContaining('Main level'), findsNothing);
   });
 
   testWidgets('with history: overall level shown, not the welcome sentence', (
@@ -350,8 +350,8 @@ void main() {
 
     await pumpPlayTab(tester, environment);
 
-    // (42 + 6 × 1 floor for the 6 types not played) / 7 ≈ 6.86 → 7.
-    expect(findLevelBadge(7), findsOneWidget);
+    // Main level: (42 + 3 × 1 floor for the basics not played) / 4 ≈ 11.
+    expect(findLevelBadge(11), findsOneWidget);
     expect(find.text('Difficulty adapts to your answers.'), findsNothing);
   });
 }

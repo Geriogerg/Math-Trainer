@@ -42,7 +42,7 @@ void main() {
     final top = await repository.top(
       const LeaderboardBoard.of(ExerciseType.squareRoot),
     );
-    final me = await repository.aroundMe(const LeaderboardBoard.overall());
+    final me = await repository.aroundMe(const LeaderboardBoard.main());
 
     expect(calls, [
       '/rest/v1/rpc/leaderboard_top {"p_board":"squareRoot"}',

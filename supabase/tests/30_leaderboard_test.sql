@@ -112,14 +112,19 @@ begin
 end;
 $$;
 
--- Overall: the mean of the seven, unplayed = level 1. Player 10:
--- (8000 + 6 × 100) / 7 = 1228.57 → 1229.
+-- The main board ('overall'): the mean of the four basics, unplayed =
+-- level 1; advanced levels never count (Redesign phase). Player 10:
+-- (8000 + 3 × 100) / 4 = 2075, whatever their power level.
+reset role;
+insert into public.server_levels values
+  ('00000000-0000-0000-0000-000000000110', 'power', 9900, 3, now());
+set role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000110', false);
 do $$
 declare
   me jsonb := public.leaderboard_around_me('overall');
 begin
-  assert (me ->> 'level')::int = 1229, 'overall level ' || (me ->> 'level');
+  assert (me ->> 'level')::int = 2075, 'main level ' || (me ->> 'level');
   -- Player 11 has 3 completed games: on the overall board, not on addition.
   assert (me ->> 'total')::int = 11, 'overall total ' || (me ->> 'total');
 end;

@@ -14,7 +14,7 @@ void main() {
       const LeaderboardBoard.of(ExerciseType.power),
     );
     expect(
-      const LeaderboardBoard.overall(),
+      const LeaderboardBoard.main(),
       isNot(const LeaderboardBoard.of(ExerciseType.power)),
     );
   });

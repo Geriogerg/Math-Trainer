@@ -292,7 +292,7 @@ void main() {
       await settlePageTransition(tester);
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Overall level'), findsOneWidget);
+      expect(find.textContaining('Main level'), findsOneWidget);
       // Placed: no hint any more, Start plays a game.
       expect(find.textContaining('First time on'), findsNothing);
     },

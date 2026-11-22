@@ -1316,10 +1316,11 @@ void persistenceRobustnessTests() {
           'test-player',
         ))[ExerciseType.addition]!.level.value;
         final session = (await repository.recentSessions('test-player')).first;
-        // Addition updated + multiplication 50 + 5 types at the floor, over 7.
+        // Main level: addition updated + multiplication 50 + the two other
+        // basics at the floor, over 4.
         expect(
           session.overallLevelAfter,
-          closeTo((additionAfter + 50 + 5) / 7, 1e-9),
+          closeTo((additionAfter + 50 + 2) / 4, 1e-9),
         );
       },
     );

@@ -308,7 +308,7 @@ void main() {
 
     /// Game played under the device's local id (`test-player`, the one of
     /// `pumpGate`), as before accounts. Addition at level 43, the six other
-    /// types at the floor: overall level (43 + 6) / 7 = 7.
+    /// basics at the floor: main level (43 + 3) / 4 = 11.5, shown as 12.
     Future<void> playOnDevice(AppEnvironment environment) =>
         environment.repository.recordSession(
           session: PersistedSession(
@@ -354,7 +354,7 @@ void main() {
 
         accountRepository.resolveSession(accountA);
         await tester.pumpAndSettle();
-        expect(findLevelBadge(7), findsOneWidget);
+        expect(findLevelBadge(12), findsOneWidget);
 
         // Signed out: a guest is being created (pending) — a spinner,
         // which never settles.
@@ -370,7 +370,7 @@ void main() {
         await tester.pump();
         accountRepository.resolveSession(accountA);
         await tester.pumpAndSettle();
-        expect(findLevelBadge(7), findsOneWidget);
+        expect(findLevelBadge(12), findsOneWidget);
       },
     );
 
@@ -382,7 +382,7 @@ void main() {
       await playOnDevice(environment);
       accountRepository.resolveSession(accountA);
       await tester.pumpAndSettle();
-      expect(findLevelBadge(7), findsOneWidget);
+      expect(findLevelBadge(12), findsOneWidget);
 
       accountRepository.resolveSession(accountB);
       await tester.pumpAndSettle();

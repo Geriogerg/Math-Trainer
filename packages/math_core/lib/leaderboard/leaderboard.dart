@@ -1,19 +1,22 @@
 import '../leveling/level.dart';
 import '../models/exercise_type.dart';
 
-/// A board: overall (`type == null`) or one operation (plan 6.4).
+/// A board: the main board (`type == null`, ranked on the main level —
+/// the four basics, plan v2.9) or one operation (plan 6.4).
 class LeaderboardBoard {
-  const LeaderboardBoard.overall() : type = null;
+  const LeaderboardBoard.main() : type = null;
   const LeaderboardBoard.of(ExerciseType this.type);
 
   final ExerciseType? type;
 
-  /// The name the server functions take (`leaderboard_top(board)`).
+  /// The name the server functions take (`leaderboard_top(board)`). The
+  /// main board keeps the key `overall` it had before the main level
+  /// existed: builds still cached by players ask for it by that name.
   String get key => type?.name ?? 'overall';
 
-  /// Overall first, then the operations in their usual order.
+  /// The main board first, then the operations in their usual order.
   static List<LeaderboardBoard> get all => [
-    const LeaderboardBoard.overall(),
+    const LeaderboardBoard.main(),
     for (final t in ExerciseType.values) LeaderboardBoard.of(t),
   ];
 

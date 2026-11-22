@@ -80,7 +80,7 @@ void main() {
   testWidgets('ranked: top %, rank, and the neighbours with me marked', (
     tester,
   ) async {
-    leaderboard.standings[const LeaderboardBoard.overall()] = Ranked(
+    leaderboard.standings[const LeaderboardBoard.main()] = Ranked(
       rank: 8,
       total: 10,
       topPercent: 80,
@@ -124,7 +124,7 @@ void main() {
   });
 
   testWidgets('top 100 view, and an empty board says so', (tester) async {
-    leaderboard.tops[const LeaderboardBoard.overall()] = [
+    leaderboard.tops[const LeaderboardBoard.main()] = [
       _entry(1, 'Zoe', 61),
       _entry(2, 'Max', 55),
     ];
@@ -203,7 +203,7 @@ void main() {
   testWidgets('report a name: confirm, sent, thanked; not mine, not "Player"', (
     tester,
   ) async {
-    leaderboard.standings[const LeaderboardBoard.overall()] = Ranked(
+    leaderboard.standings[const LeaderboardBoard.main()] = Ranked(
       rank: 2,
       total: 3,
       topPercent: 67,
@@ -231,7 +231,7 @@ void main() {
   testWidgets('a guest is offered to save their progress (Phase 2 commit 10)', (
     tester,
   ) async {
-    leaderboard.standings[const LeaderboardBoard.overall()] = const NotRanked(
+    leaderboard.standings[const LeaderboardBoard.main()] = const NotRanked(
       reason: NotRankedReason.notLinked,
     );
     await pump(tester);

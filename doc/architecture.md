@@ -20,8 +20,9 @@ packages/math_core/        # pure Dart, no dependency — imported by path by ap
     placement/             # placement test: staircases, placementLevels (pure), its exercise
                            # source (adaptive, deterministic), PlacementLevelOrchestrator
     leveling/              # Level, LevelUpdater, LevelCacheOrchestrator, LevelingRules, Confidence,
-                           # AnswerOutcome — recompute levels from history; overall_level.dart
-                           # (overall level, also stored per session)
+                           # AnswerOutcome — recompute levels from history; main_level.dart
+                           # (main level = mean of the four basics, also stored per session;
+                           # mainLevelsAfter rebuilt the stored values at schema v9)
     replay/                # replaySessionQuestions: a stored session's questions from what it
                            # stores alone (seed, kind, frozen levels, type sequence)
     leaderboard/           # LeaderboardBoard, LeaderboardEntry, Standing (Ranked/NotRanked),
@@ -164,7 +165,7 @@ stored discriminant is the `ExerciseType` value name.
 
 | Table | Content |
 |---|---|
-| `sessions` | id, player_id, seed, operation_types, exercise_count, total_score, levels_json (levels frozen at start, in hundredths), overall_level_after (nullable, in level units: 37.42), created_at, synced_at, kind (`SessionKind.name`: `game`, `placementV1` or `placementV2`, schema v5), type_sequence (JSON list of `ExerciseType` names, one per planned question, schema v6; `null` for an interrupted session from before v6), upload_refused (why the server refused it for good, schema v7; `null` while pending or once synced) |
+| `sessions` | id, player_id, seed, operation_types, exercise_count, total_score, levels_json (levels frozen at start, in hundredths), overall_level_after (nullable, in level units: 37.42; the **main level** — four basics — since schema v9, which recomputed every stored value), created_at, synced_at, kind (`SessionKind.name`: `game`, `placementV1` or `placementV2`, schema v5), type_sequence (JSON list of `ExerciseType` names, one per planned question, schema v6; `null` for an interrupted session from before v6), upload_refused (why the server refused it for good, schema v7; `null` while pending or once synced) |
 | `answers` | id, session_id, exercise_type, operation_type, operands_json, submitted_value, is_correct, elapsed_ms, created_at, synced_at |
 | `player_levels` | (player_id, exercise_type), level (in hundredths), sessions_played, updated_at — the level cache |
 

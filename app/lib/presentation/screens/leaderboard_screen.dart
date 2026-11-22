@@ -12,7 +12,7 @@ import 'empty_state.dart';
 import 'save_progress_screen.dart';
 
 /// The Leaderboard tab (plan 6.4, Phase 2 commit 8): a board per operation
-/// and overall; by default the player's standing — "Top N %" and the five
+/// and the main board; by default the player's standing — "Top N %" and the five
 /// players above and below — and the top 100 in a second view. Ranked on
 /// the level; the score never ranks anyone.
 class LeaderboardScreen extends StatefulWidget {
@@ -201,7 +201,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
 }
 
 String boardLabel(LeaderboardBoard board) =>
-    board.type == null ? 'Overall' : exerciseTypeLabel(board.type!);
+    board.type == null ? 'Main' : exerciseTypeLabel(board.type!);
 
 class _BoardChips extends StatelessWidget {
   const _BoardChips({required this.selected, required this.onSelected});
@@ -286,7 +286,7 @@ class _NotRankedView extends StatelessWidget {
             'reach the server.',
       NotRankedReason.notEnoughSessions =>
         board.type == null
-            ? 'Finish $games to join the overall board.'
+            ? 'Finish $games to join the main board.'
             : '$games with ${boardLabel(board).toLowerCase()} to join this '
                   'board.',
       NotRankedReason.inactive =>

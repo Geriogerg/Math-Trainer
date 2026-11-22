@@ -6,9 +6,14 @@ import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart'
     show databaseFactoryFfiWeb;
 
+import 'package:math_core/leveling/level.dart';
+import 'package:math_core/leveling/main_level.dart';
+import 'package:math_core/models/exercise_type.dart';
+import 'session_rows.dart';
+
 /// Current schema version. Every change increments this value and adds a
 /// branch in [_onUpgrade] — never destructive, never retroactive.
-const schemaVersion = 8;
+const schemaVersion = 9;
 
 /// The app's database, where each platform expects it. On web: same schema
 /// and same SQL as elsewhere, SQLite compiled to WebAssembly
@@ -145,6 +150,66 @@ Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     // After Phase 3a (owner decision): unknown for what was played before.
     await db.execute('ALTER TABLE sessions ADD COLUMN app_version TEXT');
     await db.execute('ALTER TABLE answers ADD COLUMN input_device TEXT');
+  }
+  if (oldVersion < 9) {
+    // Redesign phase commit 1: the main level (four basics) replaces the
+    // seven-type overall level in every stored point of the Profile curve.
+    await recomputeMainLevels(db);
+  }
+}
+
+/// Schema v9: each session's `overall_level_after` becomes the main level
+/// after it (`mainLevelsAfter`, walked back from the player's level cache).
+/// Only rows that had a value: `null` still means "never known". No column
+/// changes. A player whose rows do not parse keeps their old values — a
+/// display-only number must never stop the database from opening.
+Future<void> recomputeMainLevels(DatabaseExecutor db) async {
+  final players = await db.rawQuery(
+    'SELECT DISTINCT player_id FROM sessions '
+    'WHERE overall_level_after IS NOT NULL',
+  );
+  for (final row in players) {
+    final playerId = row['player_id'] as String;
+    try {
+      final levelRows = await db.query(
+        'player_levels',
+        columns: ['exercise_type', 'level'],
+        where: 'player_id = ?',
+        whereArgs: [playerId],
+      );
+      final sessionRows = await db.rawQuery(
+        'SELECT s.*, (SELECT COUNT(*) FROM answers a WHERE a.session_id = s.id)'
+        ' AS answer_count FROM sessions s WHERE s.player_id = ?',
+        [playerId],
+      );
+      final after = mainLevelsAfter(
+        sessions: [
+          for (final s in sessionRows)
+            (
+              session: sessionFromRow(s),
+              completed: s['answer_count'] == s['exercise_count'],
+            ),
+        ],
+        current: {
+          for (final l in levelRows)
+            ExerciseType.values.byName(l['exercise_type'] as String):
+                Level.fromHundredths(l['level'] as int),
+        },
+      );
+      for (final s in sessionRows) {
+        if (s['overall_level_after'] == null) continue;
+        await db.update(
+          'sessions',
+          {'overall_level_after': after[s['id']]},
+          where: 'id = ?',
+          whereArgs: [s['id']],
+        );
+      }
+    } on FormatException catch (_) {
+      // See above: this player's curve keeps its old scale.
+    } on ArgumentError catch (_) {
+      // Same: an unknown type name or a level out of range.
+    }
   }
 }
 

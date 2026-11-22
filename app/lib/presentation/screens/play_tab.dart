@@ -8,7 +8,7 @@ import 'package:math_core/placement/placement.dart';
 import 'package:math_core/persistence/level_cache_entry.dart';
 import '../../core/state/session_controller.dart';
 import '../exercise_type_labels.dart';
-import 'package:math_core/leveling/overall_level.dart';
+import 'package:math_core/leveling/main_level.dart';
 import '../theme/app_theme.dart';
 import 'session_flow_screen.dart';
 
@@ -107,7 +107,7 @@ class _PlayTabState extends State<PlayTab> {
         if (storedSelection != null) _selectedTypes = storedSelection;
         _hasHistory = levels.isNotEmpty;
         _levels = levels;
-        _globalLevel = levels.isEmpty ? null : overallLevel(levels);
+        _globalLevel = levels.isEmpty ? null : mainLevel(levels);
         _offerPlacement = !completed && !skipped;
         _startupResolved = true;
       });
@@ -276,7 +276,7 @@ class _TypeSelectionView extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'Overall level',
+                      'Main level',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.extension<AppPalette>()!.textMuted,
                       ),

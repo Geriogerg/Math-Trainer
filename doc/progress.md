@@ -692,3 +692,16 @@ lifted for this phase.
   wordless correction pause). Beta-safety pins lifted: the pin test's header and the CLAUDE.md
   pitfall say they are re-measured once at commit 6. `doc/plan.md` v2.9 and the mockups
   committed; CLAUDE.md's "Current phase" is the Redesign phase.
+- **Commit 1** *(A)* — Level structure. Core: `ExerciseType.family` and `ExerciseFamily`
+  (basics, advanced); `overall_level.dart` → `main_level.dart`: `mainLevel` is the mean of the
+  four basics (unplayed = 1), `mainLevelsAfter` rebuilds each session's main level by walking
+  history back from the level cache (a completed game restores its frozen levels, a completed
+  placement removes the levels it created, an interrupted session moved nothing);
+  `LeaderboardBoard.main()` (server key still `overall`). App: schema v9 recomputes every
+  stored `overall_level_after` with it (a player whose rows do not parse keeps old values);
+  Home, Profile and the leaderboard say "Main level" / "Main"; `sessionFromRow` moved to
+  `session_rows.dart` for the migration. SQL: `leaderboard_rows` ranks the main board on the
+  four basics (`20261124000000_main_level.sql`); per-operation boards unchanged, and every row
+  is computed at read time, so the new definition applies to everyone at once. The owner
+  dashboard shows no aggregate level: nothing to change there. Tests: core +6, app +1 (v9
+  walk-back on a real database), SQL (main board ignores a level-99 power).

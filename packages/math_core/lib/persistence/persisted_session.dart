@@ -78,7 +78,8 @@ class PersistedSession {
 
   final DateTime createdAt;
 
-  /// The player's overall level (`overallLevel`, 7 types) right after this
+  /// The player's main level (`mainLevel`, the four basics; before schema
+  /// v9 the mean of seven types, recomputed then) right after this
   /// session, updated level cache included — what the Profile curve plots.
   /// Unlike [levels] (entry levels, only the session's types), two
   /// successive values are always comparable, and their gap is exactly the

@@ -257,8 +257,9 @@ void main() {
 
     expect(sessions['s1']!['levels_json'], '{"addition":4200,"division":100}');
     expect(sessions['s2']!['levels_json'], '{}');
-    // Overall level stays in level units, untouched.
-    expect(sessions['s1']!['overall_level_after'], 9.857142857142858);
+    // v9: recomputed as the main level from the cache (no completed
+    // session to walk back): (43 + 1 + 1 + 100) / 4.
+    expect(sessions['s1']!['overall_level_after'], 36.25);
     expect(sessions['s1']!['seed'], 7);
     // Through v5 as well: every older session is a game.
     expect(sessions['s1']!['kind'], 'game');
@@ -360,6 +361,66 @@ void main() {
       {null},
     );
     expect(await db.getVersion(), schemaVersion);
+
+    await db.close();
+    await databaseFactory.deleteDatabase(path);
+  });
+
+  test('v9 recomputes each stored point as the main level after it', () async {
+    const path = 'migration_v9_test.db';
+    await databaseFactory.deleteDatabase(path);
+    final db = await openMathTrainerDatabase(path);
+    Future<void> session(String id, int day, String levels, int answers) async {
+      await db.insert('sessions', {
+        'id': id,
+        'player_id': 'player',
+        'seed': 1,
+        'operation_types': '["addition","power"]',
+        'exercise_count': 2,
+        'total_score': 0,
+        'levels_json': levels,
+        'overall_level_after': 99.0,
+        'created_at': DateTime.utc(2026, 11, day).toIso8601String(),
+        'kind': 'game',
+      });
+      for (var i = 0; i < answers; i++) {
+        await db.insert('answers', {
+          'id': '$id-$i',
+          'session_id': id,
+          'exercise_type': 'arithmetic',
+          'operation_type': 'addition',
+          'operands_json': '{}',
+          'submitted_value': 1,
+          'is_correct': 1,
+          'elapsed_ms': 1000,
+          'created_at': DateTime.utc(2026, 11, day).toIso8601String(),
+        });
+      }
+    }
+
+    await session('old', 1, '{"addition":1000,"power":5000}', 2);
+    await session('new', 2, '{"addition":1400,"power":6000}', 2);
+    await session('cut', 3, '{"addition":1800,"power":6000}', 1);
+    for (final (type, level) in [('addition', 1800), ('power', 7000)]) {
+      await db.insert('player_levels', {
+        'player_id': 'player',
+        'exercise_type': type,
+        'level': level,
+        'sessions_played': 2,
+        'updated_at': DateTime.utc(2026, 11, 2).toIso8601String(),
+      });
+    }
+
+    await recomputeMainLevels(db);
+    final after = {
+      for (final row in await db.query('sessions'))
+        row['id']: row['overall_level_after'],
+    };
+    // Powers never count; an interrupted session moved nothing; walking
+    // back restores each completed game's frozen addition level.
+    expect(after['cut'], (18 + 3) / 4);
+    expect(after['new'], (18 + 3) / 4);
+    expect(after['old'], (14 + 3) / 4);
 
     await db.close();
     await databaseFactory.deleteDatabase(path);

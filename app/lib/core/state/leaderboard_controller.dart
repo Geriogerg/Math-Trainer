@@ -11,7 +11,7 @@ class LeaderboardController extends ChangeNotifier {
 
   final LeaderboardRepository repository;
 
-  LeaderboardBoard _board = const LeaderboardBoard.overall();
+  LeaderboardBoard _board = const LeaderboardBoard.main();
   LeaderboardBoard get board => _board;
 
   LeaderboardView _view = LeaderboardView.aroundMe;
