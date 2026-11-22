@@ -770,3 +770,14 @@ lifted for this phase.
   fade). Pins re-measured on the new screen (keys inside the padding, the answer with its
   underline, an integral prompt added) and frozen again; goldens re-recorded, the integral
   screen added. `streakTextColor` and the streak-line tests removed with the line.
+- **Commit 7** *(C)* — Chain operations. Core (`challenges/`): `Chain` (invariants by `throw`:
+  every value in [1, 999], every division exact), `generateChain` (seeded; each step drawn
+  among the operators that keep the value valid, then among their valid operands — no
+  rejection; pinned on VM and JavaScript; 3 × 3000 seeds checked), `ChallengeStats` and its
+  store interface. App: `ChainController` (screen, blank, …, keypad, answer; injectable timers;
+  records games, solved and best time on the device), `SharedPreferencesChallengeStatsStore`,
+  the chain's setup page in the Play tab (Seconds, Operations, Start), `ChainFlowScreen` /
+  `ChainScreen` full screen (✕ with confirmation, `n / N`, progress bar, one operation per
+  screen, the keypad, the correction line by line, Play again / Home). The keypad moved to
+  the kit (`NumericKeypad`, `physicalDigitKeys`, `keypadKeyKey` re-exported by the game
+  screen) — the pins are unchanged. Goldens: a chain screen and its correction, both themes.

@@ -26,6 +26,8 @@ packages/math_core/        # pure Dart, no dependency — imported by path by ap
                            # mainLevelsAfter rebuilt the stored values at schema v9)
     replay/                # replaySessionQuestions: a stored session's questions from what it
                            # stores alone (seed, kind, frozen levels, type sequence)
+    challenges/            # the solo challenges (Redesign phase): chain.dart (Chain, generateChain),
+                           # challenge_stats.dart (ChallengeStats, ChallengeStatsStore interface)
     leaderboard/           # LeaderboardBoard, LeaderboardEntry, Standing (Ranked/NotRanked),
                            # LeaderboardRepository (interface), JSON parsing
     sync/                  # SessionUpload (JSON codec shared with the server),

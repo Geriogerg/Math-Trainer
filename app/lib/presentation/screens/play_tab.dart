@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
+import 'package:math_core/challenges/chain.dart';
 import 'package:math_core/generation/question_plan.dart';
 import 'package:math_core/leveling/level.dart';
 import 'package:math_core/leveling/main_level.dart';
@@ -11,6 +12,7 @@ import '../../core/state/session_controller.dart';
 import '../exercise_type_labels.dart';
 import '../kit/kit.dart';
 import '../theme/app_theme.dart';
+import 'chain_screen.dart';
 import 'session_flow_screen.dart';
 
 /// Addition and subtraction ticked for a player who never chose: inverse
@@ -27,23 +29,13 @@ ValueKey<String> playButtonKey(ExerciseFamily family) =>
 /// game itself is pushed full screen (`SessionFlowScreen`). A new player
 /// is first offered the placement test (Phase 1).
 class PlayTab extends StatefulWidget {
-  const PlayTab({
-    super.key,
-    required this.environment,
-    this.isActive = true,
-    this.onGetTheCount,
-    this.onChainOperations,
-  });
+  const PlayTab({super.key, required this.environment, this.isActive = true});
 
   final AppEnvironment environment;
 
   /// True when `AppShell` shows this tab. Coming back to it re-reads the
   /// startup state: a placement taken from Profile ends the offer here.
   final bool isActive;
-
-  /// The two challenge cards; `null`: shown, not tappable.
-  final VoidCallback? onGetTheCount;
-  final VoidCallback? onChainOperations;
 
   @override
   State<PlayTab> createState() => _PlayTabState();
@@ -57,6 +49,12 @@ class _PlayTabState extends State<PlayTab> {
 
   /// The row whose setup page is open; `null`: Home.
   ExerciseFamily? _setupFamily;
+
+  /// The chain's setup page is open (Redesign phase commit 7). Its choices
+  /// last as long as the app.
+  bool _chainSetup = false;
+  int _chainSeconds = 2;
+  int _chainOperations = 10;
 
   bool _isStarting = false;
   String? _startError;
@@ -154,7 +152,20 @@ class _PlayTabState extends State<PlayTab> {
     _startError = null;
   });
 
-  void _closeSetup() => setState(() => _setupFamily = null);
+  void _closeSetup() => setState(() {
+    _setupFamily = null;
+    _chainSetup = false;
+  });
+
+  Future<void> _startChain() async {
+    await playChain(
+      context,
+      widget.environment,
+      secondsPerScreen: _chainSeconds,
+      operations: _chainOperations,
+    );
+    if (mounted) setState(() => _chainSetup = false);
+  }
 
   Future<void> _start() {
     final types = _selectionOf(_setupFamily!);
@@ -214,6 +225,22 @@ class _PlayTabState extends State<PlayTab> {
         startError: _startError,
       );
     }
+    if (_chainSetup) {
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) _closeSetup();
+        },
+        child: _ChainSetupView(
+          seconds: _chainSeconds,
+          operations: _chainOperations,
+          onSeconds: (s) => setState(() => _chainSeconds = s),
+          onOperations: (n) => setState(() => _chainOperations = n),
+          onBack: _closeSetup,
+          onStart: _startChain,
+        ),
+      );
+    }
     final family = _setupFamily;
     if (family != null) {
       return PopScope(
@@ -239,8 +266,8 @@ class _PlayTabState extends State<PlayTab> {
       selectionOf: _selectionOf,
       onToggle: _toggle,
       onPlay: _openSetup,
-      onGetTheCount: widget.onGetTheCount,
-      onChainOperations: widget.onChainOperations,
+      onGetTheCount: null,
+      onChainOperations: () => setState(() => _chainSetup = true),
     );
   }
 }
@@ -448,6 +475,81 @@ class _SetupView extends StatelessWidget {
                   onPressed: onStart,
                   busy: isStarting,
                 ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// The chain's setup page (mockup 2's layout): seconds per screen and the
+/// number of operations, then Start.
+class _ChainSetupView extends StatelessWidget {
+  const _ChainSetupView({
+    required this.seconds,
+    required this.operations,
+    required this.onSeconds,
+    required this.onOperations,
+    required this.onBack,
+    required this.onStart,
+  });
+
+  final int seconds;
+  final int operations;
+  final ValueChanged<int> onSeconds;
+  final ValueChanged<int> onOperations;
+  final VoidCallback onBack;
+  final VoidCallback onStart;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final metrics = theme.extension<AppMetrics>()!;
+    return CustomScrollView(
+      slivers: [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Padding(
+            padding: metrics.rootPadding,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back),
+                      tooltip: 'Back',
+                      onPressed: onBack,
+                    ),
+                    Expanded(
+                      child: Text(
+                        'Chain operations',
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.titleLarge,
+                      ),
+                    ),
+                    const SizedBox(width: 48),
+                  ],
+                ),
+                const _SectionLabel('Seconds'),
+                SegmentedChoice<int>(
+                  values: chainSecondsChoices,
+                  selected: seconds,
+                  label: (s) => '$s',
+                  onChanged: onSeconds,
+                ),
+                const _SectionLabel('Operations'),
+                SegmentedChoice<int>(
+                  values: chainOperationChoices,
+                  selected: operations,
+                  label: (n) => '$n',
+                  onChanged: onOperations,
+                ),
+                const Spacer(),
+                const SizedBox(height: 24),
+                AppButton.primary(label: 'Start', onPressed: onStart),
               ],
             ),
           ),

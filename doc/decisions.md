@@ -163,6 +163,12 @@ beta-safety rule".
 - **After a game, back to Home** (not the setup page): the levels that moved are on Home; Play
   again on the result screen keeps the same setup. One selection set is stored for both rows;
   each row reads its family from it.
+- **Chain operations, the gaps**: start 2–20; operands 1–9 for + and −, 2–9 for × and ÷;
+  values stay in **[1, 999]** (never 0 either: it would make × and ÷ trivial); at each step the
+  operator is drawn among those that keep the value valid, then its operand among the valid
+  ones (no rejection). A 250 ms blank between screens. Setup defaults 2 s and 10 operations,
+  kept for the app's lifetime, not stored. The best time runs from the keypad's appearance to
+  the answer. A round quit before the answer is not counted.
 - **Correction pause without words**: the wrong answer is shown struck through under the right
   one, a timeout as an hourglass icon, instead of "Your answer: 54" / "Time's up".
 

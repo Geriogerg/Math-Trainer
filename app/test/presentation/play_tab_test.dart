@@ -222,6 +222,23 @@ void main() {
     });
   });
 
+  testWidgets('the chain card opens its setup page; back returns', (
+    tester,
+  ) async {
+    await pumpPlayTab(tester, environmentWith(await _playedRepository()));
+    await tester.tap(find.text('Chain operations'));
+    await tester.pumpAndSettle();
+    for (final label in ['Seconds', 'Operations', 'Start']) {
+      expect(find.text(label), findsOneWidget, reason: label);
+    }
+    for (final n in ['1', '2', '3', '5', '10', '15']) {
+      expect(find.text(n), findsOneWidget, reason: n);
+    }
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    expect(find.text('Basics'), findsOneWidget);
+  });
+
   group('setup page', () {
     Future<FakeGameSetupStore> openBasicsSetup(
       WidgetTester tester, {

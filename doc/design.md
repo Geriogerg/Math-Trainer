@@ -138,6 +138,15 @@ in the accent on an accent underline; then the keypad, inside the root padding. 
 or streak line: the timer bar's colour is the streak's only sign during a game. The block
 between the bar and the keypad scales down as a whole at large text sizes.
 
+## Chain operations (Redesign phase, mockup 6)
+
+Setup page in the Play tab: back, "Chain operations", "Seconds" (1 / 2 / 3), "Operations"
+(5 / 10 / 15), Start. The round is full screen: ✕ and `n / N`, a progress bar (screens shown,
+not time), one big operation per screen (`displayLarge`, the digit face) with a short blank in
+between, then the answer field and the keypad. The correction: a check or a cross (with the
+wrong answer struck through beside the right one — never the icon alone), the chain line by
+line ("× 9 = 117"), then Home and Play again.
+
 ## Built-in keypad
 
 **Always visible, never the native keyboard.** The system keyboard hides the field and the timer,

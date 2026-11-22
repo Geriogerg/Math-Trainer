@@ -7,40 +7,16 @@ import 'package:math_core/models/input_device.dart';
 import '../../core/effects/session_effects.dart';
 import '../../core/state/session_controller.dart';
 import '../exercise_prompt.dart';
-import '../kit/keypad_key.dart';
+import '../kit/numeric_keypad.dart';
 import '../streak_tier.dart';
 import '../theme/app_theme.dart';
 import 'empty_state.dart';
 
+export '../kit/numeric_keypad.dart' show keypadKeyKey;
+
 /// Longest possible answer: 10⁵ (powers); 7 leaves a margin without letting
 /// wild input overflow the screen.
 const _maxTypedDigits = 7;
-
-/// The *physical* digit row, not the logical one: on an AZERTY keyboard,
-/// these keys produce "& é " ' ( - è _ ç à" without Shift — the player must
-/// be able to type digits without Shift, as on a numeric keypad.
-final _digitKeys = {
-  PhysicalKeyboardKey.digit0: '0',
-  PhysicalKeyboardKey.digit1: '1',
-  PhysicalKeyboardKey.digit2: '2',
-  PhysicalKeyboardKey.digit3: '3',
-  PhysicalKeyboardKey.digit4: '4',
-  PhysicalKeyboardKey.digit5: '5',
-  PhysicalKeyboardKey.digit6: '6',
-  PhysicalKeyboardKey.digit7: '7',
-  PhysicalKeyboardKey.digit8: '8',
-  PhysicalKeyboardKey.digit9: '9',
-  PhysicalKeyboardKey.numpad0: '0',
-  PhysicalKeyboardKey.numpad1: '1',
-  PhysicalKeyboardKey.numpad2: '2',
-  PhysicalKeyboardKey.numpad3: '3',
-  PhysicalKeyboardKey.numpad4: '4',
-  PhysicalKeyboardKey.numpad5: '5',
-  PhysicalKeyboardKey.numpad6: '6',
-  PhysicalKeyboardKey.numpad7: '7',
-  PhysicalKeyboardKey.numpad8: '8',
-  PhysicalKeyboardKey.numpad9: '9',
-};
 
 /// Stable handles on what the Phase 5 beta-safety rule pins (keypad
 /// geometry, question and answer positions):
@@ -48,7 +24,6 @@ final _digitKeys = {
 const sessionQuestionKey = ValueKey('session-question');
 const sessionAnswerKey = ValueKey('session-answer');
 const sessionCorrectionKey = ValueKey('session-correction');
-ValueKey<String> keypadKeyKey(String name) => ValueKey('keypad-$name');
 
 class SessionScreen extends StatefulWidget {
   const SessionScreen({
@@ -157,7 +132,7 @@ class _SessionScreenState extends State<SessionScreen>
   /// same activity detection.
   KeyEventResult _handleKey(FocusNode node, KeyEvent event) {
     if (event is KeyUpEvent) return KeyEventResult.ignored;
-    final digit = _digitKeys[event.physicalKey];
+    final digit = physicalDigitKeys[event.physicalKey];
     if (digit != null) {
       _appendDigit(digit, InputDevice.keyboard);
       return KeyEventResult.handled;
@@ -352,7 +327,7 @@ class _SessionScreenState extends State<SessionScreen>
               // (`Expanded`) — nothing moves between questions
               // (`doc/design.md`: never a ratio of the screen).
               height: metrics.keypadHeight,
-              child: _NumericKeypad(
+              child: NumericKeypad(
                 onDigit: (digit) => _appendDigit(digit, InputDevice.keypad),
                 onBackspace: () => _backspace(InputDevice.keypad),
                 onValidate: () => _submit(InputDevice.keypad),
@@ -500,78 +475,6 @@ class _AnswerDisplay extends StatelessWidget {
         );
       },
       child: text,
-    );
-  }
-}
-
-class _NumericKeypad extends StatelessWidget {
-  const _NumericKeypad({
-    required this.onDigit,
-    required this.onBackspace,
-    required this.onValidate,
-  });
-
-  final ValueChanged<String> onDigit;
-  final VoidCallback onBackspace;
-  final VoidCallback onValidate;
-
-  static const _digitRows = [
-    ['1', '2', '3'],
-    ['4', '5', '6'],
-    ['7', '8', '9'],
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        for (final row in _digitRows)
-          Expanded(
-            child: Row(
-              children: [
-                for (final digit in row)
-                  Expanded(
-                    child: KeypadKey.digit(
-                      digit,
-                      key: keypadKeyKey(digit),
-                      onTap: () => onDigit(digit),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        Expanded(
-          child: Row(
-            children: [
-              Expanded(
-                child: KeypadKey.icon(
-                  Icons.backspace_outlined,
-                  key: keypadKeyKey('backspace'),
-                  semanticLabel: 'Backspace',
-                  onTap: onBackspace,
-                  subdued: true,
-                ),
-              ),
-              Expanded(
-                child: KeypadKey.digit(
-                  '0',
-                  key: keypadKeyKey('0'),
-                  onTap: () => onDigit('0'),
-                ),
-              ),
-              Expanded(
-                child: KeypadKey.icon(
-                  Icons.check,
-                  key: keypadKeyKey('submit'),
-                  semanticLabel: 'Submit',
-                  onTap: onValidate,
-                  isPrimary: true,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }
