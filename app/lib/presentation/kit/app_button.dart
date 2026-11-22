@@ -20,6 +20,7 @@ class AppButton extends StatelessWidget {
     required this.onPressed,
     this.busy = false,
     this.compact = false,
+    this.semanticLabel,
   }) : _primary = true,
        destructive = false;
 
@@ -29,6 +30,7 @@ class AppButton extends StatelessWidget {
     required this.onPressed,
     this.busy = false,
     this.destructive = false,
+    this.semanticLabel,
   }) : _primary = false,
        compact = false;
 
@@ -51,6 +53,10 @@ class AppButton extends StatelessWidget {
   final bool compact;
 
   static const compactHeight = 48.0;
+
+  /// What screen readers say instead of [label], when the label alone is
+  /// ambiguous on its screen (Home's two "Play": "Play Basics").
+  final String? semanticLabel;
 
   final bool _primary;
 
@@ -80,7 +86,7 @@ class AppButton extends StatelessWidget {
                   : theme.colorScheme.primary,
             ),
           )
-        : Text(label);
+        : Text(label, semanticsLabel: semanticLabel);
     final action = busy ? null : onPressed;
     if (_primary) {
       return FilledButton(

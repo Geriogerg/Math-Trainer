@@ -307,7 +307,7 @@ const guestId = () =>
 /// The read-only visit ends at the first screen: it rendered, the site is
 /// installable, the build is the expected one, nothing was written.
 async function readOnlyEnd(gate) {
-  const shown = gate || (await findText('Find my level'));
+  const shown = gate || (await findText('Find your level'));
   if (!shown) await fail('no first screen (beta gate or placement offer) within 60 s');
   console.log(`  first screen: ${gate ? 'beta gate' : 'placement offer'} (${((Date.now() - started) / 1000).toFixed(1)} s from navigation)`);
   const { installabilityErrors = [] } = await send('Page.getInstallabilityErrors');
@@ -344,7 +344,7 @@ await enableSemantics();
   const end = Date.now() + 60000;
   let gate = false;
   while (Date.now() < end) {
-    if (await findText('Find my level')) break;
+    if (await findText('Find your level')) break;
     if (await findText('Invitation code')) {
       gate = true;
       break;
@@ -363,7 +363,7 @@ await enableSemantics();
 }
 
 step('a guest is created, no form: the placement offer appears');
-await waitForText('Find my level', 60000);
+await waitForText('Find your level', 60000);
 const id = await guestId();
 if (!id) await fail('no anonymous session stored');
 console.log(`  guest ${id} (${((Date.now() - started) / 1000).toFixed(1)} s from navigation)`);
@@ -382,12 +382,15 @@ let installProblem = null;
   if (errors.length > 0) installProblem = `not installable: ${errors.join(', ')}`;
 }
 
-step('skip the placement, start the default 2-type selection');
+step('skip the placement; Home: Play the default Basics selection, then Start');
 await tapText('Skip', 30000, { exact: true });
+// Home (Redesign phase): each row's Play opens the setup page; its
+// accessible label names the row ("Play" alone is the title and a tab too).
+await tapText('Play Basics', 30000, { exact: true });
 await tapText('Start', 30000, { exact: true });
 // A new player's first game on never-played operations is a short
 // placement (Phase 3a commit 7): 5 questions per operation instead of a
-// game's 8. Read the count from the "1 / N" counter.
+// game's 10. Read the count from the "1 / N" counter.
 let questions = null;
 {
   const end = Date.now() + 30000;
@@ -406,8 +409,8 @@ let questions = null;
   }
   if (questions === null) await fail('no question counter "1 / N" appeared');
 }
-// Two taps (Skip, Start) included: what a new visitor going straight to a
-// game experiences, at script speed.
+// Three taps (Skip, Play, Start) included: what a new visitor going
+// straight to a game experiences, at script speed.
 console.log(`  first question ${((Date.now() - started) / 1000).toFixed(1)} s from navigation (${questions} questions)`);
 if (trace) printWaterfall(Date.now());
 

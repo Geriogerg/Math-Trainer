@@ -1,5 +1,6 @@
--- Beta progress (Phase 5.1 commit 4): the distance to Phase 3b's entry and
--- each tester's activity.
+-- Beta progress (Phase 5.1 commit 4; Redesign phase commit 9): the distance
+-- to Phase 3b's entry — counted inside the calibration window — and each
+-- player's activity, Training apart.
 
 delete from auth.users;
 delete from public.beta_codes;
@@ -24,14 +25,21 @@ from (values
   ('00000000-0000-0000-0000-0000000000e1'::uuid, 12, 'placementV1', true),
   ('00000000-0000-0000-0000-0000000000e2'::uuid, 10, 'game', true),
   ('00000000-0000-0000-0000-0000000000e2'::uuid, 10, 'game', true),
-  ('00000000-0000-0000-0000-0000000000e3'::uuid, 1, 'typePlacementV3', true)
+  ('00000000-0000-0000-0000-0000000000e3'::uuid, 1, 'typePlacementV3', true),
+  -- Training: its own column, never a placement, never a calibration game.
+  ('00000000-0000-0000-0000-0000000000e1'::uuid, 1, 'training', true),
+  -- Before the window: not counted for Phase 3b.
+  ('00000000-0000-0000-0000-0000000000e2'::uuid, 40, 'game', true)
 ) as t(p, d, k, c);
+
+-- The window opened 30 days ago (the migration sets "now" at the release).
+update owner_dashboard.calibration_window set starts_at = now() - interval '30 days';
 
 do $$
 declare
   r record;
 begin
-  select * into r from owner_dashboard.beta_progress;
+  select * into r from owner_dashboard.calibration_progress;
   assert r.completed_games = 6 and r.testers = 2, format('totals: %s', row_to_json(r));
   assert r.games_pct = 2 and r.testers_pct = 20 and not r.ready, format('pcts: %s', row_to_json(r));
   assert r.games_per_tester = 3.0 and r.median_games_per_tester = 2,
@@ -48,16 +56,16 @@ declare
   r record;
   n integer;
 begin
-  select count(*) into n from owner_dashboard.tester_activity;
+  select count(*) into n from owner_dashboard.player_activity;
   assert n = 3, format('every player who uploaded: %s', n);
-  select * into r from owner_dashboard.tester_activity where invited_as = 'Zoé';
+  select * into r from owner_dashboard.player_activity where invited_as = 'Zoé';
   assert r.games_completed = 4 and r.games_interrupted = 1 and r.placements = 1
-      and r.days_since_last_game = 2,
+      and r.trainings = 1 and r.days_since_last_game = 2,
     format('Zoé: %s', row_to_json(r));
   -- The most recently active first; a player without a game last.
-  select * into r from owner_dashboard.tester_activity limit 1;
+  select * into r from owner_dashboard.player_activity limit 1;
   assert r.invited_as = 'Zoé', format('first row: %s', row_to_json(r));
-  select * into r from owner_dashboard.tester_activity offset 2;
+  select * into r from owner_dashboard.player_activity offset 2;
   assert r.last_game_at is null and r.days_since_last_game is null and r.placements = 1,
     format('last row: %s', row_to_json(r));
 end;
@@ -69,7 +77,7 @@ do $$
 declare
   r record;
 begin
-  select * into r from owner_dashboard.beta_progress;
+  select * into r from owner_dashboard.calibration_progress;
   assert r.completed_games = 0 and r.testers = 0 and r.games_per_tester is null
       and r.days_to_300_at_this_pace is null and r.days_since_first_game is null,
     format('empty: %s', row_to_json(r));
@@ -78,8 +86,8 @@ $$;
 
 do $$
 begin
-  assert not has_table_privilege('anon', 'owner_dashboard.beta_progress', 'select'), 'anon';
-  assert not has_table_privilege('authenticated', 'owner_dashboard.tester_activity', 'select'),
+  assert not has_table_privilege('anon', 'owner_dashboard.calibration_progress', 'select'), 'anon';
+  assert not has_table_privilege('authenticated', 'owner_dashboard.player_activity', 'select'),
     'authenticated';
 end;
 $$;

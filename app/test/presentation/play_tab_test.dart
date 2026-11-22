@@ -186,6 +186,10 @@ void main() {
       expect(find.text('1'), findsNWidgets(7));
       // No explanatory sentence: labels only.
       expect(find.textContaining('.'), findsNothing);
+      // Each row's Play says which row to screen readers (and to the
+      // smoke test, tool/smoke/preview_smoke.mjs).
+      expect(find.bySemanticsLabel('Play Basics'), findsOneWidget);
+      expect(find.bySemanticsLabel('Play Advanced'), findsOneWidget);
     });
 
     testWidgets('a tap toggles an operation and is remembered', (tester) async {

@@ -190,6 +190,13 @@ beta-safety rule".
     game, not solved.
   - The stats show on Profile ("Challenges": games, solved, best) — the mockups show no place
     for them, and Profile already holds the player's numbers.
+- **Phase 3b's count starts at the release**: `owner_dashboard.calibration_window` (one row)
+  is set to the moment the Redesign phase's dashboard migration first reaches the project —
+  CI applies it with the release — and the progress view counts completed games from then.
+  The owner can move it with one `update`. Training never counts; it has its own column in
+  the players' activity (it used to fall under "placements": every kind but `game`).
+- **The smoke test finds Home's Play by its accessible label** ("Play Basics"): "Play" alone
+  is also the screen's title and a tab. Screen readers gain the same precision.
 - **Correction pause without words**: the wrong answer is shown struck through under the right
   one, a timeout as an hourglass icon, instead of "Your answer: 54" / "Time's up".
 

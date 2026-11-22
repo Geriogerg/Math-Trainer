@@ -332,6 +332,10 @@ class _HomeView extends StatelessWidget {
             AppButton.primary(
               key: playButtonKey(family),
               label: 'Play',
+              semanticLabel: switch (family) {
+                ExerciseFamily.basics => 'Play Basics',
+                ExerciseFamily.advanced => 'Play Advanced',
+              },
               compact: true,
               // Dimmed and inert until the row has a selection.
               onPressed: selectionOf(family).isEmpty

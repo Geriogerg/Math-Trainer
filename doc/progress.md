@@ -793,3 +793,16 @@ lifted for this phase.
   mockup 5 and its correction; the card plays a round at once. Profile: a "Challenges" block
   (games, solved, best, for both challenges). Goldens: the round and its correction, both
   themes; the chain's correction is now centred the same way.
+- **Commit 9** *(A)* — Smoke test, dashboard, first-load budget. Smoke test
+  (`tool/smoke/preview_smoke.mjs`): the placement offer is "Find your level"; after Skip it taps
+  Home's "Play Basics" (each row's Play now carries an accessible label naming its row —
+  `AppButton.semanticLabel`), then Start; a game is 10 questions per operation. Not run
+  locally: it would create a guest in the production project (CI runs it). Dashboard
+  (`20261124030000_redesign_dashboard.sql`): `calibration_window` (one row, set when the
+  migration first reaches the project, i.e. at this release; the owner can move it),
+  `calibration_progress` counts Phase 3b's games from it, `player_activity` gives Training its
+  own column (it used to fall under "placements"); the old `beta_progress` and
+  `tester_activity` are dropped, `report.sql` follows; SQL test extended (a Training session,
+  a game before the window). First load: release builds of the phase's start (`dea0c42`) and
+  of this commit, same flags — `main.dart.js` 3,004 → 3,064 KB raw, **687 → 700 KB brotli
+  (+13 KB, ~0.07 s on slow 4G)**; the tree-shaken icon font stays 2 KB; no new asset.
