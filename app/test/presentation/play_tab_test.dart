@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:math_trainer/composition_root.dart';
+import 'package:math_core/challenges/chain.dart';
 import 'package:math_core/leveling/level.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/models/game_setup.dart';
@@ -87,6 +88,7 @@ void main() {
     InMemorySessionRepository repository, {
     FakeTypeSelectionStore? selection,
     FakeGameSetupStore? setup,
+    FakeChainSetupStore? chainSetup,
     FakePlacementSkipStore? skips,
   }) => AppEnvironment(
     repository: repository,
@@ -95,6 +97,7 @@ void main() {
     profileRepository: FakeProfileRepository(),
     typeSelectionStore: selection ?? FakeTypeSelectionStore(),
     gameSetupStore: setup ?? FakeGameSetupStore(),
+    chainSetupStore: chainSetup ?? FakeChainSetupStore(),
     placementSkipStore: skips ?? FakePlacementSkipStore(),
   );
 
@@ -241,6 +244,29 @@ void main() {
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
     expect(find.text('Basics'), findsOneWidget);
+  });
+
+  testWidgets('the chain setup is remembered (Redesign close-out)', (
+    tester,
+  ) async {
+    final store = FakeChainSetupStore(
+      ChainSetup(secondsPerScreen: 3, operations: 15),
+    );
+    await pumpPlayTab(
+      tester,
+      environmentWith(await _playedRepository(), chainSetup: store),
+    );
+    await tester.tap(find.text('Chain operations'));
+    await tester.pumpAndSettle();
+    Matcher selected(bool value) => isSemantics(isSelected: value);
+    expect(tester.getSemantics(find.text('3')), selected(true));
+    expect(tester.getSemantics(find.text('15')), selected(true));
+    expect(tester.getSemantics(find.text('2')), selected(false));
+
+    await tester.tap(find.text('1'));
+    await tester.tap(find.text('5'));
+    await tester.pumpAndSettle();
+    expect(store.stored, ChainSetup(secondsPerScreen: 1, operations: 5));
   });
 
   group('setup page', () {

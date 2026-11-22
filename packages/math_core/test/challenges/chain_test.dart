@@ -63,6 +63,17 @@ void main() {
     );
   });
 
+  test('ChainSetup: defaults 2 s and 10 operations; others throw', () {
+    expect(ChainSetup().secondsPerScreen, 2);
+    expect(ChainSetup().operations, 10);
+    expect(
+      ChainSetup().copyWith(operations: 15),
+      ChainSetup(secondsPerScreen: 2, operations: 15),
+    );
+    expect(() => ChainSetup(secondsPerScreen: 4), throwsArgumentError);
+    expect(() => ChainSetup(operations: 7), throwsArgumentError);
+  });
+
   group('ChallengeStats', () {
     test('counts games and solved rounds, keeps the best time', () {
       final stats = ChallengeStats.none

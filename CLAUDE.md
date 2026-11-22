@@ -3,76 +3,59 @@
 Competitive mental-arithmetic game in Flutter, for teens and adults. UI, code, docs and commits
 in English.
 
-**`doc/plan.md` (version 2.9) is the product plan.** Read it at the start of every phase; never
-edit it. This file is the working file: keep it short, update it as the project moves, keep it
+**`doc/plan.md` (version 3.1) is the product plan**, and **`doc/levels.md` (v1) specifies the
+level system**. Both are the owner's: read them at the start of every phase; never edit them.
+This file is the working file: keep it short, update it as the project moves, keep it
 consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/decisions.md`,
 `doc/design.md`, `doc/online.md`, `doc/progress.md`. The plan wins any conflict — report it.
 
 ## Current phase
 
-**Redesign phase — Game modes and new interface** (`doc/plan.md`, section 7), run in **one
-pass**. Reference screens: `doc/mockups/redesign.html` — their layout and content are binding;
-colours, type and spacing come from `doc/design.md` and the theme. Done: 0–9, all pushed and live (`bf8c8b8`); exit test run, report given (22 Nov). Open: the owner's phone check and decisions.
-Update this block at every commit.
+**Levels phase — new level system, tables mode, tips** (`doc/plan.md`, section 7), run in **one
+pass**. **Specification: `doc/levels.md`** — binding; it replaces the level formula, the
+placement test and the operand curves. Entry: the Redesign close-out (plan, section 7), run first
+as its own commit. Done: the close-out. Update this block at every commit.
 
-**The beta-safety rule is lifted for this phase** (owner decision): this phase changes how
-players answer; the app version stored with every session separates the data, and the Phase 3b
-calibration window starts after the Redesign phase ships. The Phase 5 layout pins are updated
-deliberately to the new screens (commit 6), then pin them again.
+**The beta-safety rule stays lifted.** The rules version stored with every session separates old
+data from new; old sessions are never replayed under the new rules.
 
-**Interface principle: minimal text.** No explanatory captions, hints or helper sentences on any
-screen; labels only ("Basics", "Advanced", "Challenges", "Questions", "Mode", "Play", "Start").
-
-**Product rules**
-- **Two families.** *Basics*: + − × ÷. *Advanced*: powers, square roots, percentages, integrals.
-- **Main level** = mean of the four basic operations only: shown top of Home, ranked on the main
-  board. Advanced operations keep their own levels and boards, never in the main level. Server
-  levels and leaderboard rows recomputed for the new definition.
-- **Timer 30 s per question** (was 15); a timeout is wrong; three silent timeouts in a row still
-  end the game. **Validate key kept; no auto-validation, no Skip.**
-- **Questions per operation: 4, 5, 10 or 20**, default 10, remembered. Each selected operation
-  gets exactly that many, order shuffled by the seed, counts stored with the session. Replaces
-  the derived count and the debt rotation for these games.
-- **Modes.** *Levelling*: difficulty follows the levels; moves levels; ranked. *Training*: Easy /
-  Medium / Hard (levels 15 / 40 / 70 per operation); never moves levels, never ranked; its own
-  session kind. The difficulty row appears only in Training.
-- **Placement** unchanged; its timer follows the 30 s.
-- **Integrals** (advanced): area under a small polynomial, built backwards from an
-  antiderivative with integer coefficients (degree 2–4, no constant), integer bounds a < b,
-  p ≥ 0 on [a, b]; whole-number answer. Full chain: codec, server replay, board, type placement,
-  determinism pinned VM/JS.
-- **Challenges** (solo for now, online in Phase 7): no levels, not ranked, not uploaded; stats on
-  the device (games, solved, best time); seeded, in the pure core. *Get the count*: 6 tiles (1–3
-  of {25, 50, 75, 100}, smalls 1–9 at most twice), target 101–999 built backwards (always
-  solvable), + − × ÷ on two tiles, whole and non-negative, exact division, 45 s, undo/reset,
-  correction = shortest solution + closest value. *Chain operations*: 1/2/3 s per screen, 5/10/15
-  operations, every value whole, ≥ 0, ≤ 999; keypad at the end; correction = the chain.
-- **Navigation.** Home: main level badge top right; Basics row of 4 multi-select buttons with
-  levels + Play; Advanced the same; Challenges two cards. Play dimmed and inert until its row has
-  a selection. Setup page: back, operators as title, Questions, Mode, difficulty (Training only),
-  Start. Games: ✕ (confirm; a Levelling game quit early is kept as interrupted), `n / N`, timer
-  bar, operation, answer, keypad — no bottom bar. Bottom bar on every other page.
-- **Accessibility**: targets ≥ 48 dp, text contrast ≥ 4.5:1 both themes, large text holds,
-  reduced motion respected everywhere.
+**Product rules** (detail and numbers: `doc/levels.md`)
+- **Levels 0–100**, integer hundredths, shown whole; **everyone starts at 0**; no placement test,
+  no type placement. Never decay; frozen at the start of a game.
+- **Ten tiers** per operation (T0 = 0–9 … T9 = 90–100). The tier decides the content (spec
+  section 5) and the **fluent time**; a game draws 70 % from the tier, 30 % from the tier below
+  (none at T0). Generation stays backwards (rule 10).
+- **Level update, per operation, Levelling games only**: credit 1.0 correct within fluent time,
+  0.75 correct slower within 30 s, 0 wrong or timeout; `q` = mean credit. Dead band 0.55–0.65;
+  up `cap_up(n) × min(1, (q − 0.65) / 0.25)` with `cap_up` 3 / 3 / 4 / 5 for n = 4 / 5 / 10 / 20;
+  down `2 × min(1, (0.55 − q) / 0.35)`. Integer arithmetic only (rule 18); the server replays it.
+  The old constants (`p_cible`, `f`, `K_haut`, `K_bas`, `δ`, `Δ_max`, `K_calib`, `boost_retour`,
+  √n) are retired.
+- **Rules versioned**: the version is stored with each session; the server replays each session
+  under the rules it was played with.
+- **Transition**: all levels reset to 0, history kept; old sessions stay in the history, off the
+  boards; boards start fresh. Training Easy / Medium / Hard = T1 / T4 / T7.
+- **Display**: + − × on right-aligned lines, ÷ on one line, tabular figures (spec section 6, plan
+  commit 5). **Tables mode** (spec section 7) and a **Tips page** (spec section 8), never ranked.
+- Kept: 30 s timer, three silent timeouts end the game uncounted, questions per operation
+  4/5/10/20, Training never moves levels, main level = mean of the four basics.
 
 | # | Commit | Note |
 |---|---|---|
-| 0 | Owner decisions in `doc/decisions.md`; beta-safety pins lifted | |
-| 1 | Level structure: main level = 4 basics; advanced separate; server, boards, dashboard; levels recomputed | |
-| 2 | Session flow: 30 s timer; questions per operation (4/5/10/20) stored with the session | |
-| 3 | Training mode: fixed difficulty, own session kind, never moves levels, never ranked | |
-| 4 | Integrals end to end (core, display, codec, server, board, type placement) | |
-| 5 | *(C)* Home, setup page and navigation per the mockups | |
-| 6 | *(C)* Game screens per the mockups; quit confirmation; accessibility; new pins and goldens | |
-| 7 | *(C)* Chain operations (core generator, UI, setup page) | |
-| 8 | *(C)* Get the count (core generator, solver, tile UI, correction) | |
-| 9 | Smoke test and dashboard follow the new flow; first-load budget checked | |
+| — | Redesign close-out: Training out of eligibility, Chain setup remembered, Play again on the result | |
+| 0 | Decisions in `doc/decisions.md`; level rules versioned, stored per session | |
+| 1 | New level update (spec 3), core and server; old constants retired; spec example table in tests | |
+| 2 | Ten tiers per operation (spec 5): generators by tier, 70/30 review; determinism VM/JS | |
+| 3 | Fluent time per tier replaces `t_rapide` | |
+| 4 | Transition (spec 4): levels to 0, old sessions off boards, placement removed, Training T1/T4/T7 | |
+| 5 | *(C)* Display (spec 6); new layout pins and goldens | |
+| 6 | *(C)* Tables mode (spec 7) | |
+| 7 | *(C)* Tips page (spec 8), the player's tier highlighted | |
+| 8 | Simulation: games to each tier for perfect / 80 % / 60 % players vs the spec's grind estimate | |
 
-**Exit:** every screen matches the mockups in both themes; a Levelling game on basics moves the
-main level and the leaderboard, a Training game moves nothing; integrals generated, answered,
-validated by the server and ranked; both challenges playable end to end with their correction;
-every Get-the-count target solvable (thousands of seeds); all chain values whole, non-negative,
-≤ 999 (same).
+**Exit:** the spec's example table and grind estimate reproduced by tests; every tier generates
+its examples' kind of question; a correct-but-slow game raises the level; all levels at 0 for
+every player; tables mode and tips playable on a phone.
 
 Still open from Phase 5.2: the owner's staging setup (`doc/online.md`, "Staging") and the CI
 beta code file for the slow-4G measurement.

@@ -17,6 +17,7 @@ import 'package:math_core/leveling/level_cache_orchestrator.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/models/game_setup.dart';
 import 'package:math_core/challenges/challenge_stats.dart';
+import 'package:math_core/persistence/chain_setup_store.dart';
 import 'package:math_core/persistence/game_setup_store.dart';
 import 'package:math_core/models/session_config.dart';
 import 'package:math_core/models/session_kind.dart';
@@ -54,6 +55,7 @@ import 'infrastructure/persistence/shared_preferences_beta_code_store.dart';
 import 'infrastructure/web/boot_sign_in.dart';
 import 'infrastructure/persistence/shared_preferences_effect_settings_store.dart';
 import 'infrastructure/persistence/shared_preferences_challenge_stats_store.dart';
+import 'infrastructure/persistence/shared_preferences_chain_setup_store.dart';
 import 'infrastructure/persistence/shared_preferences_game_setup_store.dart';
 import 'infrastructure/persistence/shared_preferences_placement_skip_store.dart';
 import 'infrastructure/persistence/shared_preferences_player_id_provider.dart';
@@ -73,6 +75,7 @@ class AppEnvironment {
     required this.profileRepository,
     this.typeSelectionStore = const SharedPreferencesTypeSelectionStore(),
     this.gameSetupStore = const SharedPreferencesGameSetupStore(),
+    this.chainSetupStore = const SharedPreferencesChainSetupStore(),
     this.challengeStatsStore = const SharedPreferencesChallengeStatsStore(),
     this.themeModeStore = const SharedPreferencesThemeModeStore(),
     this.placementSkipStore = const SharedPreferencesPlacementSkipStore(),
@@ -117,6 +120,9 @@ class AppEnvironment {
 
   /// The setup page's choices; same reasoning as `typeSelectionStore`.
   final GameSetupStore gameSetupStore;
+
+  /// Chain operations' setup; same reasoning as `typeSelectionStore`.
+  final ChainSetupStore chainSetupStore;
 
   /// The challenges' personal records, on the device only (plan v2.9).
   final ChallengeStatsStore challengeStatsStore;
@@ -182,6 +188,7 @@ class AppEnvironment {
     profileRepository: profileRepository,
     typeSelectionStore: typeSelectionStore,
     gameSetupStore: gameSetupStore,
+    chainSetupStore: chainSetupStore,
     challengeStatsStore: challengeStatsStore,
     themeModeStore: themeModeStore,
     placementSkipStore: placementSkipStore,

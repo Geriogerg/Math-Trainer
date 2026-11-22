@@ -24,6 +24,7 @@ The direction keeps its original French name.
 | Primary text | `#E6F1FB` | operation, digits, titles |
 | Secondary text | `#85B7EB` | labels, metadata |
 | Muted text | `#7F90B2` | inactive tabs, hints (was `#5A6B8C`: 3.4:1, under the 4.5:1 rule — Redesign phase) |
+| Error | `#F06968` | wrong answers, error messages (5.1:1 on a surface) |
 
 ### Palette — light mode (mandatory, not optional)
 
@@ -38,6 +39,7 @@ A mobile game is played outdoors as much as in bed. Light mode is not a comfort 
 | Primary text | `#101528` |
 | Secondary text | `#3E5170` |
 | Muted text | `#5E6E8C` (was `#7A8AA6`) |
+| Error | `#BF3433` (was `#E24B4A`: 3.6:1) |
 
 ### Right / wrong feedback
 
@@ -238,9 +240,11 @@ The end of the session and the moment the level system becomes visible.
 
 Top to bottom: **the level change first** (`AppMotion.levelUp`, 600 ms), the score with its
 breakdown (base, speed bonus, streak bonus, difficulty multiplier), right / wrong / **timed out
-counted separately**, average time, best streak, and the types played. Then **Mistakes** (Phase 0
-commit 9): every wrong answer and timeout in play order, as "7 × 8 = 56" in the session's
-notation followed by "your answer 54" or "timed out" in muted text.
+counted separately**, average time, best streak. Then **Mistakes** (Phase 0 commit 9): every
+wrong answer and timeout in play order, as "7 × 8 = 56" in the session's notation with what was
+typed struck through, or an hourglass for a timeout (no words since the Redesign phase). Two
+actions at the bottom of every result: **Home** and **Play again** (same operations and setup, a
+new seed).
 
 Accuracy is shown as a raw count ("9/12"), never as a curve nor as a percentage presented as
 progress.

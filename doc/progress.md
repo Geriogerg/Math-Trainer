@@ -833,3 +833,21 @@ lifted for this phase.
   waiting on its setup).
 - Totals: core 673 (VM) / 646 (JavaScript), app 372, server 36, tool 10; SQL tests passed.
   First load: `main.dart.js` 687 → 700 KB brotli over the phase.
+
+## Redesign close-out
+
+Plan v3.0 (22 Nov 2026), one commit, run at the start of the Levels phase (its entry).
+
+- **Close-out** *(A)* — The owner's three changes. Training out of eligibility: already true on
+  the server (the main board counts `kind = 'game'`, a board's own count is `sessions_played`,
+  which Training never moves); now pinned by a SQL test (2 games + 5 Training games = one game
+  short). Chain setup remembered: `ChainSetup` (core, invariants by `throw`), `ChainSetupStore`
+  and its shared_preferences store, the Play tab loads and saves it (tests: core, store, Play
+  tab). Every result screen offers Home and Play again — a placement's too (it offered "Play",
+  to Home). `doc/design.md`: the error colours in the palette tables, the result screen's
+  actions and mistakes as they are. `doc/decisions.md`: the owner's decisions on the Redesign.
+  Plan alignment, for the owner (none blocks): section 3 and section 4 still describe the
+  level system the Levels phase replaces (placement, ~20 constants); section 6.1 still lists a
+  placement test and a timeout scaled to the level, which `doc/levels.md` drops; section 6.4
+  says "one overall board" (the main board since v2.9); Phase 6's entry does not list the
+  Levels phase.

@@ -1,6 +1,8 @@
+import 'package:math_core/challenges/chain.dart';
 import 'package:math_core/challenges/challenge_stats.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/models/game_setup.dart';
+import 'package:math_core/persistence/chain_setup_store.dart';
 import 'package:math_core/persistence/game_setup_store.dart';
 import 'package:math_core/persistence/type_selection_store.dart';
 
@@ -27,6 +29,18 @@ class FakeGameSetupStore implements GameSetupStore {
 
   @override
   Future<void> save(GameSetup setup) async => stored = setup;
+}
+
+class FakeChainSetupStore implements ChainSetupStore {
+  FakeChainSetupStore([this.stored]);
+
+  ChainSetup? stored;
+
+  @override
+  Future<ChainSetup?> load() async => stored;
+
+  @override
+  Future<void> save(ChainSetup setup) async => stored = setup;
 }
 
 class FakeChallengeStatsStore implements ChallengeStatsStore {

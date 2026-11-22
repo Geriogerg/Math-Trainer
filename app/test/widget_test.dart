@@ -295,10 +295,12 @@ void main() {
       expect(find.textContaining('Addition — level'), findsOneWidget);
       expect(find.textContaining('Subtraction — level'), findsOneWidget);
 
+      // Play again and Home, like every result (Redesign close-out).
+      expect(find.text('Play again'), findsOneWidget);
       await tester.tap(
         find.descendant(
           of: find.byType(ResultScreen),
-          matching: find.text('Play'),
+          matching: find.text('Home'),
         ),
       );
       await settlePageTransition(tester);

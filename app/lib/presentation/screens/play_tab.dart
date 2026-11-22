@@ -51,11 +51,11 @@ class _PlayTabState extends State<PlayTab> {
   /// The row whose setup page is open; `null`: Home.
   ExerciseFamily? _setupFamily;
 
-  /// The chain's setup page is open (Redesign phase commit 7). Its choices
-  /// last as long as the app.
-  bool _chainSetup = false;
-  int _chainSeconds = 2;
-  int _chainOperations = 10;
+  /// The chain's setup page is open (Redesign phase commit 7).
+  bool _chainSetupOpen = false;
+
+  /// Its choices, remembered (`ChainSetupStore`, Redesign close-out).
+  ChainSetup _chainSetup = ChainSetup();
 
   bool _isStarting = false;
   String? _startError;
@@ -91,6 +91,12 @@ class _PlayTabState extends State<PlayTab> {
       if (setup != null && mounted) setState(() => _setup = setup);
     } on Exception catch (_) {
       // The default setup.
+    }
+    try {
+      final chain = await widget.environment.chainSetupStore.load();
+      if (chain != null && mounted) setState(() => _chainSetup = chain);
+    } on Exception catch (_) {
+      // The default chain setup.
     }
   }
 
@@ -155,17 +161,24 @@ class _PlayTabState extends State<PlayTab> {
 
   void _closeSetup() => setState(() {
     _setupFamily = null;
-    _chainSetup = false;
+    _chainSetupOpen = false;
   });
+
+  void _updateChainSetup(ChainSetup Function(ChainSetup) change) {
+    final setup = change(_chainSetup);
+    setState(() => _chainSetup = setup);
+    // In the background: a failed write only costs the default next time.
+    widget.environment.chainSetupStore.save(setup).ignore();
+  }
 
   Future<void> _startChain() async {
     await playChain(
       context,
       widget.environment,
-      secondsPerScreen: _chainSeconds,
-      operations: _chainOperations,
+      secondsPerScreen: _chainSetup.secondsPerScreen,
+      operations: _chainSetup.operations,
     );
-    if (mounted) setState(() => _chainSetup = false);
+    if (mounted) setState(() => _chainSetupOpen = false);
   }
 
   Future<void> _start() {
@@ -226,17 +239,19 @@ class _PlayTabState extends State<PlayTab> {
         startError: _startError,
       );
     }
-    if (_chainSetup) {
+    if (_chainSetupOpen) {
       return PopScope(
         canPop: false,
         onPopInvokedWithResult: (didPop, _) {
           if (!didPop) _closeSetup();
         },
         child: _ChainSetupView(
-          seconds: _chainSeconds,
-          operations: _chainOperations,
-          onSeconds: (s) => setState(() => _chainSeconds = s),
-          onOperations: (n) => setState(() => _chainOperations = n),
+          seconds: _chainSetup.secondsPerScreen,
+          operations: _chainSetup.operations,
+          onSeconds: (s) =>
+              _updateChainSetup((c) => c.copyWith(secondsPerScreen: s)),
+          onOperations: (n) =>
+              _updateChainSetup((c) => c.copyWith(operations: n)),
           onBack: _closeSetup,
           onStart: _startChain,
         ),
@@ -268,7 +283,7 @@ class _PlayTabState extends State<PlayTab> {
       onToggle: _toggle,
       onPlay: _openSetup,
       onGetTheCount: () => playCount(context, widget.environment),
-      onChainOperations: () => setState(() => _chainSetup = true),
+      onChainOperations: () => setState(() => _chainSetupOpen = true),
     );
   }
 }

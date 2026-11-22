@@ -167,7 +167,7 @@ beta-safety rule".
   values stay in **[1, 999]** (never 0 either: it would make × and ÷ trivial); at each step the
   operator is drawn among those that keep the value valid, then its operand among the valid
   ones (no rejection). A 250 ms blank between screens. Setup defaults 2 s and 10 operations,
-  kept for the app's lifetime, not stored. The best time runs from the keypad's appearance to
+  ~~kept for the app's lifetime, not stored~~ — remembered since the close-out (below). The best time runs from the keypad's appearance to
   the answer. A round quit before the answer is not counted.
 - **Get the count, the gaps**:
   - *Why a target always exists* (with B the largest big and the smalls' running sums, each
@@ -199,6 +199,21 @@ beta-safety rule".
   is also the screen's title and a tab. Screen readers gain the same precision.
 - **Correction pause without words**: the wrong answer is shown struck through under the right
   one, a timeout as an hourglass icon, instead of "Your answer: 54" / "Time's up".
+
+### Redesign outcome — owner decisions (plan v3.0, 22 Nov 2026)
+
+Every provisional choice above is **kept** (palette, wordless correction pause, level 1 for a
+never-played operation, integrals' start, Chain and Get-the-count details, the Phase 3b window,
+"Ranks", the theme switch in Profile), except three, changed by the owner and done in the
+close-out commit:
+
+- **Training never counts toward leaderboard eligibility** (the "3 completed games"); only
+  Levelling games do. Training still counts as activity (the 30-day window). It was already so
+  on the server — the main board counts `kind = 'game'` sessions and a board's own count is
+  `sessions_played`, which Training never moves — and is now pinned by a SQL test.
+- **Chain operations' setup is remembered** (`ChainSetupStore`), like the setup page's.
+- **Every result screen offers Play again and Home** — a placement's too, which used to offer
+  only "Play" (to Home).
 
 ## `correctAnswer` typed `int`, not `num` (step 3)
 

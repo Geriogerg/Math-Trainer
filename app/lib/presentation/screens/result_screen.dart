@@ -232,30 +232,27 @@ class ResultScreen extends StatelessWidget {
               // Centred (`doc/design.md`) — Play again stays visually
               // dominant through its filled style (`AppButton.primary`), not
               // its position.
-              // After a placement, the next step is choosing what to play.
-              if (isPlacement)
-                AppButton.primary(onPressed: onExitToSelection, label: 'Play')
-              else
-                // A Wrap, not a Row: with a large system text size the two
-                // no longer fit side by side and stack instead of
-                // overflowing.
-                Wrap(
-                  alignment: WrapAlignment.center,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  spacing: 16,
-                  runSpacing: 8,
-                  children: [
-                    AppButton.secondary(
-                      onPressed: onExitToSelection,
-                      label: 'Home',
-                    ),
-                    AppButton.primary(
-                      onPressed: onPlayAgain,
-                      busy: isRestarting,
-                      label: 'Play again',
-                    ),
-                  ],
-                ),
+              // Every result, a placement's too (Redesign close-out, plan
+              // v3.0): a Wrap, not a Row — with a large system text size
+              // the two no longer fit side by side and stack instead of
+              // overflowing.
+              Wrap(
+                alignment: WrapAlignment.center,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 16,
+                runSpacing: 8,
+                children: [
+                  AppButton.secondary(
+                    onPressed: onExitToSelection,
+                    label: 'Home',
+                  ),
+                  AppButton.primary(
+                    onPressed: onPlayAgain,
+                    busy: isRestarting,
+                    label: 'Play again',
+                  ),
+                ],
+              ),
               if (restartError != null) ...[
                 const SizedBox(height: 8),
                 Text(

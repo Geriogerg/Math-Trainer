@@ -11,6 +11,45 @@ const chainSecondsChoices = [1, 2, 3];
 /// How many operations follow the starting number.
 const chainOperationChoices = [5, 10, 15];
 
+/// The chain's setup page: seconds per screen and operations. Remembered
+/// between launches (`ChainSetupStore`; Redesign close-out). Throws on a
+/// value the page does not offer (rule 13).
+final class ChainSetup {
+  ChainSetup({this.secondsPerScreen = 2, this.operations = 10}) {
+    if (!chainSecondsChoices.contains(secondsPerScreen)) {
+      throw ArgumentError.value(
+        secondsPerScreen,
+        'secondsPerScreen',
+        'must be one of $chainSecondsChoices.',
+      );
+    }
+    if (!chainOperationChoices.contains(operations)) {
+      throw ArgumentError.value(
+        operations,
+        'operations',
+        'must be one of $chainOperationChoices.',
+      );
+    }
+  }
+
+  final int secondsPerScreen;
+  final int operations;
+
+  ChainSetup copyWith({int? secondsPerScreen, int? operations}) => ChainSetup(
+    secondsPerScreen: secondsPerScreen ?? this.secondsPerScreen,
+    operations: operations ?? this.operations,
+  );
+
+  @override
+  bool operator ==(Object other) =>
+      other is ChainSetup &&
+      other.secondsPerScreen == secondsPerScreen &&
+      other.operations == operations;
+
+  @override
+  int get hashCode => Object.hash(secondsPerScreen, operations);
+}
+
 /// Every value of a chain stays within [1, chainMaxValue]: whole, never
 /// negative (never 0 either — it would make × and ÷ trivial).
 const chainMaxValue = 999;

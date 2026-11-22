@@ -187,3 +187,39 @@ begin
   assert jsonb_array_length(public.leaderboard_top('integral')) = 1, 'integral board';
 end;
 $$;
+
+-- Training never counts toward eligibility (Redesign close-out, plan
+-- v3.0): player 14 has 2 completed games and 5 completed Training games —
+-- one game short of the main board.
+do $$
+declare
+  id uuid := '00000000-0000-0000-0000-000000000114';
+begin
+  insert into auth.users (id, is_anonymous) values (id, false);
+  insert into public.profiles (id, display_name) values (id, 'Player 14');
+  insert into public.server_players (player_id, version, last_session_at, has_completed_session)
+  values (id, 7, now(), true);
+  insert into public.server_levels values (id, 'addition', 1500, 2, now());
+  for g in 1..2 loop
+    insert into public.uploaded_sessions (id, player_id, created_at, kind, payload, completed)
+    values (gen_random_uuid(), id, now(), 'game', '{}', true);
+  end loop;
+  for g in 1..5 loop
+    insert into public.uploaded_sessions (id, player_id, created_at, kind, payload, completed)
+    values (gen_random_uuid(), id, now(), 'training', '{}', true);
+  end loop;
+end;
+$$;
+set role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000114', false);
+do $$
+declare
+  me jsonb := public.leaderboard_around_me('overall');
+begin
+  assert me ->> 'reason' = 'notEnoughSessions', 'training counted: ' || me::text;
+  assert (me ->> 'sessionsNeeded')::int = 1, me::text;
+  me := public.leaderboard_around_me('addition');
+  assert me ->> 'reason' = 'notEnoughSessions', 'addition: ' || me::text;
+end;
+$$;
+reset role;
