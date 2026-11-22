@@ -19,6 +19,21 @@ abstract interface class SessionLevelUpdates {
   });
 }
 
+/// A Training game's updates: none, ever (plan v2.9) — its fixed levels
+/// must never reach the cache.
+class NoLevelUpdates implements SessionLevelUpdates {
+  const NoLevelUpdates();
+
+  @override
+  Future<Map<ExerciseType, LevelCacheEntry>> computeUpdates({
+    required List<AnswerResult> outcomes,
+    required Map<ExerciseType, Level> frozenLevels,
+    required SessionRepository repository,
+    required String playerId,
+    required DateTime now,
+  }) async => const {};
+}
+
 /// Computes the level cache updates at the end of a game. Taken out of
 /// `SessionController` (step 4.1, commit D) to stay pure Dart, runnable
 /// server-side (rule 1) — exactly what revalidating a duel will one day

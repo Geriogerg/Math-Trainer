@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../kit/kit.dart';
 
+import 'package:math_core/models/session_kind.dart';
 import 'package:math_core/leveling/level.dart';
 import 'package:math_core/models/answer_result.dart';
 import 'package:math_core/models/exercise_type.dart';
@@ -98,7 +99,9 @@ class ResultScreen extends StatelessWidget {
                         style: labelStyle,
                       ),
                   const SizedBox(height: 16),
-                ] else if (status == SessionStatus.finished) ...[
+                  // Training moves no level: nothing to show.
+                ] else if (status == SessionStatus.finished &&
+                    controller.config.kind != SessionKind.training) ...[
                   for (final type in controller.config.enabledTypes)
                     _LevelChangeRow(
                       label: exerciseTypeLabel(type),

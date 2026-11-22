@@ -37,7 +37,7 @@ typedef SessionLevelTrace = ({PersistedSession session, bool completed});
 /// the player's [current] levels by walking back through history: a
 /// completed game started from its frozen levels, so undoing it restores
 /// them; a completed placement created its types' levels, so undoing it
-/// removes them; an interrupted session moved nothing. Used once, by the
+/// removes them; an interrupted session or a Training game moved nothing. Used once, by the
 /// app's schema v9, when the main level replaced the seven-type overall
 /// level (Redesign phase commit 1): the Profile curve stays on one scale.
 ///
@@ -68,6 +68,9 @@ Map<String, double> mainLevelsAfter({
       case SessionKind.placementV2:
       case SessionKind.typePlacementV3:
         session.enabledTypes.forEach(levels.remove);
+      case SessionKind.training:
+        // Never moves a level.
+        break;
     }
   }
   return after;

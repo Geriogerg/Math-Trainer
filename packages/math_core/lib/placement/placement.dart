@@ -162,7 +162,7 @@ PlacementRules placementRulesFor(SessionKind kind) => switch (kind) {
   SessionKind.placementV1 => placementRulesV1,
   SessionKind.placementV2 => placementRulesV2,
   SessionKind.typePlacementV3 => typePlacementRules,
-  SessionKind.game => throw ArgumentError.value(
+  SessionKind.game || SessionKind.training => throw ArgumentError.value(
     kind,
     'kind',
     'is not a placement.',

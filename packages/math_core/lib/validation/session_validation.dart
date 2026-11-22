@@ -1,6 +1,7 @@
 import '../leveling/level.dart';
 import '../leveling/level_updater.dart';
 import '../leveling/level_updates.dart';
+import '../models/game_setup.dart';
 import '../models/answer_result.dart';
 import '../models/exercise.dart';
 import '../models/exercise_type.dart';
@@ -237,6 +238,23 @@ ValidationResult validateSessionUpload({
               now: session.createdAt,
             )
           : const {};
+    case SessionKind.training:
+      // A fixed difficulty, the same for every operation; never a level
+      // update, whatever the levels the server holds.
+      final difficulties = {
+        for (final type in session.enabledTypes)
+          switch (session.levels[type]) {
+            final level? => TrainingDifficulty.ofLevel(level),
+            null => null,
+          },
+      };
+      if (difficulties.length != 1 || difficulties.single == null) {
+        return Rejected(
+          RejectionReason.levelsMismatch,
+          'training levels ${session.levels.values}',
+        );
+      }
+      updates = const {};
     case SessionKind.typePlacementV3:
       // Never-played operations only, each from the staircase's start.
       final rules = placementRulesFor(session.kind);

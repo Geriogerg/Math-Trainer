@@ -130,6 +130,18 @@ void main() {
       expect(after['p'], (30 + 25 * 3) / 4);
     });
 
+    test('a Training game moved nothing, and is not a placement', () {
+      final training = _session('t', 1, {
+        ExerciseType.addition: 7000,
+      }, kind: SessionKind.training);
+      expect(SessionKind.training.isPlacement, isFalse);
+      final after = mainLevelsAfter(
+        sessions: [(session: training, completed: true)],
+        current: {ExerciseType.addition: Level.fromHundredths(1200)},
+      );
+      expect(after['t'], (12 + 3) / 4);
+    });
+
     test('advanced games change no main level', () {
       final power = _session('w', 1, {ExerciseType.power: 1000});
       final after = mainLevelsAfter(

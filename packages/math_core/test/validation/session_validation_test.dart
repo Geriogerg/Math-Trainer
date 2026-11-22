@@ -1,6 +1,7 @@
 import 'package:math_core/leveling/level.dart';
 import 'package:math_core/leveling/level_updater.dart';
 import 'package:math_core/leveling/level_updates.dart';
+import 'package:math_core/models/game_setup.dart';
 import 'package:math_core/models/answer_result.dart';
 import 'package:math_core/models/exercise.dart';
 import 'package:math_core/models/exercise_type.dart';
@@ -28,6 +29,7 @@ SessionUpload honestGame({
   int count = 8,
   int? answered,
   int seed = 777,
+  SessionKind kind = SessionKind.game,
   ({int value, int ms}) Function(int i, Exercise q)? answer,
 }) {
   final types = {ExerciseType.addition, ExerciseType.multiplication};
@@ -41,6 +43,7 @@ SessionUpload honestGame({
     totalScore: 0,
     levels: levels ?? {for (final t in types) t: Level.floor},
     createdAt: createdAt,
+    kind: kind,
     typeSequence: [
       for (var i = 0; i < count; i++)
         i.isEven ? ExerciseType.addition : ExerciseType.multiplication,
@@ -177,6 +180,56 @@ void main() {
       final stale = honestGame(id: 's3', at: DateTime.utc(2026, 11, 20, 11, 6));
       final refused = validate(stale, state: first.newState) as Rejected;
       expect(refused.reason, RejectionReason.levelsMismatch);
+    });
+
+    group('Training', () {
+      Map<ExerciseType, Level> at(int whole) => {
+        ExerciseType.addition: Level.whole(whole),
+        ExerciseType.multiplication: Level.whole(whole),
+      };
+
+      test('accepted at a fixed difficulty, whatever the server levels; '
+          'no level moves', () {
+        final first = validate(honestGame()) as Accepted;
+        final training = honestGame(
+          id: 't1',
+          at: DateTime.utc(2026, 11, 20, 11, 5),
+          kind: SessionKind.training,
+          levels: at(TrainingDifficulty.hard.wholeLevel),
+        );
+        final result = validate(training, state: first.newState) as Accepted;
+        expect(result.completed, isTrue);
+        expect(result.levelUpdates, isEmpty);
+        expect(result.newState.levels, first.newState.levels);
+        // The chain goes on from the same levels.
+        final next = honestGame(
+          id: 's2',
+          at: DateTime.utc(2026, 11, 20, 11, 9),
+          levels: {
+            for (final t in [
+              ExerciseType.addition,
+              ExerciseType.multiplication,
+            ])
+              t: first.newState.levels[t]?.level ?? Level.floor,
+          },
+        );
+        expect(validate(next, state: result.newState), isA<Accepted>());
+      });
+
+      test('levels that are no difficulty, or two of them: refused', () {
+        for (final levels in [
+          at(41),
+          {
+            ExerciseType.addition: Level.whole(15),
+            ExerciseType.multiplication: Level.whole(40),
+          },
+        ]) {
+          final result =
+              validate(honestGame(kind: SessionKind.training, levels: levels))
+                  as Rejected;
+          expect(result.reason, RejectionReason.levelsMismatch);
+        }
+      });
     });
 
     test('interrupted: accepted, no level moves', () {

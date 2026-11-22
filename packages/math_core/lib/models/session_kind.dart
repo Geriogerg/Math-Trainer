@@ -18,9 +18,17 @@ enum SessionKind {
   /// The first game on never-played operations, played as a short
   /// placement on them (rules version 3, `typePlacementRules`; Phase 3a
   /// commit 7). Which operations: the session's `enabledTypes`.
-  typePlacementV3;
+  typePlacementV3,
 
-  bool get isPlacement => this != game;
+  /// A Training game (Redesign phase commit 3): questions like a game, at
+  /// the fixed level of its difficulty (`TrainingDifficulty`), frozen in the
+  /// session's levels for the replay. Never moves a level, never ranked.
+  training;
+
+  bool get isPlacement => switch (this) {
+    placementV1 || placementV2 || typePlacementV3 => true,
+    game || training => false,
+  };
 
   /// A placement on the session's own operations, rather than the four
   /// basic ones.

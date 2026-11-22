@@ -717,3 +717,15 @@ lifted for this phase.
   unchanged, on the new 30 s. The setup page comes with commit 5 (until then the stored or
   default setup applies). Pins: the timeout pin now says 30 s; the result golden's average
   time moved (a timeout counts 30 s).
+- **Commit 3** *(A)* — Training mode. Core: `SessionKind.training` (`isPlacement` now an
+  explicit switch); `GameMode` and `TrainingDifficulty` (levels 15 / 40 / 70) in `GameSetup`;
+  `NoLevelUpdates`; replay draws a Training game like a game at its frozen levels; the
+  server's validation accepts one difficulty for every operation, whatever the levels it
+  holds, and never updates a level (`levelsMismatch` otherwise); `mainLevelsAfter` skips it.
+  App: `buildTrainingController` (no server-level sync, no type placement, the setup's
+  questions per operation, shuffled by the seed); the setup store keeps mode and difficulty;
+  the result screen shows no level change after Training. Tests: validation (accepted with
+  other server levels and the chain goes on; refused off-difficulty or mixed), the level walk,
+  the store, and the app→server replay with a Training game in the middle (levels and counts
+  untouched). Dashboard views count `kind = 'game'`: Training stays out of them until
+  commit 9 decides what to show.

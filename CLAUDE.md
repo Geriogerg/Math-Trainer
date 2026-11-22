@@ -12,7 +12,7 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 
 **Redesign phase — Game modes and new interface** (`doc/plan.md`, section 7), run in **one
 pass**. Reference screens: `doc/mockups/redesign.html` — their layout and content are binding;
-colours, type and spacing come from `doc/design.md` and the theme. Done: 0, 1, 2.
+colours, type and spacing come from `doc/design.md` and the theme. Done: 0, 1, 2, 3.
 Update this block at every commit.
 
 **The beta-safety rule is lifted for this phase** (owner decision): this phase changes how
@@ -133,8 +133,9 @@ Non-negotiable without explicit discussion.
   The **main level** (`mainLevel`) is the mean of the four basics only; the main board keeps
   the server key `overall` (cached builds call it by that name).
 - **Sessions are self-contained**: everything deciding question order is stored with them.
-- **Session kinds**: game or placement. Placement answers become starting levels through a pure
-  core function.
+- **Session kinds**: game, placement, or training (fixed levels frozen in the session, no level
+  update — `NoLevelUpdates`; uploaded and validated, never ranked). Placement answers become
+  starting levels through a pure core function.
 - **Anonymous-first**: anonymous user created on first launch; linking keeps the same user id;
   email already used → sign in after a "guest progress replaced" warning, no merge; no sign-out
   for anonymous players; deletion via a `security definer` SQL function on `auth.uid()` only.

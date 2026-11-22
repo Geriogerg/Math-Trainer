@@ -1,5 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:math_core/leveling/level.dart';
 import 'package:math_core/models/exercise_type.dart';
+import 'package:math_core/models/game_setup.dart';
+import 'package:math_core/models/session_kind.dart';
 import 'package:math_core/persistence/in_memory_session_repository.dart';
 import 'package:math_core/sync/session_upload.dart';
 import 'package:math_core/validation/session_validation.dart';
@@ -53,11 +56,33 @@ void main() {
     ]) {
       await play(await buildSessionController(environment, types));
     }
+    // Training in between: the server accepts it, and the chain of levels
+    // goes on as if it had not been played.
+    final before = await repository.currentLevels('player');
+    await play(
+      await buildSessionController(
+        environment,
+        {ExerciseType.addition, ExerciseType.division},
+        setup: GameSetup(
+          questionsPerOperation: 4,
+          mode: GameMode.training,
+          difficulty: TrainingDifficulty.hard,
+        ),
+      ),
+    );
+    final afterTraining = await repository.currentLevels('player');
+    for (final type in ExerciseType.values) {
+      expect(afterTraining[type]?.level, before[type]?.level, reason: '$type');
+      expect(afterTraining[type]?.sessionsPlayed, before[type]?.sessionsPlayed);
+    }
+    final training = (await repository.recentSessions('player')).first;
+    expect(training.kind, SessionKind.training);
+    expect(training.levels.values.toSet(), {Level.whole(70)});
     await play(await buildSessionController(environment, all), stopAfter: 4);
 
     var state = ServerPlayerState.empty;
     final pending = await repository.pendingUploads('player');
-    expect(pending, hasLength(6));
+    expect(pending, hasLength(7));
     for (final session in pending) {
       final upload = SessionUpload(
         session: session,

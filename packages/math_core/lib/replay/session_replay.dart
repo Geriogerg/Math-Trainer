@@ -41,6 +41,8 @@ List<Exercise> replaySessionQuestions(
   }
   switch (session.kind) {
     case SessionKind.game:
+    case SessionKind.training:
+      // Training draws exactly like a game, at its frozen fixed levels.
       return _replayGame(session, answers.length);
     case SessionKind.placementV1:
     case SessionKind.placementV2:

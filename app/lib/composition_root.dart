@@ -13,10 +13,12 @@ import 'package:math_core/generation/fixed_type_sequence.dart';
 import 'package:math_core/generation/local_exercise_source.dart';
 import 'package:math_core/generation/question_plan.dart';
 import 'package:math_core/leveling/level.dart';
+import 'package:math_core/leveling/level_cache_orchestrator.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/models/game_setup.dart';
 import 'package:math_core/persistence/game_setup_store.dart';
 import 'package:math_core/models/session_config.dart';
+import 'package:math_core/models/session_kind.dart';
 import 'package:math_core/persistence/level_cache_entry.dart';
 import 'package:math_core/persistence/local_player_id_provider.dart';
 import 'package:math_core/leaderboard/leaderboard.dart';
@@ -370,6 +372,9 @@ Future<SessionController> buildSessionController(
   GameSetup? setup,
 }) async {
   final plan = setup ?? GameSetup();
+  if (plan.mode == GameMode.training) {
+    return buildTrainingController(environment, enabledTypes, plan);
+  }
   // A game starts from the server's levels when every local session is
   // settled: after a game on another device, the local ones are behind and
   // this game would be refused (plan v2.3, Phase 3a commit 2). At most 2 s;
@@ -424,6 +429,51 @@ Future<SessionController> buildSessionController(
       ),
       seed: seed,
     ),
+    repository: environment.repository,
+    playerId: environment.playerId,
+    correctionDelay: SessionController.defaultCorrectionDelay,
+    appVersion: appVersion,
+    questionTimeout: questionTimeoutFor(
+      isDebugBuild: kDebugMode,
+      noTimeoutRequested: _debugNoTimeout,
+    ),
+  );
+}
+
+/// A Training game (plan v2.9): every operation at the fixed level of
+/// [setup]'s difficulty, frozen in the session for the replay; its own
+/// session kind; no level update ([NoLevelUpdates]), so no reason to wait
+/// for the server's levels or to place a never-played operation first.
+SessionController buildTrainingController(
+  AppEnvironment environment,
+  Set<ExerciseType> enabledTypes,
+  GameSetup setup,
+) {
+  final seed = DateTime.now().millisecondsSinceEpoch;
+  final levels = {for (final t in enabledTypes) t: setup.difficulty.level};
+  final typeSequence = shuffledTypeSequence(
+    types: enabledTypes,
+    perOperation: setup.questionsPerOperation,
+    seed: seed,
+  );
+  return SessionController(
+    config: SessionConfig(
+      seed: seed,
+      enabledTypes: enabledTypes,
+      exerciseCount: typeSequence.length,
+      levels: levels,
+      kind: SessionKind.training,
+      typeSequence: typeSequence,
+    ),
+    exerciseSource: LocalExerciseSource(
+      generator: CompositeExerciseGenerator(
+        enabledTypes: enabledTypes,
+        levels: levels,
+        strategy: FixedTypeSequence(typeSequence),
+      ),
+      seed: seed,
+    ),
+    levelCacheOrchestrator: const NoLevelUpdates(),
     repository: environment.repository,
     playerId: environment.playerId,
     correctionDelay: SessionController.defaultCorrectionDelay,

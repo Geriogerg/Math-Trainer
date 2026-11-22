@@ -147,6 +147,13 @@ beta-safety rule".
 - **Day/night toggle moves to Profile**: the mockups' Home has the level badge in that corner.
 - **A never-played operation shows level 1** on Home, as the mockups' ∫ does (the kit used to
   show a dash): it is the level that counts in the main level.
+- **Training's levels** are the plan's proposal, 15 / 40 / 70 for every operation
+  (`TrainingDifficulty`). Training games are **uploaded and validated** like games (replayed
+  at their frozen levels; the server checks they are one difficulty for every operation) and
+  never touch a level or a board; they count as activity (the 30-day window) and as a
+  completed session (a later full placement is refused, as after any game). Why upload: the
+  owner's data stays whole, and the replay costs nothing. The default mode is **Levelling**,
+  the game as it was.
 - **Correction pause without words**: the wrong answer is shown struck through under the right
   one, a timeout as an hourglass icon, instead of "Your answer: 54" / "Time's up".
 
