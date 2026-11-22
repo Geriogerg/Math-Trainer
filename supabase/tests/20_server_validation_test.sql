@@ -134,3 +134,22 @@ begin
     where player_id = '00000000-0000-0000-0000-0000000000c1'), 'rejections survived';
 end;
 $$;
+
+-- The rules version (Levels phase commit 0) is read from the payload:
+-- absent = 1.
+do $$
+begin
+  insert into public.uploaded_sessions (id, player_id, created_at, kind, payload, completed)
+  values
+    ('10000000-0000-0000-0000-0000000000f1', '00000000-0000-0000-0000-0000000000c2',
+     '2026-11-25T10:00:00Z', 'game', '{"session": {"rulesVersion": 2}}', true),
+    ('10000000-0000-0000-0000-0000000000f2', '00000000-0000-0000-0000-0000000000c2',
+     '2026-11-25T10:00:00Z', 'game', '{"session": {}}', true);
+  assert (select rules_version from public.uploaded_sessions
+          where id = '10000000-0000-0000-0000-0000000000f1') = 2, 'rules v2';
+  assert (select rules_version from public.uploaded_sessions
+          where id = '10000000-0000-0000-0000-0000000000f2') = 1, 'absent = v1';
+  delete from public.uploaded_sessions
+  where id in ('10000000-0000-0000-0000-0000000000f1', '10000000-0000-0000-0000-0000000000f2');
+end;
+$$;

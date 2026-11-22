@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:math_core/leveling/level.dart';
+import 'package:math_core/leveling/rules_version.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/models/session_kind.dart';
 import 'package:math_core/persistence/persisted_session.dart';
@@ -39,5 +40,9 @@ PersistedSession sessionFromRow(Map<String, Object?> row) {
           ],
     uploadRefused: row['upload_refused'] as String?,
     appVersion: row['app_version'] as String?,
+    rulesVersion: switch (row['rules_version']) {
+      final int number => RulesVersion.of(number),
+      _ => RulesVersion.v1,
+    },
   );
 }

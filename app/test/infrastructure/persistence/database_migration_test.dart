@@ -1,4 +1,6 @@
+import 'package:math_core/leveling/rules_version.dart';
 import 'package:math_trainer/infrastructure/persistence/database.dart';
+import 'package:math_trainer/infrastructure/persistence/session_rows.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:test/test.dart';
 
@@ -359,6 +361,18 @@ void main() {
     expect(
       {for (final row in await db.query('answers')) row['input_device']},
       {null},
+    );
+    // And v10: everything before was played under rules v1.
+    expect(
+      [for (final row in await db.query('sessions')) row['rules_version']],
+      [null, null],
+    );
+    expect(
+      [
+        for (final row in await db.query('sessions'))
+          sessionFromRow(row).rulesVersion,
+      ],
+      [RulesVersion.v1, RulesVersion.v1],
     );
     expect(await db.getVersion(), schemaVersion);
 

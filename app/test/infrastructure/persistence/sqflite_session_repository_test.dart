@@ -1,4 +1,5 @@
 import 'package:math_core/leveling/level.dart';
+import 'package:math_core/leveling/rules_version.dart';
 import 'package:math_core/persistence/level_cache_entry.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/models/input_device.dart';
@@ -235,6 +236,28 @@ void main() {
 
       expect((await repository.recentSessions('player-1')).single, played);
       expect(await repository.answersForSession('v8'), answers);
+    });
+
+    test('the rules version round-trips (schema v10)', () async {
+      final played = PersistedSession(
+        id: 'v10',
+        playerId: 'player-1',
+        seed: 42,
+        enabledTypes: const {ExerciseType.addition},
+        exerciseCount: 4,
+        totalScore: 0,
+        levels: {ExerciseType.addition: Level.whole(4)},
+        createdAt: DateTime.utc(2026, 11, 23),
+        rulesVersion: RulesVersion.v2,
+      );
+      await repository.recordSession(
+        session: played,
+        answers: const [],
+        levelUpdates: const {},
+      );
+      final stored = (await repository.recentSessions('player-1')).single;
+      expect(stored.rulesVersion, RulesVersion.v2);
+      expect(stored, played);
     });
 
     test('answers come back in the order they were stored', () async {

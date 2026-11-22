@@ -469,6 +469,7 @@ class SessionController extends ChangeNotifier {
       kind: config.kind,
       typeSequence: config.typeSequence,
       appVersion: appVersion,
+      rulesVersion: config.rulesVersion,
     );
 
     await _record((

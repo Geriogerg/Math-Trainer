@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:math_core/leveling/level.dart';
+import 'package:math_core/leveling/rules_version.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/models/input_device.dart';
 import 'package:math_core/models/session_kind.dart';
@@ -211,6 +212,19 @@ void main() {
       final back = SessionUpload.fromJson(j);
       expect(back.session.appVersion, isNull);
       expect(back.answers.map((a) => a.inputDevice), everyElement(isNull));
+    });
+
+    test('the rules version: sent, absent means v1, unknown refused', () {
+      final j = upload();
+      expect((j['session']! as Map)['rulesVersion'], 1);
+      (j['session']! as Map)['rulesVersion'] = 2;
+      expect(SessionUpload.fromJson(j).session.rulesVersion, RulesVersion.v2);
+      (j['session']! as Map).remove('rulesVersion');
+      expect(SessionUpload.fromJson(j).session.rulesVersion, RulesVersion.v1);
+      for (final version in <Object>[0, 99, '2']) {
+        (j['session']! as Map)['rulesVersion'] = version;
+        expect(() => SessionUpload.fromJson(j), throwsFormatException);
+      }
     });
 
     test('refuses an unknown device or a malformed version', () {

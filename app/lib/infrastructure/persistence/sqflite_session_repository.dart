@@ -270,6 +270,7 @@ class SqfliteSessionRepository implements SessionRepository {
       'created_at': session.createdAt.toIso8601String(),
       'synced_at': session.syncedAt?.toIso8601String(),
       'app_version': session.appVersion,
+      'rules_version': session.rulesVersion.number,
     };
   }
 

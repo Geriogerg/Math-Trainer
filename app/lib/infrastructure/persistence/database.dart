@@ -13,7 +13,7 @@ import 'session_rows.dart';
 
 /// Current schema version. Every change increments this value and adds a
 /// branch in [_onUpgrade] — never destructive, never retroactive.
-const schemaVersion = 9;
+const schemaVersion = 10;
 
 /// The app's database, where each platform expects it. On web: same schema
 /// and same SQL as elsewhere, SQLite compiled to WebAssembly
@@ -67,7 +67,9 @@ Future<Database> openMathTrainerDatabase(String path) {
           -- NULL: accepted (`synced_at` set) or still to upload.
           upload_refused TEXT,
           -- The build that played it (schema v8): commit or 'dev'.
-          app_version TEXT
+          app_version TEXT,
+          -- `RulesVersion.number` (schema v10); NULL: before, i.e. 1.
+          rules_version INTEGER
         )
       ''');
       await db.execute('''
@@ -155,6 +157,11 @@ Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     // Redesign phase commit 1: the main level (four basics) replaces the
     // seven-type overall level in every stored point of the Profile curve.
     await recomputeMainLevels(db);
+  }
+  if (oldVersion < 10) {
+    // Levels phase commit 0 (`doc/levels.md`, section 4): the rules each
+    // session was played under. NULL for everything before: rules v1.
+    await db.execute('ALTER TABLE sessions ADD COLUMN rules_version INTEGER');
   }
 }
 

@@ -1,4 +1,5 @@
 import '../leveling/level.dart';
+import '../leveling/rules_version.dart';
 import '../models/exercise_type.dart';
 import '../models/input_device.dart';
 import '../models/session_kind.dart';
@@ -12,7 +13,8 @@ import '../placement/placement.dart';
 ///
 /// Optional, added after Phase 3a without a new [formatVersion]: the app
 /// version and each answer's input device — absent from sessions stored
-/// before (schema v8), ignored by an older server.
+/// before (schema v8), ignored by an older server. `rulesVersion` (Levels
+/// phase): absent means [RulesVersion.v1].
 ///
 /// Not uploaded: the score and the overall level after (the server
 /// computes what counts), `syncedAt` (the server's to set).
@@ -57,6 +59,7 @@ class SessionUpload {
       'typeSequence': [for (final t in _typeSequenceOf(session)) t.name],
       'createdAt': session.createdAt.toIso8601String(),
       'appVersion': ?session.appVersion,
+      'rulesVersion': session.rulesVersion.number,
     },
     'answers': [
       for (final a in answers)
@@ -108,6 +111,9 @@ class SessionUpload {
           for (final name in _list(s, 'typeSequence')) _type(name),
         ],
         appVersion: _optionalString(s, 'appVersion'),
+        rulesVersion: s['rulesVersion'] == null
+            ? RulesVersion.v1
+            : RulesVersion.of(_int(s, 'rulesVersion')),
       );
       final answers = [
         for (final (i, raw) in _list(root, 'answers').indexed)

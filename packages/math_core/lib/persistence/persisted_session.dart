@@ -1,4 +1,5 @@
 import '../leveling/level.dart';
+import '../leveling/rules_version.dart';
 import '../models/exercise_type.dart';
 import '../models/session_kind.dart';
 
@@ -21,6 +22,7 @@ class PersistedSession {
     this.typeSequence,
     this.uploadRefused,
     this.appVersion,
+    this.rulesVersion = RulesVersion.v1,
   }) {
     final version = appVersion;
     if (version != null &&
@@ -111,6 +113,10 @@ class PersistedSession {
 
   static const maxAppVersionLength = 40;
 
+  /// The rules it was played under (schema v10, `doc/levels.md` section
+  /// 4). Sessions stored before have none: [RulesVersion.v1].
+  final RulesVersion rulesVersion;
+
   PersistedSession copyWith({
     String? playerId,
     Object? syncedAt = _unset,
@@ -135,6 +141,7 @@ class PersistedSession {
           ? this.uploadRefused
           : uploadRefused as String?,
       appVersion: appVersion,
+      rulesVersion: rulesVersion,
     );
   }
 
@@ -182,7 +189,8 @@ class PersistedSession {
       other.kind == kind &&
       other._typeSequenceEqual(typeSequence) &&
       other.uploadRefused == uploadRefused &&
-      other.appVersion == appVersion;
+      other.appVersion == appVersion &&
+      other.rulesVersion == rulesVersion;
 
   @override
   int get hashCode => Object.hash(
@@ -204,5 +212,6 @@ class PersistedSession {
     typeSequence == null ? null : Object.hashAll(typeSequence!),
     uploadRefused,
     appVersion,
+    rulesVersion,
   );
 }

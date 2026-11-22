@@ -851,3 +851,20 @@ Plan v3.0 (22 Nov 2026), one commit, run at the start of the Levels phase (its e
   placement test and a timeout scaled to the level, which `doc/levels.md` drops; section 6.4
   says "one overall board" (the main board since v2.9); Phase 6's entry does not list the
   Levels phase.
+
+## Levels phase — new level system, tables mode, tips
+
+Plan v3.1 (23 Nov 2026), specification `doc/levels.md` v1 (binding). The beta-safety rule stays
+lifted. The new rules are built as **rules v2** next to v1 through commits 1–3; commit 4 makes
+new games use them, together with the reset (`doc/decisions.md`).
+
+- **Commit 0** *(A)* — Decisions and the rules version. `doc/decisions.md`: the owner's level
+  system recorded, the entries it supersedes marked, the gaps filled (rules version, v2 built
+  alongside, late v1 uploads refused after the transition). Core: `RulesVersion` (v1, v2;
+  stored numbers; `current` = v1 until commit 4) on `SessionConfig` and `PersistedSession`,
+  the upload's optional `rulesVersion` (absent = v1, unknown refused). A v2 session does not
+  replay yet (`SessionNotReplayable`) — so the server refuses one until commit 4. App: schema
+  v10 `sessions.rules_version` (NULL = v1), written by the session controller. SQL
+  (`20261125000000_rules_version.sql`): `uploaded_sessions.rules_version`, read from the stored
+  payload (absent = 1), so no write path changes. Tests: enum, codec, replay gate, SQLite
+  round-trip and v10 migration, SQL column.

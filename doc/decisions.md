@@ -99,6 +99,36 @@ of the phase. Stops only where necessary — the hard stops of `CLAUDE.md`, or a
 proceed without the owner (then parked, the rest continues).
 **Reopen when** a phase shows that end-of-phase review lets a wrong direction run too long.
 
+## Levels phase — owner decisions (plan v3.1, `doc/levels.md` v1, 23 Nov 2026)
+
+The level system is specified by the owner in `doc/levels.md` (binding, never edited by Claude
+Code); this section only records it and the gaps filled. In short: everyone starts at level 0
+(0–100, hundredths); ten tiers per operation decide the content and the fluent time; a game
+moves each operation by its quality `q` (credit 1 fluent, 0.75 slow, 0 wrong or timeout), dead
+band 0.55–0.65, at most +3/+3/+4/+5 (4/5/10/20 questions) and −2; no placement; all levels reset
+to 0 at the transition, history kept, boards fresh; Training Easy/Medium/Hard = T1/T4/T7; a
+rules version stored with every session; a Tables mode and a Tips page.
+
+**Supersedes**: "Leveling parameters — starting values", "The level step is weighted by answer
+volume", "`n_min` from 8 to 4", "One difficulty axis at a time" (operand curves), "Placement
+test" and its version 2, the type placement, "Overall level: unplayed types count as 1" and the
+Redesign's "a never-played operation shows level 1" (now 0, the floor). Kept: levels in integer
+hundredths, frozen at the start, never decaying, recomputable, replayed by the server.
+
+### Gaps filled by Claude Code — provisional, for the owner to confirm
+
+- **The rules version** is an enum stored with each session (`RulesVersion`: v1 = everything
+  before, v2 = `doc/levels.md`): app schema v10 `sessions.rules_version` (NULL = v1), the
+  upload's `rulesVersion` (absent = v1), and on the server a column read from the stored payload.
+  **v2 is built alongside v1** through commits 1–3 and becomes the one new games use at commit 4,
+  the transition: every intermediate build deployed to testers plays exactly as before, and the
+  switch, the reset and the new content arrive together.
+- **A rules-v1 session uploaded after the transition is refused** (`rulesRetired`), not
+  validated: it was played on levels that no longer exist, so it can move nothing, and keeping
+  the whole v1 machinery alive only to store it would contradict principle 5 of the spec. It stays
+  in the player's local history like any refused session. Played-and-pending v1 sessions are rare
+  (a game finished offline before the update).
+
 ## Redesign phase — owner decisions (plan v2.9, 22 Nov 2026)
 
 Decided by the owner in the plan; recorded here with their reason so they are not re-argued.
@@ -250,6 +280,8 @@ measures nothing and must never be shown as a reward**.
 
 ## Leveling parameters — starting values
 
+*Superseded by the Levels phase (`doc/levels.md`), above.*
+
 **Not calibrated.** They come from a simulator built on a logistic performance curve, not from real
 data. To be recalibrated by replaying history (`tool/recalibrate.dart`, Phase 3) — the intended use
 of per-answer storage.
@@ -278,6 +310,8 @@ slightly positive mean bias (expected from `K_haut > K_bas`, harmless to fairnes
 to everyone equally).
 
 ## One difficulty axis at a time
+
+*Superseded by the Levels phase (`doc/levels.md`), above.*
 
 Difficulty derives from the level through operand size. **Do not vary operand size and allotted
 time together**: the effects would compound into a brutal curve mid-scale, hard to diagnose. (The
@@ -314,6 +348,8 @@ through inactivity.
 
 ## The level step is weighted by answer volume
 
+*Superseded by the Levels phase (`doc/levels.md`), above.*
+
 The formula used a pure mean: 16 additions at 85 % and 4 additions at 85 % moved the level
 exactly the same. Counter-intuitive (focusing on one operation should make it progress faster) and
 a perverse incentive (enable many types, play minimal sessions).
@@ -324,6 +360,8 @@ variable K applied to sample size. Side effect: small-session noise is damped, a
 sessions give about the same result as a long one.
 
 ## `n_min` from 8 to 4 — coupled to `δ`
+
+*Superseded by the Levels phase (`doc/levels.md`), above.*
 
 Product reason: 8 answers per operation made the minimal session too long. At 4, a single-type
 session lasts about thirty seconds, which makes the "play, replay" loop viable.
@@ -407,6 +445,8 @@ number goes up); Profile shows a continuous bar per operation. Phase 1's provisi
 **Reopen when** Phase 3 recalibrates the constants.
 
 ## Placement test (Phase 1, commit 6)
+
+*Superseded by the Levels phase (`doc/levels.md`), above.*
 
 24 questions, the four basic operations in turn, one **staircase** per operation (6 answers
 each): a pass (right **and** within the time limit) moves the level up by the step, a fail
@@ -587,6 +627,8 @@ game and made switching from addition to multiplication look like a level drop.
 ## Overall level: unplayed types count as 1
 
 *Superseded in part or whole by the Redesign phase (plan v2.9), above.*
+
+*Superseded by the Levels phase (`doc/levels.md`), above.*
 
 The overall level averages all seven types, an unplayed type counting as 1 (not 0, outside the
 valid `[1, 100]` range of `LevelCacheEntry`). Averaging only played types inflated the overall level

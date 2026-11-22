@@ -1,4 +1,5 @@
 import '../leveling/level.dart';
+import '../leveling/rules_version.dart';
 import 'exercise_type.dart';
 import 'session_kind.dart';
 
@@ -10,6 +11,7 @@ class SessionConfig {
     required this.levels,
     this.kind = SessionKind.game,
     this.typeSequence,
+    this.rulesVersion = RulesVersion.current,
   });
 
   final int seed;
@@ -31,4 +33,8 @@ class SessionConfig {
   /// alone (plan, Phase 2 commit 1). `null` only where no session is
   /// stored from this config (tests, the endless stream).
   final List<ExerciseType>? typeSequence;
+
+  /// The rules this session is generated and scored under (`doc/levels.md`,
+  /// section 4), stored with it.
+  final RulesVersion rulesVersion;
 }

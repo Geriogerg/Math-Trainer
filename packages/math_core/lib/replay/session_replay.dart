@@ -2,6 +2,7 @@ import 'dart:math';
 
 import '../generation/composite_exercise_generator.dart';
 import '../generation/fixed_type_sequence.dart';
+import '../leveling/rules_version.dart';
 import '../models/exercise.dart';
 import '../models/session_kind.dart';
 import '../persistence/persisted_session.dart';
@@ -38,6 +39,13 @@ List<Exercise> replaySessionQuestions(
     throw SessionNotReplayable(
       '${answers.length} answers for ${session.exerciseCount} questions',
     );
+  }
+  switch (session.rulesVersion) {
+    case RulesVersion.v1:
+      break;
+    case RulesVersion.v2:
+      // Built through the Levels phase; playable from its commit 4.
+      throw const SessionNotReplayable('rules v2 are not playable yet');
   }
   switch (session.kind) {
     case SessionKind.game:
