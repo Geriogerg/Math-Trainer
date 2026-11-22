@@ -154,6 +154,12 @@ beta-safety rule".
   completed session (a later full placement is refused, as after any game). Why upload: the
   owner's data stays whole, and the replay costs nothing. The default mode is **Levelling**,
   the game as it was.
+- **Integrals' difficulty** (uncalibrated, like every type): the antiderivative's degree 2 → up
+  to 4, its leading coefficient 1 → 4, its other coefficients 0 → 3, the lower bound 0 → 3,
+  the width 1–3 → 1–4, from level 1 to 100 (`IntegralDifficulty`). Level 1 is `∫₀ᵇ 2x dx`,
+  b ≤ 3; the largest answers stay under 7 typed digits. Their type placement uses the same
+  pass time as every type (3 s, the level update's own speed scale). Structural features:
+  the bounds, like a power's base. Phase 3b calibrates all of it.
 - **Correction pause without words**: the wrong answer is shown struck through under the right
   one, a timeout as an hourglass icon, instead of "Your answer: 54" / "Time's up".
 

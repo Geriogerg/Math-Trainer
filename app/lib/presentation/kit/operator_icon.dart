@@ -3,7 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:math_core/models/exercise_type.dart';
 
 /// The operator icon family (Phase 5 commit 3, `doc/plan.md` section 6.2):
-/// + − × ÷ x² √ % drawn as one family — same stroke, round caps, the same
+/// + − × ÷ x² √ % ∫ drawn as one family — same stroke, round caps, the same
 /// box — in the accent colour. Used on the type chips, the Profile's rows
 /// and the leaderboard's boards; the favicon and the web app icons are
 /// rendered from the same painter (`tool/icons/render_web_icons_test.dart`).
@@ -105,6 +105,14 @@ class OperatorIconPainter extends CustomPainter {
         line(0.78, 0.2, 0.22, 0.8);
         canvas.drawCircle(const Offset(0.3, 0.3), 0.1, stroke);
         canvas.drawCircle(const Offset(0.7, 0.7), 0.1, stroke);
+      case ExerciseType.integral:
+        // The long s: a hook at each end of one stroke.
+        final sign = Path()
+          ..moveTo(0.72, 0.20)
+          ..cubicTo(0.66, 0.08, 0.50, 0.10, 0.50, 0.28)
+          ..lineTo(0.50, 0.72)
+          ..cubicTo(0.50, 0.90, 0.34, 0.92, 0.28, 0.80);
+        canvas.drawPath(sign, stroke);
     }
     canvas.restore();
   }

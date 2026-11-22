@@ -253,6 +253,7 @@ StrategyMove? bestStrategy(Exercise exercise) => switch (exercise) {
   PowerExercise(:final base, :final exponent) =>
     exponent == 2 ? _squareNearBase(base) : null,
   SquareRootExercise() => null,
+  IntegralExercise() => null,
   PercentageExercise(:final percent, :final base) => _swapPercentage(
     percent,
     base,

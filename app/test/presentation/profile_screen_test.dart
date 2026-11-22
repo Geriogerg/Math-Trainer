@@ -274,7 +274,7 @@ void main() {
   });
 
   testWidgets(
-    'shows the 7 types, one known level and "Not played" for the others',
+    'shows every type, one known level and "Not played" for the others',
     (WidgetTester tester) async {
       await setTallSurface(tester);
       final repository = InMemorySessionRepository();
@@ -314,7 +314,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(findLevelBadge(42), findsOneWidget);
-      expect(find.text('Not played'), findsNWidgets(6));
+      expect(
+        find.text('Not played'),
+        findsNWidgets(ExerciseType.values.length - 1),
+      );
       for (final type in ExerciseType.values) {
         expect(find.text(_labelFor(type)), findsOneWidget);
       }
@@ -345,7 +348,10 @@ void main() {
 
       await pump(false);
       await tester.pumpAndSettle();
-      expect(find.text('Not played'), findsNWidgets(7));
+      expect(
+        find.text('Not played'),
+        findsNWidgets(ExerciseType.values.length),
+      );
 
       await repository.recordSession(
         session: PersistedSession(
@@ -371,14 +377,20 @@ void main() {
       // Still inactive: no reload, the view stays the one from before the session.
       await pump(false);
       await tester.pumpAndSettle();
-      expect(find.text('Not played'), findsNWidgets(7));
+      expect(
+        find.text('Not played'),
+        findsNWidgets(ExerciseType.values.length),
+      );
 
       // Inactive → active transition: didUpdateWidget must restart the load.
       await pump(true);
       await tester.pumpAndSettle();
 
       expect(findLevelBadge(42), findsOneWidget);
-      expect(find.text('Not played'), findsNWidgets(6));
+      expect(
+        find.text('Not played'),
+        findsNWidgets(ExerciseType.values.length - 1),
+      );
     },
   );
 
@@ -832,4 +844,5 @@ String _labelFor(ExerciseType type) => switch (type) {
   ExerciseType.power => 'Powers',
   ExerciseType.squareRoot => 'Square roots',
   ExerciseType.percentage => 'Percentages',
+  ExerciseType.integral => 'Integrals',
 };

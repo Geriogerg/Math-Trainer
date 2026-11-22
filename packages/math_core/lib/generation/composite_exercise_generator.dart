@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import '../difficulty/arithmetic_difficulty.dart';
+import '../difficulty/integral_difficulty.dart';
 import '../difficulty/percentage_difficulty.dart';
 import '../difficulty/power_difficulty.dart';
 import '../difficulty/square_root_difficulty.dart';
@@ -9,6 +10,7 @@ import '../models/exercise.dart';
 import '../models/exercise_type.dart';
 import 'arithmetic_generator.dart';
 import 'exercise_generator.dart';
+import 'integral_generator.dart';
 import 'percentage_generator.dart';
 import 'power_generator.dart';
 import 'square_root_generator.dart';
@@ -110,5 +112,8 @@ ExerciseGenerator exerciseGeneratorFor(ExerciseType type, int level) =>
       ),
       ExerciseType.percentage => PercentageExerciseGenerator(
         percentRange: percentageDifficulty.percentRangeFor(level),
+      ),
+      ExerciseType.integral => IntegralExerciseGenerator(
+        bounds: integralDifficulty.boundsFor(level),
       ),
     };

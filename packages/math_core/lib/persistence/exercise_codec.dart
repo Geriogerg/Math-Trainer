@@ -39,5 +39,18 @@ ExerciseStorageDescription describeExerciseForStorage(Exercise exercise) {
       operationType: ExerciseType.percentage.name,
       operands: {'percent': exercise.percent, 'base': exercise.base},
     ),
+    // Every coefficient, zeros included: one shape for every integral.
+    IntegralExercise() => (
+      exerciseType: ExerciseType.integral.name,
+      operationType: ExerciseType.integral.name,
+      operands: {
+        'lower': exercise.lower,
+        'upper': exercise.upper,
+        'c0': exercise.c0,
+        'c1': exercise.c1,
+        'c2': exercise.c2,
+        'c3': exercise.c3,
+      },
+    ),
   };
 }

@@ -15,7 +15,10 @@ enum ExerciseType {
   division(OperationType.division),
   power(null),
   squareRoot(null),
-  percentage(null);
+  percentage(null),
+
+  /// Area under a small polynomial (Redesign phase commit 4).
+  integral(null);
 
   const ExerciseType(this.operationType);
 

@@ -36,6 +36,14 @@ void main() {
           exponent: operands['exponent']!,
         ),
         'squareRoot' => SquareRootExercise(radicand: operands['radicand']!),
+        'integral' => IntegralExercise(
+          lower: operands['lower']!,
+          upper: operands['upper']!,
+          c0: operands['c0']!,
+          c1: operands['c1']!,
+          c2: operands['c2']!,
+          c3: operands['c3']!,
+        ),
         'percentage' => PercentageExercise(
           percent: operands['percent']!,
           base: operands['base']!,

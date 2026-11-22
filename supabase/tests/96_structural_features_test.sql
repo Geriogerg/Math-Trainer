@@ -27,7 +27,9 @@ begin
     ('power', '{"base": 9, "exponent": 3}', 0, 0, 1, null),
     ('squareRoot', '{"radicand": 1369}', 0, 0, 2, 1),
     ('percentage', '{"percent": 25, "base": 80}', 0, 0, 1, 0),
-    ('percentage', '{"percent": 8, "base": 25}', 0, 0, 1, 5)
+    ('percentage', '{"percent": 8, "base": 25}', 0, 0, 1, 5),
+    ('integral', '{"lower": 0, "upper": 3, "c0": 0, "c1": 2, "c2": 0, "c3": 0}', 0, 0, 0, null),
+    ('integral', '{"lower": 2, "upper": 16, "c0": 6, "c1": 8, "c2": 9, "c3": 0}', 0, 0, 1, 4)
   ) as t(operation, operands, carries, borrows, big_digits, round_distance) loop
     select * into f from owner_dashboard.structural_features(c.operation, c.operands::jsonb);
     assert f.carries = c.carries and f.borrows = c.borrows

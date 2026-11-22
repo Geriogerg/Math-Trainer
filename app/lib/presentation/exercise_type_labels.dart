@@ -8,4 +8,5 @@ String exerciseTypeLabel(ExerciseType type) => switch (type) {
   ExerciseType.power => 'Powers',
   ExerciseType.squareRoot => 'Square roots',
   ExerciseType.percentage => 'Percentages',
+  ExerciseType.integral => 'Integrals',
 };

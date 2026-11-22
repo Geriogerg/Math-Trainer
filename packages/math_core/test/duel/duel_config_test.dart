@@ -89,7 +89,7 @@ void main() {
     for (final type in ExerciseType.values) {
       expect(
         sequence.where((t) => t == type).length,
-        standardDuelQuotas[type],
+        standardDuelQuotas[type] ?? 0,
         reason: type.name,
       );
     }

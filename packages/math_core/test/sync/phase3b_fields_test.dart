@@ -25,6 +25,7 @@ void main() {
     ExerciseType.power: {'base', 'exponent'},
     ExerciseType.squareRoot: {'radicand'},
     ExerciseType.percentage: {'percent', 'base'},
+    ExerciseType.integral: {'lower', 'upper', 'c0', 'c1', 'c2', 'c3'},
   };
 
   test('every operation uploads operation, level, time, correctness, '

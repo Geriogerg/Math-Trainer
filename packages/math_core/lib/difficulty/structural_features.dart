@@ -71,6 +71,8 @@ StructuralFeatures structuralFeatures(Exercise exercise) {
     PowerExercise(:final base) => ([base], 0, 0),
     SquareRootExercise(:final radicand) => ([radicand], 0, 0),
     PercentageExercise(:final percent, :final base) => ([percent, base], 0, 0),
+    // The bounds: what is raised to powers. Coefficients are small.
+    IntegralExercise(:final lower, :final upper) => ([lower, upper], 0, 0),
   };
   int? distance;
   for (final n in operands) {

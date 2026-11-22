@@ -112,6 +112,7 @@ These characters are non-negotiable — the hyphen and the caret are forbidden.
 | Power | full-size base, raised exponent at ~55 % of the size, never `^` |
 | Square root | `√` with a **horizontal bar over the radicand** — without it, `√169` reads `√1` then `69` |
 | Percentage | `25% of 80` — the word is kept |
+| Integral | `∫` (1.33× the operation's size) with the upper bound top and the lower bottom (0.36×), the polynomial highest power first with raised exponents (0.83×), then `dx`; scaled down as a whole when too wide |
 
 The exponent is rendered with `Text.rich`: one `TextSpan` for the base, a raised and reduced span
 for the exponent. The root bar is a plain `Border(top:)` on the radicand.

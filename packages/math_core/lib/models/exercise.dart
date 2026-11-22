@@ -131,3 +131,85 @@ final class PercentageExercise extends Exercise {
   @override
   int get hashCode => Object.hash(percent, base);
 }
+
+/// The area under `p(x) = c0 + c1·x + c2·x² + c3·x³` between [lower] and
+/// [upper] (Redesign phase commit 4): `∫ₐᵇ p(x) dx`. Built backwards
+/// (rule 10): every `ck` is a multiple of `k + 1`, so p is the derivative of
+/// an antiderivative F with whole coefficients and the answer F(b) − F(a)
+/// is a whole number; every coefficient and [lower] are non-negative, so
+/// p ≥ 0 on the interval and the integral is an area. Checked here by
+/// `throw` (rule 13) — a stored or uploaded question is rebuilt through
+/// this constructor too.
+final class IntegralExercise extends Exercise {
+  IntegralExercise({
+    required this.lower,
+    required this.upper,
+    required this.c0,
+    required this.c1,
+    required this.c2,
+    required this.c3,
+  }) {
+    if (lower < 0 || upper <= lower) {
+      throw ArgumentError.value(
+        (lower, upper),
+        'lower, upper',
+        'must satisfy 0 <= lower < upper.',
+      );
+    }
+    final coefficients = [c0, c1, c2, c3];
+    for (var k = 0; k < coefficients.length; k++) {
+      if (coefficients[k] < 0 || coefficients[k] % (k + 1) != 0) {
+        throw ArgumentError.value(
+          coefficients[k],
+          'c$k',
+          'must be a non-negative multiple of ${k + 1}.',
+        );
+      }
+    }
+    if (coefficients.every((c) => c == 0)) {
+      throw ArgumentError.value(coefficients, 'coefficients', 'all zero.');
+    }
+  }
+
+  final int lower;
+  final int upper;
+  final int c0;
+  final int c1;
+  final int c2;
+  final int c3;
+
+  /// p's coefficients, `x⁰` first.
+  List<int> get coefficients => [c0, c1, c2, c3];
+
+  @override
+  ExerciseType get type => ExerciseType.integral;
+
+  /// F(upper) − F(lower), with F(x) = Σ ck / (k+1) · x^(k+1): integers
+  /// only (rule 18), each `ck / (k+1)` exact by construction.
+  @override
+  int get correctAnswer => _antiderivative(upper) - _antiderivative(lower);
+
+  int _antiderivative(int x) {
+    var sum = 0;
+    var power = x; // x^(k+1)
+    final cs = coefficients;
+    for (var k = 0; k < cs.length; k++) {
+      sum += cs[k] ~/ (k + 1) * power;
+      power *= x;
+    }
+    return sum;
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is IntegralExercise &&
+      other.lower == lower &&
+      other.upper == upper &&
+      other.c0 == c0 &&
+      other.c1 == c1 &&
+      other.c2 == c2 &&
+      other.c3 == c3;
+
+  @override
+  int get hashCode => Object.hash(lower, upper, c0, c1, c2, c3);
+}

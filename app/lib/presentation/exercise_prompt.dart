@@ -27,6 +27,7 @@ class ExercisePrompt extends StatelessWidget {
       PowerExercise e => _PowerPrompt(exercise: e, style: style),
       SquareRootExercise e => _SquareRootPrompt(exercise: e, style: style),
       PercentageExercise e => Text('${e.percent}% of ${e.base}', style: style),
+      IntegralExercise e => _IntegralPrompt(exercise: e, style: style),
     };
   }
 }
@@ -111,6 +112,77 @@ class _SquareRootPrompt extends StatelessWidget {
           child: Text('${exercise.radicand}', style: style),
         ),
       ],
+    );
+  }
+}
+
+/// p's terms as shown, highest power first, zero terms left out and a
+/// coefficient of 1 not written before an x: `[(4, 3), (1, 1), (2, 0)]` is
+/// "4x³ + x + 2".
+List<({String coefficient, int power})> integralTerms(IntegralExercise e) => [
+  for (var k = 3; k >= 0; k--)
+    if (e.coefficients[k] != 0)
+      (
+        coefficient: e.coefficients[k] == 1 && k > 0
+            ? ''
+            : '${e.coefficients[k]}',
+        power: k,
+      ),
+];
+
+/// The integral sign, the bounds top and bottom, the polynomial with raised
+/// exponents (as powers draw them), then `dx` — the mockup's screen 4.
+/// Scaled down as a whole when a long polynomial would not fit the width.
+class _IntegralPrompt extends StatelessWidget {
+  const _IntegralPrompt({required this.exercise, required this.style});
+
+  final IntegralExercise exercise;
+  final TextStyle? style;
+
+  @override
+  Widget build(BuildContext context) {
+    final fontSize = style?.fontSize ?? 48;
+    final body = style?.copyWith(fontSize: fontSize * 0.83);
+    final bound = style?.copyWith(fontSize: fontSize * 0.36);
+    final exponent = style?.copyWith(fontSize: fontSize * 0.83 * 0.55);
+    final terms = integralTerms(exercise);
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('∫', style: style?.copyWith(fontSize: fontSize * 1.33)),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('${exercise.upper}', style: bound),
+              SizedBox(height: fontSize * 0.45),
+              Text('${exercise.lower}', style: bound),
+            ],
+          ),
+          SizedBox(width: fontSize * 0.12),
+          Text.rich(
+            TextSpan(
+              style: body,
+              children: [
+                for (final (i, term) in terms.indexed) ...[
+                  if (i > 0) const TextSpan(text: ' + '),
+                  TextSpan(
+                    text: '${term.coefficient}${term.power > 0 ? 'x' : ''}',
+                  ),
+                  if (term.power > 1)
+                    WidgetSpan(
+                      alignment: PlaceholderAlignment.top,
+                      child: Text('${term.power}', style: exponent),
+                    ),
+                ],
+                const TextSpan(text: ' dx'),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

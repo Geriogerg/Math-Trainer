@@ -729,3 +729,17 @@ lifted for this phase.
   the store, and the app→server replay with a Training game in the middle (levels and counts
   untouched). Dashboard views count `kind = 'game'`: Training stays out of them until
   commit 9 decides what to show.
+- **Commit 4** *(A)* — Integrals end to end. Core: `ExerciseType.integral` (last, so no
+  existing order moves); `IntegralExercise` (p's coefficients `c0`…`c3`, bounds; invariants by
+  `throw`: 0 ≤ a < b, non-negative coefficients, each `ck` a multiple of k+1 — so the answer
+  F(b) − F(a) is whole and is an area); `IntegralExerciseGenerator` builds F first (integer
+  coefficients, degree 2–4, no constant) and shows F′; `IntegralDifficulty`; codec (every
+  coefficient, one shape); structural features (the bounds); the strategy detector (none);
+  type placement rules v3 gain its pass time (no stored type placement replays differently).
+  The pinned "all seven" determinism cases now list their seven types explicitly — unchanged
+  references; integrals have their own pin, VM and JavaScript. App: the prompt (∫, bounds,
+  raised exponents, `dx`, scaled down when too wide), the "Integrals" label, the ∫ icon in
+  the operator family; its board and Profile row come from `ExerciseType.values`. SQL
+  (`20261124020000_integrals.sql`): the level type, the board, the data check's operands, the
+  structural features (two parity cases). The app→server replay test now plays integrals too
+  (their type placement, then games). Tests: core +11, app +2, SQL (the integral board).

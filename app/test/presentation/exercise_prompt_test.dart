@@ -107,4 +107,34 @@ void main() {
     final decoration = container.decoration as BoxDecoration;
     expect(decoration.border, isNotNull);
   });
+
+  group('integral', () {
+    test('terms: highest power first, no zero term', () {
+      final e = IntegralExercise(
+        lower: 0,
+        upper: 2,
+        c0: 2,
+        c1: 0,
+        c2: 3,
+        c3: 4,
+      );
+      expect(integralTerms(e), [
+        (coefficient: '4', power: 3),
+        (coefficient: '3', power: 2),
+        (coefficient: '2', power: 0),
+      ]);
+    });
+
+    testWidgets('∫ with its bounds, the polynomial and dx', (tester) async {
+      await pump(
+        tester,
+        IntegralExercise(lower: 0, upper: 3, c0: 0, c1: 2, c2: 0, c3: 0),
+      );
+      expect(find.text('∫'), findsOneWidget);
+      expect(find.text('3'), findsOneWidget);
+      expect(find.text('0'), findsOneWidget);
+      expect(find.textContaining('2x'), findsOneWidget);
+      expect(find.textContaining('dx'), findsOneWidget);
+    });
+  });
 }

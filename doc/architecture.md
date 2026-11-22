@@ -10,7 +10,7 @@ right — report the gap.
 packages/math_core/        # pure Dart, no dependency — imported by path by app/ and server/ (rule 1)
   lib/
     account/               # Account, AccountRepository, PlayerProfile, ProfileRepository (interfaces)
-    models/                # Exercise (sealed) and 4 variants, ExerciseType, OperationType,
+    models/                # Exercise (sealed) and 5 variants, ExerciseType, OperationType,
                            # AnswerResult, SessionConfig, SessionResult, SessionKind, GameSetup
     generation/            # ExerciseGenerator, CompositeExerciseGenerator, per-type generators,
                            # OperandRange, ExerciseSource, LocalExerciseSource,
@@ -156,6 +156,7 @@ holding a generic list, and implements `==` / `hashCode`. The domain exposes **n
 | `PowerExercise` | `base`, `exponent` | base with a raised exponent |
 | `SquareRootExercise` | `radicand` (perfect square) | `√a` with a bar over the radicand |
 | `PercentageExercise` | `percent`, `base` | `p% of a` |
+| `IntegralExercise` | `lower`, `upper`, `c0`…`c3` (p's coefficients; `ck` a multiple of k+1) | `∫` with bounds, the polynomial, `dx` |
 
 The expected answer comes from the domain, never recomputed by the UI or the `Scorer`.
 

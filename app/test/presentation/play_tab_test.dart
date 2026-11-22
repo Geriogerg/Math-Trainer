@@ -85,7 +85,10 @@ void main() {
       await tester.tap(find.text('Skip'));
       await tester.pumpAndSettle();
 
-      expect(find.byType(FilterChip), findsNWidgets(7));
+      expect(
+        find.byType(FilterChip),
+        findsNWidgets(ExerciseType.values.length),
+      );
     });
 
     PersistedSession sessionOf(String id) => PersistedSession(
@@ -145,7 +148,10 @@ void main() {
       );
 
       expect(find.text('Find my level'), findsNothing);
-      expect(find.byType(FilterChip), findsNWidgets(7));
+      expect(
+        find.byType(FilterChip),
+        findsNWidgets(ExerciseType.values.length),
+      );
     });
 
     testWidgets('a skip is remembered for this player', (tester) async {
@@ -167,7 +173,10 @@ void main() {
       await tester.pumpWidget(const SizedBox());
       await pumpPlayTab(tester, environment(), skipPlacement: false);
       expect(find.text('Find my level'), findsNothing);
-      expect(find.byType(FilterChip), findsNWidgets(7));
+      expect(
+        find.byType(FilterChip),
+        findsNWidgets(ExerciseType.values.length),
+      );
     });
 
     testWidgets('nothing is drawn before the startup read resolves', (

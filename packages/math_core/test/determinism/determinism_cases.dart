@@ -50,7 +50,18 @@ typedef GenerationSetup = ({
   Map<ExerciseType, int> sessionsPlayed,
 });
 
-const _all = ExerciseType.values;
+/// The seven types these cases were pinned with — integrals came later
+/// (Redesign phase) and have their own pin
+/// (`integral_generator_test.dart`).
+const _all = [
+  ExerciseType.addition,
+  ExerciseType.subtraction,
+  ExerciseType.multiplication,
+  ExerciseType.division,
+  ExerciseType.power,
+  ExerciseType.squareRoot,
+  ExerciseType.percentage,
+];
 
 final determinismSetups = <GenerationSetup>[
   (

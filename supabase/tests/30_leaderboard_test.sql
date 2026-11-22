@@ -176,3 +176,14 @@ begin
 end;
 $$;
 reset role;
+
+-- Integrals (Redesign phase commit 4): a level of their own, a board of
+-- their own.
+reset role;
+insert into public.server_levels values
+  ('00000000-0000-0000-0000-000000000101', 'integral', 4200, 3, now());
+do $$
+begin
+  assert jsonb_array_length(public.leaderboard_top('integral')) = 1, 'integral board';
+end;
+$$;

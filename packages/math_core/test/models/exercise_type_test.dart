@@ -68,6 +68,10 @@ import 'package:test/test.dart';
       const PercentageExercise(percent: 10, base: 50),
       const PercentageExercise(percent: 10, base: 50),
     ),
+    ExerciseType.integral => (
+      IntegralExercise(lower: 0, upper: 3, c0: 0, c1: 2, c2: 0, c3: 0),
+      IntegralExercise(lower: 0, upper: 3, c0: 0, c1: 2, c2: 0, c3: 0),
+    ),
   };
 }
 

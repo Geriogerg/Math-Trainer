@@ -129,6 +129,10 @@ const typePlacementRules = PlacementRules(
     ExerciseType.power: 3000,
     ExerciseType.squareRoot: 3000,
     ExerciseType.percentage: 3000,
+    // Added with integrals (Redesign phase commit 4): the same speed scale
+    // as every type, like the level update's. No stored type placement
+    // holds an integral, so none replays differently.
+    ExerciseType.integral: 3000,
   },
   sessionsPlayedAfter: 0,
 );
