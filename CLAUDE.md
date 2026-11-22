@@ -12,7 +12,7 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 
 **Redesign phase — Game modes and new interface** (`doc/plan.md`, section 7), run in **one
 pass**. Reference screens: `doc/mockups/redesign.html` — their layout and content are binding;
-colours, type and spacing come from `doc/design.md` and the theme. Done: 0–9; exit test next.
+colours, type and spacing come from `doc/design.md` and the theme. Done: 0–9, all pushed and live (`bf8c8b8`); exit test run, report given (22 Nov). Open: the owner's phone check and decisions.
 Update this block at every commit.
 
 **The beta-safety rule is lifted for this phase** (owner decision): this phase changes how

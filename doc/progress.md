@@ -806,3 +806,30 @@ lifted for this phase.
   a game before the window). First load: release builds of the phase's start (`dea0c42`) and
   of this commit, same flags — `main.dart.js` 3,004 → 3,064 KB raw, **687 → 700 KB brotli
   (+13 KB, ~0.07 s on slow 4G)**; the tree-shaken icon font stays 2 KB; no new asset.
+
+### Redesign phase exit test (22 Nov 2026)
+
+- **Every screen matches the mockups in both themes**: goldens of Home, the setup page, the
+  game screen (an operation, an integral, the correction pause), Get the count and its
+  correction, Chain operations and its correction, light and dark, compared by eye with
+  `doc/mockups/redesign.html`. Differences, all within "colours, type and spacing from the
+  theme": the nav icons are Material's (the mockups' are placeholders); Home's level badge is
+  the kit's outlined `LevelBadge`; a selected operation also gets a thicker outline (rule 14).
+- **A Levelling game on basics moves the main level and the leaderboard; Training moves
+  nothing**: `server_replay_test.dart` (app-built games, placements, an integral type placement
+  and a Training game replayed by the server's validation: the server ends on exactly the app's
+  levels; the Training game leaves every level and count untouched); the main board ranks the
+  four basics only (SQL test: a level-99 power changes nothing); `mainLevel` tests.
+- **Integrals generated, answered, validated by the server and ranked**: generator tests over
+  every level (5000 draws), the prompt, the codec, the replay above, the integral board (SQL).
+- **Both challenges playable end to end with their correction**: widget tests play a chain and
+  a Get-the-count round through to the correction; stats recorded.
+- **Every Get-the-count target solvable**: 2000 seeds on the VM, 40 more on VM and JavaScript —
+  target in [101, 999], the solver's solution replayed under the rules.
+- **All chain values whole, non-negative, ≤ 999**: 3 × 3000 seeds (each operation count).
+- Deployed: `bf8c8b8` served by the live preview at 18:02 (CI deploys only after its tests).
+- Not verified here: a phone play of the preview (owner); the CI smoke result (private
+  repository — the deploy is checked by its commit in the live `main.dart.js`); staging (still
+  waiting on its setup).
+- Totals: core 673 (VM) / 646 (JavaScript), app 372, server 36, tool 10; SQL tests passed.
+  First load: `main.dart.js` 687 → 700 KB brotli over the phase.
