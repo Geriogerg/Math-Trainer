@@ -1,5 +1,6 @@
 /// A level, kept in **integer hundredths**: 3742 is level 37.42 (plan,
-/// Phase 1 commit 2; architecture rule 18). Range [1.00, 100.00].
+/// Phase 1 commit 2; architecture rule 18). Range [0.00, 100.00]
+/// (`doc/levels.md`: everyone starts at 0; rules v1 never went below 1).
 ///
 /// Why hundredths: with integer levels, every update was rounded to a whole
 /// level, which swallowed every step under 0.5 — an extra dead band that
@@ -16,7 +17,7 @@
 /// one), but the compiler refuses to mix a `Level` with a whole-level `int`
 /// — the mistake a unit change invites.
 extension type const Level._(int hundredths) {
-  /// Throws if [hundredths] is outside [100, 10000] (rule 13).
+  /// Throws if [hundredths] is outside [0, 10000] (rule 13).
   factory Level.fromHundredths(int hundredths) {
     if (hundredths < minHundredths || hundredths > maxHundredths) {
       throw ArgumentError.value(
@@ -28,11 +29,11 @@ extension type const Level._(int hundredths) {
     return Level._(hundredths);
   }
 
-  /// A whole level (1 to 100), e.g. a starting level or a stored level from
-  /// before schema v4. Throws outside [1, 100].
+  /// A whole level (0 to 100), e.g. a starting level or a stored level from
+  /// before schema v4. Throws outside [0, 100].
   factory Level.whole(int whole) {
-    if (whole < 1 || whole > 100) {
-      throw ArgumentError.value(whole, 'whole', 'must be between 1 and 100.');
+    if (whole < 0 || whole > 100) {
+      throw ArgumentError.value(whole, 'whole', 'must be between 0 and 100.');
     }
     return Level._(whole * 100);
   }
@@ -45,11 +46,21 @@ extension type const Level._(int hundredths) {
         : (hundredths > maxHundredths ? maxHundredths : hundredths),
   );
 
-  static const minHundredths = 100;
+  static const minHundredths = 0;
   static const maxHundredths = 10000;
 
-  /// The floor level, 1.00: the level of an operation never played.
-  static const Level floor = Level._(minHundredths);
+  /// Level 0: where everyone starts under rules v2 (`doc/levels.md`).
+  static const Level zero = Level._(0);
+
+  /// Rules v1's floor, 1.00: the level of an operation never played until
+  /// the Levels phase's transition (commit 4), and the lowest a v1 update
+  /// or placement ever reaches.
+  static const Level floor = Level._(100);
+
+  /// [hundredths] clamped into rules v1's range [1.00, 100.00].
+  factory Level.clampedV1(int hundredths) => Level.clamped(
+    hundredths < floor.hundredths ? floor.hundredths : hundredths,
+  );
 
   /// The whole part (37 for 37.99): what generation reads and what the
   /// player sees. Truncation, not rounding, so the displayed level is the

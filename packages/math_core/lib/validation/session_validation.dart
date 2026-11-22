@@ -1,6 +1,7 @@
 import '../leveling/level.dart';
 import '../leveling/level_updater.dart';
 import '../leveling/level_updates.dart';
+import '../leveling/rules_version.dart';
 import '../models/game_setup.dart';
 import '../models/answer_result.dart';
 import '../models/exercise.dart';
@@ -198,8 +199,12 @@ ValidationResult validateSessionUpload({
   switch (session.kind) {
     case SessionKind.game:
       // The chain: a game must start from the levels the server holds.
+      final unplayed = switch (session.rulesVersion) {
+        RulesVersion.v1 => Level.floor,
+        RulesVersion.v2 => Level.zero,
+      };
       for (final type in session.enabledTypes) {
-        final expected = state.levels[type]?.level ?? Level.floor;
+        final expected = state.levels[type]?.level ?? unplayed;
         if (session.levels[type] != expected) {
           return Rejected(
             RejectionReason.levelsMismatch,
@@ -215,6 +220,7 @@ ValidationResult validateSessionUpload({
               priorLevels: state.levels,
               now: session.createdAt,
               levelUpdater: levelUpdater ?? LevelUpdater(),
+              rulesVersion: session.rulesVersion,
             )
           : const {};
     case SessionKind.placementV1:

@@ -5,6 +5,7 @@ import '../persistence/session_repository.dart';
 import 'level.dart';
 import 'level_updater.dart';
 import 'level_updates.dart';
+import 'rules_version.dart';
 
 /// How a finished session turns into level cache updates — a game
 /// ([LevelCacheOrchestrator]) or a placement (`PlacementLevelOrchestrator`).
@@ -39,10 +40,15 @@ class NoLevelUpdates implements SessionLevelUpdates {
 /// server-side (rule 1) — exactly what revalidating a duel will one day
 /// have to redo.
 class LevelCacheOrchestrator implements SessionLevelUpdates {
-  LevelCacheOrchestrator({LevelUpdater? levelUpdater})
-    : levelUpdater = levelUpdater ?? LevelUpdater();
+  LevelCacheOrchestrator({
+    LevelUpdater? levelUpdater,
+    this.rulesVersion = RulesVersion.current,
+  }) : levelUpdater = levelUpdater ?? LevelUpdater();
 
   final LevelUpdater levelUpdater;
+
+  /// The rules of the games it scores (`gameLevelUpdates`).
+  final RulesVersion rulesVersion;
 
   /// One entry per enabled type that received at least `n_min` answers this
   /// session (the others are a noise sample, see `doc/decisions.md` — their
@@ -61,5 +67,6 @@ class LevelCacheOrchestrator implements SessionLevelUpdates {
     priorLevels: await repository.currentLevels(playerId),
     now: now,
     levelUpdater: levelUpdater,
+    rulesVersion: rulesVersion,
   );
 }

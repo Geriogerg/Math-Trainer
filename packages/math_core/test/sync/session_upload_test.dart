@@ -105,7 +105,7 @@ void main() {
       expectBad((j) => a0(j)['answeredAt'] = 'yesterday');
     });
     test('a level out of range, a sequence of the wrong length', () {
-      expectBad((j) => (s(j)['levels'] as Map)['addition'] = 0);
+      expectBad((j) => (s(j)['levels'] as Map)['addition'] = -1);
       expectBad((j) => s(j)['typeSequence'] = ['addition']);
     });
   });

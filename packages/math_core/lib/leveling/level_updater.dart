@@ -53,7 +53,7 @@ class LevelUpdater {
     // The single rounding, to hundredths (rule 18: `+ − × ÷` and `sqrt`
     // above, then one `round`). Rounding to a whole level here is what used
     // to swallow every step under 0.5 (doc/decisions.md).
-    return Level.clamped(currentLevel.hundredths + (change * 100).round());
+    return Level.clampedV1(currentLevel.hundredths + (change * 100).round());
   }
 
   double _pFor(AnswerOutcome answer) {

@@ -74,7 +74,7 @@ void main() {
     );
     expect(
       () => leaderboardEntriesFromJson([
-        {'rank': 1, 'level': 0},
+        {'rank': 1, 'level': -1},
       ]),
       throwsFormatException,
     );

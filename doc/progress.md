@@ -868,3 +868,17 @@ new games use them, together with the reset (`doc/decisions.md`).
   (`20261125000000_rules_version.sql`): `uploaded_sessions.rules_version`, read from the stored
   payload (absent = 1), so no write path changes. Tests: enum, codec, replay gate, SQLite
   round-trip and v10 migration, SQL column.
+- **Commit 1** *(A)* — The new level update (spec section 3), as rules v2. Core:
+  `LevelRules` (dead band 55–65 %, spans 25 / 35, caps +3/+3/+4/+5 by questions and −2, slow
+  credit 0.75 — integers, invariants by `throw`), `answerCreditQuarters`,
+  `levelChangeHundredths` (integer arithmetic only, one rounding to the nearest hundredth) and
+  `levelAfterGame`; `gameLevelUpdates` picks v1 or v2 by the game's rules version — one
+  implementation for the app (`LevelCacheOrchestrator.rulesVersion`) and the server's
+  validation (`session.rulesVersion`; under v2 an unplayed operation chains from 0). `Level`
+  now spans [0, 100] (`Level.zero`); rules v1 keeps its own floor at 1.00 (`clampedV1`, used
+  by the v1 update and the placement staircases), so the live game is unchanged. Fluent time:
+  the shared 2 s until commit 3. The v1 constants stay for v1 games until commit 4 removes v1.
+  Tests: the spec's example table to the hundredth and as printed (+3, +1.2, +1.2, 0, −0.3,
+  −1.0, −2), its grind estimate (0 → 20 in 5 perfect 10-question games, → 50 in 13), a
+  correct-but-slow game raises the level for every count, the caps, the closed dead band, the
+  [0, 100] clamp, invalid input, the v2 branch of `gameLevelUpdates`.

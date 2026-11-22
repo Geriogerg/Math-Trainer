@@ -193,12 +193,12 @@ class Staircase {
   final int stepHundredths;
 
   /// The level the next question is generated at.
-  Level get level => Level.clamped(levelHundredths);
+  Level get level => Level.clampedV1(levelHundredths);
 
   /// Up after a pass, down otherwise, then the step halves. The level is
   /// clamped at every move, so a staircase never wanders outside [1, 100].
   Staircase after({required bool passed}) => Staircase._(
-    Level.clamped(
+    Level.clampedV1(
       levelHundredths + (passed ? stepHundredths : -stepHundredths),
     ).hundredths,
     stepHundredths ~/ 2,
