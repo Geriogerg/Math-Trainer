@@ -10,9 +10,8 @@
 // Shared by the test and the tool: never import Flutter here.
 
 import 'package:math_core/generation/composite_exercise_generator.dart';
-import 'package:math_core/generation/debt_aware_type_selection_strategy.dart';
 import 'package:math_core/generation/local_exercise_source.dart';
-import 'package:math_core/generation/session_length.dart';
+import '../support/legacy_game_plan.dart';
 import 'package:math_core/leveling/answer_outcome.dart';
 import 'package:math_core/leveling/level.dart';
 import 'package:math_core/leveling/level_updater.dart';

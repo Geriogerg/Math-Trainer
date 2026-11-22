@@ -1,5 +1,30 @@
-import '../models/exercise_type.dart';
-import 'type_selection_strategy.dart';
+// The pre-Redesign game plan (Phase 0 – Phase 5.2): a derived question
+// count and the rotation by sampling debt. The app no longer plays it
+// (Redesign phase commit 2: questions per operation, shuffled by the seed);
+// it stays here, in the tests only, because the pinned determinism cases
+// were drawn with it — moving it out of the core changes no sequence.
+import 'package:math_core/generation/type_selection_strategy.dart';
+import 'package:math_core/models/exercise_type.dart';
+
+/// Number of questions in a session: enough for every active type to reach
+/// `n_min` (so its level cache can be updated), capped to keep the session
+/// at an acceptable length. The cap is a duration target disguised as a
+/// question count — see `doc/decisions.md`.
+int sessionLengthFor({
+  required int activeTypeCount,
+  required int nMin,
+  required int cap,
+}) {
+  if (activeTypeCount <= 0) {
+    throw ArgumentError.value(
+      activeTypeCount,
+      'activeTypeCount',
+      'must be positive.',
+    );
+  }
+  final uncapped = nMin * activeTypeCount;
+  return uncapped < cap ? uncapped : cap;
+}
 
 /// Solo strategy: least-played types first (lowest `sessionsPlayed` in
 /// `player_levels`), with no dedicated counter — the input is already

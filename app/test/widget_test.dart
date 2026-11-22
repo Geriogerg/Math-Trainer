@@ -313,7 +313,7 @@ void main() {
       // Straight back on the keypad, not on the selection screen: "1" is the
       // new first question, never the "Math Trainer" screen.
       expect(find.text('Math Trainer'), findsNothing);
-      expect(find.text('1 / 8'), findsOneWidget);
+      expect(find.text('1 / 20'), findsOneWidget);
       expect(find.byKey(keypadKeyKey('submit')), findsOneWidget);
     },
   );

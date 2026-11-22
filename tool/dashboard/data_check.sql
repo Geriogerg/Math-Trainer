@@ -25,5 +25,5 @@ end as verdict;
 
 \echo
 \echo '== Not stored at all (no query can find it)'
-\echo '   - The question timeout in force: a constant 15 s today. Must be stored with'
+\echo '   - The question timeout in force: 15 s, then 30 s from the Redesign phase. Must be stored with'
 \echo '     the session once Phase 3b derives it from the level.'

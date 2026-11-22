@@ -4,6 +4,7 @@ import '../kit/kit.dart';
 
 import '../../composition_root.dart';
 import 'package:math_core/models/exercise_type.dart';
+import 'package:math_core/models/game_setup.dart';
 import 'package:math_core/placement/placement.dart';
 import 'package:math_core/persistence/level_cache_entry.dart';
 import '../../core/state/session_controller.dart';
@@ -48,6 +49,7 @@ class PlayTab extends StatefulWidget {
 
 class _PlayTabState extends State<PlayTab> {
   Set<ExerciseType> _selectedTypes = {..._defaultSelectedTypes};
+  GameSetup _setup = GameSetup();
   bool _isStarting = false;
   String? _startError;
 
@@ -77,12 +79,24 @@ class _PlayTabState extends State<PlayTab> {
   void initState() {
     super.initState();
     _loadStartupState();
+    _loadSetup();
   }
 
   @override
   void didUpdateWidget(covariant PlayTab oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.isActive && !oldWidget.isActive) _loadStartupState();
+  }
+
+  /// Apart from [_loadStartupState]: a store that fails must not hide the
+  /// levels read there. The default setup stays meanwhile.
+  Future<void> _loadSetup() async {
+    try {
+      final setup = await widget.environment.gameSetupStore.load();
+      if (setup != null && mounted) setState(() => _setup = setup);
+    } on Exception catch (_) {
+      // The default setup.
+    }
   }
 
   Future<void> _loadStartupState() async {
@@ -133,13 +147,22 @@ class _PlayTabState extends State<PlayTab> {
     widget.environment.typeSelectionStore.save(types).ignore();
   }
 
-  Future<void> _startSession() =>
-      _run(() => buildSessionController(widget.environment, _selectedTypes));
+  Future<void> _startSession() => _run(
+    () => buildSessionController(
+      widget.environment,
+      _selectedTypes,
+      setup: _setup,
+    ),
+    setup: _setup,
+  );
 
   Future<void> _startPlacement() =>
       _run(() async => buildPlacementController(widget.environment));
 
-  Future<void> _run(Future<SessionController> Function() build) async {
+  Future<void> _run(
+    Future<SessionController> Function() build, {
+    GameSetup? setup,
+  }) async {
     setState(() {
       _isStarting = true;
       _startError = null;
@@ -162,7 +185,12 @@ class _PlayTabState extends State<PlayTab> {
     }
     if (!mounted) return;
     setState(() => _isStarting = false);
-    await playSessionFlow(context, widget.environment, controller);
+    await playSessionFlow(
+      context,
+      widget.environment,
+      controller,
+      setup: setup,
+    );
     if (mounted) await _loadStartupState();
   }
 

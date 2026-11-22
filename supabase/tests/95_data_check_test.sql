@@ -48,7 +48,7 @@ begin
         {"operationType": "addition", "operands": {"operandA": "12", "operandB": 3},
          "submittedValue": 15, "isCorrect": true, "elapsedMs": 1000, "answeredAt": "2026-11-21T12:00:01Z"},
         {"operationType": "addition", "operands": {"operandA": 1, "operandB": 2},
-         "submittedValue": 3, "isCorrect": true, "elapsedMs": 20000, "answeredAt": "2026-11-21T12:00:21Z"},
+         "submittedValue": 3, "isCorrect": true, "elapsedMs": 31000, "answeredAt": "2026-11-21T12:00:21Z"},
         {"operationType": "addition", "operands": {"operandA": 1, "operandB": 2},
          "submittedValue": 3, "elapsedMs": 900, "answeredAt": "2026-11-21T12:00:22Z"},
         {"operationType": "division", "operands": {"operandA": 8, "operandB": 2},

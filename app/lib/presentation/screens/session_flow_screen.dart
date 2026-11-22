@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+import 'package:math_core/models/game_setup.dart';
+
 import '../kit/kit.dart';
 
 import '../../composition_root.dart';
@@ -13,11 +15,15 @@ import 'session_screen.dart';
 /// once the player has left and the end-of-session write is done — the
 /// caller can then re-read levels and history. Shared by Play and Profile
 /// (the placement can be taken from both).
+///
+/// [setup]: what Play again replays with (a placement passes none: its
+/// Play again is a game with the default setup).
 Future<void> playSessionFlow(
   BuildContext context,
   AppEnvironment environment,
-  SessionController controller,
-) async {
+  SessionController controller, {
+  GameSetup? setup,
+}) async {
   controller.start();
   // SessionFlowScreen owns the controller (dispose() in its own State).
   // The route returns the end-of-session write still running
@@ -26,8 +32,11 @@ Future<void> playSessionFlow(
   final pendingPersistence = await Navigator.of(context).push<Future<void>>(
     MaterialPageRoute(
       fullscreenDialog: true,
-      builder: (_) =>
-          SessionFlowScreen(controller: controller, environment: environment),
+      builder: (_) => SessionFlowScreen(
+        controller: controller,
+        environment: environment,
+        setup: setup,
+      ),
     ),
   );
   await pendingPersistence;
@@ -48,10 +57,14 @@ class SessionFlowScreen extends StatefulWidget {
     super.key,
     required this.controller,
     required this.environment,
+    this.setup,
   });
 
   final SessionController controller;
   final AppEnvironment environment;
+
+  /// The game's setup, kept for Play again.
+  final GameSetup? setup;
 
   @override
   State<SessionFlowScreen> createState() => _SessionFlowScreenState();
@@ -123,7 +136,11 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
       // the opposite of what the immediate replay promises.
       await _controller.pendingPersistence;
       final types = _controller.config.enabledTypes;
-      final next = await buildSessionController(widget.environment, types);
+      final next = await buildSessionController(
+        widget.environment,
+        types,
+        setup: widget.setup,
+      );
       if (!mounted) return;
       next.start();
       final previous = _controller;

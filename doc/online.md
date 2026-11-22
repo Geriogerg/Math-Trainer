@@ -308,7 +308,7 @@ operations.
 `owner_dashboard.data_check` (`…_data_check.sql`, `…_input_device_app_version.sql`): every
 uploaded answer checked against what calibration needs — operation; level at the time (a game's
 frozen level, or a placement's seed and rotation to replay its staircase); response time
-(0–15 s); correctness and the typed value (−1 = timeout); structure (each operation's operands,
+(0–30 s; 15 s before the Redesign phase); correctness and the typed value (−1 = timeout); structure (each operation's operands,
 integers); time answered; input device (none only for a timeout with no key pressed); the
 session's app version. One row per requirement: answers checked, failing, one session to
 inspect. `dashboard.sh data-check` prints it with a verdict and what is **not stored at all**
@@ -382,7 +382,7 @@ from the server's own state (`ServerPlayerState`: level cache, last accepted ses
 one was completed):
 
 1. the caller is the session's player; `createdAt` not after reception + 5 min, not before the
-   last accepted session; 1 to `exerciseCount` answers, each 0–15 s;
+   last accepted session; 1 to `exerciseCount` answers, each 0–30 s;
 2. **every question regenerated** with `replaySessionQuestions` and compared with the stored
    one; **correctness recomputed** from the submitted value (a placement's next question
    depends on it, so in order);

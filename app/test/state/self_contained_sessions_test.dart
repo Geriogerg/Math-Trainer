@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:math_trainer/composition_root.dart';
-import 'package:math_core/generation/debt_aware_type_selection_strategy.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/models/session_kind.dart';
 import 'package:math_core/persistence/exercise_codec.dart';
@@ -96,16 +95,12 @@ void main() {
       }
     }
 
-    // History did decide the order: the last full 7-type game's sequence is
-    // not what a player without history would have been given.
-    final lastFull = sessions.firstWhere(
-      (s) => s.enabledTypes.length == 7 && s.exerciseCount == 24,
-    );
-    final fresh = DebtAwareTypeSelectionStrategy(
-      exerciseCount: 24,
-      nMin: 4,
-      sessionsPlayedByType: const {},
-    ).sequenceFor(ExerciseType.values.toList());
-    expect(lastFull.typeSequence, isNot(fresh));
+    // Every game played the default plan: exactly 10 questions of each
+    // selected operation (Redesign phase commit 2).
+    for (final s in sessions.where((s) => s.kind == SessionKind.game)) {
+      for (final type in s.enabledTypes) {
+        expect(s.typeSequence!.where((t) => t == type).length, 10);
+      }
+    }
   });
 }

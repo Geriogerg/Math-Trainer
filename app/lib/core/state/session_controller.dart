@@ -67,10 +67,10 @@ class SessionController extends ChangeNotifier {
   final String Function() idGenerator;
 
   /// Injectable for tests (same spirit as [clock]/[idGenerator]) — a real
-  /// 15 s `Timer` must never run during a test.
+  /// 30 s `Timer` must never run during a test.
   final Timer Function(Duration duration, void Function() callback) createTimer;
 
-  static const defaultQuestionTimeout = Duration(seconds: 15);
+  static const defaultQuestionTimeout = Duration(seconds: 30);
 
   /// `null`: no timeout at all — only the debug switch of
   /// `composition_root.dart` passes it (`questionTimeoutFor`); without

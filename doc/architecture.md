@@ -11,11 +11,12 @@ packages/math_core/        # pure Dart, no dependency — imported by path by ap
   lib/
     account/               # Account, AccountRepository, PlayerProfile, ProfileRepository (interfaces)
     models/                # Exercise (sealed) and 4 variants, ExerciseType, OperationType,
-                           # AnswerResult, SessionConfig, SessionResult, SessionKind
+                           # AnswerResult, SessionConfig, SessionResult, SessionKind, GameSetup
     generation/            # ExerciseGenerator, CompositeExerciseGenerator, per-type generators,
                            # OperandRange, ExerciseSource, LocalExerciseSource,
-                           # DebtAwareTypeSelectionStrategy, FixedTypeSequence,
-                           # session_length.dart
+                           # FixedTypeSequence, question_plan.dart (questions per
+                           # operation, shuffledTypeSequence — the pre-Redesign debt rotation
+                           # lives in test/support/ for the pinned determinism cases)
     difficulty/            # level → operand bounds per type (arithmetic/power/square_root/percentage)
     placement/             # placement test: staircases, placementLevels (pure), its exercise
                            # source (adaptive, deterministic), PlacementLevelOrchestrator
@@ -33,7 +34,7 @@ packages/math_core/        # pure Dart, no dependency — imported by path by ap
                            # ServerPlayerState, RejectionReason, ValidationFlag
     scoring/               # Scorer, ScoringRules
     persistence/           # SessionRepository, LocalPlayerIdProvider, TypeSelectionStore,
-                           # ThemeModeStore, PlacementSkipStore (interfaces), PersistedSession/
+                           # ThemeModeStore, PlacementSkipStore, GameSetupStore (interfaces), PersistedSession/
                            # PersistedAnswer, LevelCacheEntry, InMemorySessionRepository, uuid.dart,
                            # exercise_codec.dart
   test/                    # mirrors lib/ — `dart test` (VM) and `dart test -p node` (JavaScript);

@@ -309,7 +309,7 @@ void main() {
     );
     expect(
       SessionController.defaultQuestionTimeout,
-      const Duration(seconds: 15),
+      const Duration(seconds: 30), // Redesign phase (plan v2.9)
     );
     expect(effects.calls.last, 'answered after 1 answers');
   });

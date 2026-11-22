@@ -9,13 +9,13 @@ import 'package:math_core/account/beta_access.dart';
 import 'package:math_core/feedback/feedback.dart';
 import 'package:math_core/account/profile_repository.dart';
 import 'package:math_core/generation/composite_exercise_generator.dart';
-import 'package:math_core/generation/debt_aware_type_selection_strategy.dart';
 import 'package:math_core/generation/fixed_type_sequence.dart';
 import 'package:math_core/generation/local_exercise_source.dart';
-import 'package:math_core/generation/session_length.dart';
+import 'package:math_core/generation/question_plan.dart';
 import 'package:math_core/leveling/level.dart';
-import 'package:math_core/leveling/leveling_rules.dart';
 import 'package:math_core/models/exercise_type.dart';
+import 'package:math_core/models/game_setup.dart';
+import 'package:math_core/persistence/game_setup_store.dart';
 import 'package:math_core/models/session_config.dart';
 import 'package:math_core/persistence/level_cache_entry.dart';
 import 'package:math_core/persistence/local_player_id_provider.dart';
@@ -50,18 +50,12 @@ import 'infrastructure/persistence/shared_preferences_abandoned_guest_store.dart
 import 'infrastructure/persistence/shared_preferences_beta_code_store.dart';
 import 'infrastructure/web/boot_sign_in.dart';
 import 'infrastructure/persistence/shared_preferences_effect_settings_store.dart';
+import 'infrastructure/persistence/shared_preferences_game_setup_store.dart';
 import 'infrastructure/persistence/shared_preferences_placement_skip_store.dart';
 import 'infrastructure/persistence/shared_preferences_player_id_provider.dart';
 import 'infrastructure/persistence/shared_preferences_theme_mode_store.dart';
 import 'infrastructure/persistence/shared_preferences_type_selection_store.dart';
 import 'infrastructure/persistence/sqflite_session_repository.dart';
-
-/// Duration target (~90 s at ~4 s/question, rough — see `doc/decisions.md`)
-/// disguised as a question cap: `sessionLengthFor` never exceeds this value,
-/// whatever the number of active types.
-const _sessionLengthCap = 24;
-
-final _levelingRules = LevelingRules();
 
 /// Concrete dependencies resolved once at app start (see `main.dart`),
 /// before `runApp()` — never in a UI widget. This is the only file choosing
@@ -74,6 +68,7 @@ class AppEnvironment {
     required this.accountRepository,
     required this.profileRepository,
     this.typeSelectionStore = const SharedPreferencesTypeSelectionStore(),
+    this.gameSetupStore = const SharedPreferencesGameSetupStore(),
     this.themeModeStore = const SharedPreferencesThemeModeStore(),
     this.placementSkipStore = const SharedPreferencesPlacementSkipStore(),
     this.abandonedGuestStore = const SharedPreferencesAbandonedGuestStore(),
@@ -114,6 +109,9 @@ class AppEnvironment {
   /// (`ProfileScreen`, `ResultScreen`...), same reasoning as
   /// `SessionResult.scorer` (step 5, commit D).
   final TypeSelectionStore typeSelectionStore;
+
+  /// The setup page's choices; same reasoning as `typeSelectionStore`.
+  final GameSetupStore gameSetupStore;
 
   /// Same reasoning as `typeSelectionStore`: optional so as not to break
   /// construction in tests that do not care about the theme toggle.
@@ -175,6 +173,7 @@ class AppEnvironment {
     accountRepository: accountRepository,
     profileRepository: profileRepository,
     typeSelectionStore: typeSelectionStore,
+    gameSetupStore: gameSetupStore,
     themeModeStore: themeModeStore,
     placementSkipStore: placementSkipStore,
     abandonedGuestStore: abandonedGuestStore,
@@ -362,16 +361,15 @@ Future<AppEnvironment> buildAppEnvironment() async {
 /// — level 1 for any operation never played (no estimated skill = start at
 /// the bottom).
 ///
-/// The number of questions is not fixed: `sessionLengthFor` aims for enough
-/// questions for every active type to reach `n_min` (so its level cache can
-/// move), capped at `_sessionLengthCap`. Beyond the cap,
-/// `DebtAwareTypeSelectionStrategy` favours the least-played types
-/// (`sessionsPlayed`, already read above for the levels) — no extra
-/// repository call (see `doc/decisions.md`).
+/// [setup] (the setup page's choices, plan v2.9): every operation gets
+/// exactly `questionsPerOperation` questions, the order shuffled by the seed
+/// and stored with the session (`shuffledTypeSequence`).
 Future<SessionController> buildSessionController(
   AppEnvironment environment,
-  Set<ExerciseType> enabledTypes,
-) async {
+  Set<ExerciseType> enabledTypes, {
+  GameSetup? setup,
+}) async {
+  final plan = setup ?? GameSetup();
   // A game starts from the server's levels when every local session is
   // settled: after a game on another device, the local ones are behind and
   // this game would be refused (plan v2.3, Phase 3a commit 2). At most 2 s;
@@ -402,29 +400,19 @@ Future<SessionController> buildSessionController(
       type: priorLevels[type]?.level ?? Level.floor,
   };
 
-  final exerciseCount = sessionLengthFor(
-    activeTypeCount: enabledTypes.length,
-    nMin: _levelingRules.nMin,
-    cap: _sessionLengthCap,
-  );
-  // The order depends on the player's history (least-played types first):
-  // decided once here and stored with the session, so the session replays
-  // from what it stores alone (plan, Phase 2 commit 1).
-  final typeSequence = DebtAwareTypeSelectionStrategy(
-    exerciseCount: exerciseCount,
-    nMin: _levelingRules.nMin,
-    sessionsPlayedByType: {
-      for (final entry in priorLevels.entries)
-        entry.key: entry.value.sessionsPlayed,
-    },
-  ).sequenceFor(enabledTypes.toList()..sort((a, b) => a.index - b.index));
-
   final seed = DateTime.now().millisecondsSinceEpoch;
+  // Decided once here and stored with the session, so the session replays
+  // from what it stores alone (plan, Phase 2 commit 1).
+  final typeSequence = shuffledTypeSequence(
+    types: enabledTypes,
+    perOperation: plan.questionsPerOperation,
+    seed: seed,
+  );
   return SessionController(
     config: SessionConfig(
       seed: seed,
       enabledTypes: enabledTypes,
-      exerciseCount: exerciseCount,
+      exerciseCount: typeSequence.length,
       levels: levels,
       typeSequence: typeSequence,
     ),

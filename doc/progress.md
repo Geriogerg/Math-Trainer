@@ -705,3 +705,15 @@ lifted for this phase.
   is computed at read time, so the new definition applies to everyone at once. The owner
   dashboard shows no aggregate level: nothing to change there. Tests: core +6, app +1 (v9
   walk-back on a real database), SQL (main board ignores a level-99 power).
+- **Commit 2** *(A)* — Session flow. 30 s per question (`defaultQuestionTimeout`; the server's
+  `maxElapsedMs` 30 000; the data check's time range in `20261124010000_thirty_second_questions.sql`,
+  same view columns). Questions per operation: `question_plan.dart` (choices 4/5/10/20, default
+  10; `shuffledTypeSequence`: each operation exactly N times, Fisher–Yates on its own
+  `Random(seed)`, pinned on VM and JavaScript); `GameSetup` (core) remembered by
+  `GameSetupStore` (shared_preferences); `buildSessionController(…, setup:)` and Play again
+  carry it. The count is the type sequence's length, stored with the session as before. The
+  derived count and the debt rotation left the core for `test/support/legacy_game_plan.dart`:
+  the pinned determinism cases were drawn with them and stay byte-identical. Placement
+  unchanged, on the new 30 s. The setup page comes with commit 5 (until then the stored or
+  default setup applies). Pins: the timeout pin now says 30 s; the result golden's average
+  time moved (a timeout counts 30 s).

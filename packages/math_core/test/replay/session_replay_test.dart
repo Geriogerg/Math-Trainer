@@ -1,7 +1,6 @@
 import 'dart:math';
 
 import 'package:math_core/generation/composite_exercise_generator.dart';
-import 'package:math_core/generation/debt_aware_type_selection_strategy.dart';
 import 'package:math_core/generation/fixed_type_sequence.dart';
 import 'package:math_core/leveling/level.dart';
 import 'package:math_core/models/exercise_type.dart';
@@ -11,6 +10,8 @@ import 'package:math_core/placement/placement.dart';
 import 'package:math_core/placement/placement_exercise_source.dart';
 import 'package:math_core/replay/session_replay.dart';
 import 'package:test/test.dart';
+
+import '../support/legacy_game_plan.dart';
 
 void main() {
   const allTypes = ExerciseType.values;

@@ -1,12 +1,13 @@
 import 'dart:math';
 
 import 'package:math_core/generation/composite_exercise_generator.dart';
-import 'package:math_core/generation/debt_aware_type_selection_strategy.dart';
 import 'package:math_core/generation/type_selection_strategy.dart';
 import 'package:math_core/leveling/level.dart';
 import 'package:math_core/models/exercise.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:test/test.dart';
+
+import '../support/legacy_game_plan.dart';
 
 class _FixedSequenceStrategy implements TypeSelectionStrategy {
   _FixedSequenceStrategy(this._sequence);

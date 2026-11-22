@@ -275,7 +275,7 @@ void main() {
       );
       expectRejected(
         validate(
-          tamper(honestGame(), 1, (a) => copyAnswer(a, elapsedMs: 15001)),
+          tamper(honestGame(), 1, (a) => copyAnswer(a, elapsedMs: 30001)),
         ),
         RejectionReason.badElapsed,
       );

@@ -8,7 +8,8 @@ import 'package:shelf/shelf.dart';
 import 'http_app.dart';
 import 'supabase_gateway.dart';
 
-/// Largest accepted body: a 24-question session is about 6 KB.
+/// Largest accepted body: a 24-question session is about 6 KB; the longest
+/// game (4 operations × 20 questions) about 20 KB.
 const maxUploadBytes = 256 * 1024;
 
 /// `POST /v1/sessions` (plan, Phase 2 commits 5 and 6): one uploaded

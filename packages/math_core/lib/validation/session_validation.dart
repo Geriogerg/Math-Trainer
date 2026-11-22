@@ -53,7 +53,7 @@ enum RejectionReason {
   /// An answer's claimed correctness differs from the recomputed one.
   correctnessMismatch,
 
-  /// A response time outside [0, 15 s].
+  /// A response time outside [0, 30 s] (15 s before the Redesign phase).
   badElapsed,
 
   /// The session's frozen levels are not the server's current levels (or
@@ -116,7 +116,7 @@ final class Rejected extends ValidationResult {
 const maxClockSkew = Duration(minutes: 5);
 
 /// The longest a question can take: the per-question timeout.
-const maxElapsedMs = 15000;
+const maxElapsedMs = 30000;
 
 /// The server's check of one uploaded session (plan 6.4): regenerate every
 /// question from the seed and the stored config with the same core, recheck
