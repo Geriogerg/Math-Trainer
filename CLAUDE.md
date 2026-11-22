@@ -12,7 +12,7 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 
 **Redesign phase — Game modes and new interface** (`doc/plan.md`, section 7), run in **one
 pass**. Reference screens: `doc/mockups/redesign.html` — their layout and content are binding;
-colours, type and spacing come from `doc/design.md` and the theme. Done: 0–5.
+colours, type and spacing come from `doc/design.md` and the theme. Done: 0–6.
 Update this block at every commit.
 
 **The beta-safety rule is lifted for this phase** (owner decision): this phase changes how
@@ -216,9 +216,9 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 
 ## Pitfalls (append new ones)
 
-- `session_layout_pin_test.dart` holds the game screen's keypad and session geometry. Lifted for
-  the Redesign phase only: re-measured once at its commit 6 on the new screen, then never
-  updated to make a restyling pass — change the restyling. Sound and haptics go through
+- `session_layout_pin_test.dart` holds the game screen's keypad and session geometry (and the
+  30 s timeout). Re-measured once at the Redesign phase's commit 6 on the new screen; frozen
+  again since — never update its numbers to make a restyling pass, change the restyling. Sound and haptics go through
   `SessionEffects` (fire and forget, after the controller moved on), never inline in a widget.
 - Screens build buttons, chips, keys, figures and levels from `presentation/kit/` — never
   `FilledButton`, `TextButton`, `FilterChip` or `ChoiceChip` directly. Find a level in tests

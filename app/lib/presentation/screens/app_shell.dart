@@ -55,7 +55,10 @@ class _AppShellState extends State<AppShell>
     });
     final motion = Theme.of(context).extension<AppMotion>()!.tabChange;
     _tabTransitionController
-      ..duration = motion.duration
+      // Reduced motion: the tab appears at once.
+      ..duration = MediaQuery.disableAnimationsOf(context)
+          ? Duration.zero
+          : motion.duration
       ..value = 0
       ..animateTo(1, curve: motion.curve);
   }

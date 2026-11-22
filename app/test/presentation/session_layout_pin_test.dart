@@ -107,69 +107,75 @@ Future<SessionController> _pump(
 }
 
 /// Every key: the cell that takes the tap, then the visible key inside it
-/// (`left, top, width, height`). Rows of 75, cells of a third of the width,
-/// a 4 px margin around each key.
+/// (`left, top, width, height`). Rows of 75, cells of a third of the
+/// keypad's width (the screen's minus the root padding, Redesign phase),
+/// a 4 px margin around each key. Re-measured once at the Redesign phase's
+/// commit 6 — never again to make a restyling pass.
 final _keys = {
   Size(412, 915): {
-    '1': (0.0, 615.0, 137.3),
-    '2': (137.3, 615.0, 137.3),
-    '3': (274.7, 615.0, 137.3),
-    '4': (0.0, 690.0, 137.3),
-    '5': (137.3, 690.0, 137.3),
-    '6': (274.7, 690.0, 137.3),
-    '7': (0.0, 765.0, 137.3),
-    '8': (137.3, 765.0, 137.3),
-    '9': (274.7, 765.0, 137.3),
-    'backspace': (0.0, 840.0, 137.3),
-    '0': (137.3, 840.0, 137.3),
-    'submit': (274.7, 840.0, 137.3),
+    '1': (20.0, 595.0, 124.0),
+    '2': (144.0, 595.0, 124.0),
+    '3': (268.0, 595.0, 124.0),
+    '4': (20.0, 670.0, 124.0),
+    '5': (144.0, 670.0, 124.0),
+    '6': (268.0, 670.0, 124.0),
+    '7': (20.0, 745.0, 124.0),
+    '8': (144.0, 745.0, 124.0),
+    '9': (268.0, 745.0, 124.0),
+    'backspace': (20.0, 820.0, 124.0),
+    '0': (144.0, 820.0, 124.0),
+    'submit': (268.0, 820.0, 124.0),
   },
   Size(360, 640): {
-    '1': (0.0, 340.0, 120.0),
-    '2': (120.0, 340.0, 120.0),
-    '3': (240.0, 340.0, 120.0),
-    '4': (0.0, 415.0, 120.0),
-    '5': (120.0, 415.0, 120.0),
-    '6': (240.0, 415.0, 120.0),
-    '7': (0.0, 490.0, 120.0),
-    '8': (120.0, 490.0, 120.0),
-    '9': (240.0, 490.0, 120.0),
-    'backspace': (0.0, 565.0, 120.0),
-    '0': (120.0, 565.0, 120.0),
-    'submit': (240.0, 565.0, 120.0),
+    '1': (20.0, 320.0, 106.67),
+    '2': (126.67, 320.0, 106.67),
+    '3': (233.33, 320.0, 106.67),
+    '4': (20.0, 395.0, 106.67),
+    '5': (126.67, 395.0, 106.67),
+    '6': (233.33, 395.0, 106.67),
+    '7': (20.0, 470.0, 106.67),
+    '8': (126.67, 470.0, 106.67),
+    '9': (233.33, 470.0, 106.67),
+    'backspace': (20.0, 545.0, 106.67),
+    '0': (126.67, 545.0, 106.67),
+    'submit': (233.33, 545.0, 106.67),
   },
 };
 const _keyHeight = 75.0;
 const _keyMargin = 4.0;
 
 /// The question's centre, the same for every operation; the empty answer
-/// field's top and height, per operation (a taller prompt — a root's bar,
-/// a raised exponent — pushes it down by half a pixel or two).
+/// field's top and height (its accent underline included), per operation
+/// (a taller prompt — a root's bar, a raised exponent, an integral's
+/// bounds — pushes it down).
 final _questionCentre = {
-  Size(412, 915): (206.0, 319.0),
-  Size(360, 640): (180.0, 181.5),
+  Size(412, 915): (206.0, 284.5),
+  Size(360, 640): (180.0, 147.0),
 };
 final _answer = {
   Size(412, 915): {
-    'addition': (206.0, 371.0),
-    'power': (206.0, 371.5),
-    'root': (206.0, 373.0),
-    'percent': (206.0, 371.0),
+    'addition': (206.0, 328.5),
+    'power': (206.0, 329.0),
+    'root': (206.0, 330.5),
+    'percent': (206.0, 328.5),
+    'integral': (206.0, 337.5),
   },
   Size(360, 640): {
-    'addition': (180.0, 233.5),
-    'power': (180.0, 234.0),
-    'root': (180.0, 235.5),
-    'percent': (180.0, 233.5),
+    'addition': (180.0, 191.0),
+    'power': (180.0, 191.5),
+    'root': (180.0, 193.0),
+    'percent': (180.0, 191.0),
+    'integral': (180.0, 200.0),
   },
 };
-const _answerHeight = 41.0;
+const _answerHeight = 43.0;
 
-const _prompts = <String, Exercise>{
+final _prompts = <String, Exercise>{
   'addition': _addition,
   'power': PowerExercise(base: 7, exponent: 2),
   'root': SquareRootExercise(radicand: 169),
   'percent': PercentageExercise(percent: 25, base: 80),
+  'integral': IntegralExercise(lower: 0, upper: 3, c0: 0, c1: 2, c2: 0, c3: 0),
 };
 
 /// Measured to a tenth of a pixel; the tolerance only absorbs rounding.
@@ -225,7 +231,15 @@ void main() {
                 )
                 .first,
           );
-          expect(surface, cell.deflate(_keyMargin), reason: '$name surface');
+          final inner = cell.deflate(_keyMargin);
+          for (final (side, got, want) in [
+            ('left', surface.left, inner.left),
+            ('top', surface.top, inner.top),
+            ('right', surface.right, inner.right),
+            ('bottom', surface.bottom, inner.bottom),
+          ]) {
+            expect(got, _near(want), reason: '$name surface $side');
+          }
         }
       });
 

@@ -98,13 +98,17 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
   /// distinction as the automatic abandonment on timeouts (step 4.2).
   Future<void> _handlePopAttempt(bool didPop) async {
     if (didPop) return;
+    await _confirmQuit();
+  }
+
+  /// The ✕ and the back gesture alike (Redesign phase). Labels only: a game
+  /// quit early is kept as interrupted, which moves no level.
+  Future<void> _confirmQuit() async {
+    if (_controller.state.status != SessionStatus.inProgress) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Quit the game?'),
-        content: const Text(
-          'The session will be interrupted. Answers already given stay saved.',
-        ),
         actions: [
           AppButton.secondary(
             onPressed: () => Navigator.of(dialogContext).pop(false),
@@ -180,6 +184,7 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
                 SessionStatus.inProgress => SessionScreen(
                   controller: _controller,
                   effects: widget.environment.sessionEffects,
+                  onQuit: _confirmQuit,
                 ),
                 SessionStatus.finished ||
                 SessionStatus.interrupted => ResultScreen(

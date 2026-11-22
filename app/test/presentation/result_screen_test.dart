@@ -133,7 +133,6 @@ void main() {
       findsOneWidget,
     );
     expect(find.bySemanticsLabel('Best streak: 4'), findsOneWidget);
-    expect(find.textContaining('Types played: Addition'), findsOneWidget);
     // Never a percentage presented as progress (`doc/design.md`).
     expect(find.textContaining('%'), findsNothing);
   });
@@ -235,7 +234,7 @@ void main() {
     expect(find.textContaining('Addition — level'), findsNothing);
   });
 
-  testWidgets('Play again and New selection trigger their own callbacks', (
+  testWidgets('Play again and Home trigger their own callbacks', (
     tester,
   ) async {
     final controller = finishedController();
@@ -254,7 +253,7 @@ void main() {
     await tester.tap(find.text('Play again'));
     expect(playAgainTapped, isTrue);
 
-    await tester.tap(find.text('New selection'));
+    await tester.tap(find.text('Home'));
     expect(exitTapped, isTrue);
   });
 
@@ -269,7 +268,7 @@ void main() {
 
     await pumpResultScreen(tester, controller);
 
-    expect(find.textContaining('Game not saved'), findsOneWidget);
+    expect(find.text('Not saved'), findsOneWidget);
   });
 
   testWidgets('successful save: no warning', (tester) async {
@@ -279,7 +278,7 @@ void main() {
 
     await pumpResultScreen(tester, controller);
 
-    expect(find.textContaining('Game not saved'), findsNothing);
+    expect(find.text('Not saved'), findsNothing);
     expect(find.text('Retry saving'), findsNothing);
   });
 
@@ -318,7 +317,7 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    expect(find.textContaining('Game not saved'), findsNothing);
+    expect(find.text('Not saved'), findsNothing);
     expect(find.text('Retry saving'), findsNothing);
     expect(await repository.recentSessions('test-player'), hasLength(1));
   });

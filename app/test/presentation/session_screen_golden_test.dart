@@ -47,14 +47,19 @@ void main() {
 
   /// [correcting]: answered 64 instead of 65, the correction pause showing
   /// (Phase 0, commit 9) — a second question so it is not the last one.
-  SessionController buildController({bool correcting = false}) {
-    const exercises = [
-      ArithmeticExercise(
+  SessionController buildController({
+    bool correcting = false,
+    bool integral = false,
+  }) {
+    final exercises = [
+      if (integral)
+        IntegralExercise(lower: 0, upper: 3, c0: 0, c1: 2, c2: 0, c3: 0),
+      const ArithmeticExercise(
         operandA: 47,
         operandB: 18,
         operationType: OperationType.addition,
       ),
-      ArithmeticExercise(
+      const ArithmeticExercise(
         operandA: 9,
         operandB: 6,
         operationType: OperationType.multiplication,
@@ -64,8 +69,8 @@ void main() {
       config: SessionConfig(
         seed: 1,
         enabledTypes: const {ExerciseType.addition},
-        // One question in the plain golden (its "1 / 1" stays as recorded),
-        // two when a correction must not be on the last question.
+        // One question in the plain golden, two when a correction must not
+        // be on the last question.
         exerciseCount: correcting ? 2 : 1,
         levels: {ExerciseType.addition: Level.whole(12)},
       ),
@@ -80,20 +85,30 @@ void main() {
     return controller;
   }
 
-  for (final (scenario, correcting) in [('', false), ('_correction', true)]) {
+  // Mockups 3 and 4 (`doc/mockups/redesign.html`), the correction pause.
+  for (final (scenario, correcting, integral) in [
+    ('', false, false),
+    ('_correction', true, false),
+    ('_integral', false, true),
+  ]) {
     for (final mode in [
       (name: 'light', theme: buildLightTheme()),
       (name: 'dark', theme: buildDarkTheme()),
     ]) {
       testWidgets('session screen$scenario — ${mode.name}', (tester) async {
         await setGoldenSurfaceSize(tester);
-        final controller = buildController(correcting: correcting);
+        final controller = buildController(
+          correcting: correcting,
+          integral: integral,
+        );
         addTearDown(controller.dispose);
 
         await tester.pumpWidget(
           MaterialApp(
             theme: mode.theme,
-            home: Scaffold(body: SessionScreen(controller: controller)),
+            home: Scaffold(
+              body: SessionScreen(controller: controller, onQuit: () {}),
+            ),
           ),
         );
         // A single pump, without advancing time: the timer (5 s) must stay at

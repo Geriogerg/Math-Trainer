@@ -116,9 +116,7 @@ void main() {
   test('each tier changes the colours, both themes', () {
     for (final theme in [buildDarkTheme(), buildLightTheme()]) {
       final bars = {for (var t = 0; t <= 3; t++) timerBarColor(theme, t)};
-      final words = {for (var t = 0; t <= 2; t++) streakTextColor(theme, t)};
       expect(bars, hasLength(4));
-      expect(words, hasLength(3));
       expect(timerBarColor(theme, 0), theme.colorScheme.primary);
     }
   });
@@ -141,53 +139,36 @@ void main() {
     return controller;
   }
 
-  double streakScale(WidgetTester tester) => tester
-      .widget<ScaleTransition>(
-        find.ancestor(
-          of: find.byKey(sessionStreakLineKey),
-          matching: find.byType(ScaleTransition),
-        ),
-      )
-      .scale
-      .value;
+  Color barColor(WidgetTester tester) =>
+      (tester
+                  .widget<LinearProgressIndicator>(
+                    find.byType(LinearProgressIndicator),
+                  )
+                  .valueColor!
+              as AlwaysStoppedAnimation<Color>)
+          .value;
 
-  testWidgets('the fifth right answer in a row: the streak steps up its '
-      'colour and pulses once', (tester) async {
-    final controller = await pumpSession(tester);
-    for (var i = 0; i < 4; i++) {
+  // The streak line is gone (Redesign phase, mockup 3): the timer bar's
+  // colour is the streak's only sign during a game — the number shows on
+  // the result screen.
+  for (final reducedMotion in [false, true]) {
+    testWidgets('the fifth right answer in a row steps the timer bar up '
+        '(reduced motion: $reducedMotion)', (tester) async {
+      final controller = await pumpSession(
+        tester,
+        reducedMotion: reducedMotion,
+      );
+      final theme = buildDarkTheme();
+      for (var i = 0; i < 4; i++) {
+        controller.submitAnswer(2);
+        await tester.pump();
+      }
+      expect(barColor(tester), timerBarColor(theme, 0));
       controller.submitAnswer(2);
       await tester.pump();
-    }
-    await tester.pumpAndSettle();
-    expect(streakScale(tester), 1);
-
-    controller.submitAnswer(2);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 120));
-    expect(streakScale(tester), greaterThan(1.05));
-    await tester.pumpAndSettle();
-    expect(streakScale(tester), 1);
-
-    final line = tester.widget<Text>(find.byKey(sessionStreakLineKey));
-    final streakSpan = (line.textSpan! as TextSpan).children!.last as TextSpan;
-    expect(streakSpan.text, ' · streak 5');
-    expect(streakSpan.style!.color, streakTextColor(buildDarkTheme(), 1));
-  });
-
-  testWidgets('reduced motion: the colour still steps, no pulse', (
-    tester,
-  ) async {
-    final controller = await pumpSession(tester, reducedMotion: true);
-    for (var i = 0; i < 5; i++) {
-      controller.submitAnswer(2);
-      await tester.pump();
-    }
-    await tester.pump(const Duration(milliseconds: 120));
-    expect(streakScale(tester), 1);
-    final line = tester.widget<Text>(find.byKey(sessionStreakLineKey));
-    final streakSpan = (line.textSpan! as TextSpan).children!.last as TextSpan;
-    expect(streakSpan.style!.color, streakTextColor(buildDarkTheme(), 1));
-  });
+      expect(barColor(tester), timerBarColor(theme, 1));
+    });
+  }
 
   test('leveledUp: only a whole level gained counts', () {
     final before = {ExerciseType.addition: Level.fromHundredths(1290)};

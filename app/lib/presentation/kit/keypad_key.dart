@@ -5,17 +5,18 @@ import '../theme/app_theme.dart';
 /// One key of the session keypad (`doc/design.md`, "Built-in keypad"):
 /// digit or icon, on `Surface`, the submit key on `Accent`.
 ///
-/// **Its geometry is pinned for the beta** (`session_layout_pin_test.dart`):
-/// it fills its cell, the visible key sits `AppMetrics.keyGap` inside it
-/// with `AppMetrics.radius` corners, and it registers on tap (finger up) —
-/// the same input path as before Phase 5. Restyle colours and type, never
-/// size, spacing or the gesture.
+/// **Its geometry is pinned** (`session_layout_pin_test.dart`, re-measured
+/// once at the Redesign phase): it fills its cell, the visible key sits
+/// `AppMetrics.keyGap` inside it with `AppMetrics.radius` corners, and it
+/// registers on tap (finger up). Restyle colours and type, never size,
+/// spacing or the gesture.
 class KeypadKey extends StatefulWidget {
   /// A digit key.
   const KeypadKey.digit(String this.label, {super.key, required this.onTap})
     : icon = null,
       semanticLabel = null,
-      isPrimary = false;
+      isPrimary = false,
+      subdued = false;
 
   /// Backspace or submit: an icon, named for screen readers.
   const KeypadKey.icon(
@@ -24,6 +25,7 @@ class KeypadKey extends StatefulWidget {
     required String this.semanticLabel,
     required this.onTap,
     this.isPrimary = false,
+    this.subdued = false,
   }) : label = null;
 
   final String? label;
@@ -35,6 +37,9 @@ class KeypadKey extends StatefulWidget {
 
   /// The submit key: the most frequent gesture, on the accent.
   final bool isPrimary;
+
+  /// Backspace: its icon in the secondary text colour (Redesign mockups).
+  final bool subdued;
 
   @override
   State<KeypadKey> createState() => _KeypadKeyState();
@@ -56,7 +61,9 @@ class _KeypadKeyState extends State<KeypadKey> {
         : colorScheme.surfaceContainerHigh;
     final foreground = widget.isPrimary
         ? colorScheme.onPrimary
-        : colorScheme.onSurface;
+        : (widget.subdued
+              ? colorScheme.onSurfaceVariant
+              : colorScheme.onSurface);
 
     return GestureDetector(
       onTapDown: (_) => _setPressed(true),
@@ -64,7 +71,10 @@ class _KeypadKeyState extends State<KeypadKey> {
       onTapCancel: () => _setPressed(false),
       onTap: widget.onTap,
       child: AnimatedScale(
-        scale: _pressed ? 0.92 : 1.0,
+        // Reduced motion: no press scale.
+        scale: _pressed && !MediaQuery.disableAnimationsOf(context)
+            ? 0.92
+            : 1.0,
         duration: motion.duration,
         curve: motion.curve,
         child: Container(

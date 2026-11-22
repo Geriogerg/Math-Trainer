@@ -40,80 +40,6 @@ class _InertTimer implements Timer {
 }
 
 void main() {
-  testWidgets(
-    'the streak only appears from the first right answer (commit F)',
-    (tester) async {
-      const exercises = [
-        ArithmeticExercise(
-          operandA: 1,
-          operandB: 1,
-          operationType: OperationType.addition,
-        ),
-        ArithmeticExercise(
-          operandA: 2,
-          operandB: 2,
-          operationType: OperationType.addition,
-        ),
-        ArithmeticExercise(
-          operandA: 3,
-          operandB: 3,
-          operationType: OperationType.addition,
-        ),
-      ];
-      final controller = SessionController(
-        config: SessionConfig(
-          seed: 1,
-          enabledTypes: const {ExerciseType.addition},
-          exerciseCount: exercises.length,
-          levels: {ExerciseType.addition: Level.whole(12)},
-        ),
-        exerciseSource: _FixedExerciseSource(exercises),
-        repository: InMemorySessionRepository(),
-        playerId: 'test-player',
-        clock: () => DateTime(2026),
-        createTimer: (duration, callback) => _InertTimer(),
-      )..start();
-      addTearDown(controller.dispose);
-
-      // ListenableBuilder: in the real app, SessionFlowScreen rebuilds
-      // SessionScreen on every notifyListeners() (commit A). Without it
-      // here, submitAnswer() would trigger no rebuild.
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: buildLightTheme(),
-          home: Scaffold(
-            body: ListenableBuilder(
-              listenable: controller,
-              builder: (context, _) => SessionScreen(controller: controller),
-            ),
-          ),
-        ),
-      );
-      await tester.pump();
-
-      // First question: no streak yet.
-      expect(find.textContaining('streak'), findsNothing);
-      expect(find.text('Addition · level 12'), findsOneWidget);
-
-      controller.submitAnswer(2); // 1 + 1, correct
-      await tester.pump();
-
-      expect(find.text('Addition · level 12 · streak 1'), findsOneWidget);
-
-      controller.submitAnswer(4); // 2 + 2, correct
-      await tester.pump();
-
-      expect(find.text('Addition · level 12 · streak 2'), findsOneWidget);
-
-      controller.submitAnswer(0); // 3 + 3, wrong: the streak drops
-      await tester.pump();
-
-      // Session finished (3/3 answers): SessionScreen shows nothing more
-      // (EmptyState) — the final streak shows on ResultScreen, not here.
-      expect(controller.state.status.name, 'finished');
-    },
-  );
-
   group('physical keyboard', () {
     Future<SessionController> pumpSession(WidgetTester tester) async {
       const exercises = [
@@ -299,7 +225,10 @@ void main() {
       await tester.pump(const Duration(milliseconds: 200));
 
       expect(find.text('56'), findsOneWidget); // 7 × 8
-      expect(find.text('Your answer: 54'), findsOneWidget);
+      // What was typed, struck through — no words (Redesign phase).
+      final given = tester.widget<Text>(find.text('54'));
+      expect(given.style?.decoration, TextDecoration.lineThrough);
+      expect(find.bySemanticsLabel(RegExp('Your answer 54')), findsOneWidget);
       expect(find.text('7 × 8'), findsOneWidget);
       expect(find.text('1 / 3'), findsOneWidget);
     });
@@ -331,17 +260,18 @@ void main() {
 
       expect(find.text('2 + 2'), findsOneWidget);
       expect(find.text('2 / 3'), findsOneWidget);
-      expect(find.textContaining('Your answer'), findsNothing);
+      expect(find.bySemanticsLabel(RegExp('Your answer')), findsNothing);
       expect(find.text('56'), findsNothing);
     });
 
-    testWidgets("a timeout says Time's up", (tester) async {
+    testWidgets('a timeout shows an hourglass', (tester) async {
       await pumpCorrecting(tester);
 
       armed.last(); // the question's timeout
       await tester.pump(const Duration(milliseconds: 200));
 
-      expect(find.text("Time's up"), findsOneWidget);
+      expect(find.byIcon(Icons.hourglass_empty), findsOneWidget);
+      expect(find.bySemanticsLabel(RegExp("Time's up")), findsOneWidget);
       expect(find.text('56'), findsOneWidget);
     });
   });

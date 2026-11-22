@@ -3,12 +3,10 @@ import 'dart:math' as math;
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 
-import 'package:math_core/leveling/level.dart';
 import 'package:math_core/models/input_device.dart';
 import '../../core/effects/session_effects.dart';
 import '../../core/state/session_controller.dart';
 import '../exercise_prompt.dart';
-import '../exercise_type_labels.dart';
 import '../kit/keypad_key.dart';
 import '../streak_tier.dart';
 import '../theme/app_theme.dart';
@@ -49,7 +47,7 @@ final _digitKeys = {
 /// `test/presentation/session_layout_pin_test.dart`.
 const sessionQuestionKey = ValueKey('session-question');
 const sessionAnswerKey = ValueKey('session-answer');
-const sessionStreakLineKey = ValueKey('session-streak-line');
+const sessionCorrectionKey = ValueKey('session-correction');
 ValueKey<String> keypadKeyKey(String name) => ValueKey('keypad-$name');
 
 class SessionScreen extends StatefulWidget {
@@ -57,9 +55,14 @@ class SessionScreen extends StatefulWidget {
     super.key,
     required this.controller,
     this.effects = const NoSessionEffects(),
+    this.onQuit,
   });
 
   final SessionController controller;
+
+  /// The ✕ top left (Redesign phase): asks before quitting
+  /// (`SessionFlowScreen`). `null`: no ✕ (tests that do not care).
+  final VoidCallback? onQuit;
 
   /// Haptics (and sound, Phase 5): called after the controller has moved
   /// on, never awaited (`SessionEffects`).
@@ -85,12 +88,6 @@ class _SessionScreenState extends State<SessionScreen>
   late final AnimationController _chronoController;
   late final AnimationController _feedbackController;
 
-  /// The streak line's pulse when the streak reaches 5, 10, 20 (Phase 5
-  /// commit 6): a scale transform — it moves nothing on screen.
-  late final AnimationController _streakPulse;
-  late final Animation<double> _streakScale;
-  int _streakTier = 0;
-
   @override
   void initState() {
     super.initState();
@@ -107,12 +104,6 @@ class _SessionScreenState extends State<SessionScreen>
       vsync: this,
       duration: Duration.zero,
     );
-    // Duration set from `AppMotion.pulse` before each run, like feedback.
-    _streakPulse = AnimationController(vsync: this, duration: Duration.zero);
-    _streakScale = TweenSequence<double>([
-      TweenSequenceItem(tween: Tween(begin: 1, end: 1.12), weight: 1),
-      TweenSequenceItem(tween: Tween(begin: 1.12, end: 1), weight: 1),
-    ]).animate(_streakPulse);
   }
 
   @override
@@ -143,23 +134,12 @@ class _SessionScreenState extends State<SessionScreen>
       _safely(widget.effects.timedOut);
     }
     _seenOutcomes = outcomes.length;
-
-    // Reaching 5, 10 or 20 in a row: a short pulse — none under the
-    // system's reduced-motion setting. Losing the streak: no pulse.
-    final tier = streakTier(state.currentStreak);
-    if (tier > _streakTier && !MediaQuery.disableAnimationsOf(context)) {
-      _streakPulse
-        ..duration = Theme.of(context).extension<AppMotion>()!.pulse.duration
-        ..forward(from: 0);
-    }
-    _streakTier = tier;
   }
 
   @override
   void dispose() {
     _chronoController.dispose();
     _feedbackController.dispose();
-    _streakPulse.dispose();
     super.dispose();
   }
 
@@ -268,23 +248,9 @@ class _SessionScreenState extends State<SessionScreen>
 
     final theme = Theme.of(context);
     final metrics = theme.extension<AppMetrics>()!;
-    // Whole part, never the raw hundredths (`Level` is an `int` at runtime:
-    // interpolating it directly would print 1200 for level 12).
-    final level =
-        (widget.controller.config.levels[exercise.type] ?? Level.floor).whole;
-    // A placement's questions move with the answers: the frozen level would
-    // be wrong, and showing the level being probed would steer the player.
-    final levelText = widget.controller.config.kind.isPlacement
-        ? 'finding your level'
-        : 'level $level';
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
+    final transition = theme.extension<AppMotion>()!.questionTransition;
     final correction = state.correction;
-    // During the correction pause the answer field shows the correct
-    // answer; the caption says what was given instead.
-    final caption = correction == null
-        ? ''
-        : correction.isTimeout
-        ? "Time's up"
-        : 'Your answer: ${correction.submittedValue}';
 
     return Focus(
       autofocus: true,
@@ -292,8 +258,9 @@ class _SessionScreenState extends State<SessionScreen>
       child: Column(
         children: [
           Padding(
-            padding: metrics.rootPadding,
+            padding: metrics.rootPadding.copyWith(top: 8, bottom: 0),
             child: _TopBar(
+              onQuit: widget.onQuit,
               // The question being corrected is already counted in outcomes.
               questionIndex:
                   state.outcomes.length + (correction == null ? 1 : 0),
@@ -303,95 +270,93 @@ class _SessionScreenState extends State<SessionScreen>
             ),
           ),
           Expanded(
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ScaleTransition(
-                    scale: _streakScale,
-                    child: Text.rich(
-                      key: sessionStreakLineKey,
-                      TextSpan(
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.extension<AppPalette>()!.textMuted,
-                        ),
-                        children: [
-                          TextSpan(
-                            text:
-                                '${exerciseTypeLabel(exercise.type)} · $levelText',
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: metrics.rootPadding.left,
+              ),
+              // Large system text: the block shrinks as a whole rather than
+              // overflow; the keypad below keeps its height.
+              child: Center(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      KeyedSubtree(
+                        key: sessionQuestionKey,
+                        child: AnimatedSwitcher(
+                          duration: reduceMotion
+                              ? Duration.zero
+                              : transition.duration,
+                          switchInCurve: transition.curve,
+                          switchOutCurve: transition.curve,
+                          child: ExercisePrompt(
+                            key: ValueKey(exercise),
+                            exercise: exercise,
                           ),
-                          // Streak shown only if > 0: no "streak 0" noise on
-                          // every first question (`doc/decisions.md` —
-                          // currentStreak shown during the session). Its
-                          // colour steps up at 5, 10, 20 (Phase 5); the
-                          // number itself says it, never the colour alone.
-                          if (state.currentStreak > 0)
-                            TextSpan(
-                              text: ' · streak ${state.currentStreak}',
-                              style: TextStyle(
-                                color: streakTextColor(
-                                  theme,
-                                  streakTier(state.currentStreak),
-                                ),
-                              ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      _AnswerDisplay(
+                        key: sessionAnswerKey,
+                        typedDigits: correction == null
+                            ? _typedDigits
+                            : '${correction.exercise.correctAnswer}',
+                        feedback: _feedbackController,
+                        feedbackCorrect: _feedbackCorrect,
+                        reduceMotion: reduceMotion,
+                      ),
+                      const SizedBox(height: 8),
+                      // Always laid out, empty outside a correction: nothing
+                      // moves when it appears. No words (Redesign phase):
+                      // the wrong answer struck through, or an hourglass.
+                      SizedBox(
+                        key: sessionCorrectionKey,
+                        height: 28,
+                        child: switch (correction) {
+                          null => null,
+                          final c when c.isTimeout => Icon(
+                            Icons.hourglass_empty,
+                            size: 22,
+                            color: theme.extension<AppPalette>()!.textMuted,
+                            semanticLabel: "Time's up",
+                          ),
+                          final c => Text(
+                            '${c.submittedValue}',
+                            semanticsLabel: 'Your answer ${c.submittedValue}',
+                            style: theme.textTheme.titleMedium?.digits.copyWith(
+                              color: theme.extension<AppPalette>()!.textMuted,
+                              decoration: TextDecoration.lineThrough,
+                              decorationColor: theme
+                                  .extension<AppPalette>()!
+                                  .textMuted,
                             ),
-                        ],
+                          ),
+                        },
                       ),
-                    ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  KeyedSubtree(
-                    key: sessionQuestionKey,
-                    child: AnimatedSwitcher(
-                      duration: theme
-                          .extension<AppMotion>()!
-                          .questionTransition
-                          .duration,
-                      switchInCurve: theme
-                          .extension<AppMotion>()!
-                          .questionTransition
-                          .curve,
-                      switchOutCurve: theme
-                          .extension<AppMotion>()!
-                          .questionTransition
-                          .curve,
-                      child: ExercisePrompt(
-                        key: ValueKey(exercise),
-                        exercise: exercise,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  _AnswerDisplay(
-                    key: sessionAnswerKey,
-                    typedDigits: correction == null
-                        ? _typedDigits
-                        : '${correction.exercise.correctAnswer}',
-                    feedback: _feedbackController,
-                    feedbackCorrect: _feedbackCorrect,
-                  ),
-                  const SizedBox(height: 8),
-                  // Always laid out, empty outside a correction: nothing
-                  // moves when it appears.
-                  Text(
-                    caption,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.extension<AppPalette>()!.textMuted,
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ),
-          SizedBox(
-            // Fixed height first, the operation takes what remains above
-            // (`Expanded`) — nothing moves between questions (`doc/design.md`:
-            // never a ratio of the screen, see `AppMetrics`).
-            height: metrics.keypadHeight,
-            child: _NumericKeypad(
-              onDigit: (digit) => _appendDigit(digit, InputDevice.keypad),
-              onBackspace: () => _backspace(InputDevice.keypad),
-              onValidate: () => _submit(InputDevice.keypad),
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              metrics.rootPadding.left - metrics.keyGap,
+              0,
+              metrics.rootPadding.right - metrics.keyGap,
+              metrics.rootPadding.bottom - metrics.keyGap,
+            ),
+            child: SizedBox(
+              // Fixed height first, the operation takes what remains above
+              // (`Expanded`) — nothing moves between questions
+              // (`doc/design.md`: never a ratio of the screen).
+              height: metrics.keypadHeight,
+              child: _NumericKeypad(
+                onDigit: (digit) => _appendDigit(digit, InputDevice.keypad),
+                onBackspace: () => _backspace(InputDevice.keypad),
+                onValidate: () => _submit(InputDevice.keypad),
+              ),
             ),
           ),
         ],
@@ -402,12 +367,14 @@ class _SessionScreenState extends State<SessionScreen>
 
 class _TopBar extends StatelessWidget {
   const _TopBar({
+    required this.onQuit,
     required this.questionIndex,
     required this.totalQuestions,
     required this.chrono,
     required this.barColor,
   });
 
+  final VoidCallback? onQuit;
   final int questionIndex;
   final int totalQuestions;
   final Animation<double> chrono;
@@ -417,24 +384,40 @@ class _TopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return Column(
       children: [
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            '$questionIndex / $totalQuestions',
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
+        Row(
+          children: [
+            // Always 48 wide, so the counter never moves with or without it.
+            SizedBox.square(
+              dimension: 48,
+              child: onQuit == null
+                  ? null
+                  : IconButton(
+                      icon: Icon(Icons.close, color: colorScheme.onSurface),
+                      tooltip: 'Quit',
+                      onPressed: onQuit,
+                    ),
+            ),
+            const Spacer(),
+            Text(
+              '$questionIndex / $totalQuestions',
+              style: theme.textTheme.bodyLarge?.digits.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 8),
         ClipRRect(
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(3),
           child: AnimatedBuilder(
             animation: chrono,
             builder: (context, _) => LinearProgressIndicator(
               value: 1 - chrono.value,
-              minHeight: 4,
+              minHeight: 5,
               backgroundColor: colorScheme.outline,
               valueColor: AlwaysStoppedAnimation<Color>(barColor),
             ),
@@ -454,17 +437,29 @@ class _AnswerDisplay extends StatelessWidget {
     required this.typedDigits,
     required this.feedback,
     required this.feedbackCorrect,
+    this.reduceMotion = false,
   });
 
   final String typedDigits;
   final Animation<double> feedback;
   final bool? feedbackCorrect;
 
+  /// The system's reduced-motion setting: the flash stays (and the sound and
+  /// vibration), the scale and the shake go.
+  final bool reduceMotion;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final style = theme.textTheme.headlineMedium;
-    final text = Text(typedDigits, style: style);
+    final accent = theme.colorScheme.primary;
+    final style = theme.textTheme.headlineMedium?.copyWith(color: accent);
+    final text = Container(
+      constraints: const BoxConstraints(minWidth: 140),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: accent, width: 2)),
+      ),
+      child: Text(typedDigits, textAlign: TextAlign.center, style: style),
+    );
 
     return AnimatedBuilder(
       animation: feedback,
@@ -479,9 +474,13 @@ class _AnswerDisplay extends StatelessWidget {
         final opacity = (1 - t).clamp(0.0, 1.0);
         // Scale 1.0 → 1.06 → 1.0 (doc/design.md): a sine bump peaks in the
         // middle of the animation.
-        final scale = correct ? 1.0 + 0.06 * math.sin(t * math.pi) : 1.0;
+        final scale = correct && !reduceMotion
+            ? 1.0 + 0.06 * math.sin(t * math.pi)
+            : 1.0;
         // Damped horizontal shake: oscillates then settles.
-        final shakeDx = correct ? 0.0 : 8 * math.sin(t * math.pi * 4) * (1 - t);
+        final shakeDx = correct || reduceMotion
+            ? 0.0
+            : 8 * math.sin(t * math.pi * 4) * (1 - t);
 
         return Transform.translate(
           offset: Offset(shakeDx, 0),
@@ -550,6 +549,7 @@ class _NumericKeypad extends StatelessWidget {
                   key: keypadKeyKey('backspace'),
                   semanticLabel: 'Backspace',
                   onTap: onBackspace,
+                  subdued: true,
                 ),
               ),
               Expanded(

@@ -77,11 +77,6 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
             return ListView(
               padding: theme.extension<AppMetrics>()!.rootPadding,
               children: [
-                Text(
-                  'A bug, something too hard or too easy, an idea: tell us. '
-                  'The app version is added for you.',
-                  style: theme.textTheme.bodyMedium,
-                ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: _text,

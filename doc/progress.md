@@ -756,3 +756,17 @@ lifted for this phase.
   placement hint sentence is gone. Goldens: Home and setup page, both themes. Tests rewritten
   for the new flow (`play_tab_test.dart`, `widget_test.dart`, the shell's fade test); shared
   `test/fake_stores.dart`.
+- **Commit 6** *(C)* — Game screens per mockups 3 and 4. Session screen: ✕ (quit, confirmed —
+  the dialog keeps its title and buttons only; the back gesture asks the same) and `n / N` on
+  top, a 5 px timer bar, the operation, the answer in the accent on its underline, the keypad
+  inside the root padding (backspace in the secondary colour); no type, level or streak line;
+  the correction pause shows what was typed struck through, or an hourglass. Result screen:
+  labels only ("Home", "Not saved"; the placement sentence and "Types played" gone; mistakes
+  struck through). Feedback page: its helper sentence gone. Accessibility: muted text and the
+  error colour retuned to ≥ 4.5:1 in both themes (exact check on the theme's pairs), secondary
+  buttons 48 dp, Flutter's tap-target guideline on Home, the setup page and the game screen in
+  both themes, 200 % text on a 360×640 phone without overflow (the game's middle block scales
+  down), reduced motion everywhere (answer scale and shake, question fade, key press, tab
+  fade). Pins re-measured on the new screen (keys inside the padding, the answer with its
+  underline, an integral prompt added) and frozen again; goldens re-recorded, the integral
+  screen added. `streakTextColor` and the streak-line tests removed with the line.

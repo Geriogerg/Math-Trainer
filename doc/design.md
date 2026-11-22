@@ -23,7 +23,7 @@ The direction keeps its original French name.
 | Accent | `#5DCAA5` | primary action, timer, active input, active tab |
 | Primary text | `#E6F1FB` | operation, digits, titles |
 | Secondary text | `#85B7EB` | labels, metadata |
-| Muted text | `#5A6B8C` | inactive tabs, hints |
+| Muted text | `#7F90B2` | inactive tabs, hints (was `#5A6B8C`: 3.4:1, under the 4.5:1 rule — Redesign phase) |
 
 ### Palette — light mode (mandatory, not optional)
 
@@ -37,7 +37,7 @@ A mobile game is played outdoors as much as in bed. Light mode is not a comfort 
 | Accent | `#0F6E56` |
 | Primary text | `#101528` |
 | Secondary text | `#3E5170` |
-| Muted text | `#7A8AA6` |
+| Muted text | `#5E6E8C` (was `#7A8AA6`) |
 
 ### Right / wrong feedback
 
@@ -48,7 +48,9 @@ the action colour. And in any case:
 
 - **Right** — brief white flash on the input field, slight scale (1.0 → 1.06 → 1.0), very short
   vibration where the platform has one.
-- **Wrong** — `#E24B4A` flash, low-amplitude horizontal shake, longer vibration where available.
+- **Wrong** — error-red flash (the theme's error colour: `#BF3433` by day, `#F06968` at night —
+  `#E24B4A` failed 4.5:1 as text), low-amplitude horizontal shake, longer vibration where
+  available. Under reduced motion the flash, sound and vibration stay; the scale and the shake go.
 
 Haptics are absent in Safari on iOS; colour + motion still satisfies the rule.
 
@@ -72,8 +74,10 @@ pause the session allows — correcting an error is worth more than the second i
 correct answers keep the fast flow.
 
 During that pause (`SessionController.correctionDelay`, 1,000 ms): the question stays on screen,
-the answer field shows the correct answer after the error feedback, and a muted caption under it
-says "Your answer: 54" or "Time's up" (the caption line is always laid out, so nothing moves). The
+the answer field shows the correct answer after the error feedback, and under it, in muted text,
+what was typed **struck through** — or an hourglass for a timeout (no words since the Redesign
+phase; screen readers hear "Your answer 54" / "Time's up"). The line is always laid out, so
+nothing moves. The
 timer bar freezes, keys are ignored, and the next question's clock starts after the pause — it
 never counts in a response time. No pause after the last question: the result screen lists every
 mistake.
@@ -126,10 +130,13 @@ in the presentation, the only translatable part of the notation.
 No navigation. Full screen over the tab bar — it frees room for a truly large operation and
 prevents leaving a game by aiming at a tab.
 
-Top to bottom: progress counter and **timer as a bar** (never as digits — a timer is not read
-while calculating, it is perceived; and the bar shows the time of **the question**, not of the
-session), type and level in muted text, the centred operation, the answer being typed below it,
-then the keypad.
+Top to bottom (Redesign phase, mockups 3 and 4): ✕ top left (quit, with a confirmation; a game
+quit early is kept as interrupted) and `n / N` top right; the **timer as a bar**, 5 px (never as
+digits — a timer is not read while calculating, it is perceived; and the bar shows the time of
+**the question**, not of the session); the centred operation; the answer being typed below it,
+in the accent on an accent underline; then the keypad, inside the root padding. No type, level
+or streak line: the timer bar's colour is the streak's only sign during a game. The block
+between the bar and the keypad scales down as a whole at large text sizes.
 
 ## Built-in keypad
 
@@ -195,19 +202,18 @@ Snappy temperament, no whimsy. No bounce, no `elasticOut`, no decorative transit
 The level-up is the only animation allowed to take its time: it is the emotional moment of solo
 play, the only place where the player watches instead of reacting.
 
-**Streak escalation** (Phase 5): at 5, 10 and 20 in a row the streak's words step from muted to
-secondary text to the accent, the timer bar's colour moves toward the primary text colour
-(brighter at night, deeper by day), and the streak line pulses once (scale 1 → 1.12 → 1). Colour
-and a transform only: no size, position or timing on the session screen changes (beta-safety
-rule). The number stays the information; the colour only adds to it.
+**Streak escalation** (Phase 5; the streak line left the game screen in the Redesign phase): at
+5, 10 and 20 in a row the timer bar's colour moves toward the primary text colour (brighter at
+night, deeper by day). Colour only: no size, position or timing changes. The best streak is on
+the result screen as a number.
 
 **Level-up moment**: when a whole level goes up, the number counts up over 600 ms, "▲ Level up"
 appears under it in the accent and pulses once, and the level-up sound plays (an arpeggio) with a
 success vibration — once per result screen.
 
-**Reduced motion** (the system setting): no pulse, and the level count-up shows the final value at
-once. The answer feedback and the question transition keep their motion while the beta runs: they
-are part of how players answer (beta-safety rule, `doc/decisions.md`).
+**Reduced motion** (the system setting) is respected everywhere since the Redesign phase: no
+pulse, the level count-up shows the final value at once, no scale or shake on the answer, no
+question fade, no key-press scale, no tab fade.
 
 ## Result screen
 
@@ -222,7 +228,7 @@ notation followed by "your answer 54" or "timed out" in muted text.
 Accuracy is shown as a raw count ("9/12"), never as a curve nor as a percentage presented as
 progress.
 
-Two centred actions: **Play again** (dominant, filled) and **New selection**, pinned at the bottom
+Two centred actions: **Play again** (dominant, filled) and **Home**, pinned at the bottom
 under the scrolling results — a long mistakes list never pushes "Play again" out of reach. Worth considering:
 putting the type chips directly on this screen — changing a single type costs 3 taps today.
 

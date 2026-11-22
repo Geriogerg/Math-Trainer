@@ -36,10 +36,12 @@ ThemeData buildLightTheme() => _buildTheme(
     onPrimary: Color(0xFFFFFFFF),
     onSurface: Color(0xFF101528),
     onSurfaceVariant: Color(0xFF3E5170),
-    error: Color(0xFFE24B4A),
+    // Text contrast >= 4.5:1 on background and surface (Redesign phase):
+    // the design's #E24B4A reached 3.6:1 here.
+    error: Color(0xFFBF3433),
     onError: Color(0xFFFFFFFF),
   ),
-  palette: const AppPalette(textMuted: Color(0xFF7A8AA6)),
+  palette: const AppPalette(textMuted: Color(0xFF5E6E8C)),
 );
 
 ThemeData buildDarkTheme() => _buildTheme(
@@ -53,10 +55,11 @@ ThemeData buildDarkTheme() => _buildTheme(
     onPrimary: Color(0xFF101528),
     onSurface: Color(0xFFE6F1FB),
     onSurfaceVariant: Color(0xFF85B7EB),
-    error: Color(0xFFE24B4A),
-    onError: Color(0xFFFFFFFF),
+    // >= 4.5:1 on a surface too (#E24B4A: 3.9:1); dark text on it.
+    error: Color(0xFFF06968),
+    onError: Color(0xFF101528),
   ),
-  palette: const AppPalette(textMuted: Color(0xFF5A6B8C)),
+  palette: const AppPalette(textMuted: Color(0xFF7F90B2)),
 );
 
 const _motion = AppMotion(

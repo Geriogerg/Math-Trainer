@@ -247,23 +247,22 @@ void main() {
     expect(find.text('Session complete'), findsOneWidget);
   }
 
-  testWidgets(
-    '"New selection" after a session goes back to the selection screen',
-    (WidgetTester tester) async {
-      await openPlay(tester, testEnvironment);
+  testWidgets('"Home" after a session goes back to Home', (
+    WidgetTester tester,
+  ) async {
+    await openPlay(tester, testEnvironment);
 
-      await openBasicsSetup(tester);
-      await tester.tap(find.text('Start'));
-      await settlePageTransition(tester);
-      await playToCompletion(tester);
+    await openBasicsSetup(tester);
+    await tester.tap(find.text('Start'));
+    await settlePageTransition(tester);
+    await playToCompletion(tester);
 
-      await tester.tap(find.text('New selection'));
-      await settlePageTransition(tester);
+    await tester.tap(find.text('Home'));
+    await settlePageTransition(tester);
 
-      // Home, not the setup page: the levels are what moved.
-      expect(find.text('Basics'), findsOneWidget);
-    },
-  );
+    // Home, not the setup page: the levels are what moved.
+    expect(find.text('Basics'), findsOneWidget);
+  });
 
   testWidgets(
     'a first game on never-played types is a short placement, then the '

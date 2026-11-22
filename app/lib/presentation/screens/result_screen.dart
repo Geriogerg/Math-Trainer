@@ -77,14 +77,9 @@ class ResultScreen extends StatelessWidget {
                 // from the staircases' common start; no score (it measures
                 // nothing there).
                 if (isPlacement) ...[
-                  if (interrupted)
-                    Text(
-                      'Levels unchanged. You can play right away — the '
-                      'difficulty will adapt as you go.',
-                      textAlign: TextAlign.center,
-                      style: labelStyle,
-                    )
-                  else
+                  // Interrupted: the title says it, nothing moved (labels
+                  // only, Redesign phase).
+                  if (!interrupted)
                     // The placement test: the four basic operations; a type
                     // placement: the ones it placed.
                     for (final type
@@ -182,12 +177,6 @@ class ResultScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  'Types played: ${controller.config.enabledTypes.map(exerciseTypeLabel).join(', ')}',
-                  textAlign: TextAlign.center,
-                  style: labelStyle,
-                ),
                 // Mistakes review (`doc/design.md`, Phase 0 commit 9): every
                 // wrong answer and timeout, in play order, with its correct
                 // answer — the last question's included, which had no
@@ -205,8 +194,7 @@ class ResultScreen extends StatelessWidget {
                 if (controller.persistenceFailed) ...[
                   const SizedBox(height: 16),
                   Text(
-                    'Game not saved: it does not count in '
-                    'your history or your levels.',
+                    'Not saved',
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.error,
@@ -259,7 +247,7 @@ class ResultScreen extends StatelessWidget {
                   children: [
                     AppButton.secondary(
                       onPressed: onExitToSelection,
-                      label: 'New selection',
+                      label: 'Home',
                     ),
                     AppButton.primary(
                       onPressed: onPlayAgain,
@@ -286,8 +274,9 @@ class ResultScreen extends StatelessWidget {
   }
 }
 
-/// "7 × 8 = 56   your answer 54" — the operation as displayed in the session,
-/// its correct answer, then what was given (or "timed out") in muted text.
+/// "7 × 8 = 56   ~~54~~" — the operation as displayed in the session, its
+/// correct answer, then what was given struck through in muted text, or an
+/// hourglass for a timeout: as the game's own correction (no words).
 class _MistakeRow extends StatelessWidget {
   const _MistakeRow({required this.outcome});
 
@@ -297,9 +286,7 @@ class _MistakeRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final style = theme.textTheme.titleMedium;
-    final given = outcome.isTimeout
-        ? 'timed out'
-        : 'your answer ${outcome.submittedValue}';
+    final muted = theme.extension<AppPalette>()!.textMuted;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -309,12 +296,23 @@ class _MistakeRow extends StatelessWidget {
           ExercisePrompt(exercise: outcome.exercise, style: style),
           Text(' = ${outcome.exercise.correctAnswer}', style: style),
           const SizedBox(width: 12),
-          Text(
-            given,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.extension<AppPalette>()!.textMuted,
+          if (outcome.isTimeout)
+            Icon(
+              Icons.hourglass_empty,
+              size: 18,
+              color: muted,
+              semanticLabel: 'Timed out',
+            )
+          else
+            Text(
+              '${outcome.submittedValue}',
+              semanticsLabel: 'Your answer ${outcome.submittedValue}',
+              style: theme.textTheme.bodyLarge?.digits.copyWith(
+                color: muted,
+                decoration: TextDecoration.lineThrough,
+                decorationColor: muted,
+              ),
             ),
-          ),
         ],
       ),
     );

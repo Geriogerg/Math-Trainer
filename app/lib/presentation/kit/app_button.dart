@@ -63,7 +63,8 @@ class AppButton extends StatelessWidget {
     );
     final minimumSize = Size(
       0,
-      compact ? compactHeight : (_primary ? metrics.controlHeight : 44),
+      // 48: the smallest touch target (Redesign phase accessibility).
+      compact ? compactHeight : (_primary ? metrics.controlHeight : 48),
     );
     final padding = EdgeInsets.symmetric(horizontal: _primary ? 24 : 12);
     final textStyle = _primary
