@@ -743,3 +743,16 @@ lifted for this phase.
   (`20261124020000_integrals.sql`): the level type, the board, the data check's operands, the
   structural features (two parity cases). The app→server replay test now plays integrals too
   (their type placement, then games). Tests: core +11, app +2, SQL (the integral board).
+- **Commit 5** *(C)* — Home, setup page and navigation per mockups 1 and 2. Kit:
+  `OperationButton` (operator and level; selected by a thicker accent outline over a tint —
+  never colour alone), `SegmentedChoice`, `AppCard`, `AppButton.primary(compact:)` (48 high).
+  `PlayTab`: Home (main level badge; Basics and Advanced rows, multi-select, remembered in one
+  set; each row's Play dimmed and inert until it has a selection; Challenges cards, inert until
+  commits 7–8), the setup page in the tab (back, operators as title, Questions, Mode, the
+  difficulty in Training only, Start; system back closes it), the placement offer reduced to
+  labels. Choices go through a function of the current setup (two taps between frames both
+  count). After a game: back on Home. Shell: "Ranks"; the day/night toggle is a "Dark mode"
+  switch in Profile's Settings (sound and vibration without their subtitles). The type
+  placement hint sentence is gone. Goldens: Home and setup page, both themes. Tests rewritten
+  for the new flow (`play_tab_test.dart`, `widget_test.dart`, the shell's fade test); shared
+  `test/fake_stores.dart`.

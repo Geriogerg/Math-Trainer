@@ -19,6 +19,7 @@ class AppButton extends StatelessWidget {
     required this.label,
     required this.onPressed,
     this.busy = false,
+    this.compact = false,
   }) : _primary = true,
        destructive = false;
 
@@ -28,7 +29,8 @@ class AppButton extends StatelessWidget {
     required this.onPressed,
     this.busy = false,
     this.destructive = false,
-  }) : _primary = false;
+  }) : _primary = false,
+       compact = false;
 
   final String label;
 
@@ -44,6 +46,12 @@ class AppButton extends StatelessWidget {
   /// still quiet — irreversible actions are never the filled button.
   final bool destructive;
 
+  /// A shorter primary button (Home's Play under each row, Redesign
+  /// phase): [compactHeight], still a full touch target.
+  final bool compact;
+
+  static const compactHeight = 48.0;
+
   final bool _primary;
 
   @override
@@ -53,7 +61,10 @@ class AppButton extends StatelessWidget {
     final shape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(metrics.radius),
     );
-    final minimumSize = Size(0, _primary ? metrics.controlHeight : 44);
+    final minimumSize = Size(
+      0,
+      compact ? compactHeight : (_primary ? metrics.controlHeight : 44),
+    );
     final padding = EdgeInsets.symmetric(horizontal: _primary ? 24 : 12);
     final textStyle = _primary
         ? theme.textTheme.titleMedium

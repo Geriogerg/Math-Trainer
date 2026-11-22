@@ -39,7 +39,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(find.text('Math Trainer'), findsOneWidget);
+    expect(find.text('Find your level'), findsOneWidget);
   });
 
   testWidgets('the app builds without throwing in forced dark mode', (
@@ -52,6 +52,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(find.text('Math Trainer'), findsOneWidget);
+    expect(find.text('Find your level'), findsOneWidget);
   });
 }

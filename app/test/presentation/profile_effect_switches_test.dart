@@ -89,8 +89,8 @@ void main() {
     expect(store.haptics, isFalse);
   });
 
-  testWidgets('a browser that cannot vibrate: the switch is off, disabled, '
-      'and says why', (tester) async {
+  testWidgets('a browser that cannot vibrate: the switch is off and '
+      'disabled (labels only, Redesign phase)', (tester) async {
     await pumpProfile(
       tester,
       settings: EffectSettings(store: _EffectStore(), hapticsSupported: false),
@@ -99,7 +99,6 @@ void main() {
     final tile = tester.widget<SwitchListTile>(vibration);
     expect(tile.value, isFalse);
     expect(tile.onChanged, isNull);
-    expect(find.text('This browser cannot vibrate'), findsOneWidget);
   });
 
   testWidgets('no effect settings (tests, tools): no switches', (tester) async {

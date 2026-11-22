@@ -23,7 +23,7 @@ class AppShell extends StatefulWidget {
 
   final AppEnvironment environment;
 
-  /// Passed down to the day/night button of `PlayTab` — `null` by default so
+  /// Passed down to the day/night switch on Profile — `null` by default so
   /// as not to break tests that build `AppShell` without caring about the
   /// theme.
   final VoidCallback? onToggleTheme;
@@ -69,13 +69,13 @@ class _AppShellState extends State<AppShell>
   @override
   Widget build(BuildContext context) {
     final tabs = [
-      PlayTab(
-        environment: widget.environment,
-        onToggleTheme: widget.onToggleTheme,
-        isActive: _index == 0,
-      ),
+      PlayTab(environment: widget.environment, isActive: _index == 0),
       const ComingSoonScreen(label: 'Online'),
-      ProfileScreen(environment: widget.environment, isActive: _index == 2),
+      ProfileScreen(
+        environment: widget.environment,
+        isActive: _index == 2,
+        onToggleTheme: widget.onToggleTheme,
+      ),
       LeaderboardScreen(environment: widget.environment, isActive: _index == 3),
     ];
 
@@ -112,7 +112,8 @@ class _AppShellState extends State<AppShell>
           ),
           NavigationDestination(
             icon: Icon(Icons.leaderboard_outlined),
-            label: 'Leaderboard',
+            // The mockups' word (doc/decisions.md, Redesign phase).
+            label: 'Ranks',
           ),
         ],
       ),

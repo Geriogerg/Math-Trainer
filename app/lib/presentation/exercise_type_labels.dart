@@ -10,3 +10,16 @@ String exerciseTypeLabel(ExerciseType type) => switch (type) {
   ExerciseType.percentage => 'Percentages',
   ExerciseType.integral => 'Integrals',
 };
+
+/// The operation as a symbol (Redesign phase: the setup page's title, "+ ×").
+/// The true minus, times and divide signs (`doc/design.md`).
+String operatorSymbol(ExerciseType type) => switch (type) {
+  ExerciseType.addition => '+',
+  ExerciseType.subtraction => '−',
+  ExerciseType.multiplication => '×',
+  ExerciseType.division => '÷',
+  ExerciseType.power => 'x²',
+  ExerciseType.squareRoot => '√',
+  ExerciseType.percentage => '%',
+  ExerciseType.integral => '∫',
+};

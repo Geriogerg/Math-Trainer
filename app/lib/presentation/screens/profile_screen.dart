@@ -95,9 +95,14 @@ class ProfileScreen extends StatefulWidget {
     required this.environment,
     this.isActive = true,
     this.clock = DateTime.now,
+    this.onToggleTheme,
   });
 
   final AppEnvironment environment;
+
+  /// The day/night switch (on Profile since the Redesign phase: Home's
+  /// corner holds the main level). `null`: not shown.
+  final VoidCallback? onToggleTheme;
 
   /// The time the curve and the recent games are placed against. Golden
   /// tests pass a fixed one: with the real clock, dates shown as `dd/mm`
@@ -441,9 +446,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ? data.recentSessions[i + 1]
                       : null,
                 ),
-            if (widget.environment.effectSettings case final settings?) ...[
+            if (widget.environment.effectSettings != null ||
+                widget.onToggleTheme != null) ...[
               const SizedBox(height: 24),
-              _EffectSwitches(settings: settings),
+              _SettingsBlock(
+                settings: widget.environment.effectSettings,
+                onToggleTheme: widget.onToggleTheme,
+              ),
             ],
             const SizedBox(height: 32),
             // The beta's feedback field (Phase 3a commit 5).
@@ -908,39 +917,50 @@ class _LevelCurvePainter extends CustomPainter {
 /// The game's effects, switched per device (Phase 5): sound and vibration,
 /// both on by default. A device that cannot vibrate (Safari on iPhone)
 /// shows the switch disabled, and says why.
-class _EffectSwitches extends StatelessWidget {
-  const _EffectSwitches({required this.settings});
+/// Labels only (Redesign phase): the switch says what it is.
+class _SettingsBlock extends StatelessWidget {
+  const _SettingsBlock({required this.settings, required this.onToggleTheme});
 
-  final EffectSettings settings;
+  final EffectSettings? settings;
+  final VoidCallback? onToggleTheme;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final settings = this.settings;
+    final onToggleTheme = this.onToggleTheme;
+    final rows = <Widget>[
+      Text('Settings', style: theme.textTheme.titleMedium),
+      if (onToggleTheme != null)
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: Text('Dark mode', style: theme.textTheme.bodyLarge),
+          value: theme.brightness == Brightness.dark,
+          onChanged: (_) => onToggleTheme(),
+        ),
+    ];
+    if (settings == null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: rows,
+      );
+    }
     return ListenableBuilder(
       listenable: settings,
       builder: (context, _) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('During a game', style: theme.textTheme.titleMedium),
+          ...rows,
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
             title: Text('Sound', style: theme.textTheme.bodyLarge),
-            subtitle: Text(
-              'Key ticks, a chime that climbs with your streak',
-              style: theme.textTheme.bodyMedium,
-            ),
             value: settings.sound,
             onChanged: settings.setSound,
           ),
+          // Disabled where the browser cannot vibrate.
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
             title: Text('Vibration', style: theme.textTheme.bodyLarge),
-            subtitle: Text(
-              settings.hapticsSupported
-                  ? 'A tap on each key, a pulse for each answer'
-                  : 'This browser cannot vibrate',
-              style: theme.textTheme.bodyMedium,
-            ),
             value: settings.haptics,
             onChanged: settings.hapticsSupported ? settings.setHaptics : null,
           ),

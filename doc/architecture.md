@@ -65,7 +65,7 @@ app/                       # the Flutter app (package `math_trainer`), web first
     presentation/
       theme/               # app_theme.dart — light/dark ColorScheme, AppPalette/AppMotion/AppMetrics
       screens/             # AuthGate (anonymous-first), AppShell (tabbed shell, IndexedStack),
-                           # PlayTab (placement offer or type selection), SessionFlowScreen/
+                           # PlayTab (placement offer, Home, setup page), SessionFlowScreen/
                            # SessionScreen (full-screen session), ResultScreen, ProfileScreen,
                            # SaveProgressScreen, SignInScreen, LeaderboardScreen,
                            # ComingSoonScreen (Online tab), EmptyState, ConfigErrorApp

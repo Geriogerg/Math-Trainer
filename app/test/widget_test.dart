@@ -4,6 +4,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:math_trainer/app.dart';
 import 'package:math_trainer/presentation/screens/session_screen.dart';
+import 'package:math_trainer/presentation/screens/result_screen.dart';
+import 'package:math_trainer/presentation/screens/play_tab.dart';
+import 'package:math_trainer/presentation/kit/kit.dart';
 import 'package:math_trainer/composition_root.dart';
 import 'package:math_core/persistence/level_cache_entry.dart';
 import 'package:math_core/models/exercise_type.dart';
@@ -109,6 +112,17 @@ void main() {
     }
   }
 
+  /// Home's Basics Play: the setup page (Redesign phase).
+  Future<void> openBasicsSetup(WidgetTester tester) async {
+    await tester.tap(find.byKey(playButtonKey(ExerciseFamily.basics)));
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> tapOperation(WidgetTester tester, String label) async {
+    await tester.tap(find.bySemanticsLabel(RegExp('^$label, level')));
+    await tester.pump();
+  }
+
   // Advances time just enough for the standard MaterialPageRoute transition
   // to settle, without waiting for the rest (SessionScreen's timer runs 5 s
   // per question: a pumpAndSettle() here would never converge while a new
@@ -121,7 +135,7 @@ void main() {
   testWidgets('shows the home screen', (WidgetTester tester) async {
     await openPlay(tester, testEnvironment);
 
-    expect(find.text('Math Trainer'), findsOneWidget);
+    expect(find.text('Basics'), findsOneWidget);
   });
 
   testWidgets('starting a session pushes the keypad full screen', (
@@ -129,6 +143,7 @@ void main() {
   ) async {
     await openPlay(tester, testEnvironment);
 
+    await openBasicsSetup(tester);
     await tester.tap(find.text('Start'));
     await settlePageTransition(tester);
 
@@ -137,25 +152,22 @@ void main() {
     expect(find.byIcon(Icons.backspace_outlined), findsOneWidget);
   });
 
-  testWidgets('no type selected disables Start and explains why', (
+  testWidgets('no operation selected: the row Play is inert', (
     WidgetTester tester,
   ) async {
     await openPlay(tester, testEnvironment);
 
     // Untick the 2 types selected by default (step 4.1, commit A).
     for (final label in ['Addition', 'Subtraction']) {
-      await tester.tap(find.text(label));
-      await tester.pump();
+      await tapOperation(tester, label);
     }
 
-    expect(find.text('No type selected.'), findsOneWidget);
-
-    await tester.tap(find.text('Start'));
+    await tester.tap(find.byKey(playButtonKey(ExerciseFamily.basics)));
     await tester.pump();
 
-    // Still on the selection screen: the disabled button triggered nothing.
-    expect(find.text('Math Trainer'), findsOneWidget);
-    expect(find.byKey(keypadKeyKey('submit')), findsNothing);
+    // Still on Home: the dimmed button triggered nothing.
+    expect(find.text('Basics'), findsOneWidget);
+    expect(find.text('Start'), findsNothing);
   });
 
   testWidgets('a single selected type starts a single-type session', (
@@ -163,12 +175,14 @@ void main() {
   ) async {
     await openPlay(tester, testEnvironment);
 
-    await tester.tap(find.text('Subtraction'));
-    await tester.pump();
+    await tapOperation(tester, 'Subtraction');
+    await openBasicsSetup(tester);
     await tester.tap(find.text('Start'));
     await settlePageTransition(tester);
 
     expect(find.byKey(keypadKeyKey('submit')), findsOneWidget);
+    // Addition alone, 10 questions (the default setup).
+    expect(find.text('1 / 10'), findsOneWidget);
   });
 
   testWidgets(
@@ -176,6 +190,7 @@ void main() {
     (WidgetTester tester) async {
       await openPlay(tester, testEnvironment);
 
+      await openBasicsSetup(tester);
       await tester.tap(find.text('Start'));
       await settlePageTransition(tester);
       expect(find.byKey(keypadKeyKey('submit')), findsOneWidget);
@@ -212,8 +227,8 @@ void main() {
     },
   );
 
-  /// 2 types by default, n_min=4 (step 4.2): sessionLengthFor(2, 4, 24) = 8
-  /// questions. The loop bound (20) is a safety margin, not the real count.
+  /// 2 types by default, 10 questions each (the default setup): 20
+  /// questions. The loop bound (30) is a safety margin, not the real count.
   /// Type '1' then submit, without a pump in between to avoid any collision
   /// with the '1' that would then appear in the displayed answer. A wrong
   /// answer shows its correction for `defaultCorrectionDelay` (Phase 0,
@@ -221,10 +236,10 @@ void main() {
   Future<void> playToCompletion(WidgetTester tester) async {
     for (
       var i = 0;
-      i < 20 && find.text('Session complete').evaluate().isEmpty;
+      i < 30 && find.text('Session complete').evaluate().isEmpty;
       i++
     ) {
-      await tester.tap(find.text('1'));
+      await tester.tap(find.byKey(keypadKeyKey('1')));
       await tester.tap(find.byKey(keypadKeyKey('submit')));
       await tester.pump();
       await tester.pump(SessionController.defaultCorrectionDelay);
@@ -237,6 +252,7 @@ void main() {
     (WidgetTester tester) async {
       await openPlay(tester, testEnvironment);
 
+      await openBasicsSetup(tester);
       await tester.tap(find.text('Start'));
       await settlePageTransition(tester);
       await playToCompletion(tester);
@@ -244,8 +260,8 @@ void main() {
       await tester.tap(find.text('New selection'));
       await settlePageTransition(tester);
 
-      expect(find.text('Math Trainer'), findsOneWidget);
-      expect(find.byType(FilterChip), findsWidgets);
+      // Home, not the setup page: the levels are what moved.
+      expect(find.text('Basics'), findsOneWidget);
     },
   );
 
@@ -262,15 +278,7 @@ void main() {
         profileRepository: FakeProfileRepository(),
       );
       await openPlay(tester, environment);
-      expect(find.text('Difficulty adapts to your answers.'), findsOneWidget);
-      expect(
-        find.text(
-          'First time on Addition and Subtraction: 5 quick questions each '
-          'find your starting level.',
-        ),
-        findsOneWidget,
-      );
-
+      await openBasicsSetup(tester);
       await tester.tap(find.text('Start'));
       await settlePageTransition(tester);
       expect(find.text('1 / 10'), findsOneWidget);
@@ -279,7 +287,7 @@ void main() {
         i < 20 && find.text('Your starting levels').evaluate().isEmpty;
         i++
       ) {
-        await tester.tap(find.text('1'));
+        await tester.tap(find.byKey(keypadKeyKey('1')));
         await tester.tap(find.byKey(keypadKeyKey('submit')));
         await tester.pump();
         await tester.pump(SessionController.defaultCorrectionDelay);
@@ -288,13 +296,16 @@ void main() {
       expect(find.textContaining('Addition — level'), findsOneWidget);
       expect(find.textContaining('Subtraction — level'), findsOneWidget);
 
-      await tester.tap(find.text('Play'));
+      await tester.tap(
+        find.descendant(
+          of: find.byType(ResultScreen),
+          matching: find.text('Play'),
+        ),
+      );
       await settlePageTransition(tester);
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Main level'), findsOneWidget);
-      // Placed: no hint any more, Start plays a game.
-      expect(find.textContaining('First time on'), findsNothing);
+      expect(find.text('Basics'), findsOneWidget);
     },
   );
 
@@ -303,6 +314,7 @@ void main() {
     (WidgetTester tester) async {
       await openPlay(tester, testEnvironment);
 
+      await openBasicsSetup(tester);
       await tester.tap(find.text('Start'));
       await settlePageTransition(tester);
       await playToCompletion(tester);
@@ -310,9 +322,8 @@ void main() {
       await tester.tap(find.text('Play again'));
       await settlePageTransition(tester);
 
-      // Straight back on the keypad, not on the selection screen: "1" is the
-      // new first question, never the "Math Trainer" screen.
-      expect(find.text('Math Trainer'), findsNothing);
+      // Straight back on the keypad, not on Home.
+      expect(find.text('Basics'), findsNothing);
       expect(find.text('1 / 20'), findsOneWidget);
       expect(find.byKey(keypadKeyKey('submit')), findsOneWidget);
     },
@@ -332,25 +343,28 @@ void main() {
 
       await openPlay(tester, testEnvironment);
 
-      await tester.tap(find.text('Multiplication'));
-      await tester.pump();
+      await tapOperation(tester, 'Multiplication');
 
       await tester.tap(find.text('Profile'));
       await tester.pumpAndSettle();
       expect(find.text('Addition'), findsOneWidget);
       expect(find.text('Not played'), findsWidgets);
 
-      await tester.tap(find.text('Play'));
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text('Play'),
+        ),
+      );
       await tester.pumpAndSettle();
 
       // IndexedStack: the Play tab keeps its state, Multiplication stays ticked.
-      final chip = tester.widget<FilterChip>(
-        find.ancestor(
-          of: find.text('Multiplication'),
-          matching: find.byType(FilterChip),
+      final button = tester.widget<OperationButton>(
+        find.byWidgetPredicate(
+          (w) => w is OperationButton && w.type == ExerciseType.multiplication,
         ),
       );
-      expect(chip.selected, isTrue);
+      expect(button.selected, isTrue);
     },
   );
 
@@ -365,10 +379,11 @@ void main() {
       );
       await openPlay(tester, failingEnvironment);
 
+      await openBasicsSetup(tester);
       await tester.tap(find.text('Start'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Could not start the session.'), findsOneWidget);
+      expect(find.text('Could not start'), findsOneWidget);
       // The button is active again: it is the retry action.
       expect(
         tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
@@ -379,40 +394,41 @@ void main() {
       await tester.pumpAndSettle();
 
       // Still blocked (same repository), still the same message, no crash.
-      expect(find.text('Could not start the session.'), findsOneWidget);
+      expect(find.text('Could not start'), findsOneWidget);
     },
   );
 
   testWidgets(
-    'the day/night button toggles the theme and persists the choice',
+    'the Dark mode switch on Profile toggles the theme and persists it',
     (WidgetTester tester) async {
-      await openPlay(tester, testEnvironment);
+      tester.view.physicalSize = const Size(412, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      Future<Brightness> openProfile() async {
+        await openPlay(tester, testEnvironment);
+        await tester.tap(
+          find.descendant(
+            of: find.byType(NavigationBar),
+            matching: find.text('Profile'),
+          ),
+        );
+        await tester.pumpAndSettle();
+        return Theme.of(tester.element(find.text('Settings'))).brightness;
+      }
 
-      final initialBrightness = Theme.of(
-        tester.element(find.text('Math Trainer')),
-      ).brightness;
-
-      await tester.tap(
-        find.byIcon(
-          initialBrightness == Brightness.dark
-              ? Icons.light_mode_outlined
-              : Icons.dark_mode_outlined,
-        ),
-      );
+      final initial = await openProfile();
+      await tester.tap(find.widgetWithText(SwitchListTile, 'Dark mode'));
       await tester.pumpAndSettle();
-
-      final toggledBrightness = Theme.of(
-        tester.element(find.text('Math Trainer')),
+      final toggled = Theme.of(
+        tester.element(find.text('Settings')),
       ).brightness;
-      expect(toggledBrightness, isNot(initialBrightness));
+      expect(toggled, isNot(initial));
 
       // A new instance pointing at the same environment finds the choice.
-      await openPlay(tester, testEnvironment);
-
-      final reloadedBrightness = Theme.of(
-        tester.element(find.text('Math Trainer')),
-      ).brightness;
-      expect(reloadedBrightness, toggledBrightness);
+      expect(await openProfile(), toggled);
     },
   );
 }

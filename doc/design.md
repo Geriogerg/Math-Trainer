@@ -155,8 +155,20 @@ Enter to validate. Same paths as the touch keypad, hence the same timing. Input 
 
 ## Navigation
 
-**Bottom tab bar**, four entries: Play, Online, Profile, Leaderboard. Online and Leaderboard are
-previews until Phases 2 and 7.
+**Bottom tab bar**, four entries: Play, Online, Profile, Ranks (the leaderboard; "Ranks" since
+the Redesign phase, as in the mockups). Online is a preview until Phase 7. The bar shows on every
+page except a game.
+
+**Home** (Redesign phase, mockup 1; scrolls): "Play" and the main level badge top right;
+"Basics" — a row of four `OperationButton`s (operator, level under it; multi-select,
+remembered) — then a full-width, shorter Play (`AppButton.primary(compact: true)`, 48 high),
+dimmed and inert until the row has a selection; "Advanced" the same; "Challenges" — two
+`AppCard`s. **Setup page** (mockup 2), inside the Play tab: back, the selected operators as the
+title, "Questions" (4 / 5 / 10 / 20), "Mode" (Training / Levelling), the difficulty row in
+Training only (`SegmentedChoice`), Start at the bottom. After a game the player is back on Home.
+
+**Minimal text** (Redesign phase): labels only — no caption, hint or helper sentence on any
+screen. Errors stay, in a few words ("Could not start").
 
 No side drawer: two gestures instead of one, hidden navigation, and on a large phone it pushes the
 thumb to the top-left corner, the least reachable spot. The bottom bar stays visible, reachable,
@@ -164,7 +176,8 @@ and will carry notification badges when duels arrive.
 
 The Profile tab (formerly Progress) carries the player's identity (player name, email, sign-out)
 alongside the statistics — an explicit owner decision that replaced the original "no fifth tab,
-profile as a corner icon". The day/night toggle stays a corner icon on the Play screen.
+profile as a corner icon". The day/night toggle is a "Dark mode" switch in Profile's Settings
+(Redesign phase: Home's corner holds the main level).
 
 ## Animation
 
@@ -238,6 +251,9 @@ screen uses them. Shared tokens in `AppMetrics`: `radius` 16 (the keypad's corne
 | `StatTile` | one figure and its label | surface tile, number in the digit face, muted label |
 | `LevelBadge` | a level, whole number | digit face in the accent, accent outline; a dash when not played |
 | `OperatorIcon` | the operation, next to its name | the family below, in the accent |
+| `OperationButton` | an operation of a Home row (Redesign) | surface, operator and level; selected: accent outline 2.5 (1.5 otherwise) over a tint |
+| `SegmentedChoice` | one of a few choices (setup page) | equal segments 48 high; chosen: accent fill and weight 500 |
+| `AppCard` | a full-width tappable label (Challenges) | surface, radius 12, 56 high |
 
 **Operator icons** (`OperatorIconPainter`): + − × ÷ x² √ % drawn as one family on a unit square —
 one stroke weight (11 % of the side), round caps, the same box; the root keeps its bar, the
@@ -259,8 +275,8 @@ player's own row stays bold with "(You)", a badge reads "Level 12" to screen rea
   one device to another and contradicts sizing backwards.
 - **An error message does not contain the action.** The text describes the problem, the button
   carries the action — one wording everywhere.
-- **A disabled state explains why.** A greyed button without a message (empty type selection)
-  leaves the player with no readable way out.
+- **A disabled state is dimmed, without a sentence** (Redesign phase, minimal text): Home's
+  Play is dimmed until its row has a selection — the row right above is the way out.
 
 ## Implementation rules
 

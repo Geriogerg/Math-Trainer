@@ -4,6 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:math_trainer/composition_root.dart';
 import 'package:math_core/persistence/in_memory_session_repository.dart';
+import 'package:math_core/models/exercise_type.dart';
+import 'package:math_trainer/presentation/kit/kit.dart';
 import 'package:math_trainer/presentation/screens/app_shell.dart';
 import 'package:math_trainer/presentation/theme/app_theme.dart';
 
@@ -35,7 +37,7 @@ void main() {
       await tester.tap(find.text('Skip'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Multiplication'));
+      await tester.tap(find.bySemanticsLabel(RegExp('^Multiplication, ')));
       await tester.pump();
 
       await tester.tap(find.text('Profile'));
@@ -49,17 +51,21 @@ void main() {
       // present in the tree at the same time.
       expect(find.textContaining('30-day change'), findsOneWidget);
 
-      await tester.tap(find.text('Play'));
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text('Play'),
+        ),
+      );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 250));
 
-      final chip = tester.widget<FilterChip>(
-        find.ancestor(
-          of: find.text('Multiplication'),
-          matching: find.byType(FilterChip),
+      final button = tester.widget<OperationButton>(
+        find.byWidgetPredicate(
+          (w) => w is OperationButton && w.type == ExerciseType.multiplication,
         ),
       );
-      expect(chip.selected, isTrue);
+      expect(button.selected, isTrue);
     },
   );
 }

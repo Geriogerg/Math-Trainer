@@ -158,7 +158,7 @@ void main() {
 
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
     expect(find.byType(TextField), findsNothing);
-    expect(find.text('Math Trainer'), findsNothing);
+    expect(find.text('Find your level'), findsNothing);
   });
 
   testWidgets(
@@ -178,7 +178,7 @@ void main() {
       accountRepository.completeAnonymous(_guest);
       await tester.pumpAndSettle();
 
-      expect(find.text('Math Trainer'), findsOneWidget);
+      expect(find.text('Find your level'), findsOneWidget);
       expect(find.byType(TextField), findsNothing);
     },
   );
@@ -196,7 +196,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(accountRepository.anonymousSignIns, 0);
-    expect(find.text('Math Trainer'), findsOneWidget);
+    expect(find.text('Find your level'), findsOneWidget);
   });
 
   testWidgets('repeated "no session" states start a single anonymous sign-in', (
@@ -235,7 +235,7 @@ void main() {
 
     accountRepository.completeAnonymous(_guest);
     await tester.pumpAndSettle();
-    expect(find.text('Math Trainer'), findsOneWidget);
+    expect(find.text('Find your level'), findsOneWidget);
   });
 
   testWidgets('rate limited: its own message', (tester) async {

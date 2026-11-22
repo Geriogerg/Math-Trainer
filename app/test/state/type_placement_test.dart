@@ -7,7 +7,6 @@ import 'package:math_core/persistence/level_cache_entry.dart';
 import 'package:math_trainer/composition_root.dart';
 import 'package:math_trainer/core/state/session_controller.dart';
 import 'package:math_trainer/core/state/session_state.dart';
-import 'package:math_trainer/presentation/screens/play_tab.dart';
 
 import '../fake_account_repository.dart';
 import '../fake_profile_repository.dart';
@@ -107,21 +106,5 @@ void main() {
     });
     addTearDown(again.dispose);
     expect(again.config.kind, SessionKind.typePlacementV3);
-  });
-
-  test('the Play hint names the operations', () {
-    expect(
-      typePlacementHint({ExerciseType.power}),
-      'First time on Powers: 5 quick questions find your starting level.',
-    );
-    expect(
-      typePlacementHint({
-        ExerciseType.percentage,
-        ExerciseType.power,
-        ExerciseType.squareRoot,
-      }),
-      'First time on Powers, Square roots and Percentages: 5 quick '
-      'questions each find your starting level.',
-    );
   });
 }

@@ -1,35 +1,38 @@
 import 'package:material_ui/material_ui.dart';
 
-import '../kit/kit.dart';
-
-import '../../composition_root.dart';
+import 'package:math_core/generation/question_plan.dart';
+import 'package:math_core/leveling/level.dart';
+import 'package:math_core/leveling/main_level.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/models/game_setup.dart';
-import 'package:math_core/placement/placement.dart';
 import 'package:math_core/persistence/level_cache_entry.dart';
+import '../../composition_root.dart';
 import '../../core/state/session_controller.dart';
 import '../exercise_type_labels.dart';
-import 'package:math_core/leveling/main_level.dart';
+import '../kit/kit.dart';
 import '../theme/app_theme.dart';
 import 'session_flow_screen.dart';
 
-/// 2 types by default, not 4: with `n_min` (4 since step 4.2, 8 before) and
-/// the session cap, this guarantees level cache coverage from the first
-/// session for a player who never touches the selection (step 4.1, commit
-/// A — see `doc/decisions.md`). Addition/subtraction: inverse operations,
-/// minimal cognitive load for a first player; the 5 other types stay
-/// available, just unticked.
+/// Addition and subtraction ticked for a player who never chose: inverse
+/// operations, the lightest start (step 4.1, `doc/decisions.md`).
 const _defaultSelectedTypes = {ExerciseType.addition, ExerciseType.subtraction};
 
-/// The "Play" tab of `AppShell`. Only handles the type selection: the
-/// session itself is pushed full screen over the tab bar
-/// (`SessionFlowScreen`), not switched inline as before step 5, commit E.
+/// Stable handles for tests on the Home rows' Play buttons.
+ValueKey<String> playButtonKey(ExerciseFamily family) =>
+    ValueKey('play-${family.name}');
+
+/// The Play tab (Redesign phase, mockups 1 and 2): Home — the main level,
+/// a row per family with its Play button, the challenges — and, after Play,
+/// the setup page of that row's selection. Both keep the bottom bar; the
+/// game itself is pushed full screen (`SessionFlowScreen`). A new player
+/// is first offered the placement test (Phase 1).
 class PlayTab extends StatefulWidget {
   const PlayTab({
     super.key,
     required this.environment,
-    this.onToggleTheme,
     this.isActive = true,
+    this.onGetTheCount,
+    this.onChainOperations,
   });
 
   final AppEnvironment environment;
@@ -38,42 +41,35 @@ class PlayTab extends StatefulWidget {
   /// startup state: a placement taken from Profile ends the offer here.
   final bool isActive;
 
-  /// Day/night button in the corner of the home screen (`doc/design.md`) —
-  /// `null` by default so as not to break tests that do not care about the
-  /// theme.
-  final VoidCallback? onToggleTheme;
+  /// The two challenge cards; `null`: shown, not tappable.
+  final VoidCallback? onGetTheCount;
+  final VoidCallback? onChainOperations;
 
   @override
   State<PlayTab> createState() => _PlayTabState();
 }
 
 class _PlayTabState extends State<PlayTab> {
+  /// Both rows' selections in one set (one store): each row reads its own
+  /// family out of it.
   Set<ExerciseType> _selectedTypes = {..._defaultSelectedTypes};
   GameSetup _setup = GameSetup();
+
+  /// The row whose setup page is open; `null`: Home.
+  ExerciseFamily? _setupFamily;
+
   bool _isStarting = false;
   String? _startError;
 
-  /// `null` until the read resolves — the default above stays shown during
-  /// this short interval rather than a loading state on the main screen
-  /// (post-step-5 UX review: a local read, no spinner justified).
-  double? _globalLevel;
-  bool _hasHistory = false;
+  /// `null` until read, or if the read failed (levels then show as 1).
+  Map<ExerciseType, LevelCacheEntry>? _levels;
 
-  /// No completed session (an interrupted one does not count) and the
-  /// offer never skipped: the placement test is offered instead of the
-  /// type selection (owner, end of Phase 1). A skip is remembered per
-  /// player; Profile still offers the placement until a session is
-  /// completed.
+  /// No completed session and the offer never skipped (Phase 1).
   bool _offerPlacement = false;
 
-  /// `false` until the first read resolves: nothing is drawn meanwhile, or
-  /// a new player would see the type selection flash before the placement
-  /// offer replaces it. A local read — a few milliseconds.
+  /// Nothing is drawn before the first read resolves, or a new player would
+  /// see Home flash before the placement offer.
   bool _startupResolved = false;
-
-  /// The player's level cache, for the type placement hint (Phase 3a
-  /// commit 7); `null` until read, or if the read failed (no hint then).
-  Map<ExerciseType, LevelCacheEntry>? _levels;
 
   @override
   void initState() {
@@ -100,10 +96,7 @@ class _PlayTabState extends State<PlayTab> {
   }
 
   Future<void> _loadStartupState() async {
-    // Purely auxiliary (level hint, welcome, remembered selection): a
-    // failure here must never prevent starting a session with the default
-    // already shown — same logic as the silent failure of
-    // `_persistCompletedSession` in the controller.
+    // Auxiliary: a failure must never prevent playing with the defaults.
     final environment = widget.environment;
     try {
       final results = await Future.wait([
@@ -114,20 +107,15 @@ class _PlayTabState extends State<PlayTab> {
       ]);
       if (!mounted) return;
       final storedSelection = results[0] as Set<ExerciseType>?;
-      final levels = results[1] as Map<ExerciseType, LevelCacheEntry>;
       final completed = results[2] as bool;
       final skipped = results[3] as bool;
       setState(() {
         if (storedSelection != null) _selectedTypes = storedSelection;
-        _hasHistory = levels.isNotEmpty;
-        _levels = levels;
-        _globalLevel = levels.isEmpty ? null : mainLevel(levels);
+        _levels = results[1] as Map<ExerciseType, LevelCacheEntry>;
         _offerPlacement = !completed && !skipped;
         _startupResolved = true;
       });
     } on Exception catch (_) {
-      // The type selection with its default — no error state on the main
-      // screen for secondary information.
       if (mounted) setState(() => _startupResolved = true);
     }
   }
@@ -140,21 +128,42 @@ class _PlayTabState extends State<PlayTab> {
         .ignore();
   }
 
-  void _updateSelection(Set<ExerciseType> types) {
-    setState(() => _selectedTypes = types);
-    // Continuous write, no dedicated button — in the background, a silent
-    // failure only costs a return to the default at the next launch.
-    widget.environment.typeSelectionStore.save(types).ignore();
+  void _toggle(ExerciseType type) {
+    final updated = {..._selectedTypes};
+    if (!updated.remove(type)) updated.add(type);
+    setState(() => _selectedTypes = updated);
+    // In the background: a failed write only costs the default next time.
+    widget.environment.typeSelectionStore.save(updated).ignore();
   }
 
-  Future<void> _startSession() => _run(
-    () => buildSessionController(
-      widget.environment,
-      _selectedTypes,
-      setup: _setup,
-    ),
-    setup: _setup,
-  );
+  /// [change] applies to the current setup, not to the one a widget was
+  /// built with: two taps between frames both count.
+  void _updateSetup(GameSetup Function(GameSetup) change) {
+    final setup = change(_setup);
+    setState(() => _setup = setup);
+    widget.environment.gameSetupStore.save(setup).ignore();
+  }
+
+  Set<ExerciseType> _selectionOf(ExerciseFamily family) => {
+    for (final type in family.types)
+      if (_selectedTypes.contains(type)) type,
+  };
+
+  void _openSetup(ExerciseFamily family) => setState(() {
+    _setupFamily = family;
+    _startError = null;
+  });
+
+  void _closeSetup() => setState(() => _setupFamily = null);
+
+  Future<void> _start() {
+    final types = _selectionOf(_setupFamily!);
+    final setup = _setup;
+    return _run(
+      () => buildSessionController(widget.environment, types, setup: setup),
+      setup: setup,
+    );
+  }
 
   Future<void> _startPlacement() =>
       _run(() async => buildPlacementController(widget.environment));
@@ -172,19 +181,19 @@ class _PlayTabState extends State<PlayTab> {
       controller = await build();
     } catch (_) {
       if (!mounted) return;
-      // The "Start" button becomes active again: it is the retry action, no
-      // need for a dedicated button.
+      // Start, active again, is the retry.
       setState(() {
         _isStarting = false;
-        // No "Try again.": the Start button, active again, already carries
-        // the action (`doc/design.md` — an error message does not contain
-        // the action).
-        _startError = 'Could not start the session.';
+        _startError = 'Could not start';
       });
       return;
     }
     if (!mounted) return;
-    setState(() => _isStarting = false);
+    // Back on Home after the game: its levels are what moved.
+    setState(() {
+      _isStarting = false;
+      _setupFamily = null;
+    });
     await playSessionFlow(
       context,
       widget.environment,
@@ -196,203 +205,251 @@ class _PlayTabState extends State<PlayTab> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_startupResolved) {
-      return _ThemeToggleOverlay(
-        onToggleTheme: widget.onToggleTheme,
-        child: const SizedBox.expand(),
+    if (!_startupResolved) return const SizedBox.expand();
+    if (_offerPlacement) {
+      return _PlacementOfferView(
+        onStart: _isStarting ? null : _startPlacement,
+        onSkip: _skipPlacement,
+        isStarting: _isStarting,
+        startError: _startError,
       );
     }
-    if (_offerPlacement) {
-      return _ThemeToggleOverlay(
-        onToggleTheme: widget.onToggleTheme,
-        child: _PlacementOfferView(
-          onStart: _isStarting ? null : _startPlacement,
-          onSkip: _skipPlacement,
+    final family = _setupFamily;
+    if (family != null) {
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) _closeSetup();
+        },
+        child: _SetupView(
+          types: _selectionOf(family),
+          setup: _setup,
+          onChanged: _updateSetup,
+          onBack: _closeSetup,
+          onStart: _isStarting ? null : _start,
           isStarting: _isStarting,
           startError: _startError,
         ),
       );
     }
-    return _TypeSelectionView(
-      selectedTypes: _selectedTypes,
-      onChanged: _updateSelection,
-      onStart: _selectedTypes.isEmpty || _isStarting ? null : _startSession,
-      isStarting: _isStarting,
-      startError: _startError,
-      hasHistory: _hasHistory,
-      globalLevel: _globalLevel,
-      onToggleTheme: widget.onToggleTheme,
-      neverPlayed: switch (_levels) {
-        final levels? => neverPlayedTypes(_selectedTypes, levels),
-        null => const {},
-      },
+    final levels = _levels ?? const {};
+    return _HomeView(
+      mainLevel: mainLevel(levels).round(),
+      levelOf: (type) => (levels[type]?.level ?? Level.floor).whole,
+      selectionOf: _selectionOf,
+      onToggle: _toggle,
+      onPlay: _openSetup,
+      onGetTheCount: widget.onGetTheCount,
+      onChainOperations: widget.onChainOperations,
     );
   }
 }
 
-/// "First time on Powers and Percentages: …" — what Start will do when the
-/// selection holds operations never played (Phase 3a commit 7).
-String typePlacementHint(Set<ExerciseType> neverPlayed) {
-  final names = [
-    for (final type in neverPlayed.toList()..sort((a, b) => a.index - b.index))
-      exerciseTypeLabel(type),
-  ];
-  final list = names.length == 1
-      ? names.single
-      : '${names.sublist(0, names.length - 1).join(', ')} and ${names.last}';
-  final each = names.length == 1 ? '' : ' each';
-  return 'First time on $list: '
-      '${typePlacementRules.questionsPerType} quick questions$each find your '
-      'starting level.';
-}
-
-class _TypeSelectionView extends StatelessWidget {
-  const _TypeSelectionView({
-    required this.selectedTypes,
-    required this.onChanged,
-    required this.onStart,
-    required this.isStarting,
-    required this.startError,
-    required this.hasHistory,
-    required this.globalLevel,
-    required this.onToggleTheme,
-    required this.neverPlayed,
+/// Mockup 1. Labels only.
+class _HomeView extends StatelessWidget {
+  const _HomeView({
+    required this.mainLevel,
+    required this.levelOf,
+    required this.selectionOf,
+    required this.onToggle,
+    required this.onPlay,
+    required this.onGetTheCount,
+    required this.onChainOperations,
   });
 
-  final Set<ExerciseType> selectedTypes;
-
-  /// Selected operations with no level yet: Start plays a short placement
-  /// on them first.
-  final Set<ExerciseType> neverPlayed;
-  final ValueChanged<Set<ExerciseType>> onChanged;
-  final VoidCallback? onStart;
-  final bool isStarting;
-  final String? startError;
-  final VoidCallback? onToggleTheme;
-
-  /// Existing history for this player (at least one type played) — tells
-  /// the level hint apart from the welcome sentence for a new player
-  /// (post-step-5 UX review).
-  final bool hasHistory;
-  final double? globalLevel;
-
-  void _toggle(ExerciseType type, bool selected) {
-    final updated = Set<ExerciseType>.of(selectedTypes);
-    if (selected) {
-      updated.add(type);
-    } else {
-      updated.remove(type);
-    }
-    onChanged(updated);
-  }
+  final int mainLevel;
+  final int Function(ExerciseType type) levelOf;
+  final Set<ExerciseType> Function(ExerciseFamily family) selectionOf;
+  final ValueChanged<ExerciseType> onToggle;
+  final ValueChanged<ExerciseFamily> onPlay;
+  final VoidCallback? onGetTheCount;
+  final VoidCallback? onChainOperations;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return _ThemeToggleOverlay(
-      onToggleTheme: onToggleTheme,
-      child: Center(
-        child: Padding(
-          padding: theme.extension<AppMetrics>()!.rootPadding,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+    final metrics = theme.extension<AppMetrics>()!;
+    return SingleChildScrollView(
+      padding: metrics.rootPadding,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
             children: [
-              Text('Math Trainer', style: theme.textTheme.titleMedium),
-              const SizedBox(height: 8),
-              if (hasHistory)
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Main level',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.extension<AppPalette>()!.textMuted,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    LevelBadge(level: globalLevel?.round()),
-                  ],
-                )
-              else
-                Text(
-                  'Difficulty adapts to your answers.',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.extension<AppPalette>()!.textMuted,
-                  ),
-                ),
-              const SizedBox(height: 24),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                alignment: WrapAlignment.center,
-                children: [
-                  for (final type in ExerciseType.values)
-                    TypeChip(
-                      leading: OperatorIcon(type),
-                      label: exerciseTypeLabel(type),
-                      selected: selectedTypes.contains(type),
-                      onSelected: (selected) => _toggle(type, selected),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              AppButton.primary(
-                onPressed: onStart,
-                busy: isStarting,
-                label: 'Start',
-              ),
-              if (selectedTypes.isEmpty) ...[
-                const SizedBox(height: 8),
-                Text('No type selected.', style: theme.textTheme.bodyMedium),
-              ] else if (startError == null && neverPlayed.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(
-                  typePlacementHint(neverPlayed),
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.extension<AppPalette>()!.textMuted,
-                  ),
-                ),
-              ] else if (startError != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  startError!,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.error,
-                  ),
-                ),
-              ],
+              Expanded(child: Text('Play', style: theme.textTheme.titleMedium)),
+              LevelBadge(level: mainLevel),
             ],
           ),
+          for (final family in ExerciseFamily.values) ...[
+            _SectionLabel(switch (family) {
+              ExerciseFamily.basics => 'Basics',
+              ExerciseFamily.advanced => 'Advanced',
+            }),
+            Row(
+              children: [
+                for (final (i, type) in family.types.indexed) ...[
+                  if (i > 0) SizedBox(width: metrics.keyGap * 1.5),
+                  Expanded(
+                    child: OperationButton(
+                      type: type,
+                      level: levelOf(type),
+                      selected: selectionOf(family).contains(type),
+                      onTap: () => onToggle(type),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 8),
+            AppButton.primary(
+              key: playButtonKey(family),
+              label: 'Play',
+              compact: true,
+              // Dimmed and inert until the row has a selection.
+              onPressed: selectionOf(family).isEmpty
+                  ? null
+                  : () => onPlay(family),
+            ),
+          ],
+          const _SectionLabel('Challenges'),
+          AppCard(label: 'Get the count', onTap: onGetTheCount),
+          const SizedBox(height: 8),
+          AppCard(label: 'Chain operations', onTap: onChainOperations),
+        ],
+      ),
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 24, bottom: 8),
+      child: Text(
+        text,
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
         ),
       ),
     );
   }
 }
 
-/// The day/night button in the corner of the Play screens (selection and
-/// placement offer alike).
-class _ThemeToggleOverlay extends StatelessWidget {
-  const _ThemeToggleOverlay({required this.onToggleTheme, required this.child});
+/// Mockup 2: back, the selected operators as the title, Questions, Mode,
+/// the difficulty in Training only, Start at the bottom.
+class _SetupView extends StatelessWidget {
+  const _SetupView({
+    required this.types,
+    required this.setup,
+    required this.onChanged,
+    required this.onBack,
+    required this.onStart,
+    required this.isStarting,
+    required this.startError,
+  });
 
-  final VoidCallback? onToggleTheme;
-  final Widget child;
+  final Set<ExerciseType> types;
+  final GameSetup setup;
+  final ValueChanged<GameSetup Function(GameSetup)> onChanged;
+  final VoidCallback onBack;
+  final VoidCallback? onStart;
+  final bool isStarting;
+  final String? startError;
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Stack(
-      children: [
-        child,
-        Positioned(
-          top: 8,
-          right: 8,
-          child: IconButton(
-            icon: Icon(
-              isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+    final theme = Theme.of(context);
+    final metrics = theme.extension<AppMetrics>()!;
+    final title = [
+      for (final type in types.toList()..sort((a, b) => a.index - b.index))
+        operatorSymbol(type),
+    ].join(' ');
+    // Scrolls only when large text needs it; Start otherwise sits at the
+    // bottom.
+    return CustomScrollView(
+      slivers: [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Padding(
+            padding: metrics.rootPadding,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back),
+                      tooltip: 'Back',
+                      onPressed: onBack,
+                    ),
+                    Expanded(
+                      child: Text(
+                        title,
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.titleLarge,
+                      ),
+                    ),
+                    // Balances the back button: the title stays centred.
+                    const SizedBox(width: 48),
+                  ],
+                ),
+                const _SectionLabel('Questions'),
+                SegmentedChoice<int>(
+                  values: questionsPerOperationChoices,
+                  selected: setup.questionsPerOperation,
+                  label: (n) => '$n',
+                  onChanged: (n) =>
+                      onChanged((s) => s.copyWith(questionsPerOperation: n)),
+                ),
+                const _SectionLabel('Mode'),
+                SegmentedChoice<GameMode>(
+                  values: GameMode.values,
+                  selected: setup.mode,
+                  label: (mode) => switch (mode) {
+                    GameMode.training => 'Training',
+                    GameMode.levelling => 'Levelling',
+                  },
+                  onChanged: (mode) => onChanged((s) => s.copyWith(mode: mode)),
+                ),
+                if (setup.mode == GameMode.training) ...[
+                  const SizedBox(height: 8),
+                  SegmentedChoice<TrainingDifficulty>(
+                    values: TrainingDifficulty.values,
+                    selected: setup.difficulty,
+                    label: (difficulty) => switch (difficulty) {
+                      TrainingDifficulty.easy => 'Easy',
+                      TrainingDifficulty.medium => 'Medium',
+                      TrainingDifficulty.hard => 'Hard',
+                    },
+                    onChanged: (difficulty) =>
+                        onChanged((s) => s.copyWith(difficulty: difficulty)),
+                  ),
+                ],
+                const Spacer(),
+                const SizedBox(height: 24),
+                if (startError case final error?) ...[
+                  Text(
+                    error,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.error,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                AppButton.primary(
+                  label: 'Start',
+                  onPressed: onStart,
+                  busy: isStarting,
+                ),
+              ],
             ),
-            tooltip: isDark ? 'Light mode' : 'Dark mode',
-            onPressed: onToggleTheme,
           ),
         ),
       ],
@@ -400,9 +457,7 @@ class _ThemeToggleOverlay extends StatelessWidget {
   }
 }
 
-/// First screen of a new player: find their level in about a minute, or
-/// skip straight to the type selection (plan, section 6.1 and Phase 1
-/// commit 6).
+/// A new player's first screen (Phase 1): the placement, or Skip to Home.
 class _PlacementOfferView extends StatelessWidget {
   const _PlacementOfferView({
     required this.onStart,
@@ -420,30 +475,22 @@ class _PlacementOfferView extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Center(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: theme.extension<AppMetrics>()!.rootPadding,
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Math Trainer', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 24),
             Text(
               'Find your level',
               style: theme.textTheme.titleLarge,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'About a minute of + − × ÷. Each question adapts to your last '
-              'answer, so your first games start at the right difficulty.',
-              style: theme.textTheme.bodyMedium,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
             AppButton.primary(
               onPressed: onStart,
               busy: isStarting,
-              label: 'Find my level',
+              label: 'Start',
             ),
             const SizedBox(height: 8),
             AppButton.secondary(onPressed: onSkip, label: 'Skip'),
@@ -451,6 +498,7 @@ class _PlacementOfferView extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 startError!,
+                textAlign: TextAlign.center,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.error,
                 ),

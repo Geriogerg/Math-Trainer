@@ -160,6 +160,9 @@ beta-safety rule".
   b ≤ 3; the largest answers stay under 7 typed digits. Their type placement uses the same
   pass time as every type (3 s, the level update's own speed scale). Structural features:
   the bounds, like a power's base. Phase 3b calibrates all of it.
+- **After a game, back to Home** (not the setup page): the levels that moved are on Home; Play
+  again on the result screen keeps the same setup. One selection set is stored for both rows;
+  each row reads its family from it.
 - **Correction pause without words**: the wrong answer is shown struck through under the right
   one, a timeout as an hourglass icon, instead of "Your answer: 54" / "Time's up".
 
