@@ -128,6 +128,26 @@ hundredths, frozen at the start, never decaying, recomputable, replayed by the s
   the whole v1 machinery alive only to store it would contradict principle 5 of the spec. It stays
   in the player's local history like any refused session. Played-and-pending v1 sessions are rare
   (a game finished offline before the update).
+- **The fluent time is the frozen level's tier's**, for every question of that operation in
+  the game, review questions included (`fluentTimeMs`). The spec says "the tier's fluent time";
+  the player's tier is the one the game is played at and the one the level measures, and a
+  review question is meant to be easy — crediting it against the lower tier's shorter time
+  would make reviews cost credit. Commit 3.
+- **The review split is exact per operation**: 30 % rounded half up (1 of 4, 2 of 5, 3 of 10,
+  6 of 20), the review questions placed at random in the game by its own seeded stream —
+  rather than a 30 % chance per question, which would give a 4-question game anywhere from 0
+  to 4 reviews. Commit 2.
+- **The level change rounds once, to the nearest hundredth** (halves away from zero), from
+  integer arithmetic: the spec's −0.3 is −0.29 (`(0.55 − 0.5) / 0.35 × 2`). Commit 1.
+- **Questions per tier, where the spec leaves room** (commit 2): subtraction T0 never gives 0;
+  T7 subtraction is half "across a zero" (403 − 178), half other double borrows;
+  multiplication T0–T1 shows the table on either side; T6 addition never carries out of the
+  hundreds; percentages: T1 bases up to 200, T3 up to 400, T5 from 20 to 400, T8 percentages
+  110, 120, 125, 150, 175, 200 % of 2-digit numbers; integrals: bounds kept small (answers
+  under 6 digits), T9's second term negative half the time, never larger than the leading
+  term covers from the lower bound on. A tier with two kinds draws each half the time.
+- **Cube roots show a small raised 3 before √**: no bundled face has `∛`, and the page never
+  fetches a font (a missing glyph shows as a box).
 
 ## Redesign phase — owner decisions (plan v2.9, 22 Nov 2026)
 

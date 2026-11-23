@@ -3,7 +3,7 @@ import '../models/exercise_type.dart';
 import '../persistence/level_cache_entry.dart';
 import 'answer_outcome.dart';
 import 'confidence.dart';
-import 'fluent_time.dart';
+import '../tiers/fluent_time.dart';
 import 'level.dart';
 import 'level_change.dart';
 import 'level_updater.dart';

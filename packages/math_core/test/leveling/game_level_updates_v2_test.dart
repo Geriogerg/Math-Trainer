@@ -1,4 +1,4 @@
-import 'package:math_core/leveling/fluent_time.dart';
+import 'package:math_core/tiers/fluent_time.dart';
 import 'package:math_core/leveling/level.dart';
 import 'package:math_core/leveling/level_cache_orchestrator.dart';
 import 'package:math_core/leveling/level_updates.dart';

@@ -903,3 +903,9 @@ new games use them, together with the reset (`doc/decisions.md`).
   sequences pinned and identical on VM and JavaScript (`tool/tier_references.dart`); v2
   validation (accepted with the app's levels, forged question, wrong plan, level-1 chain).
   Not live: new games stay v1 until commit 4.
+- **Commit 3** *(A)* — Fluent time per tier (spec section 5) replaces rules v2's shared 2 s:
+  `fluentTimeMs(type, level)` in `tiers/`, the spec's eight tables (4 → 14 s for + and −, up
+  to 20 s for integrals), read at the tier of the frozen level for every question of that
+  operation, reviews included (provisional, `doc/decisions.md`, with commits 1–2's gaps).
+  Tests: every table value, the tier boundaries (39.99 / 40 / 100), the fluent time itself
+  counted as fluent, 0.1 s over it as slow. Rules v1 keep their `t_rapide` until commit 4.
