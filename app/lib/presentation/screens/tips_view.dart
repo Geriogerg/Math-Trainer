@@ -20,59 +20,100 @@ ValueKey<String> tipBandKey(ExerciseType type, TipBand band) =>
 /// tier on each operation is marked — an outline, a marker icon and the
 /// heavier weight, never the colour alone (rule 14) — and screen readers
 /// hear it as selected.
-class TipsView extends StatelessWidget {
-  const TipsView({super.key, required this.levelOf, required this.onBack});
+class TipsView extends StatefulWidget {
+  const TipsView({
+    super.key,
+    required this.levelOf,
+    required this.onBack,
+    this.focus,
+  });
 
   /// The player's level on an operation (0 never played).
   final Level Function(ExerciseType type) levelOf;
   final VoidCallback onBack;
 
+  /// Opened at this operation's section: "More tips" under a Method
+  /// (`doc/levels.md` section 9).
+  final ExerciseType? focus;
+
+  @override
+  State<TipsView> createState() => _TipsViewState();
+}
+
+class _TipsViewState extends State<TipsView> {
+  final _sections = {for (final t in ExerciseType.values) t: GlobalKey()};
+
+  @override
+  void initState() {
+    super.initState();
+    final focus = widget.focus;
+    if (focus != null) {
+      // After the first layout: the section exists to scroll to.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final target = _sections[focus]!.currentContext;
+        if (target != null && mounted) {
+          Scrollable.ensureVisible(target, alignment: 0.05);
+        }
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final metrics = theme.extension<AppMetrics>()!;
-    return ListView(
+    final levelOf = widget.levelOf;
+    // A Column in a scroll view, not a ListView: every section is built, so
+    // the one asked for can be scrolled to.
+    return SingleChildScrollView(
       padding: metrics.rootPadding,
-      children: [
-        Row(
-          children: [
-            IconButton(
-              icon: const Icon(Icons.arrow_back),
-              tooltip: 'Back',
-              onPressed: onBack,
-            ),
-            Expanded(
-              child: Text(
-                'Tips',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.titleLarge,
-              ),
-            ),
-            const SizedBox(width: 48),
-          ],
-        ),
-        for (final type in ExerciseType.values) ...[
-          const SizedBox(height: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
           Row(
             children: [
-              OperatorIcon(type, size: 20),
-              const SizedBox(width: 8),
-              Text(exerciseTypeLabel(type), style: theme.textTheme.titleMedium),
+              IconButton(
+                icon: const Icon(Icons.arrow_back),
+                tooltip: 'Back',
+                onPressed: widget.onBack,
+              ),
+              Expanded(
+                child: Text(
+                  'Tips',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.titleLarge,
+                ),
+              ),
+              const SizedBox(width: 48),
             ],
           ),
-          for (final band in TipBand.values)
-            if (tips.any((t) => t.type == type && t.band == band))
-              _BandBlock(
-                key: tipBandKey(type, band),
-                band: band,
-                tips: [
-                  for (final t in tips)
-                    if (t.type == type && t.band == band) t,
-                ],
-                mine: TipBand.of(Tier.of(levelOf(type))) == band,
-              ),
+          for (final type in ExerciseType.values) ...[
+            const SizedBox(height: 24),
+            Row(
+              key: _sections[type],
+              children: [
+                OperatorIcon(type, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  exerciseTypeLabel(type),
+                  style: theme.textTheme.titleMedium,
+                ),
+              ],
+            ),
+            for (final band in TipBand.values)
+              if (tips.any((t) => t.type == type && t.band == band))
+                _BandBlock(
+                  key: tipBandKey(type, band),
+                  band: band,
+                  tips: [
+                    for (final t in tips)
+                      if (t.type == type && t.band == band) t,
+                  ],
+                  mine: TipBand.of(Tier.of(levelOf(type))) == band,
+                ),
+          ],
         ],
-      ],
+      ),
     );
   }
 }

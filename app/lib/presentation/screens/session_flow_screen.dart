@@ -1,6 +1,9 @@
 import 'package:material_ui/material_ui.dart';
 
+import 'package:math_core/leveling/level.dart';
+import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/models/game_setup.dart';
+import 'package:math_core/persistence/level_cache_entry.dart';
 
 import '../kit/kit.dart';
 
@@ -10,6 +13,7 @@ import '../../core/state/session_state.dart';
 import 'empty_state.dart';
 import 'result_screen.dart';
 import 'session_screen.dart';
+import 'tips_view.dart';
 
 /// Starts [controller] and shows it full screen over the tabs; resolves
 /// once the player has left and the end-of-session write is done — the
@@ -17,7 +21,9 @@ import 'session_screen.dart';
 ///
 /// [setup]: what Play again replays with. [playAgain], when given, builds
 /// the next controller instead (Tables mode); [onFinished] is told each
-/// controller played to its last question, once.
+/// controller played to its last question, once. [showMethods]: a Method
+/// under each mistake on the result (Basics and Advanced games; not Tables
+/// mode — `doc/levels.md` section 9).
 Future<void> playSessionFlow(
   BuildContext context,
   AppEnvironment environment,
@@ -25,6 +31,7 @@ Future<void> playSessionFlow(
   GameSetup? setup,
   SessionController Function()? playAgain,
   void Function(SessionController controller)? onFinished,
+  bool showMethods = true,
 }) async {
   controller.start();
   // SessionFlowScreen owns the controller (dispose() in its own State).
@@ -40,6 +47,7 @@ Future<void> playSessionFlow(
         setup: setup,
         playAgain: playAgain,
         onFinished: onFinished,
+        showMethods: showMethods,
       ),
     ),
   );
@@ -64,6 +72,7 @@ class SessionFlowScreen extends StatefulWidget {
     this.setup,
     this.playAgain,
     this.onFinished,
+    this.showMethods = false,
   });
 
   final SessionController controller;
@@ -77,6 +86,9 @@ class SessionFlowScreen extends StatefulWidget {
 
   /// Told each controller played to its last question, once.
   final void Function(SessionController controller)? onFinished;
+
+  /// A Method under each mistake on the result screen.
+  final bool showMethods;
 
   @override
   State<SessionFlowScreen> createState() => _SessionFlowScreenState();
@@ -152,6 +164,35 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
     Navigator.of(context).pop();
   }
 
+  /// "More tips" under a Method: the Tips page over the result, at [type]'s
+  /// section, the player's bands marked from their current levels.
+  Future<void> _openTips(ExerciseType type) async {
+    final environment = widget.environment;
+    Map<ExerciseType, LevelCacheEntry> levels;
+    try {
+      await _controller.pendingPersistence;
+      levels = await environment.repository.currentLevels(environment.playerId);
+    } on Exception catch (_) {
+      // The bands then fall back to the game's frozen levels.
+      levels = const {};
+    }
+    if (!mounted) return;
+    final frozen = _controller.config.levels;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          body: SafeArea(
+            child: TipsView(
+              focus: type,
+              levelOf: (t) => levels[t]?.level ?? frozen[t] ?? Level.zero,
+              onBack: () => Navigator.of(context).pop(),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   /// Same types, levels re-read (so up to date), new seed — reusing it would
   /// replay exactly the same questions (`doc/decisions.md`).
   Future<void> _playAgain() async {
@@ -225,6 +266,8 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
                   isRestarting: _isRestarting,
                   restartError: _restartError,
                   effects: widget.environment.sessionEffects,
+                  showMethods: widget.showMethods,
+                  onMoreTips: _openTips,
                 ),
               },
             ),

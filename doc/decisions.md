@@ -294,6 +294,17 @@ detector's best otherwise, a fallback per operation; every line checked by tests
   9 − 10 + 2): the fallback takes over. A question whose answer is already on screen (2¹) gets
   one line; every other gets 2 to 4.
 
+- **The Method on the result screen, the gaps** (commit 3): every Levelling and Training game of
+  the Basics and Advanced operations (both are "a Basics or Advanced game"); never Tables mode
+  or the challenges. Under each mistake a "Method" button (its label turns to "Hide method";
+  screen readers hear it expanded) opens a card in place — the strategy's name, the lines,
+  "More tips" — one card per mistake, any number open. The mistake row now wraps (a 9-digit sum,
+  its answer and the struck-through one do not fit a phone line); a long Method line shrinks to
+  the width rather than breaking mid-expression. "More tips" opens the Tips page over the
+  result, scrolled to that operation, the bands marked from the player's levels after the game.
+  Strategy names are the app's words (`method_labels.dart`), the fallbacks named after section
+  9's table.
+
 ## Levels close-out — rules v3, the level update tuned (plan v3.2, 23 Nov 2026)
 
 The plan set four targets and opened three constants — the slow credit, the dead band and the

@@ -183,6 +183,8 @@ class _PlayTabState extends State<PlayTab> {
       environment,
       buildTablesController(environment, setup),
       playAgain: () => buildTablesController(environment, setup),
+      // Practice of facts: no Method (`doc/levels.md` section 9).
+      showMethods: false,
       onFinished: (controller) => _recordTables(controller.state.outcomes),
     );
   }

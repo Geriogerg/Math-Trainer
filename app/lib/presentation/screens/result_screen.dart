@@ -2,8 +2,11 @@ import 'package:material_ui/material_ui.dart';
 
 import '../kit/kit.dart';
 
+import 'package:math_core/method/method.dart';
+import 'package:math_core/method/method_for.dart';
 import 'package:math_core/models/session_kind.dart';
 import 'package:math_core/leveling/level.dart';
+import 'package:math_core/replay/session_replay.dart';
 import 'package:math_core/models/answer_result.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/persistence/level_cache_entry.dart';
@@ -11,6 +14,8 @@ import '../../core/effects/session_effects.dart';
 import '../../core/state/session_controller.dart';
 import '../../core/state/session_state.dart';
 import '../exercise_prompt.dart';
+import '../method_labels.dart';
+import '../method_view.dart';
 import '../number_format.dart';
 import '../exercise_type_labels.dart';
 import '../theme/app_theme.dart';
@@ -24,7 +29,16 @@ class ResultScreen extends StatelessWidget {
     required this.isRestarting,
     required this.restartError,
     this.effects = const NoSessionEffects(),
+    this.showMethods = false,
+    this.onMoreTips,
   });
+
+  /// A Method under each wrong answer and timeout (`doc/levels.md`
+  /// section 9): Basics and Advanced games; never Tables mode.
+  final bool showMethods;
+
+  /// "More tips": the Tips page at that operation's section.
+  final ValueChanged<ExerciseType>? onMoreTips;
 
   final SessionController controller;
 
@@ -50,7 +64,16 @@ class ResultScreen extends StatelessWidget {
     final title = interrupted ? 'Session interrupted' : 'Session complete';
     final breakdown = result.scoreBreakdown;
     final labelStyle = theme.textTheme.bodyMedium;
-    final mistakes = result.outcomes.where((o) => !o.isCorrect).toList();
+    // Each mistake with its question's pattern family, replayed from the
+    // game's config (families are never stored).
+    final families = showMethods
+        ? gamePatterns(controller.config, result.outcomes.length)
+        : const [];
+    final mistakes = [
+      for (final (i, o) in result.outcomes.indexed)
+        if (!o.isCorrect)
+          (outcome: o, family: showMethods ? families[i] : null),
+    ];
     final metrics = theme.extension<AppMetrics>()!;
 
     final results = LayoutBuilder(
@@ -165,7 +188,18 @@ class ResultScreen extends StatelessWidget {
                     style: theme.textTheme.titleSmall,
                   ),
                   const SizedBox(height: 8),
-                  for (final mistake in mistakes) _MistakeRow(outcome: mistake),
+                  for (final (i, mistake) in mistakes.indexed)
+                    _MistakeRow(
+                      key: ValueKey('mistake-$i'),
+                      outcome: mistake.outcome,
+                      method: showMethods
+                          ? methodFor(
+                              mistake.outcome.exercise,
+                              family: mistake.family,
+                            )
+                          : null,
+                      onMoreTips: onMoreTips,
+                    ),
                 ],
                 if (controller.persistenceFailed) ...[
                   const SizedBox(height: 16),
@@ -247,9 +281,107 @@ class ResultScreen extends StatelessWidget {
 
 /// "7 × 8 = 56   ~~54~~" — the operation as displayed in the session, its
 /// correct answer, then what was given struck through in muted text, or an
-/// hourglass for a timeout: as the game's own correction (no words).
-class _MistakeRow extends StatelessWidget {
-  const _MistakeRow({required this.outcome});
+/// hourglass for a timeout: as the game's own correction (no words). A
+/// Wrap: a 9-digit sum and its answer do not fit one phone line. With a
+/// [method], a "Method" button under it opens the steps in place.
+class _MistakeRow extends StatefulWidget {
+  const _MistakeRow({
+    super.key,
+    required this.outcome,
+    this.method,
+    this.onMoreTips,
+  });
+
+  final AnswerResult outcome;
+  final Method? method;
+  final ValueChanged<ExerciseType>? onMoreTips;
+
+  @override
+  State<_MistakeRow> createState() => _MistakeRowState();
+}
+
+class _MistakeRowState extends State<_MistakeRow> {
+  bool _open = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final method = widget.method;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Column(
+        children: [
+          _MistakeLine(outcome: widget.outcome),
+          if (method != null)
+            Semantics(
+              expanded: _open,
+              child: AppButton.secondary(
+                label: _open ? 'Hide method' : 'Method',
+                onPressed: () => setState(() => _open = !_open),
+              ),
+            ),
+          if (method != null && _open)
+            _MethodPanel(
+              method: method,
+              type: widget.outcome.exercise.type,
+              onMoreTips: widget.onMoreTips,
+              theme: theme,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The strategy's name, its lines, "More tips" (`doc/levels.md` section 9:
+/// minimal text — the name and arithmetic, no sentences).
+class _MethodPanel extends StatelessWidget {
+  const _MethodPanel({
+    required this.method,
+    required this.type,
+    required this.onMoreTips,
+    required this.theme,
+  });
+
+  final Method method;
+  final ExerciseType type;
+  final ValueChanged<ExerciseType>? onMoreTips;
+  final ThemeData theme;
+
+  @override
+  Widget build(BuildContext context) {
+    final metrics = theme.extension<AppMetrics>()!;
+    final onMoreTips = this.onMoreTips;
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 4),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHigh, // as the stat tiles
+        borderRadius: BorderRadius.circular(metrics.radius / 2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(methodName(method, type), style: theme.textTheme.titleSmall),
+          const SizedBox(height: 8),
+          MethodLines(method: method, style: theme.textTheme.bodyLarge?.digits),
+          if (onMoreTips != null)
+            Align(
+              alignment: Alignment.centerRight,
+              child: AppButton.secondary(
+                label: 'More tips',
+                onPressed: () => onMoreTips(type),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MistakeLine extends StatelessWidget {
+  const _MistakeLine({required this.outcome});
 
   final AnswerResult outcome;
 
@@ -258,37 +390,35 @@ class _MistakeRow extends StatelessWidget {
     final theme = Theme.of(context);
     final style = theme.textTheme.titleMedium;
     final muted = theme.extension<AppPalette>()!.textMuted;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          ExercisePrompt(exercise: outcome.exercise, style: style),
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      runSpacing: 2,
+      children: [
+        ExercisePrompt(exercise: outcome.exercise, style: style),
+        Text(
+          ' = ${groupedNumber(outcome.exercise.correctAnswer)}',
+          style: style,
+        ),
+        const SizedBox(width: 12),
+        if (outcome.isTimeout)
+          Icon(
+            Icons.hourglass_empty,
+            size: 18,
+            color: muted,
+            semanticLabel: 'Timed out',
+          )
+        else
           Text(
-            ' = ${groupedNumber(outcome.exercise.correctAnswer)}',
-            style: style,
-          ),
-          const SizedBox(width: 12),
-          if (outcome.isTimeout)
-            Icon(
-              Icons.hourglass_empty,
-              size: 18,
+            groupedNumber(outcome.submittedValue),
+            semanticsLabel: 'Your answer ${outcome.submittedValue}',
+            style: theme.textTheme.bodyLarge?.digits.copyWith(
               color: muted,
-              semanticLabel: 'Timed out',
-            )
-          else
-            Text(
-              groupedNumber(outcome.submittedValue),
-              semanticsLabel: 'Your answer ${outcome.submittedValue}',
-              style: theme.textTheme.bodyLarge?.digits.copyWith(
-                color: muted,
-                decoration: TextDecoration.lineThrough,
-                decorationColor: muted,
-              ),
+              decoration: TextDecoration.lineThrough,
+              decorationColor: muted,
             ),
-        ],
-      ),
+          ),
+      ],
     );
   }
 }

@@ -1096,4 +1096,15 @@ server).
   v2/v3 (3,000 questions each) gets a sound one — every line true, never negative, the last
   the answer, 2 to 4 lines; the detector's strategy where it fits; the layout; the exit
   example ("= (20 − 3)(20 + 3)").
+- **Commit 3** *(C)* — **The Method on the result screen** (spec section 9). `ResultScreen`
+  (`showMethods`, `onMoreTips`): each wrong answer and timeout gets a "Method" button that
+  opens in place a card with the strategy's name (`method_labels.dart`) and the lines
+  (`method_view.dart`: the core's tokens rendered with grouped thousands, the true minus,
+  raised exponents, √ and a raised 3), then "More tips". Families come from `gamePatterns`
+  (the game's replay). The mistake row wraps. `playSessionFlow(showMethods:)`: on for games,
+  off for Tables mode. `TipsView(focus:)` opens scrolled to an operation; the session flow
+  pushes it over the result with the player's current levels. Tests: buttons on mistakes only;
+  a missed 17 × 23 shows "= (20 − 3)(20 + 3)" under "Difference of squares"; More tips names
+  the operation; no Method without `showMethods`; the Tips focus; goldens of an open Method in
+  both themes. App 406.
 
