@@ -1123,3 +1123,22 @@ server).
   v4's targets; the served share within 2 points of the expected for every operation and
   tier; a duel keeps its rules (JSON, v1 refused). SQL tests passed.
 
+### Patterns and Method exit test (23 Nov 2026)
+
+- **Every family's examples generated**: yes — `pattern_questions_test.dart`: each of the 49
+  families' spec examples is its kind (the exact support of its generator), and 3,000 draws per
+  family stay inside it, whole, exact, at most 10 digits. The spec's section 5 addition and
+  subtraction tables likewise (`long_arithmetic_tiers_test.dart`).
+- **Every Method checked by tests**: yes — `method_test.dart`: 2,000 questions per family and
+  3,000 per tier of every operation (v4 and v2/v3): every line evaluated, every relation true,
+  never negative, the last term the answer, 2 to 4 lines (one for 2¹).
+- **Level targets still met**: yes — v4 keeps v3's update; the four targets and the served
+  pattern share are tested (`test/tool/levels_simulation_test.dart`).
+- **Production `/health` lists rules 4**: yes — `ca53f05`, `rules: [2, 3, 4]`, deployed by CI 5
+  minutes after the push (`tool/ci/server_check.sh`: up to date); the preview serves `ca53f05`.
+- **On a phone, a missed 17 × 23 shows (20 − 3)(20 + 3)**: owner — the widget test opens the
+  Method under a missed 17 × 23 and finds "= (20 − 3)(20 + 3)" under "Difference of squares";
+  goldens of it in both themes.
+- Not verified here: CI's smoke test (private repository); the Method on a real phone.
+- Totals: core 686 (VM) / 659 (JavaScript), app 408, server 36, SQL tests passed.
+

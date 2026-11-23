@@ -32,8 +32,8 @@ Done: 0 (decisions; addition and subtraction of v2/v3 found off the spec's secti
 in v4); 1 (49 families, `patternedContent`, v4 replayed but not played — `current` moves at
 5); 2 (Method generator: `methodFor`, `methodProblems`); 3 (Method on the result screen, goldens);
 4 (every family linked to a tip, 19 new tips); 5 (v4 played, window restarted, duels keep
-their rules; 40 % patterns from a family's second tier, 28 % at its first). Update this block
-at every commit.
+their rules; 40 % patterns from a family's second tier, 28 % at its first); exit test (23 Nov).
+**Open: the owner plays the phone checklist and answers the provisional decisions.**
 
 **The level system** (`doc/levels.md`; constants: `LevelRules.of`)
 - **Levels 0–100**, integer hundredths, shown whole; everyone started at 0 at the transition
