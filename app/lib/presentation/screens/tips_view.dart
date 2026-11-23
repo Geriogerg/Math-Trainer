@@ -26,6 +26,7 @@ class TipsView extends StatefulWidget {
     required this.levelOf,
     required this.onBack,
     this.focus,
+    this.focusTip,
   });
 
   /// The player's level on an operation (0 never played).
@@ -36,21 +37,27 @@ class TipsView extends StatefulWidget {
   /// (`doc/levels.md` section 9).
   final ExerciseType? focus;
 
+  /// Scrolled to and marked: the tip a Method followed.
+  final Tip? focusTip;
+
   @override
   State<TipsView> createState() => _TipsViewState();
 }
 
 class _TipsViewState extends State<TipsView> {
   final _sections = {for (final t in ExerciseType.values) t: GlobalKey()};
+  final _tipKey = GlobalKey();
 
   @override
   void initState() {
     super.initState();
     final focus = widget.focus;
-    if (focus != null) {
-      // After the first layout: the section exists to scroll to.
+    if (focus != null || widget.focusTip != null) {
+      // After the first layout: the tip (or section) exists to scroll to.
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        final target = _sections[focus]!.currentContext;
+        final target = widget.focusTip != null
+            ? _tipKey.currentContext
+            : _sections[focus]!.currentContext;
         if (target != null && mounted) {
           Scrollable.ensureVisible(target, alignment: 0.05);
         }
@@ -110,6 +117,8 @@ class _TipsViewState extends State<TipsView> {
                       if (t.type == type && t.band == band) t,
                   ],
                   mine: TipBand.of(Tier.of(levelOf(type))) == band,
+                  focusTip: widget.focusTip,
+                  focusKey: _tipKey,
                 ),
           ],
         ],
@@ -124,11 +133,15 @@ class _BandBlock extends StatelessWidget {
     required this.band,
     required this.tips,
     required this.mine,
+    this.focusTip,
+    this.focusKey,
   });
 
   final TipBand band;
   final List<Tip> tips;
   final bool mine;
+  final Tip? focusTip;
+  final GlobalKey? focusKey;
 
   @override
   Widget build(BuildContext context) {
@@ -178,12 +191,62 @@ class _BandBlock extends StatelessWidget {
             ),
             for (final tip in tips) ...[
               const SizedBox(height: 8),
-              Text(tip.text, style: theme.textTheme.bodyMedium),
-              Text(
-                tip.example,
-                style: theme.textTheme.bodyMedium?.copyWith(color: muted),
+              _TipText(
+                key: identical(tip, focusTip) ? focusKey : null,
+                tip: tip,
+                focused: identical(tip, focusTip),
+                muted: muted,
               ),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A tip: its sentence and its example. The one a Method led to is marked
+/// by a bar and an arrow at its side (never the colour alone, rule 14) and
+/// heard as selected.
+class _TipText extends StatelessWidget {
+  const _TipText({
+    super.key,
+    required this.tip,
+    required this.focused,
+    required this.muted,
+  });
+
+  final Tip tip;
+  final bool focused;
+  final Color muted;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final body = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(tip.text, style: theme.textTheme.bodyMedium),
+        Text(
+          tip.example,
+          style: theme.textTheme.bodyMedium?.copyWith(color: muted),
+        ),
+      ],
+    );
+    if (!focused) return body;
+    final accent = theme.colorScheme.primary;
+    return Semantics(
+      selected: true,
+      child: Container(
+        padding: const EdgeInsets.only(left: 8),
+        decoration: BoxDecoration(
+          border: Border(left: BorderSide(color: accent, width: 3)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: body),
+            Icon(Icons.arrow_back, size: 18, color: accent),
           ],
         ),
       ),

@@ -8,12 +8,15 @@ import 'package:math_core/leveling/level.dart';
 import 'package:math_core/models/exercise.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/models/operation_type.dart';
+import 'package:math_core/patterns/pattern_family.dart';
 import 'package:math_core/models/session_config.dart';
 import 'package:math_core/persistence/in_memory_session_repository.dart';
+import 'package:math_core/strategies/strategy.dart';
 import 'package:math_trainer/core/state/session_controller.dart';
 import 'package:math_trainer/presentation/screens/result_screen.dart';
 import 'package:math_trainer/presentation/screens/tips_view.dart';
 import 'package:math_trainer/presentation/theme/app_theme.dart';
+import 'package:math_trainer/presentation/tips/tips.dart';
 
 import 'golden_test_utils.dart';
 
@@ -98,7 +101,7 @@ Future<void> _pump(
   WidgetTester tester,
   SessionController controller, {
   bool showMethods = true,
-  ValueChanged<ExerciseType>? onMoreTips,
+  void Function(ExerciseType type, Tip? tip)? onMoreTips,
   ThemeData? theme,
 }) async {
   await tester.pumpWidget(
@@ -142,7 +145,15 @@ void main() {
     final controller = await _finished();
     addTearDown(controller.dispose);
     ExerciseType? tipsFor;
-    await _pump(tester, controller, onMoreTips: (t) => tipsFor = t);
+    Tip? tip;
+    await _pump(
+      tester,
+      controller,
+      onMoreTips: (t, linked) {
+        tipsFor = t;
+        tip = linked;
+      },
+    );
     await _tap(tester, find.text('Method').first);
     expect(find.text('Difference of squares'), findsOneWidget);
     expect(find.text('Hide method'), findsOneWidget);
@@ -152,6 +163,7 @@ void main() {
     expect(texts, contains('= 391'));
     await _tap(tester, find.text('More tips'));
     expect(tipsFor, ExerciseType.multiplication);
+    expect(tip?.strategy, Strategy.differenceOfSquares);
     await _tap(tester, find.text('Hide method'));
     expect(find.text('Difference of squares'), findsNothing);
   });
@@ -161,6 +173,35 @@ void main() {
     addTearDown(controller.dispose);
     await _pump(tester, controller, showMethods: false);
     expect(find.text('Method'), findsNothing);
+  });
+
+  testWidgets('the Tips page opens at the tip a Method followed, marked', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final tip = tips.firstWhere(
+      (t) => t.families.contains(PatternFamily.twoXDifferenceOfSquares),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildLightTheme(),
+        home: Scaffold(
+          body: TipsView(
+            focus: ExerciseType.integral,
+            focusTip: tip,
+            levelOf: (_) => Level.zero,
+            onBack: () {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final at = tester.getTopLeft(find.text(tip.text));
+    expect(at.dy, inInclusiveRange(0, 640));
+    // The Back button's arrow and the mark's.
+    expect(find.byIcon(Icons.arrow_back), findsNWidgets(2));
   });
 
   testWidgets('the Tips page opens at the section asked for', (tester) async {
@@ -194,7 +235,7 @@ void main() {
       await setGoldenSurfaceSize(tester);
       final controller = await _finished();
       addTearDown(controller.dispose);
-      await _pump(tester, controller, theme: mode.theme, onMoreTips: (_) {});
+      await _pump(tester, controller, theme: mode.theme, onMoreTips: (_, _) {});
       await _tap(tester, find.text('Method').first);
       await expectLater(
         find.byType(ResultScreen),

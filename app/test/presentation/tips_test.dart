@@ -1,7 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:math_core/leveling/level.dart';
+import 'package:math_core/method/method.dart';
 import 'package:math_core/models/exercise_type.dart';
+import 'package:math_core/patterns/pattern_family.dart';
 import 'package:math_core/strategies/strategy.dart';
 import 'package:math_core/tiers/tip_band.dart';
 import 'package:math_trainer/presentation/screens/tips_view.dart';
@@ -32,6 +34,23 @@ void main() {
           reason: strategy.name,
         );
       }
+    });
+
+    test("every pattern family is one tip's, of its operation; every "
+        'Method but a fallback finds its tip', () {
+      for (final family in PatternFamily.values) {
+        final linked = tips.where((t) => t.families.contains(family));
+        expect(linked, hasLength(1), reason: family.name);
+        expect(linked.single.type, family.type, reason: family.name);
+        expect(
+          tipFor(Method(lines: const [], family: family)),
+          same(linked.single),
+        );
+      }
+      for (final strategy in Strategy.values) {
+        expect(tipFor(Method(lines: const [], strategy: strategy)), isNotNull);
+      }
+      expect(tipFor(const Method(lines: [])), isNull);
     });
 
     test('one sentence and one worked example each', () {

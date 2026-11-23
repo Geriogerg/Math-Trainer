@@ -305,6 +305,17 @@ detector's best otherwise, a fallback per operation; every line checked by tests
   Strategy names are the app's words (`method_labels.dart`), the fallbacks named after section
   9's table.
 
+- **Tips for the families** (commit 4): each of the 49 families is one tip's (`Tip.families`),
+  of its operation. 30 families joined an existing tip that teaches their shortcut (× 9 is
+  × 10 minus once for × 99; round the subtrahend for 9 856 − 996; split the dividend for
+  123 456 ÷ 3…); 19 new tips, one sentence and one example each, placed in the band of their
+  family's first tier: doubles, complements, big round numbers, three terms; across a round
+  number, same gap; same tens with units to 10, × 101, powers of 2 multiplied, both near 100;
+  dropping zeros; splitting the exponent, 11 and 111; roots of powers of 2, roots ending in
+  25, roots near 100 or 1 000; half and quarter, near 100 %; 2x from a to b. "More tips" lands
+  on the Method's tip — its family's, else its strategy's — marked by a bar and an arrow; a
+  fallback lands on the operation's section.
+
 ## Levels close-out — rules v3, the level update tuned (plan v3.2, 23 Nov 2026)
 
 The plan set four targets and opened three constants — the slow credit, the dead band and the

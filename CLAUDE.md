@@ -30,8 +30,8 @@ met; production `/health` lists rules 4; on a phone, a missed 17 × 23 shows (20
 
 Done: 0 (decisions; addition and subtraction of v2/v3 found off the spec's section 5 — fixed
 in v4); 1 (49 families, `patternedContent`, v4 replayed but not played — `current` moves at
-5); 2 (Method generator: `methodFor`, `methodProblems`); 3 (Method on the result screen, goldens).
-Update this block at every commit.
+5); 2 (Method generator: `methodFor`, `methodProblems`); 3 (Method on the result screen, goldens);
+4 (every family linked to a tip, 19 new tips). Update this block at every commit.
 
 **The level system** (`doc/levels.md`; constants: `LevelRules.of`)
 - **Levels 0–100**, integer hundredths, shown whole; everyone started at 0 at the transition

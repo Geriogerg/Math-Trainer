@@ -14,6 +14,7 @@ import 'empty_state.dart';
 import 'result_screen.dart';
 import 'session_screen.dart';
 import 'tips_view.dart';
+import '../tips/tips.dart';
 
 /// Starts [controller] and shows it full screen over the tabs; resolves
 /// once the player has left and the end-of-session write is done — the
@@ -164,9 +165,10 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
     Navigator.of(context).pop();
   }
 
-  /// "More tips" under a Method: the Tips page over the result, at [type]'s
-  /// section, the player's bands marked from their current levels.
-  Future<void> _openTips(ExerciseType type) async {
+  /// "More tips" under a Method: the Tips page over the result, at [tip]
+  /// (else [type]'s section), the player's bands marked from their current
+  /// levels.
+  Future<void> _openTips(ExerciseType type, Tip? tip) async {
     final environment = widget.environment;
     Map<ExerciseType, LevelCacheEntry> levels;
     try {
@@ -184,6 +186,7 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
           body: SafeArea(
             child: TipsView(
               focus: type,
+              focusTip: tip,
               levelOf: (t) => levels[t]?.level ?? frozen[t] ?? Level.zero,
               onBack: () => Navigator.of(context).pop(),
             ),

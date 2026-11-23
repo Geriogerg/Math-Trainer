@@ -1107,4 +1107,10 @@ server).
   a missed 17 × 23 shows "= (20 − 3)(20 + 3)" under "Difference of squares"; More tips names
   the operation; no Method without `showMethods`; the Tips focus; goldens of an open Method in
   both themes. App 406.
+- **Commit 4** *(A)* — **Tips linked to the families**: `Tip.families`; every family is
+  exactly one tip's, of its operation (19 new tips, 54 in all); `tipFor(method)` (family, else
+  strategy, else none). "More tips" opens the Tips page at that tip, scrolled to and marked
+  (a bar and an arrow, heard as selected), or at the operation's section for a fallback.
+  Tests: every family linked once; every Method but a fallback finds its tip; the focused tip
+  in view; Tips goldens re-recorded (new tips). App 408.
 

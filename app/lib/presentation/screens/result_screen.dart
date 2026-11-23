@@ -19,6 +19,7 @@ import '../method_view.dart';
 import '../number_format.dart';
 import '../exercise_type_labels.dart';
 import '../theme/app_theme.dart';
+import '../tips/tips.dart';
 
 class ResultScreen extends StatelessWidget {
   const ResultScreen({
@@ -37,8 +38,9 @@ class ResultScreen extends StatelessWidget {
   /// section 9): Basics and Advanced games; never Tables mode.
   final bool showMethods;
 
-  /// "More tips": the Tips page at that operation's section.
-  final ValueChanged<ExerciseType>? onMoreTips;
+  /// "More tips": the Tips page at the method's tip ([tipFor]), or at the
+  /// operation's section for a fallback.
+  final void Function(ExerciseType type, Tip? tip)? onMoreTips;
 
   final SessionController controller;
 
@@ -294,7 +296,7 @@ class _MistakeRow extends StatefulWidget {
 
   final AnswerResult outcome;
   final Method? method;
-  final ValueChanged<ExerciseType>? onMoreTips;
+  final void Function(ExerciseType type, Tip? tip)? onMoreTips;
 
   @override
   State<_MistakeRow> createState() => _MistakeRowState();
@@ -345,7 +347,7 @@ class _MethodPanel extends StatelessWidget {
 
   final Method method;
   final ExerciseType type;
-  final ValueChanged<ExerciseType>? onMoreTips;
+  final void Function(ExerciseType type, Tip? tip)? onMoreTips;
   final ThemeData theme;
 
   @override
@@ -371,7 +373,7 @@ class _MethodPanel extends StatelessWidget {
               alignment: Alignment.centerRight,
               child: AppButton.secondary(
                 label: 'More tips',
-                onPressed: () => onMoreTips(type),
+                onPressed: () => onMoreTips(type, tipFor(method)),
               ),
             ),
         ],
