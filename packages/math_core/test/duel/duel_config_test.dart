@@ -1,5 +1,6 @@
 import 'package:math_core/duel/duel_config.dart';
 import 'package:math_core/leveling/level.dart';
+import 'package:math_core/leveling/rules_version.dart';
 import 'package:math_core/models/exercise.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/persistence/exercise_codec.dart';
@@ -15,8 +16,13 @@ List<String> _lines(DuelConfig config) => [
     }(),
 ];
 
-DuelConfig _standard(int seed, int bracket) =>
-    DuelConfig(seed: seed, quotas: standardDuelQuotas, bracket: bracket);
+/// Rules v3: the pins below were recorded under it.
+DuelConfig _standard(int seed, int bracket) => DuelConfig(
+  seed: seed,
+  quotas: standardDuelQuotas,
+  bracket: bracket,
+  rulesVersion: RulesVersion.v3,
+);
 
 /// Phase 5.2 commit 2 (Phase 7 commit 1): a duel's questions depend on
 /// (seed, config) only — pinned here, and this file runs on the VM and
@@ -188,6 +194,31 @@ void main() {
     });
   });
 
+  test('a duel keeps its rules: its questions never move when new games '
+      'change rules; JSON carries them (absent: v3); v1 throws', () {
+    final v4 = DuelConfig(
+      seed: 1,
+      quotas: standardDuelQuotas,
+      bracket: 7,
+      rulesVersion: RulesVersion.v4,
+    );
+    expect(_lines(v4), isNot(_lines(_standard(1, 7))));
+    expect(DuelConfig.fromJson(v4.toJson()), v4);
+    expect(v4.toJson()['rules'], 4);
+    final old = Map<String, Object?>.of(_standard(1, 7).toJson())
+      ..remove('rules');
+    expect(DuelConfig.fromJson(old), _standard(1, 7));
+    expect(
+      () => DuelConfig(
+        seed: 1,
+        quotas: standardDuelQuotas,
+        bracket: 7,
+        rulesVersion: RulesVersion.v1,
+      ),
+      throwsArgumentError,
+    );
+  });
+
   test('JSON: round trip, the same for any quota order, strict', () {
     final config = _standard(99, 3);
     final back = DuelConfig.fromJson(config.toJson());
@@ -198,6 +229,7 @@ void main() {
       seed: 99,
       quotas: Map.fromEntries(standardDuelQuotas.entries.toList().reversed),
       bracket: 3,
+      rulesVersion: RulesVersion.v3,
     );
     expect(reordered, config);
     expect(reordered.toJson(), config.toJson());

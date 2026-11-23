@@ -1,6 +1,9 @@
 import 'dart:math';
 
 import 'package:math_core/leveling/level_rules.dart';
+import 'package:math_core/leveling/rules_version.dart';
+import 'package:math_core/models/exercise_type.dart';
+import 'package:math_core/tiers/tier.dart';
 import 'package:test/test.dart';
 
 import '../../tool/src/levels_simulation.dart';
@@ -51,6 +54,36 @@ void main() {
         expect(at(0), -3);
         expect(at(1), LevelRules.v3.capUpFor(n));
       }
+    });
+  });
+
+  group('rules v4 (Patterns and Method commit 5)', () {
+    test("v4's level update is v3's: the four targets still met", () {
+      final v4 = LevelRules.of(RulesVersion.v4);
+      expect(v4, same(LevelRules.v3));
+      for (final t in targetsFor(v4)) {
+        expect(t.met, isTrue, reason: '${t.target}: ${t.measured}');
+      }
+    });
+
+    test('pattern questions served per tier: 2 in 5 of the questions drawn '
+        'where families exist, reviews included (within 2 points)', () {
+      for (final type in ExerciseType.values) {
+        for (final tier in Tier.values) {
+          final served = patternShareServed(type, tier, games: 400);
+          expect(
+            served,
+            closeTo(patternShareExpected(type, tier), 0.02),
+            reason: '${type.name} ${tier.label}',
+          );
+        }
+      }
+      // From the second tier with families on: ~40 %.
+      expect(
+        patternShareExpected(ExerciseType.multiplication, Tier.t5),
+        closeTo(0.4, 1e-9),
+      );
+      expect(patternShareExpected(ExerciseType.addition, Tier.t0), 0);
     });
   });
 

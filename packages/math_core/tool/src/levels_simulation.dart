@@ -6,7 +6,11 @@ import 'package:math_core/leveling/level_change.dart';
 import 'package:math_core/leveling/level_rules.dart';
 import 'package:math_core/leveling/rules_version.dart';
 import 'package:math_core/models/exercise_type.dart';
+import 'package:math_core/patterns/pattern_family.dart';
 import 'package:math_core/tiers/fluent_time.dart';
+import 'package:math_core/tiers/tier.dart';
+import 'package:math_core/tiers/tier_content.dart';
+import 'package:math_core/tiers/tiered_game_generator.dart';
 
 /// A simulated player of one operation: each answer right with probability
 /// [accuracy], a right one fluent with probability [fluent] (else slow,
@@ -251,4 +255,47 @@ double _power(double x, int k) {
     r *= x;
   }
   return r;
+}
+
+/// The share of pattern questions a game at [tier] actually serves on
+/// [type] (`doc/levels.md` section 5b), reviews included: [games] games of
+/// [questions] questions, drawn by the real v4 generator.
+double patternShareServed(
+  ExerciseType type,
+  Tier tier, {
+  int games = 2000,
+  int questions = 10,
+  int seed = 2026,
+}) {
+  final random = Random(seed + 31 * type.index + tier.index);
+  final level = Level.whole(10 * tier.index);
+  var patterns = 0;
+  for (var g = 0; g < games; g++) {
+    final generator = TieredGameGenerator(
+      sequence: List.filled(questions, type),
+      levels: {type: level},
+      content: patternedContent,
+    );
+    for (var i = 0; i < questions; i++) {
+      generator.next(random);
+      if (generator.lastFamily != null) patterns++;
+    }
+  }
+  return patterns / (games * questions);
+}
+
+/// What the share should be: 2 in 5 of the questions drawn from a tier
+/// with families — the tier's own (all but the reviews) and the one below
+/// (the reviews: 3 of 10).
+double patternShareExpected(
+  ExerciseType type,
+  Tier tier, {
+  int questions = 10,
+}) {
+  final reviews = reviewQuestionCount(tier, questions) / questions;
+  double has(Tier? t) =>
+      t != null && PatternFamily.availableAt(type, t).isNotEmpty ? 1 : 0;
+  return patternShareFifths /
+      5 *
+      ((1 - reviews) * has(tier) + reviews * has(tier.below));
 }

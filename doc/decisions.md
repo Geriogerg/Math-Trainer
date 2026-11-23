@@ -316,6 +316,34 @@ detector's best otherwise, a fallback per operation; every line checked by tests
   on the Method's tip — its family's, else its strategy's — marked by a bar and an arrow; a
   fallback lands on the operation's section.
 
+- **Duels carry their rules version** (commit 5): `DuelConfig.rulesVersion`, stored in its JSON
+  (`rules`; absent means v3, what duels drew under until then), default the current rules. Duels
+  had drawn under `RulesVersion.current`: a stored duel would have changed its questions at
+  this very switch. The three pinned duels stay pinned under v3 — nothing re-recorded.
+
+### The share of pattern questions served (commit 5, `tool/levels_simulation.dart`)
+
+Games of 10 questions at each tier, 2,000 per cell, reviews included, the real v4 generator:
+
+| % | T0 | T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| addition | 0 | 28 | 40 | 40 | 40 | 40 | 40 | 40 | 40 | 40 |
+| subtraction | 0 | 0 | 0 | 28 | 40 | 41 | 40 | 40 | 40 | 41 |
+| multiplication | 0 | 0 | 28 | 40 | 39 | 41 | 40 | 40 | 40 | 40 |
+| division | 0 | 0 | 28 | 40 | 40 | 40 | 40 | 40 | 40 | 40 |
+| powers | 0 | 28 | 40 | 40 | 40 | 40 | 40 | 40 | 40 | 40 |
+| roots | 0 | 0 | 28 | 41 | 41 | 40 | 40 | 40 | 39 | 40 |
+| percentages | 0 | 0 | 28 | 40 | 40 | 40 | 40 | 40 | 40 | 40 |
+| integrals | 0 | 28 | 40 | 40 | 39 | 40 | 40 | 40 | 40 | 40 |
+
+- **40 % from the second tier with families on**, as the spec asks. At a family's first tier
+  the game serves **28 %**: its own 7 questions in 10 carry 40 %, its 3 reviews come from the tier
+  below, where no family exists yet ("review questions follow the same mix for the tier below").
+- **The level targets still hold**: v4 keeps v3's update (`LevelRules.of(v4)` is v3's), so the
+  stall (63.8–65.3 %), the slow game (+1.56), the full caps and the −3 floor are unchanged. The
+  simulation models players by accuracy, not by question: whether pattern questions are easier
+  or harder for real players is Phase 3b's to measure.
+
 ## Levels close-out — rules v3, the level update tuned (plan v3.2, 23 Nov 2026)
 
 The plan set four targets and opened three constants — the slow credit, the dead band and the

@@ -31,14 +31,18 @@ met; production `/health` lists rules 4; on a phone, a missed 17 × 23 shows (20
 Done: 0 (decisions; addition and subtraction of v2/v3 found off the spec's section 5 — fixed
 in v4); 1 (49 families, `patternedContent`, v4 replayed but not played — `current` moves at
 5); 2 (Method generator: `methodFor`, `methodProblems`); 3 (Method on the result screen, goldens);
-4 (every family linked to a tip, 19 new tips). Update this block at every commit.
+4 (every family linked to a tip, 19 new tips); 5 (v4 played, window restarted, duels keep
+their rules; 40 % patterns from a family's second tier, 28 % at its first). Update this block
+at every commit.
 
 **The level system** (`doc/levels.md`; constants: `LevelRules.of`)
 - **Levels 0–100**, integer hundredths, shown whole; everyone started at 0 at the transition
   (rules v2); no placement test. Never decay; frozen at the start of a game.
 - **Ten tiers** per operation (T0 = 0–9 … T9 = 90–100): the tier decides the content and the
   **fluent time**; a game draws 70 % from the tier, 30 % from the tier below. Generation stays
-  backwards (rule 10).
+  backwards (rule 10). From rules v4, **pattern questions** (spec 5b, 49 `PatternFamily`): 2 in
+  5 where a family is available; every mistake of a game gets a **Method** (spec 9,
+  `methodFor`).
 - **Level update, per operation, Levelling games only**: credit per answer (fluent 1.0, correct
   but slow within 30 s, wrong or timeout 0); `q` = mean credit; a dead band; up
   `cap_up(n) × min(1, (q − high) / 0.25)`, `cap_up` 3 / 3 / 4 / 5 for n = 4 / 5 / 10 / 20; down
@@ -53,8 +57,8 @@ in v4); 1 (49 families, `patternedContent`, v4 replayed but not played — `curr
 Still open from Phase 5.2: the owner's staging setup (`doc/online.md`, "Staging") and the CI
 beta code file for the slow-4G measurement.
 
-Phase 3b starts at ~300 sessions from 10+ testers, counted from the Levels phase's transition
-(commit 4, `owner_dashboard.calibration_window`);
+Phase 3b starts at ~300 sessions from 10+ testers, counted from the Patterns and Method release
+(rules v4, `owner_dashboard.calibration_window`);
 Phase 4 comes after 3b. The repository is private since 20 Nov: CI results are visible to the
 owner only — a push is verified by its commit appearing in the live `main.dart.js` (deploy runs
 only after the tests).
@@ -111,7 +115,8 @@ Non-negotiable without explicit discussion.
   (`mainLevel`) is the mean of the four basics only, unplayed at 0; the main board keeps the
   server key `overall` (cached builds call it by that name).
 - **Rules versions** (`RulesVersion`, stored with every session): v2 = `doc/levels.md`; v3 = v2's
-  questions, the update tuned (Levels close-out, `LevelRules.v3`); v1 (all before the transition)
+  questions, the update tuned (Levels close-out, `LevelRules.v3`); v4 = v3's update, pattern
+  questions and the spec's long addition and subtraction (current); v1 (all before the transition)
   is retired — never replayed, refused by the server (`rulesRetired`),
   never sent by the app, kept in history.
 - **Sessions are self-contained**: everything deciding question order is stored with them.
@@ -225,8 +230,9 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 - Never draw at random from a `Set` (insertion order); use a list sorted by enum `index`.
 - `ExerciseType` and `SessionKind` names are stored discriminants; renaming breaks history.
 - `duel_config_test.dart` pins three duels' questions (re-recorded once, on purpose, when duels
-  moved to the tiers): a change to generation that moves them breaks every stored duel (Phase
-  7) — never update the pins to make a test pass.
+  moved to the tiers; under v3 since `DuelConfig` carries its rules version): a change to
+  generation that moves them breaks every stored duel (Phase 7) — never update the pins to make a
+  test pass.
   `Strategy` names will be too (Phase 4 tips).
 - Changing what a tier draws changes every stored v2 session's replay: a new rules version
   instead (`RulesVersion`, `doc/levels.md` section 4), the old one kept replayable.

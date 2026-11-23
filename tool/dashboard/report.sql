@@ -7,7 +7,7 @@
 
 \echo
 \echo '== Calibration progress: Phase 3b starts at ~300 completed games from 10+ testers,'
-\echo '   counted since the Redesign release (owner_dashboard.calibration_window)'
+\echo '   counted since the last change of questions, rules v4 (owner_dashboard.calibration_window)'
 select
   completed_games || ' / ' || games_needed || ' (' || games_pct || ' %)' as games,
   testers || ' / ' || testers_needed || ' (' || testers_pct || ' %)' as testers,

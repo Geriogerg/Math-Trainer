@@ -15,9 +15,9 @@ void main() {
     expect(() => RulesVersion.of(5), throwsArgumentError);
   });
 
-  test('new games play v3 until the phase switches to v4; v2, v3 and v4 '
-      'are replayed; only v1 is retired', () {
-    expect(RulesVersion.current, RulesVersion.v3);
+  test('new games play v4; v2, v3 and v4 are replayed; only v1 is '
+      'retired', () {
+    expect(RulesVersion.current, RulesVersion.v4);
     expect(RulesVersion.replayed, [
       RulesVersion.v2,
       RulesVersion.v3,

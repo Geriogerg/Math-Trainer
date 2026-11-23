@@ -1113,4 +1113,13 @@ server).
   (a bar and an arrow, heard as selected), or at the operation's section for a fallback.
   Tests: every family linked once; every Method but a fallback finds its tip; the focused tip
   in view; Tips goldens re-recorded (new tips). App 408.
+- **Commit 5** *(A)* — **Rules v4 played; the simulation under v4**. `RulesVersion.current` = v4
+  (new games: pattern questions, the spec's long addition and subtraction); Phase 3b's window
+  restarts (`20261126000000_patterns_window.sql`; the dashboard's label says so).
+  `DuelConfig.rulesVersion` (stored; absent = v3): duels no longer follow `current`, their
+  pins stay under v3. Tool: the targets under v4's constants (met — v3's update), the share of
+  pattern questions served per tier (`patternShareServed`, against `patternShareExpected`):
+  40 % from a family's second tier, 28 % at its first, 0 at T0 (`doc/decisions.md`). Tests:
+  v4's targets; the served share within 2 points of the expected for every operation and
+  tier; a duel keeps its rules (JSON, v1 refused). SQL tests passed.
 

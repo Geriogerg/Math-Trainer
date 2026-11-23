@@ -15,12 +15,20 @@ import '../models/exercise_type.dart';
 /// mix is a fixed quota per type. Same (seed, config) → same questions, on
 /// the VM and in JavaScript (rule 2; pinned in `duel_config_test.dart`).
 /// No UI yet.
+///
+/// Its [rulesVersion] decides the questions, as a session's does: a stored
+/// duel never changes when new games move to newer rules. Throws for rules
+/// v1, retired (rule 13).
 final class DuelConfig {
   DuelConfig({
     required this.seed,
     required Map<ExerciseType, int> quotas,
     required this.bracket,
+    this.rulesVersion = RulesVersion.current,
   }) : quotas = Map.unmodifiable(quotas) {
+    if (rulesVersion.retired) {
+      throw ArgumentError.value(rulesVersion, 'rulesVersion', 'is retired.');
+    }
     if (bracket < 0 || bracket >= duelBracketCount) {
       throw ArgumentError.value(
         bracket,
@@ -54,6 +62,9 @@ final class DuelConfig {
 
   /// The rating bracket the duel is played at ([duelBracketFor]).
   final int bracket;
+
+  /// The rules its questions are drawn under.
+  final RulesVersion rulesVersion;
 
   int get questionCount => quotas.values.fold(0, (a, b) => a + b);
 
@@ -89,10 +100,10 @@ final class DuelConfig {
       for (final type in ExerciseType.values)
         if ((quotas[type] ?? 0) > 0) type,
     };
-    // Like a game under the current rules: the bracket's tier, with its
-    // reviews (Levels phase commit 4 — no duel was stored before).
+    // Like a game under its rules: the bracket's tier, with its reviews
+    // (and, from v4, its pattern questions).
     final generator = gameExerciseGenerator(
-      rulesVersion: RulesVersion.current,
+      rulesVersion: rulesVersion,
       enabledTypes: played,
       levels: {for (final type in played) type: level},
       typeSequence: sequence,
@@ -103,6 +114,7 @@ final class DuelConfig {
   Map<String, Object?> toJson() => {
     'seed': seed,
     'bracket': bracket,
+    'rules': rulesVersion.number,
     // By type index: the same JSON for the same quotas, whatever the
     // map's order.
     'quotas': {
@@ -121,6 +133,10 @@ final class DuelConfig {
     if (seed is! int || bracket is! int || quotas is! Map) {
       throw const FormatException('duel config: seed, bracket or quotas');
     }
+    // Absent: written before duels carried their rules, when they drew
+    // under v3 (none was ever stored).
+    final rules = json['rules'] ?? RulesVersion.v3.number;
+    if (rules is! int) throw const FormatException('duel config: rules');
     final parsed = <ExerciseType, int>{};
     for (final MapEntry(:key, :value) in quotas.entries) {
       final type = ExerciseType.values.where((t) => t.name == key).firstOrNull;
@@ -130,7 +146,12 @@ final class DuelConfig {
       parsed[type] = value;
     }
     try {
-      return DuelConfig(seed: seed, quotas: parsed, bracket: bracket);
+      return DuelConfig(
+        seed: seed,
+        quotas: parsed,
+        bracket: bracket,
+        rulesVersion: RulesVersion.of(rules),
+      );
     } on ArgumentError catch (e) {
       throw FormatException('duel config: ${e.message}');
     }
@@ -140,7 +161,8 @@ final class DuelConfig {
   bool operator ==(Object other) {
     if (other is! DuelConfig ||
         other.seed != seed ||
-        other.bracket != bracket) {
+        other.bracket != bracket ||
+        other.rulesVersion != rulesVersion) {
       return false;
     }
     for (final type in ExerciseType.values) {
@@ -153,6 +175,7 @@ final class DuelConfig {
   int get hashCode => Object.hash(
     seed,
     bracket,
+    rulesVersion,
     Object.hashAll([for (final type in ExerciseType.values) quotas[type] ?? 0]),
   );
 }

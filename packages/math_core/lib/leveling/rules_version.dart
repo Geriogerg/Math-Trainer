@@ -31,7 +31,7 @@ enum RulesVersion {
   final int number;
 
   /// What new sessions are played under.
-  static const current = v3;
+  static const current = v4;
 
   /// The rules a server built from this code replays (validation refuses
   /// the others). The server says so in its `/health` (`rules`), and the
