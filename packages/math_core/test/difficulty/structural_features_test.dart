@@ -52,14 +52,9 @@ void main() {
       structuralFeatures(const PowerExercise(base: 48, exponent: 2)).bigDigits,
       1,
     );
+    expect(structuralFeatures(SquareRootExercise(radicand: 1369)).bigDigits, 2);
     expect(
-      structuralFeatures(const SquareRootExercise(radicand: 1369)).bigDigits,
-      2,
-    );
-    expect(
-      structuralFeatures(
-        const PercentageExercise(percent: 75, base: 80),
-      ).bigDigits,
+      structuralFeatures(PercentageExercise(percent: 75, base: 80)).bigDigits,
       2,
     );
   });

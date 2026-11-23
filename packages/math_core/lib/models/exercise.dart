@@ -81,12 +81,24 @@ final class PowerExercise extends Exercise {
   int get hashCode => Object.hash(base, exponent);
 }
 
+/// `√radicand` ([index] 2) or `∛radicand` ([index] 3, `doc/levels.md`
+/// rules v2). The class keeps its name: `ExerciseType.squareRoot` is a
+/// stored name, and a cube root is the same family on screen and on the
+/// board ("Roots").
 final class SquareRootExercise extends Exercise {
-  const SquareRootExercise({required this.radicand});
+  /// Throws if [index] is not 2 or 3 (rule 13).
+  SquareRootExercise({required this.radicand, this.index = 2}) {
+    if (index != 2 && index != 3) {
+      throw ArgumentError.value(index, 'index', 'must be 2 or 3.');
+    }
+  }
 
-  /// Always a perfect square: guaranteed by the generator (rule 10), not
-  /// rechecked here.
+  /// Always a perfect square (or cube): guaranteed by the generator (rule
+  /// 10), not rechecked here.
   final int radicand;
+
+  /// 2: square root; 3: cube root.
+  final int index;
 
   @override
   ExerciseType get type => ExerciseType.squareRoot;
@@ -96,50 +108,72 @@ final class SquareRootExercise extends Exercise {
     // Incremental integer search: never a floating-point sqrt() (documented
     // pitfall — rounding errors on large values).
     var root = 0;
-    while ((root + 1) * (root + 1) <= radicand) {
+    while (_power(root + 1) <= radicand) {
       root++;
     }
     return root;
   }
 
+  int _power(int x) => index == 2 ? x * x : x * x * x;
+
   @override
   bool operator ==(Object other) =>
-      other is SquareRootExercise && other.radicand == radicand;
+      other is SquareRootExercise &&
+      other.radicand == radicand &&
+      other.index == index;
 
   @override
-  int get hashCode => radicand.hashCode;
+  int get hashCode => Object.hash(radicand, index);
 }
 
+/// `percent.tenths % of base`: [tenths] is the digit after the point, 0
+/// except for eighths like 37.5 % (`doc/levels.md` rules v2, tier 7).
 final class PercentageExercise extends Exercise {
-  const PercentageExercise({required this.percent, required this.base});
+  /// Throws if [tenths] is not a digit (rule 13).
+  PercentageExercise({
+    required this.percent,
+    required this.base,
+    this.tenths = 0,
+  }) {
+    if (tenths < 0 || tenths > 9) {
+      throw ArgumentError.value(tenths, 'tenths', 'must be a digit.');
+    }
+  }
 
   final int percent;
   final int base;
+  final int tenths;
 
   @override
   ExerciseType get type => ExerciseType.percentage;
 
+  /// Exact by construction (the generator builds [base] for it): integers
+  /// only, in thousandths of the base.
   @override
-  int get correctAnswer => percent * base ~/ 100;
+  int get correctAnswer => (percent * 10 + tenths) * base ~/ 1000;
 
   @override
   bool operator ==(Object other) =>
       other is PercentageExercise &&
       other.percent == percent &&
-      other.base == base;
+      other.base == base &&
+      other.tenths == tenths;
 
   @override
-  int get hashCode => Object.hash(percent, base);
+  int get hashCode => Object.hash(percent, base, tenths);
 }
 
-/// The area under `p(x) = c0 + c1·x + c2·x² + c3·x³` between [lower] and
-/// [upper] (Redesign phase commit 4): `∫ₐᵇ p(x) dx`. Built backwards
-/// (rule 10): every `ck` is a multiple of `k + 1`, so p is the derivative of
-/// an antiderivative F with whole coefficients and the answer F(b) − F(a)
-/// is a whole number; every coefficient and [lower] are non-negative, so
-/// p ≥ 0 on the interval and the integral is an area. Checked here by
-/// `throw` (rule 13) — a stored or uploaded question is rebuilt through
-/// this constructor too.
+/// The area under `p(x) = c0 + c1·x + c2·x² + c3·x³ + c4·x⁴` between
+/// [lower] and [upper] (Redesign phase commit 4; `c4` and a negative term
+/// since `doc/levels.md`): `∫ₐᵇ p(x) dx`. Built backwards (rule 10): every
+/// `ck` is a multiple of `k + 1`, so p is the derivative of an
+/// antiderivative F with whole coefficients and the answer F(b) − F(a) is a
+/// whole number. p ≥ 0 on the interval, so the integral is an area: every
+/// coefficient is non-negative, except at most one `cj < 0`, which a higher
+/// `ck > 0` covers from the lower bound on (`ck · a^(k−j) ≥ |cj|`, so
+/// `ck·x^k + cj·x^j = x^j · (ck·x^(k−j) − |cj|) ≥ 0` for every x ≥ a).
+/// Checked here by `throw` (rule 13) — a stored or uploaded question is
+/// rebuilt through this constructor too.
 final class IntegralExercise extends Exercise {
   IntegralExercise({
     required this.lower,
@@ -148,6 +182,7 @@ final class IntegralExercise extends Exercise {
     required this.c1,
     required this.c2,
     required this.c3,
+    this.c4 = 0,
   }) {
     if (lower < 0 || upper <= lower) {
       throw ArgumentError.value(
@@ -156,18 +191,44 @@ final class IntegralExercise extends Exercise {
         'must satisfy 0 <= lower < upper.',
       );
     }
-    final coefficients = [c0, c1, c2, c3];
-    for (var k = 0; k < coefficients.length; k++) {
-      if (coefficients[k] < 0 || coefficients[k] % (k + 1) != 0) {
+    final cs = coefficients;
+    for (var k = 0; k < cs.length; k++) {
+      if (cs[k] % (k + 1) != 0) {
         throw ArgumentError.value(
-          coefficients[k],
+          cs[k],
           'c$k',
-          'must be a non-negative multiple of ${k + 1}.',
+          'must be a multiple of ${k + 1}.',
         );
       }
     }
-    if (coefficients.every((c) => c == 0)) {
-      throw ArgumentError.value(coefficients, 'coefficients', 'all zero.');
+    if (cs.every((c) => c == 0)) {
+      throw ArgumentError.value(cs, 'coefficients', 'all zero.');
+    }
+    final negatives = [
+      for (var k = 0; k < cs.length; k++)
+        if (cs[k] < 0) k,
+    ];
+    if (negatives.length > 1) {
+      throw ArgumentError.value(
+        cs,
+        'coefficients',
+        'at most one may be negative.',
+      );
+    }
+    if (negatives case [final j]) {
+      var covered = false;
+      for (var k = j + 1; k < cs.length; k++) {
+        if (cs[k] > 0 && cs[k] * _power(lower, k - j) >= -cs[j]) {
+          covered = true;
+        }
+      }
+      if (!covered) {
+        throw ArgumentError.value(
+          cs,
+          'coefficients',
+          'c$j < 0 is not covered by a higher term from x = $lower on.',
+        );
+      }
     }
   }
 
@@ -177,9 +238,10 @@ final class IntegralExercise extends Exercise {
   final int c1;
   final int c2;
   final int c3;
+  final int c4;
 
   /// p's coefficients, `x⁰` first.
-  List<int> get coefficients => [c0, c1, c2, c3];
+  List<int> get coefficients => [c0, c1, c2, c3, c4];
 
   @override
   ExerciseType get type => ExerciseType.integral;
@@ -200,6 +262,14 @@ final class IntegralExercise extends Exercise {
     return sum;
   }
 
+  static int _power(int x, int n) {
+    var result = 1;
+    for (var i = 0; i < n; i++) {
+      result *= x;
+    }
+    return result;
+  }
+
   @override
   bool operator ==(Object other) =>
       other is IntegralExercise &&
@@ -208,8 +278,9 @@ final class IntegralExercise extends Exercise {
       other.c0 == c0 &&
       other.c1 == c1 &&
       other.c2 == c2 &&
-      other.c3 == c3;
+      other.c3 == c3 &&
+      other.c4 == c4;
 
   @override
-  int get hashCode => Object.hash(lower, upper, c0, c1, c2, c3);
+  int get hashCode => Object.hash(lower, upper, c0, c1, c2, c3, c4);
 }

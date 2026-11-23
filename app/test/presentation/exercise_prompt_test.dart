@@ -65,8 +65,13 @@ void main() {
   });
 
   testWidgets('percentage shows "p% of a"', (tester) async {
-    await pump(tester, const PercentageExercise(percent: 25, base: 80));
+    await pump(tester, PercentageExercise(percent: 25, base: 80));
     expect(find.text('25% of 80'), findsOneWidget);
+  });
+
+  testWidgets('an eighth shows its tenths: "37.5% of 64"', (tester) async {
+    await pump(tester, PercentageExercise(percent: 37, tenths: 5, base: 64));
+    expect(find.text('37.5% of 64'), findsOneWidget);
   });
 
   testWidgets('power shows the base and the exponent, never a caret', (
@@ -95,7 +100,7 @@ void main() {
   });
 
   testWidgets('square root shows a bar over the radicand', (tester) async {
-    await pump(tester, const SquareRootExercise(radicand: 16));
+    await pump(tester, SquareRootExercise(radicand: 16));
 
     expect(find.text('√'), findsOneWidget);
     final radicandFinder = find.text('16');
@@ -106,6 +111,16 @@ void main() {
     );
     final decoration = container.decoration as BoxDecoration;
     expect(decoration.border, isNotNull);
+  });
+
+  testWidgets('a cube root raises a small 3 before the √', (tester) async {
+    await pump(tester, SquareRootExercise(radicand: 64, index: 3));
+    expect(find.text('3'), findsOneWidget);
+    expect(find.text('√'), findsOneWidget);
+    expect(find.text('64'), findsOneWidget);
+    final three = tester.widget<Text>(find.text('3')).style!.fontSize!;
+    final root = tester.widget<Text>(find.text('√')).style!.fontSize!;
+    expect(three, lessThan(root));
   });
 
   group('integral', () {
@@ -119,10 +134,55 @@ void main() {
         c3: 4,
       );
       expect(integralTerms(e), [
-        (coefficient: '4', power: 3),
-        (coefficient: '3', power: 2),
-        (coefficient: '2', power: 0),
+        (coefficient: '4', power: 3, negative: false),
+        (coefficient: '3', power: 2, negative: false),
+        (coefficient: '2', power: 0, negative: false),
       ]);
+    });
+
+    test('x⁴ and a negative term: "5x⁴ − 3x²"', () {
+      final e = IntegralExercise(
+        lower: 1,
+        upper: 3,
+        c0: 0,
+        c1: 0,
+        c2: -3,
+        c3: 0,
+        c4: 5,
+      );
+      expect(integralTerms(e), [
+        (coefficient: '5', power: 4, negative: false),
+        (coefficient: '3', power: 2, negative: true),
+      ]);
+    });
+
+    testWidgets('a negative term is written with a minus sign', (tester) async {
+      await pump(
+        tester,
+        IntegralExercise(
+          lower: 1,
+          upper: 3,
+          c0: 0,
+          c1: 0,
+          c2: -3,
+          c3: 0,
+          c4: 5,
+        ),
+      );
+      final body = tester.widget<Text>(
+        find.byWidgetPredicate(
+          (w) =>
+              w is Text &&
+              w.textSpan != null &&
+              w.textSpan!
+                  .toPlainText(includePlaceholders: false)
+                  .contains('dx'),
+        ),
+      );
+      expect(
+        body.textSpan!.toPlainText(includePlaceholders: false),
+        '5x − 3x dx',
+      );
     });
 
     testWidgets('∫ with its bounds, the polynomial and dx', (tester) async {

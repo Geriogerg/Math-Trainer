@@ -78,7 +78,7 @@ void main() {
   /// Two mistakes (a wrong answer, a timeout) for the mistakes review
   /// (Phase 0, commit 9), the raised exponent included.
   Future<SessionController> buildControllerWithMistakes() async {
-    const exercises = <Exercise>[
+    final exercises = <Exercise>[
       ArithmeticExercise(
         operandA: 7,
         operandB: 8,

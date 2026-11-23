@@ -32,14 +32,25 @@ ExerciseStorageDescription describeExerciseForStorage(Exercise exercise) {
     SquareRootExercise() => (
       exerciseType: ExerciseType.squareRoot.name,
       operationType: ExerciseType.squareRoot.name,
-      operands: {'radicand': exercise.radicand},
+      // The index only for a cube root: square roots keep their shape.
+      operands: {
+        'radicand': exercise.radicand,
+        if (exercise.index != 2) 'index': exercise.index,
+      },
     ),
     PercentageExercise() => (
       exerciseType: ExerciseType.percentage.name,
       operationType: ExerciseType.percentage.name,
-      operands: {'percent': exercise.percent, 'base': exercise.base},
+      // Tenths only when present (37.5 %): whole percentages keep their
+      // shape.
+      operands: {
+        'percent': exercise.percent,
+        'base': exercise.base,
+        if (exercise.tenths != 0) 'tenths': exercise.tenths,
+      },
     ),
-    // Every coefficient, zeros included: one shape for every integral.
+    // Every coefficient to x³, zeros included; x⁴ only when present
+    // (`doc/levels.md`, tier 9), so earlier integrals keep their shape.
     IntegralExercise() => (
       exerciseType: ExerciseType.integral.name,
       operationType: ExerciseType.integral.name,
@@ -50,6 +61,7 @@ ExerciseStorageDescription describeExerciseForStorage(Exercise exercise) {
         'c1': exercise.c1,
         'c2': exercise.c2,
         'c3': exercise.c3,
+        if (exercise.c4 != 0) 'c4': exercise.c4,
       },
     ),
   };

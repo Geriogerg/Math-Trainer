@@ -254,10 +254,9 @@ StrategyMove? bestStrategy(Exercise exercise) => switch (exercise) {
     exponent == 2 ? _squareNearBase(base) : null,
   SquareRootExercise() => null,
   IntegralExercise() => null,
-  PercentageExercise(:final percent, :final base) => _swapPercentage(
-    percent,
-    base,
-  ),
+  // 37.5 % (an eighth): no whole percentage to swap with.
+  PercentageExercise(:final percent, :final base, :final tenths) =>
+    tenths == 0 ? _swapPercentage(percent, base) : null,
 };
 
 /// Up to the next ten: the operand ending in 9 first (one to give back),

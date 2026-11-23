@@ -112,7 +112,7 @@ void main() {
       final random = Random(1);
       for (var i = 0; i < 200; i++) {
         final e = generator.next(random);
-        expect(e.coefficients, [0, 2, 0, 0]);
+        expect(e.coefficients, [0, 2, 0, 0, 0]);
         expect(e.lower, 0);
         expect(e.upper, inInclusiveRange(1, 3));
       }

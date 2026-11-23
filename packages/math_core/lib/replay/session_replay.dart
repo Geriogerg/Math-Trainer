@@ -1,8 +1,9 @@
 import 'dart:math';
 
-import '../generation/composite_exercise_generator.dart';
-import '../generation/fixed_type_sequence.dart';
+import '../generation/game_generator.dart';
+import '../generation/question_plan.dart';
 import '../leveling/rules_version.dart';
+import '../models/exercise_type.dart';
 import '../models/exercise.dart';
 import '../models/session_kind.dart';
 import '../persistence/persisted_session.dart';
@@ -40,12 +41,9 @@ List<Exercise> replaySessionQuestions(
       '${answers.length} answers for ${session.exerciseCount} questions',
     );
   }
-  switch (session.rulesVersion) {
-    case RulesVersion.v1:
-      break;
-    case RulesVersion.v2:
-      // Built through the Levels phase; playable from its commit 4.
-      throw const SessionNotReplayable('rules v2 are not playable yet');
+  if (session.rulesVersion == RulesVersion.v2 && session.kind.isPlacement) {
+    // Rules v2 have no placement (`doc/levels.md`, section 4).
+    throw const SessionNotReplayable('no placement under rules v2');
   }
   switch (session.kind) {
     case SessionKind.game:
@@ -101,15 +99,34 @@ List<Exercise> _replayGame(PersistedSession session, int count) {
       throw SessionNotReplayable('no frozen level for ${type.name}');
     }
   }
-  final generator = CompositeExerciseGenerator(
+  if (session.rulesVersion == RulesVersion.v2) _checkQuestionPlan(session);
+  final generator = gameExerciseGenerator(
+    rulesVersion: session.rulesVersion,
     enabledTypes: session.enabledTypes,
     levels: session.levels,
-    strategy: FixedTypeSequence(sequence),
+    typeSequence: sequence,
   );
   // Same stream as `LocalExerciseSource`: one `Random(seed)` shared by the
   // type draw (none here) and the value draws.
   final random = Random(session.seed);
   return [for (var i = 0; i < count; i++) generator.next(random)];
+}
+
+/// Under rules v2 a game gives every operation the same number of
+/// questions, one of the setup's choices (plan v2.9) — the level update's
+/// cap depends on it, so a session that claims another plan is not
+/// replayed.
+void _checkQuestionPlan(PersistedSession session) {
+  final counts = <ExerciseType, int>{};
+  for (final type in session.typeSequence!) {
+    counts[type] = (counts[type] ?? 0) + 1;
+  }
+  final perOperation = counts.values.toSet();
+  if (!counts.keys.toSet().containsAll(session.enabledTypes) ||
+      perOperation.length != 1 ||
+      !questionsPerOperationChoices.contains(perOperation.single)) {
+    throw SessionNotReplayable('not a question plan: $counts');
+  }
 }
 
 List<Exercise> _replayPlacement(

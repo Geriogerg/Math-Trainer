@@ -111,23 +111,46 @@ void main() {
   });
 
   group('not replayable', () {
-    test('rules v2, until the Levels phase makes them playable', () {
-      final s = game(typeSequence: List.filled(24, ExerciseType.addition));
-      final v2 = PersistedSession(
-        id: s.id,
-        playerId: s.playerId,
-        seed: s.seed,
-        enabledTypes: s.enabledTypes,
-        exerciseCount: s.exerciseCount,
+    test('rules v2: a game replays from tiers; a placement or a plan other '
+        "than the setup's does not", () {
+      PersistedSession v2({
+        required List<ExerciseType> sequence,
+        SessionKind kind = SessionKind.game,
+      }) => PersistedSession(
+        id: 's',
+        playerId: 'p',
+        seed: 1763510400123,
+        enabledTypes: sequence.toSet(),
+        exerciseCount: sequence.length,
         totalScore: 0,
-        levels: s.levels,
-        createdAt: s.createdAt,
-        typeSequence: s.typeSequence,
+        levels: {for (final t in sequence) t: Level.whole(42)},
+        createdAt: DateTime.utc(2026, 11, 23),
+        typeSequence: sequence,
+        kind: kind,
         rulesVersion: RulesVersion.v2,
       );
-      expect(replaySessionQuestions(s, answers(3)), hasLength(3));
+      final plan = [
+        for (var i = 0; i < 4; i++) ...[
+          ExerciseType.addition,
+          ExerciseType.integral,
+        ],
+      ];
       expect(
-        () => replaySessionQuestions(v2, answers(3)),
+        replaySessionQuestions(v2(sequence: plan), answers(8)),
+        hasLength(8),
+      );
+      expect(
+        () => replaySessionQuestions(
+          v2(sequence: plan, kind: SessionKind.placementV2),
+          answers(3),
+        ),
+        throwsA(isA<SessionNotReplayable>()),
+      );
+      expect(
+        () => replaySessionQuestions(
+          v2(sequence: List.filled(3, ExerciseType.addition)),
+          answers(3),
+        ),
         throwsA(isA<SessionNotReplayable>()),
       );
     });

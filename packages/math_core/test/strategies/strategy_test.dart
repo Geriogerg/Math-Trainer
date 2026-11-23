@@ -63,7 +63,7 @@ void main() {
 
     test('swap the percentage: 8% of 25 = 25% of 8', () {
       expect(
-        bestStrategy(const PercentageExercise(percent: 8, base: 25)),
+        bestStrategy(PercentageExercise(percent: 8, base: 25)),
         const SwapPercentageMove(percent: 25, base: 8),
       );
     });
@@ -140,18 +140,18 @@ void main() {
 
     test('swap only towards a friendly percentage', () {
       expect(
-        bestStrategy(const PercentageExercise(percent: 25, base: 8)),
+        bestStrategy(PercentageExercise(percent: 25, base: 8)),
         isNull,
       ); // already friendly
       expect(
-        bestStrategy(const PercentageExercise(percent: 8, base: 30)),
+        bestStrategy(PercentageExercise(percent: 8, base: 30)),
         isNull,
       ); // 30% is not friendlier
     });
 
     test('no strategy for division and square roots', () {
       expect(bestStrategy(_op(84, _div, 7)), isNull);
-      expect(bestStrategy(const SquareRootExercise(radicand: 144)), isNull);
+      expect(bestStrategy(SquareRootExercise(radicand: 144)), isNull);
     });
   });
 

@@ -1,6 +1,7 @@
 import 'package:math_core/leveling/level.dart';
 import 'package:math_core/leveling/level_updater.dart';
 import 'package:math_core/leveling/level_updates.dart';
+import 'package:math_core/leveling/rules_version.dart';
 import 'package:math_core/models/game_setup.dart';
 import 'package:math_core/models/answer_result.dart';
 import 'package:math_core/models/exercise.dart';
@@ -30,6 +31,7 @@ SessionUpload honestGame({
   int? answered,
   int seed = 777,
   SessionKind kind = SessionKind.game,
+  RulesVersion rulesVersion = RulesVersion.v1,
   ({int value, int ms}) Function(int i, Exercise q)? answer,
 }) {
   final types = {ExerciseType.addition, ExerciseType.multiplication};
@@ -48,6 +50,7 @@ SessionUpload honestGame({
       for (var i = 0; i < count; i++)
         i.isEven ? ExerciseType.addition : ExerciseType.multiplication,
     ],
+    rulesVersion: rulesVersion,
   );
   final n = answered ?? count;
   final questions = replaySessionQuestions(session, [
@@ -131,6 +134,94 @@ PersistedAnswer copyAnswer(
 );
 
 void main() {
+  group('rules v2 (doc/levels.md)', () {
+    final zero = {
+      ExerciseType.addition: Level.zero,
+      ExerciseType.multiplication: Level.zero,
+    };
+
+    test('an honest game from 0: accepted, each operation moved by its '
+        'quality — what the app computes', () {
+      // Additions fluent, multiplications right but slow.
+      final upload = honestGame(
+        rulesVersion: RulesVersion.v2,
+        levels: zero,
+        answer: (i, q) => (value: q.correctAnswer, ms: i.isEven ? 1000 : 20000),
+      );
+      final result = validate(upload) as Accepted;
+      expect(
+        result.levelUpdates[ExerciseType.addition]!.level,
+        Level.fromHundredths(300),
+      );
+      expect(
+        result.levelUpdates[ExerciseType.multiplication]!.level,
+        Level.fromHundredths(120),
+      );
+      final appSide = gameLevelUpdates(
+        outcomes: [
+          for (final (i, q) in replaySessionQuestions(upload.session, [
+            for (var k = 0; k < 8; k++) (isCorrect: true, elapsedMs: 0),
+          ]).indexed)
+            AnswerResult(
+              exercise: q,
+              submittedValue: q.correctAnswer,
+              isCorrect: true,
+              elapsedMs: i.isEven ? 1000 : 20000,
+              answeredAt: upload.session.createdAt,
+            ),
+        ],
+        frozenLevels: zero,
+        priorLevels: const {},
+        now: upload.session.createdAt,
+        rulesVersion: RulesVersion.v2,
+      );
+      expect(
+        {for (final e in result.levelUpdates.entries) e.key: e.value.level},
+        {for (final e in appSide.entries) e.key: e.value.level},
+      );
+    });
+
+    test("a game claiming rules v1's level 1 for a new player is refused", () {
+      final result = validate(honestGame(rulesVersion: RulesVersion.v2));
+      expect((result as Rejected).reason, RejectionReason.levelsMismatch);
+    });
+
+    test('a forged question is refused', () {
+      final upload = honestGame(rulesVersion: RulesVersion.v2, levels: zero);
+      final forged = tamper(
+        upload,
+        0,
+        (a) => copyAnswer(a, operands: {'operandA': 1, 'operandB': 1}),
+      );
+      expect(
+        (validate(forged) as Rejected).reason,
+        RejectionReason.questionMismatch,
+      );
+    });
+
+    test("a plan other than the setup's (3 questions each) cannot replay", () {
+      final v1 = honestGame(count: 6);
+      final s = v1.session;
+      final upload = SessionUpload(
+        session: PersistedSession(
+          id: s.id,
+          playerId: s.playerId,
+          seed: s.seed,
+          enabledTypes: s.enabledTypes,
+          exerciseCount: s.exerciseCount,
+          totalScore: 0,
+          levels: zero,
+          createdAt: s.createdAt,
+          typeSequence: s.typeSequence,
+          rulesVersion: RulesVersion.v2,
+        ),
+        answers: v1.answers,
+      );
+      final result = validate(upload);
+      expect((result as Rejected).reason, RejectionReason.notReplayable);
+    });
+  });
+
   group('an honest game', () {
     test('accepted; levels exactly what the app computes', () {
       final upload = honestGame();

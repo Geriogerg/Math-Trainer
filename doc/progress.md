@@ -882,3 +882,24 @@ new games use them, together with the reset (`doc/decisions.md`).
   −1.0, −2), its grind estimate (0 → 20 in 5 perfect 10-question games, → 50 in 13), a
   correct-but-slow game raises the level for every count, the caps, the closed dead band, the
   [0, 100] clamp, invalid input, the v2 branch of `gameLevelUpdates`.
+- **Commit 2** *(A)* — Ten tiers per operation (spec section 5), as rules v2. Core
+  `tiers/`: `Tier` (T0–T9, an enum so every switch is exhaustive; 100 is in T9), the content
+  of every tier of the eight operations (`arithmeticAt`, `powerAt`, `rootAt`,
+  `percentageAt`, `integralAt`, one entry `exerciseAt`) — built from their parts: digits
+  drawn so carries and borrows land where the tier wants them, quotients before dividends,
+  roots before radicands, bases among the multiples that make a percentage whole, integrals
+  from whole antiderivatives; `TieredGameGenerator`: each operation at its frozen tier,
+  exactly 30 % review from the tier below (1 of 4, 2 of 5, 3 of 10, 6 of 20; none at T0),
+  which questions drawn on the game's stream. `gameExerciseGenerator` picks v1 or v2 for the
+  app and the replay; a v2 game replays (a v2 placement, or a plan other than equal counts in
+  4/5/10/20, does not), so the server validates v2 games — chained from 0, levels by
+  commit 1's update. Models: cube roots (`SquareRootExercise.index`), eighths
+  (`PercentageExercise.tenths`), x⁴ and one negative term covered by a higher one
+  (`IntegralExercise.c4`; p ≥ 0 by an exact rule), all by `throw`; stored shapes of earlier
+  questions unchanged (new keys only when used); the prompt draws them (a small raised 3
+  before √ — no bundled face has ∛ —, "37.5%", " − "). Tests: every tier of every
+  operation, 3,000 draws each, against its spec description, whole and exact; each spec
+  example is of its tier's kind; the exact 70/30 split over 300 seeds × 4 counts; v2
+  sequences pinned and identical on VM and JavaScript (`tool/tier_references.dart`); v2
+  validation (accepted with the app's levels, forged question, wrong plan, level-1 chain).
+  Not live: new games stay v1 until commit 4.

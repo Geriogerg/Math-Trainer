@@ -30,7 +30,7 @@ void main() {
     });
 
     test('describes a SquareRootExercise with the radicand', () {
-      const exercise = SquareRootExercise(radicand: 16);
+      final exercise = SquareRootExercise(radicand: 16);
 
       final described = describeExerciseForStorage(exercise);
 
@@ -40,7 +40,7 @@ void main() {
     });
 
     test('describes a PercentageExercise with percent and base', () {
-      const exercise = PercentageExercise(percent: 25, base: 80);
+      final exercise = PercentageExercise(percent: 25, base: 80);
 
       final described = describeExerciseForStorage(exercise);
 
