@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:math_core/challenges/tables.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:math_core/leveling/level.dart';
 import 'package:math_core/models/exercise_type.dart';
@@ -73,6 +74,9 @@ Future<AppEnvironment> _environment() async {
       ExerciseType.multiplication,
     }),
     gameSetupStore: FakeGameSetupStore(GameSetup(mode: GameMode.training)),
+    tablesStore: FakeTablesStore(
+      setup: TablesSetup(firstTable: 12, lastTable: 19),
+    ),
   );
 }
 
@@ -111,6 +115,17 @@ void main() {
       await expectLater(
         find.byType(MaterialApp),
         matchesGoldenFile('goldens/game_setup_$name.png'),
+      );
+    });
+
+    testWidgets('tables setup — $name', (tester) async {
+      await pumpShell(tester);
+      await tester.scrollUntilVisible(find.text('Tables'), 100);
+      await tester.tap(find.text('Tables'));
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/tables_setup_$name.png'),
       );
     });
   }

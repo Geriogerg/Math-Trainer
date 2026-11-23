@@ -2,6 +2,10 @@ import '../fake_stores.dart';
 import 'package:math_core/challenges/challenge_stats.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:math_core/models/operation_type.dart';
+import 'package:math_core/models/exercise.dart';
+import 'package:math_core/models/answer_result.dart';
+import 'package:math_core/challenges/tables.dart';
 
 import 'package:math_trainer/composition_root.dart';
 import 'package:math_core/account/account.dart';
@@ -824,6 +828,54 @@ void main() {
     expect(find.text('7'), findsOneWidget);
     // Never played: zeros and a dash.
     expect(find.text('—'), findsWidgets);
+  });
+
+  testWidgets('Tables: games, right answers as a count, the slowest facts '
+      '(doc/levels.md section 7)', (WidgetTester tester) async {
+    await setTallSurface(tester);
+    AnswerResult fact(int t, int m, int ms, {bool right = true}) =>
+        AnswerResult(
+          exercise: ArithmeticExercise(
+            operandA: t,
+            operandB: m,
+            operationType: OperationType.multiplication,
+          ),
+          submittedValue: right ? t * m : 0,
+          isCorrect: right,
+          elapsedMs: ms,
+          answeredAt: DateTime.utc(2026, 11, 23),
+        );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildLightTheme(),
+        home: Scaffold(
+          body: ProfileScreen(
+            environment: AppEnvironment(
+              repository: InMemorySessionRepository(),
+              playerId: 'test-player',
+              accountRepository: FakeAccountRepository(),
+              profileRepository: FakeProfileRepository(),
+              tablesStore: FakeTablesStore(
+                stats: TablesStats.none.record([
+                  fact(17, 8, 9400),
+                  fact(13, 7, 6100, right: false),
+                  fact(12, 12, 2000),
+                  fact(6, 7, 1000),
+                ]),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Slowest'), 200);
+    expect(find.text('Tables'), findsOneWidget);
+    expect(find.text('3 / 4'), findsOneWidget);
+    expect(find.text('17 × 8   9.4 s'), findsOneWidget);
+    expect(find.text('13 × 7   6.1 s'), findsOneWidget);
+    expect(find.text('12 × 12   2.0 s'), findsOneWidget);
+    expect(find.textContaining('6 × 7'), findsNothing);
   });
 }
 

@@ -180,6 +180,15 @@ hundredths, frozen at the start, never decaying, recomputable, replayed by the s
   "4,789" as a decimal, and the space is the SI separator. A plain space, which the digit face
   draws (a narrow no-break space is not in its subset).
 - **"Roots"** replaces "Square roots" as the label: the family has cube roots since the tiers.
+- **Tables mode, the gaps** (commit 6): the card is the last of Home's Challenges; the setup is
+  From / To steppers (1–50, the first pushing the last along), Multipliers 1–10 / 1–20,
+  Questions 10 / 20 / 50, defaults 2–10, 1–10, 20, remembered. A round deals every fact of the
+  chosen tables shuffled by its seed, a longer round deals them again (each fact once per
+  pass); the table is written first ("17 × 6"). Played on the game screen as Training, with a
+  throwaway repository: never in the history, the level cache or the upload queue. Stats on
+  the device: games, right answers as "right / answers" (a raw count, as the result screen's —
+  never a rate presented as progress), and the three slowest facts by average time, on
+  Profile under the challenges.
 
 ## Redesign phase — owner decisions (plan v2.9, 22 Nov 2026)
 

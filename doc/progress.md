@@ -955,3 +955,18 @@ new games use them, together with the reset (`doc/decisions.md`).
   the stacked game screen at 360 × 640 in both themes; Profile's "Roots". Also SQL
   `20261125030000_old_server_v2_rejections_again.sql`: commit 4.1's cleanup once more.
   **To play on the phone.**
+- **Commit 6** *(C)* — Tables mode (spec section 7). Core `challenges/tables.dart`:
+  `TablesSetup` (tables within 1–50, multipliers 10 / 20, 10 / 20 / 50 questions; invariants
+  by `throw`), `tablesQuestions` (every fact of the chosen tables, shuffled by the seed, dealt
+  again for a longer round; pinned on VM and JavaScript), `TablesStats` (games, answers, right,
+  every fact's record, the slowest; JSON), `TablesStore`; `ListExerciseSource`. App: the
+  shared_preferences store; Home's "Tables" card under Challenges; its setup page (From / To
+  steppers, Multipliers, Questions, Start; remembered); `buildTablesController` plays a round
+  on the game screen as Training with a throwaway repository (no history, no level, no
+  upload); `playSessionFlow` gains `playAgain` and `onFinished` (each finished round goes into
+  the stats); Profile's "Tables" block (games, right / answers, three slowest facts). Also:
+  the Play tab loads each remembered setup on its own (one store that never answered left the
+  others at their defaults). Tests: core (setup, ranges, one pass per fact, determinism, pin,
+  stats, JSON), store, Play tab (card, setup, range, ends, remembered), a full round end to
+  end (stats recorded, history and levels untouched, Play again), Profile block; goldens: the
+  Tables setup page and Home with its card, both themes. **To play on the phone.**

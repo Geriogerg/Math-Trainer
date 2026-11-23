@@ -8,6 +8,7 @@ import 'package:math_trainer/presentation/screens/result_screen.dart';
 import 'package:math_trainer/presentation/screens/play_tab.dart';
 import 'package:math_trainer/presentation/kit/kit.dart';
 import 'package:math_trainer/composition_root.dart';
+import 'package:math_core/challenges/tables.dart';
 import 'package:math_core/persistence/level_cache_entry.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/leveling/level.dart';
@@ -19,6 +20,7 @@ import 'package:math_trainer/core/state/session_controller.dart';
 
 import 'fake_account_repository.dart';
 import 'fake_profile_repository.dart';
+import 'fake_stores.dart';
 
 class _ThrowingSessionRepository implements SessionRepository {
   @override
@@ -292,6 +294,45 @@ void main() {
         'fake-account-id',
       );
       expect(levels.keys, {ExerciseType.addition, ExerciseType.subtraction});
+    },
+  );
+
+  testWidgets(
+    'a Tables round: the game screen, stats on the device, nothing in the '
+    'history; Play again deals another (doc/levels.md section 7)',
+    (WidgetTester tester) async {
+      final repository = InMemorySessionRepository();
+      final tables = FakeTablesStore(
+        setup: TablesSetup(firstTable: 7, lastTable: 7, questions: 10),
+      );
+      final environment = AppEnvironment(
+        repository: repository,
+        playerId: 'test-player',
+        accountRepository: FakeAccountRepository(),
+        profileRepository: FakeProfileRepository(),
+        tablesStore: tables,
+      );
+      await openPlay(tester, environment);
+      await tester.scrollUntilVisible(find.text('Tables'), 100);
+      await tester.tap(find.text('Tables'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Start'));
+      await settlePageTransition(tester);
+      expect(find.text('1 / 10'), findsOneWidget);
+      await playToCompletion(tester);
+
+      expect(tables.stats.games, 1);
+      expect(tables.stats.answers, 10);
+      // Table 7 × 1–10: every fact once.
+      expect(tables.stats.facts.keys.toSet(), {
+        for (var m = 1; m <= 10; m++) TablesStats.factKey(7, m),
+      });
+      expect(await repository.recentSessions('fake-account-id'), isEmpty);
+      expect(await repository.currentLevels('fake-account-id'), isEmpty);
+
+      await tester.tap(find.text('Play again'));
+      await settlePageTransition(tester);
+      expect(find.text('1 / 10'), findsOneWidget);
     },
   );
 

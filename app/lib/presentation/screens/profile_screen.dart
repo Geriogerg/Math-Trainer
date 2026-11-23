@@ -20,6 +20,7 @@ import '../account_messages.dart';
 import '../exercise_type_labels.dart';
 import '../upload_refusal_text.dart';
 import 'package:math_core/challenges/challenge_stats.dart';
+import 'package:math_core/challenges/tables.dart';
 import 'package:math_core/leveling/main_level.dart';
 import 'package:math_core/leveling/rules_version.dart';
 import '../../core/state/account_form_controller.dart';
@@ -130,6 +131,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   /// The challenges' records, on the device (Redesign phase). A failed read
   /// shows zeros, never an error.
   late Future<Map<Challenge, ChallengeStats>> _challengeStats;
+  late Future<TablesStats> _tablesStats;
 
   @override
   void initState() {
@@ -174,6 +176,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
     _loadProfile();
     _challengeStats = _loadChallengeStats();
+    _tablesStats = _loadTablesStats();
+  }
+
+  Future<TablesStats> _loadTablesStats() async {
+    try {
+      return await widget.environment.tablesStore.loadStats();
+    } on Exception catch (_) {
+      return TablesStats.none;
+    }
   }
 
   Future<Map<Challenge, ChallengeStats>> _loadChallengeStats() async {
@@ -450,6 +461,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               future: _challengeStats,
               builder: (context, snapshot) =>
                   _ChallengesBlock(stats: snapshot.data ?? const {}),
+            ),
+            const SizedBox(height: 24),
+            FutureBuilder(
+              future: _tablesStats,
+              builder: (context, snapshot) =>
+                  _TablesBlock(stats: snapshot.data ?? TablesStats.none),
             ),
             if (widget.environment.effectSettings != null ||
                 widget.onToggleTheme != null) ...[
@@ -943,6 +960,53 @@ class _ChallengesBlock extends StatelessWidget {
               );
             },
           ),
+        ],
+      ],
+    );
+  }
+}
+
+/// Tables mode's stats (`doc/levels.md` section 7), on the device: rounds,
+/// right answers as a raw count (never a rate presented as progress), and
+/// the three slowest facts.
+class _TablesBlock extends StatelessWidget {
+  const _TablesBlock({required this.stats});
+
+  final TablesStats stats;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final slowest = stats.slowest(3);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Tables', style: theme.textTheme.titleMedium),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: StatTile(value: '${stats.games}', label: 'Games'),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: StatTile(
+                value: '${stats.right} / ${stats.answers}',
+                label: 'Right',
+              ),
+            ),
+          ],
+        ),
+        if (slowest.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Text('Slowest', style: theme.textTheme.bodyLarge),
+          const SizedBox(height: 4),
+          for (final fact in slowest)
+            Text(
+              '${fact.table} × ${fact.multiplier}   '
+              '${(fact.averageMs / 1000).toStringAsFixed(1)} s',
+              style: theme.textTheme.bodyLarge?.digits,
+            ),
         ],
       ],
     );

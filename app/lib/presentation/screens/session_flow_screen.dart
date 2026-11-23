@@ -15,12 +15,16 @@ import 'session_screen.dart';
 /// once the player has left and the end-of-session write is done — the
 /// caller can then re-read levels and history.
 ///
-/// [setup]: what Play again replays with.
+/// [setup]: what Play again replays with. [playAgain], when given, builds
+/// the next controller instead (Tables mode); [onFinished] is told each
+/// controller played to its last question, once.
 Future<void> playSessionFlow(
   BuildContext context,
   AppEnvironment environment,
   SessionController controller, {
   GameSetup? setup,
+  SessionController Function()? playAgain,
+  void Function(SessionController controller)? onFinished,
 }) async {
   controller.start();
   // SessionFlowScreen owns the controller (dispose() in its own State).
@@ -34,6 +38,8 @@ Future<void> playSessionFlow(
         controller: controller,
         environment: environment,
         setup: setup,
+        playAgain: playAgain,
+        onFinished: onFinished,
       ),
     ),
   );
@@ -56,6 +62,8 @@ class SessionFlowScreen extends StatefulWidget {
     required this.controller,
     required this.environment,
     this.setup,
+    this.playAgain,
+    this.onFinished,
   });
 
   final SessionController controller;
@@ -63,6 +71,12 @@ class SessionFlowScreen extends StatefulWidget {
 
   /// The game's setup, kept for Play again.
   final GameSetup? setup;
+
+  /// Builds Play again's controller instead of a game (Tables mode).
+  final SessionController Function()? playAgain;
+
+  /// Told each controller played to its last question, once.
+  final void Function(SessionController controller)? onFinished;
 
   @override
   State<SessionFlowScreen> createState() => _SessionFlowScreenState();
@@ -73,16 +87,29 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
   bool _isRestarting = false;
   String? _restartError;
 
+  /// The controllers already reported to `onFinished`.
+  final _reported = <SessionController>{};
+
   @override
   void initState() {
     super.initState();
     _controller = widget.controller;
+    _controller.addListener(_reportFinished);
   }
 
   @override
   void dispose() {
+    _controller.removeListener(_reportFinished);
     _controller.dispose();
     super.dispose();
+  }
+
+  void _reportFinished() {
+    final controller = _controller;
+    if (controller.state.status == SessionStatus.finished &&
+        _reported.add(controller)) {
+      widget.onFinished?.call(controller);
+    }
   }
 
   /// Returns the running end-of-session write to `PlayTab`, which waits for
@@ -138,19 +165,25 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
       // the opposite of what the immediate replay promises.
       await _controller.pendingPersistence;
       final types = _controller.config.enabledTypes;
-      final next = await buildSessionController(
-        widget.environment,
-        types,
-        setup: widget.setup,
-      );
+      final next =
+          widget.playAgain?.call() ??
+          await buildSessionController(
+            widget.environment,
+            types,
+            setup: widget.setup,
+          );
       if (!mounted) return;
-      next.start();
+      next
+        ..addListener(_reportFinished)
+        ..start();
       final previous = _controller;
       setState(() {
         _controller = next;
         _isRestarting = false;
       });
-      previous.dispose();
+      previous
+        ..removeListener(_reportFinished)
+        ..dispose();
     } catch (_) {
       if (!mounted) return;
       setState(() {

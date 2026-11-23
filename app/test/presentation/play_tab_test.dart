@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:math_trainer/composition_root.dart';
 import 'package:math_core/challenges/chain.dart';
+import 'package:math_core/challenges/tables.dart';
 import 'package:math_core/leveling/level.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/models/game_setup.dart';
@@ -88,6 +89,7 @@ void main() {
     FakeTypeSelectionStore? selection,
     FakeGameSetupStore? setup,
     FakeChainSetupStore? chainSetup,
+    FakeTablesStore? tables,
   }) => AppEnvironment(
     repository: repository,
     playerId: 'test-player',
@@ -96,6 +98,7 @@ void main() {
     typeSelectionStore: selection ?? FakeTypeSelectionStore(),
     gameSetupStore: setup ?? FakeGameSetupStore(),
     chainSetupStore: chainSetup ?? FakeChainSetupStore(),
+    tablesStore: tables ?? FakeTablesStore(),
   );
 
   testWidgets('a new player lands on Home, every level at 0 — no placement '
@@ -180,6 +183,77 @@ void main() {
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
     expect(find.text('Basics'), findsOneWidget);
+  });
+
+  group('Tables mode (doc/levels.md section 7)', () {
+    Future<FakeTablesStore> openTables(
+      WidgetTester tester, {
+      TablesSetup? stored,
+    }) async {
+      final store = FakeTablesStore(setup: stored);
+      await pumpPlayTab(
+        tester,
+        environmentWith(await _playedRepository(), tables: store),
+      );
+      await tester.scrollUntilVisible(find.text('Tables'), 100);
+      await tester.tap(find.text('Tables'));
+      await tester.pumpAndSettle();
+      return store;
+    }
+
+    testWidgets('its card opens its setup page, labels only; back returns', (
+      tester,
+    ) async {
+      await openTables(tester);
+      for (final label in ['From', 'To', 'Multipliers', 'Questions', 'Start']) {
+        expect(find.text(label), findsWidgets, reason: label);
+      }
+      expect(find.text('1–10'), findsOneWidget);
+      expect(find.text('1–20'), findsOneWidget);
+      expect(find.textContaining('.'), findsNothing);
+      await tester.tap(find.byTooltip('Back'));
+      await tester.pumpAndSettle();
+      expect(find.text('Basics'), findsOneWidget);
+    });
+
+    testWidgets('the range moves, the first table pushing the last; '
+        'remembered', (tester) async {
+      final store = await openTables(
+        tester,
+        stored: TablesSetup(firstTable: 12, lastTable: 12),
+      );
+      expect(find.bySemanticsLabel('From 12'), findsOneWidget);
+      await tester.tap(find.byTooltip('From +1'));
+      await tester.pumpAndSettle();
+      expect(store.setup, TablesSetup(firstTable: 13, lastTable: 13));
+      await tester.tap(find.text('1–20'));
+      await tester.tap(find.text('50'));
+      await tester.pumpAndSettle();
+      expect(
+        store.setup,
+        TablesSetup(
+          firstTable: 13,
+          lastTable: 13,
+          maxMultiplier: 20,
+          questions: 50,
+        ),
+      );
+    });
+
+    testWidgets('the ends of 1–50 disable their buttons', (tester) async {
+      await openTables(
+        tester,
+        stored: TablesSetup(firstTable: 1, lastTable: 50),
+      );
+      IconButton button(String tooltip) => tester.widget<IconButton>(
+        find.ancestor(
+          of: find.byTooltip(tooltip),
+          matching: find.byType(IconButton),
+        ),
+      );
+      expect(button('From −1').onPressed, isNull);
+      expect(button('To +1').onPressed, isNull);
+    });
   });
 
   testWidgets('the chain setup is remembered (Redesign close-out)', (

@@ -1,9 +1,11 @@
 import 'package:material_ui/material_ui.dart';
 
 import 'package:math_core/challenges/chain.dart';
+import 'package:math_core/challenges/tables.dart';
 import 'package:math_core/generation/question_plan.dart';
 import 'package:math_core/leveling/level.dart';
 import 'package:math_core/leveling/main_level.dart';
+import 'package:math_core/models/answer_result.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/models/game_setup.dart';
 import 'package:math_core/persistence/level_cache_entry.dart';
@@ -57,6 +59,11 @@ class _PlayTabState extends State<PlayTab> {
   /// Its choices, remembered (`ChainSetupStore`, Redesign close-out).
   ChainSetup _chainSetup = ChainSetup();
 
+  /// Tables mode's setup page is open (`doc/levels.md` section 7), and its
+  /// choices, remembered (`TablesStore`).
+  bool _tablesSetupOpen = false;
+  TablesSetup _tablesSetup = TablesSetup();
+
   bool _isStarting = false;
   String? _startError;
 
@@ -81,19 +88,23 @@ class _PlayTabState extends State<PlayTab> {
   }
 
   /// Apart from [_loadStartupState]: a store that fails must not hide the
-  /// levels read there. The default setup stays meanwhile.
-  Future<void> _loadSetup() async {
+  /// levels read there. Each setup on its own, so one store that fails or
+  /// never answers leaves the others' choices; the defaults stay meanwhile.
+  void _loadSetup() {
+    _loadOne(widget.environment.gameSetupStore.load, (s) => _setup = s);
+    _loadOne(widget.environment.chainSetupStore.load, (s) => _chainSetup = s);
+    _loadOne(widget.environment.tablesStore.loadSetup, (s) => _tablesSetup = s);
+  }
+
+  Future<void> _loadOne<T extends Object>(
+    Future<T?> Function() load,
+    void Function(T stored) apply,
+  ) async {
     try {
-      final setup = await widget.environment.gameSetupStore.load();
-      if (setup != null && mounted) setState(() => _setup = setup);
+      final stored = await load();
+      if (stored != null && mounted) setState(() => apply(stored));
     } on Exception catch (_) {
-      // The default setup.
-    }
-    try {
-      final chain = await widget.environment.chainSetupStore.load();
-      if (chain != null && mounted) setState(() => _chainSetup = chain);
-    } on Exception catch (_) {
-      // The default chain setup.
+      // The default.
     }
   }
 
@@ -146,7 +157,39 @@ class _PlayTabState extends State<PlayTab> {
   void _closeSetup() => setState(() {
     _setupFamily = null;
     _chainSetupOpen = false;
+    _tablesSetupOpen = false;
   });
+
+  void _updateTablesSetup(TablesSetup Function(TablesSetup) change) {
+    final setup = change(_tablesSetup);
+    setState(() => _tablesSetup = setup);
+    // In the background: a failed write only costs the default next time.
+    widget.environment.tablesStore.saveSetup(setup).ignore();
+  }
+
+  /// A round of Tables mode on the game screen; Play again deals a new one
+  /// from the same setup. Each finished round goes into the device's stats.
+  Future<void> _startTables() async {
+    final environment = widget.environment;
+    final setup = _tablesSetup;
+    setState(() => _tablesSetupOpen = false);
+    await playSessionFlow(
+      context,
+      environment,
+      buildTablesController(environment, setup),
+      playAgain: () => buildTablesController(environment, setup),
+      onFinished: (controller) => _recordTables(controller.state.outcomes),
+    );
+  }
+
+  Future<void> _recordTables(List<AnswerResult> outcomes) async {
+    final store = widget.environment.tablesStore;
+    try {
+      await store.saveStats((await store.loadStats()).record(outcomes));
+    } on Exception catch (_) {
+      // Stats are a convenience: a failed write never interrupts play.
+    }
+  }
 
   void _updateChainSetup(ChainSetup Function(ChainSetup) change) {
     final setup = change(_chainSetup);
@@ -212,6 +255,20 @@ class _PlayTabState extends State<PlayTab> {
   @override
   Widget build(BuildContext context) {
     if (!_startupResolved) return const SizedBox.expand();
+    if (_tablesSetupOpen) {
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) _closeSetup();
+        },
+        child: _TablesSetupView(
+          setup: _tablesSetup,
+          onChanged: _updateTablesSetup,
+          onBack: _closeSetup,
+          onStart: _startTables,
+        ),
+      );
+    }
     if (_chainSetupOpen) {
       return PopScope(
         canPop: false,
@@ -257,6 +314,7 @@ class _PlayTabState extends State<PlayTab> {
       onPlay: _openSetup,
       onGetTheCount: () => playCount(context, widget.environment),
       onChainOperations: () => setState(() => _chainSetupOpen = true),
+      onTables: () => setState(() => _tablesSetupOpen = true),
     );
   }
 }
@@ -271,6 +329,7 @@ class _HomeView extends StatelessWidget {
     required this.onPlay,
     required this.onGetTheCount,
     required this.onChainOperations,
+    required this.onTables,
   });
 
   final int mainLevel;
@@ -280,6 +339,7 @@ class _HomeView extends StatelessWidget {
   final ValueChanged<ExerciseFamily> onPlay;
   final VoidCallback? onGetTheCount;
   final VoidCallback? onChainOperations;
+  final VoidCallback? onTables;
 
   @override
   Widget build(BuildContext context) {
@@ -335,6 +395,9 @@ class _HomeView extends StatelessWidget {
           AppCard(label: 'Get the count', onTap: onGetTheCount),
           const SizedBox(height: 8),
           AppCard(label: 'Chain operations', onTap: onChainOperations),
+          const SizedBox(height: 8),
+          // Its own card, under Challenges (`doc/levels.md`, section 7).
+          AppCard(label: 'Tables', onTap: onTables),
         ],
       ),
     );
@@ -546,6 +609,148 @@ class _ChainSetupView extends StatelessWidget {
               ],
             ),
           ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Tables mode's setup page (`doc/levels.md`, section 7): which tables (a
+/// range within 1–50), multipliers 1–10 or 1–20, how many questions, then
+/// Start. Labels only.
+class _TablesSetupView extends StatelessWidget {
+  const _TablesSetupView({
+    required this.setup,
+    required this.onChanged,
+    required this.onBack,
+    required this.onStart,
+  });
+
+  final TablesSetup setup;
+  final void Function(TablesSetup Function(TablesSetup)) onChanged;
+  final VoidCallback onBack;
+  final VoidCallback onStart;
+
+  /// The first table moves the last along when it passes it, and back.
+  static TablesSetup _first(TablesSetup s, int first) => s.copyWith(
+    firstTable: first,
+    lastTable: s.lastTable < first ? first : s.lastTable,
+  );
+
+  static TablesSetup _last(TablesSetup s, int last) => s.copyWith(
+    lastTable: last,
+    firstTable: s.firstTable > last ? last : s.firstTable,
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final metrics = theme.extension<AppMetrics>()!;
+    return CustomScrollView(
+      slivers: [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Padding(
+            padding: metrics.rootPadding,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back),
+                      tooltip: 'Back',
+                      onPressed: onBack,
+                    ),
+                    Expanded(
+                      child: Text(
+                        'Tables',
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.titleLarge,
+                      ),
+                    ),
+                    const SizedBox(width: 48),
+                  ],
+                ),
+                const _SectionLabel('From'),
+                _TableStepper(
+                  key: const ValueKey('tables-from'),
+                  value: setup.firstTable,
+                  label: 'From',
+                  onChanged: (v) => onChanged((s) => _first(s, v)),
+                ),
+                const _SectionLabel('To'),
+                _TableStepper(
+                  key: const ValueKey('tables-to'),
+                  value: setup.lastTable,
+                  label: 'To',
+                  onChanged: (v) => onChanged((s) => _last(s, v)),
+                ),
+                const _SectionLabel('Multipliers'),
+                SegmentedChoice<int>(
+                  values: tablesMultiplierChoices,
+                  selected: setup.maxMultiplier,
+                  label: (m) => '1–$m',
+                  onChanged: (m) =>
+                      onChanged((s) => s.copyWith(maxMultiplier: m)),
+                ),
+                const _SectionLabel('Questions'),
+                SegmentedChoice<int>(
+                  values: tablesQuestionChoices,
+                  selected: setup.questions,
+                  label: (n) => '$n',
+                  onChanged: (n) => onChanged((s) => s.copyWith(questions: n)),
+                ),
+                const Spacer(),
+                const SizedBox(height: 24),
+                AppButton.primary(label: 'Start', onPressed: onStart),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// A table number in [tablesMin, tablesMax]: − and + (48 dp each), the value
+/// between them in the digit face. Screen readers hear "From 12".
+class _TableStepper extends StatelessWidget {
+  const _TableStepper({
+    super.key,
+    required this.value,
+    required this.label,
+    required this.onChanged,
+  });
+
+  final int value;
+  final String label;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.remove),
+          tooltip: '$label −1',
+          onPressed: value > tablesMin ? () => onChanged(value - 1) : null,
+        ),
+        SizedBox(
+          width: 88,
+          child: Text(
+            '$value',
+            semanticsLabel: '$label $value',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.headlineMedium?.digits,
+          ),
+        ),
+        IconButton(
+          icon: const Icon(Icons.add),
+          tooltip: '$label +1',
+          onPressed: value < tablesMax ? () => onChanged(value + 1) : null,
         ),
       ],
     );

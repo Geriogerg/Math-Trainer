@@ -1,5 +1,6 @@
 import 'package:math_core/challenges/chain.dart';
 import 'package:math_core/challenges/challenge_stats.dart';
+import 'package:math_core/challenges/tables.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/models/game_setup.dart';
 import 'package:math_core/persistence/chain_setup_store.dart';
@@ -56,4 +57,23 @@ class FakeChallengeStatsStore implements ChallengeStatsStore {
   @override
   Future<void> save(Challenge challenge, ChallengeStats stats) async =>
       this.stats[challenge] = stats;
+}
+
+class FakeTablesStore implements TablesStore {
+  FakeTablesStore({this.setup, this.stats = TablesStats.none});
+
+  TablesSetup? setup;
+  TablesStats stats;
+
+  @override
+  Future<TablesSetup?> loadSetup() async => setup;
+
+  @override
+  Future<void> saveSetup(TablesSetup setup) async => this.setup = setup;
+
+  @override
+  Future<TablesStats> loadStats() async => stats;
+
+  @override
+  Future<void> saveStats(TablesStats stats) async => this.stats = stats;
 }

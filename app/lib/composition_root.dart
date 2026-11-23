@@ -9,6 +9,7 @@ import 'package:math_core/account/beta_access.dart';
 import 'package:math_core/feedback/feedback.dart';
 import 'package:math_core/account/profile_repository.dart';
 import 'package:math_core/generation/game_generator.dart';
+import 'package:math_core/generation/list_exercise_source.dart';
 import 'package:math_core/generation/local_exercise_source.dart';
 import 'package:math_core/generation/question_plan.dart';
 import 'package:math_core/leveling/level.dart';
@@ -17,7 +18,9 @@ import 'package:math_core/leveling/rules_version.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/models/game_setup.dart';
 import 'package:math_core/challenges/challenge_stats.dart';
+import 'package:math_core/challenges/tables.dart';
 import 'package:math_core/persistence/chain_setup_store.dart';
+import 'package:math_core/persistence/in_memory_session_repository.dart';
 import 'package:math_core/persistence/game_setup_store.dart';
 import 'package:math_core/models/session_config.dart';
 import 'package:math_core/models/session_kind.dart';
@@ -52,6 +55,7 @@ import 'infrastructure/persistence/shared_preferences_effect_settings_store.dart
 import 'infrastructure/persistence/shared_preferences_challenge_stats_store.dart';
 import 'infrastructure/persistence/shared_preferences_chain_setup_store.dart';
 import 'infrastructure/persistence/shared_preferences_game_setup_store.dart';
+import 'infrastructure/persistence/shared_preferences_tables_store.dart';
 import 'infrastructure/persistence/shared_preferences_player_id_provider.dart';
 import 'infrastructure/persistence/shared_preferences_theme_mode_store.dart';
 import 'infrastructure/persistence/shared_preferences_type_selection_store.dart';
@@ -70,6 +74,7 @@ class AppEnvironment {
     this.typeSelectionStore = const SharedPreferencesTypeSelectionStore(),
     this.gameSetupStore = const SharedPreferencesGameSetupStore(),
     this.chainSetupStore = const SharedPreferencesChainSetupStore(),
+    this.tablesStore = const SharedPreferencesTablesStore(),
     this.challengeStatsStore = const SharedPreferencesChallengeStatsStore(),
     this.themeModeStore = const SharedPreferencesThemeModeStore(),
     this.abandonedGuestStore = const SharedPreferencesAbandonedGuestStore(),
@@ -116,6 +121,10 @@ class AppEnvironment {
 
   /// Chain operations' setup; same reasoning as `typeSelectionStore`.
   final ChainSetupStore chainSetupStore;
+
+  /// Tables mode's setup and stats, on the device (`doc/levels.md`
+  /// section 7); same reasoning as `typeSelectionStore`.
+  final TablesStore tablesStore;
 
   /// The challenges' personal records, on the device only (plan v2.9).
   final ChallengeStatsStore challengeStatsStore;
@@ -179,6 +188,7 @@ class AppEnvironment {
     typeSelectionStore: typeSelectionStore,
     gameSetupStore: gameSetupStore,
     chainSetupStore: chainSetupStore,
+    tablesStore: tablesStore,
     challengeStatsStore: challengeStatsStore,
     themeModeStore: themeModeStore,
     abandonedGuestStore: abandonedGuestStore,
@@ -454,6 +464,38 @@ SessionController _controllerFor(
     ),
     levelCacheOrchestrator: levelUpdates,
     repository: environment.repository,
+    playerId: environment.playerId,
+    correctionDelay: SessionController.defaultCorrectionDelay,
+    appVersion: appVersion,
+    questionTimeout: questionTimeoutFor(
+      isDebugBuild: kDebugMode,
+      noTimeoutRequested: _debugNoTimeout,
+    ),
+  );
+}
+
+/// A Tables mode round (`doc/levels.md`, section 7): [setup]'s facts,
+/// shuffled by a fresh seed, on the game screen with its timer and keypad.
+/// Practice only: no level update, and a throwaway repository — the round
+/// never enters the history, the level cache or the upload queue. Played as
+/// Training (no level change on the result screen).
+SessionController buildTablesController(
+  AppEnvironment environment,
+  TablesSetup setup,
+) {
+  final seed = DateTime.now().millisecondsSinceEpoch;
+  final questions = tablesQuestions(seed: seed, setup: setup);
+  return SessionController(
+    config: SessionConfig(
+      seed: seed,
+      enabledTypes: const {ExerciseType.multiplication},
+      exerciseCount: questions.length,
+      levels: {ExerciseType.multiplication: Level.zero},
+      kind: SessionKind.training,
+    ),
+    exerciseSource: ListExerciseSource(questions),
+    levelCacheOrchestrator: const NoLevelUpdates(),
+    repository: InMemorySessionRepository(),
     playerId: environment.playerId,
     correctionDelay: SessionController.defaultCorrectionDelay,
     appVersion: appVersion,
