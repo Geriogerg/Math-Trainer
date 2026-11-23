@@ -60,7 +60,8 @@ every player; tables mode and tips playable on a phone.
 Still open from Phase 5.2: the owner's staging setup (`doc/online.md`, "Staging") and the CI
 beta code file for the slow-4G measurement.
 
-Phase 3b starts at ~300 sessions from 10+ testers, counted from the Redesign phase's release;
+Phase 3b starts at ~300 sessions from 10+ testers, counted from the Levels phase's transition
+(commit 4, `owner_dashboard.calibration_window`);
 Phase 4 comes after 3b. The repository is private since 20 Nov: CI results are visible to the
 owner only — a push is verified by its commit appearing in the live `main.dart.js` (deploy runs
 only after the tests).
