@@ -115,7 +115,10 @@ test" and its version 2, the type placement, "Overall level: unplayed types coun
 Redesign's "a never-played operation shows level 1" (now 0, the floor). Kept: levels in integer
 hundredths, frozen at the start, never decaying, recomputable, replayed by the server.
 
-### Gaps filled by Claude Code — provisional, for the owner to confirm
+### Gaps filled by Claude Code — confirmed by the owner (plan v3.2)
+
+Every choice below was provisional at the phase's end; the owner kept them all (plan v3.2,
+"Levels outcome"). The level update's constants moved afterwards, as rules v3 (next section).
 
 - **The rules version** is an enum stored with each session (`RulesVersion`: v1 = everything
   before, v2 = `doc/levels.md`): app schema v10 `sessions.rules_version` (NULL = v1), the
@@ -223,6 +226,62 @@ With 4 questions per game: perfect 4 / 7 / 10 / 14 / 17 …, 80 % 7 / 12 / 19 / 
   tiers get harder, so players will still stall — one tier or so above where the spec places
   them. Nothing changed: the constants are the owner's (`doc/levels.md`, tunable); to stall
   at 60–70 %, raise the dead band (e.g. 0.62–0.72) or make the down cap equal to the up cap.
+
+## Levels close-out — rules v3, the level update tuned (plan v3.2, 23 Nov 2026)
+
+The plan set four targets and opened three constants — the slow credit, the dead band and the
+down cap — to reach them; the spans (25 / 35 points) and the up caps (+3 / +3 / +4 / +5) stay.
+Chosen: **the plan's starting point, unchanged: slow 0.85, dead band 0.62–0.72, down cap 3.**
+They are **rules v3** (`LevelRules.v3`, `RulesVersion.v3`): v3 games are stored as v3, v2 games
+are replayed under v2 (`LevelRules.of`), v3's questions are v2's, levels carry over (no reset).
+
+Measured exactly (`tool/levels_simulation.dart`: every outcome of a game weighted by its
+multinomial probability through the real `levelChangeHundredths`, the stall found by bisection;
+tests pin the numbers):
+
+| Target | v2 | v3 |
+|---|---|---|
+| Stall (expected change 0), fluent players, n = 4 / 5 / 10 / 20 — 60–70 % | 53.2 / 54.6 / 54.4 / 55.6 % | **65.3 / 63.8 / 64.0 / 64.2 %** |
+| 4 questions all correct but slow — at least +1.5 | +1.20 | **+1.56** |
+| Perfect game — the full cap | +3 / +3 / +4 / +5 | **+3 / +3 / +4 / +5** |
+| Worst game — never below −3 | −2 | **−3** |
+
+Median games of 10 questions from level 0 to each tier (1001 seeded players, accuracy the same
+at every tier, each tier's fluent time):
+
+| v3 | T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9 |
+|---|---|---|---|---|---|---|---|---|---|
+| perfect | 3 | 5 | 8 | 10 | 13 | 15 | 18 | 20 | 23 |
+| perfect, all slow | 5 | 10 | 15 | 20 | 25 | 29 | 34 | 39 | 44 |
+| 80 % right, fluent | 7 | 13 | 20 | 26 | 33 | 39 | 46 | 52 | 59 |
+| 70 % right, fluent | 17 | 36 | 55 | 74 | 92 | 112 | 130 | 150 | 169 |
+| 60 % right, fluent | 406 | — | — | — | — | — | — | — | — |
+
+(— : not within 500 games. v2 for comparison: perfect identical; all slow 7 / 13 / 19 …; 80 %
+5 / 9 / 13 …; 70 % 8 / 16 / 24 …; 60 % 22 / 45 / 71 ….)
+
+Why the starting point, among the 44 candidates of the grid that meet every target (slow
+0.80 / 0.85 / 0.90, band edges by 2 points, down cap 2 or 3 — `--grid`): its stall sits 3.8 to
+5.3 points inside both bounds at every game length, so the target survives Phase 3b's noise;
+the best-centred candidate (0.64–0.72) only moves it to 65.0 % with a narrower band, which
+makes a level at the player's skill jitter more; slow credit 0.85 is the smallest that gives
+4 slow answers +1.5 with this band's upper edge. Down cap 3 is what centres it: with 2 and the
+same band, the stall drops to 60.4–62.7 %, at the lower bound's edge.
+
+Consequences, reported:
+- **Speed still matters at the stall**: a player half fluent stalls at ~70 % right, an all-slow
+  one at ~76 % (credit 0.85 per right answer). Principle 2 holds — a slow-but-right player
+  climbs, faster than under v2 (T5 in 25 games, was 32).
+- **The 80 % player climbs slower than under v2** (T5 in 33 games, was 22): the band's top
+  moved from 0.65 to 0.72, so 8 of 10 earns less. The perfect player's pace is unchanged.
+- **A bad game costs up to 3** (was 2): the spec's principle 4 ("at most 2") is superseded by
+  the plan's target.
+
+**Mechanics**: credits are now in percent of a fluent answer (100, 85 or 75, 0) — v2's quarters
+times 25, so every v2 result is identical; the update stays integer-only (rule 18). The
+server lists `rules: [2, 3]` in `/health`; the app holds a v3 game, pending, until the server
+it talks to lists 3 (commit 4.1's guard) — nothing is lost while production lags.
+**Reopen when** Phase 3b's data shows where real players stall.
 
 ## Redesign phase — owner decisions (plan v2.9, 22 Nov 2026)
 

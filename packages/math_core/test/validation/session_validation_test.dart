@@ -28,7 +28,7 @@ SessionUpload honestGame({
   int? answered,
   int seed = 777,
   SessionKind kind = SessionKind.game,
-  RulesVersion rulesVersion = RulesVersion.v2,
+  RulesVersion rulesVersion = RulesVersion.current,
   ({int value, int ms}) Function(int i, Exercise q)? answer,
 }) {
   final types = {ExerciseType.addition, ExerciseType.multiplication};
@@ -141,7 +141,7 @@ void main() {
       );
       expect(
         result.levelUpdates[ExerciseType.multiplication]!.level,
-        Level.fromHundredths(120),
+        Level.fromHundredths(156), // rules v3: +1.56 all slow
       );
     });
 
@@ -232,6 +232,37 @@ void main() {
   });
 
   group('an honest game', () {
+    test('each session under its own rules: v2 still replayed under v2, v3 '
+        'under v3; a v3 game chains from v2 levels (no reset)', () {
+      // One wrong answer per operation (the sequence alternates): 3 / 4
+      // fluent, q = 0.75 — +1.2 under v2, +0.36 under v3.
+      ({int value, int ms}) oneWrong(int i, Exercise q) => i < 2
+          ? (value: q.correctAnswer + 1, ms: 1500)
+          : (value: q.correctAnswer, ms: 1500 + 97 * i);
+      final types = [ExerciseType.addition, ExerciseType.multiplication];
+      final v2 =
+          validate(honestGame(rulesVersion: RulesVersion.v2, answer: oneWrong))
+              as Accepted;
+      final v3 =
+          validate(honestGame(rulesVersion: RulesVersion.v3, answer: oneWrong))
+              as Accepted;
+      for (final t in types) {
+        expect(v2.levelUpdates[t]!.level, Level.fromHundredths(120));
+        expect(v3.levelUpdates[t]!.level, Level.fromHundredths(36));
+      }
+      final next = honestGame(
+        id: 's2',
+        at: DateTime.utc(2026, 11, 20, 11, 5),
+        rulesVersion: RulesVersion.v3,
+        levels: {for (final t in types) t: v2.newState.levels[t]!.level},
+      );
+      final chained = validate(next, state: v2.newState) as Accepted;
+      expect(
+        chained.levelUpdates[ExerciseType.addition]!.level,
+        Level.fromHundredths(420), // 1.2 + 3: a perfect game's cap
+      );
+    });
+
     test('accepted; levels exactly what the app computes', () {
       final upload = honestGame();
       final result = validate(upload) as Accepted;
@@ -254,6 +285,7 @@ void main() {
         frozenLevels: upload.session.levels,
         priorLevels: const {},
         now: upload.session.createdAt,
+        rulesVersion: upload.session.rulesVersion,
       );
       expect(result.levelUpdates.keys, appSide.keys);
       for (final type in appSide.keys) {

@@ -1,11 +1,11 @@
 # Levels — specification (v1, 22 November 2026)
- 
+
 > Owned by the product owner, like `doc/plan.md`. Claude Code implements it and never edits it.
 > It replaces the level formula, the placement test and the operand-bound curves used until the
 > Redesign phase. Values marked *tunable* are first guesses that Phase 3b calibrates on real data.
- 
+
 ## 1. Principles
- 
+
 1. **Everyone starts at level 0** in every operation. No placement test.
 2. **You get stuck because you can't answer, not because you're slow.** A correct answer given
    within the 30 s timer always counts in your favour. Speed only decides *how much*.
@@ -13,44 +13,47 @@
 4. **Going down is gentler than going up**: a bad game costs at most 2 levels.
 5. **Few constants, all readable.** The old formula (`p_cible`, `f`, `K_haut`, `K_bas`, `δ`,
    `Δ_max`, `K_calib`, `boost_retour`, the √n weighting) is retired.
+
 ## 2. Scale
- 
+
 - Levels run from **0 to 100**, stored in integer hundredths (0–10000), shown as whole numbers.
 - **Ten tiers** of ten levels: T0 = 0–9, T1 = 10–19, … T9 = 90–100.
 - The level's tier decides the content of the questions (section 5). Within a game, **70 %** of
   questions come from the player's tier and **30 %** from the tier below (review); T0 has no
   review. *Tunable.*
 - Frozen at the start of a game, as today.
+
 ## 3. How a game moves a level
- 
+
 Computed **per operation**, at the end of a Levelling game, from that operation's answers.
- 
+
 **Credit per answer:**
- 
+
 | Answer | Credit |
 |---|---|
 | Correct within the tier's **fluent time** (section 5) | 1.0 |
 | Correct, slower than the fluent time, within 30 s | 0.75 |
 | Wrong | 0 |
 | Timeout (30 s) | 0 |
- 
+
 **Quality** `q` = average credit over the operation's answers (0 to 1).
- 
+
 **Change** `Δ` (in levels):
- 
+
 - `q` between 0.55 and 0.65 → `Δ = 0` (dead band: you're at your level). *Tunable.*
 - `q` above 0.65 → `Δ = cap_up(n) × min(1, (q − 0.65) / 0.25)`
 - `q` below 0.55 → `Δ = −cap_down × min(1, (0.55 − q) / 0.35)`
+
 with `n` = number of questions on that operation:
- 
+
 | Questions per operation `n` | 4 | 5 | 10 | 20 |
 |---|---|---|---|---|
 | `cap_up(n)`, maximum gain | 3 | 3 | 4 | 5 |
- 
+
 `cap_down` = 2. *Tunable.*
- 
+
 **What this gives** (4 questions per operation):
- 
+
 | Game | q | Change |
 |---|---|---|
 | 4 / 4 correct and fluent | 1.00 | +3 |
@@ -60,20 +63,20 @@ with `n` = number of questions on that operation:
 | 2 / 4 correct, fluent | 0.50 | −0.3 |
 | 2 / 4 correct, slow | 0.38 | −1.0 |
 | 0 / 4 | 0 | −2 |
- 
+
 A player who answers everything correctly but slowly **still climbs** (q = 0.75). A player stalls
 around 60–70 % correct answers — that is, when the questions become too hard to answer, which is
 principle 2.
- 
+
 **Rules kept from before:** levels never decay with absence; three timeouts in a row without a key
 pressed end the game without counting it; Training games never move levels; the formula uses
 integer or `+ − × ÷` arithmetic only (rule 18) and is replayed by the server.
- 
+
 **Grind estimate** (perfect games, 10 questions per operation, +4 each): level 0 → 20 in 5 games,
 → 50 in 13 games. Real players stall earlier, at the tier where their accuracy drops.
- 
+
 ## 4. Transition
- 
+
 - **All levels reset to 0** for every player, history kept. Old sessions stay in the history but
   are not replayed under the new rules and are off the leaderboards.
 - The leaderboards start fresh.
@@ -81,14 +84,15 @@ integer or `+ − × ÷` arithmetic only (rule 18) and is replayed by the server
 - Training difficulty: Easy = T1, Medium = T4, Hard = T7.
 - The rules carry a version number stored with each session, so the server replays each session
   with the rules it was played under.
+
 ## 5. Content by tier
- 
+
 All questions are generated **backwards** (rule 10): draw the parts, compute the answer, so every
 answer is a whole number and division, roots and percentages are always exact. "Fluent" = the time
 under which a correct answer earns full credit. *All fluent times tunable.*
- 
+
 ### Addition — up to 9 digits
- 
+
 | Tier | Levels | Content | Example | Fluent |
 |---|---|---|---|---|
 | T0 | 0–9 | 1-digit + 1-digit, sum ≤ 10 | 4 + 5 | 4 s |
@@ -101,9 +105,9 @@ under which a correct answer earns full credit. *All fluent times tunable.*
 | T7 | 70–79 | 6-digit + 6-digit | 482 761 + 359 846 | 18 s |
 | T8 | 80–89 | 7- and 8-digit numbers | 4 736 285 + 2 948 617 | 21 s |
 | T9 | 90–100 | 9-digit + 9-digit | 538 274 916 + 287 649 385 | 25 s |
- 
+
 ### Subtraction — never negative, up to 9 digits
- 
+
 | Tier | Levels | Content | Example | Fluent |
 |---|---|---|---|---|
 | T0 | 0–9 | within 10 | 9 − 4 | 4 s |
@@ -116,9 +120,9 @@ under which a correct answer earns full credit. *All fluent times tunable.*
 | T7 | 70–79 | 6-digit − 6-digit | 700 251 − 384 769 | 18 s |
 | T8 | 80–89 | 7- and 8-digit numbers | 6 030 417 − 2 958 639 | 21 s |
 | T9 | 90–100 | 9-digit − 9-digit | 900 040 301 − 457 386 529 | 25 s |
- 
+
 ### Multiplication
- 
+
 | Tier | Levels | Content | Example | Fluent |
 |---|---|---|---|---|
 | T0 | 0–9 | tables 1–5 (× 1–10) | 4 × 7 | 4 s |
@@ -131,9 +135,9 @@ under which a correct answer earns full credit. *All fluent times tunable.*
 | T7 | 70–79 | 3-digit × 1-digit | 347 × 6 | 12 s |
 | T8 | 80–89 | any 2-digit × 2-digit | 67 × 84 | 15 s |
 | T9 | 90–100 | 3-digit × 2-digit up to 250 × 50 | 125 × 36 | 18 s |
- 
+
 ### Division — exact, built from the multiplication of the same tier
- 
+
 | Tier | Levels | Content | Example | Fluent |
 |---|---|---|---|---|
 | T0 | 0–9 | facts of tables 1–5 | 28 ÷ 4 | 4 s |
@@ -146,9 +150,9 @@ under which a correct answer earns full credit. *All fluent times tunable.*
 | T7 | 70–79 | 4-digit ÷ 1-digit | 2082 ÷ 6 | 12 s |
 | T8 | 80–89 | 4-digit ÷ 2-digit | 5628 ÷ 67 | 15 s |
 | T9 | 90–100 | 4-digit ÷ 2-digit, larger quotients | 4500 ÷ 36 | 18 s |
- 
+
 ### Powers
- 
+
 | Tier | Levels | Content | Example | Fluent |
 |---|---|---|---|---|
 | T0 | 0–9 | squares 1–10 | 7² | 4 s |
@@ -161,9 +165,9 @@ under which a correct answer earns full credit. *All fluent times tunable.*
 | T7 | 70–79 | squares 71–100 | 87² | 14 s |
 | T8 | 80–89 | squares 101–125; cubes 11–15 | 112², 13³ | 16 s |
 | T9 | 90–100 | squares 126–200; 5⁴, 6⁴, 7⁴ | 175², 6⁴ | 18 s |
- 
+
 ### Roots — exact, mirror of powers
- 
+
 | Tier | Levels | Content | Example | Fluent |
 |---|---|---|---|---|
 | T0 | 0–9 | √ of squares 1–10 | √49 | 4 s |
@@ -176,9 +180,9 @@ under which a correct answer earns full credit. *All fluent times tunable.*
 | T7 | 70–79 | √ of squares 71–100 | √7569 | 14 s |
 | T8 | 80–89 | √ of squares 101–125; ∛ of cubes 11–15 | √12544, ∛2197 | 16 s |
 | T9 | 90–100 | √ of squares 126–200 | √30625 | 18 s |
- 
+
 ### Percentages — whole-number answers
- 
+
 | Tier | Levels | Content | Example | Fluent |
 |---|---|---|---|---|
 | T0 | 0–9 | 50 %, 10 % of tens up to 100 | 50 % of 80 | 4 s |
@@ -191,9 +195,9 @@ under which a correct answer earns full credit. *All fluent times tunable.*
 | T7 | 70–79 | 12.5 %, 37.5 %, 62.5 %, 87.5 % (eighths) | 37.5 % of 64 | 12 s |
 | T8 | 80–89 | above 100 % | 150 % of 86, 120 % of 45 | 12 s |
 | T9 | 90–100 | any whole percentage, 3-digit base, whole result | 64 % of 175 | 15 s |
- 
+
 ### Integrals — area under the curve, whole-number answers
- 
+
 | Tier | Levels | Content | Example | Fluent |
 |---|---|---|---|---|
 | T0 | 0–9 | constant, from 0 | ∫₀⁴ 3 dx | 6 s |
@@ -206,11 +210,11 @@ under which a correct answer earns full credit. *All fluent times tunable.*
 | T7 | 70–79 | 4x³, from 0 or from 1 | ∫₁² 4x³ dx | 16 s |
 | T8 | 80–89 | degree 3 mixed | ∫₀² (4x³ + 6x) dx | 18 s |
 | T9 | 90–100 | degree 3–4, wider bounds | ∫₁³ (5x⁴ − 3x²) dx | 20 s |
- 
+
 Every integrand stays ≥ 0 on its interval, so the answer is an area.
- 
+
 ## 6. Display
- 
+
 - **One line by default** (`47 × 8`, `2 468 + 785`).
 - **Two lines, aligned on the right, when one line does not fit** the screen width at the play
   font size: the first number on top, the operator and the second number below, a rule, then the
@@ -224,10 +228,11 @@ Every integrand stays ≥ 0 on its interval, so the answer is an area.
   rises to 10.
 - Powers, roots, percentages and integrals keep their current layout.
 - Tabular figures everywhere, so digits stay aligned.
+
 ## 7. Tables mode (new)
- 
+
 Practice of multiplication tables from 1 to 50.
- 
+
 - Its own card on Home, under Challenges.
 - Setup: **which tables** (a range within 1–50, e.g. 12–19) and **multiplier range** (1–10 or
   1–20); number of questions (10, 20, 50).
@@ -235,10 +240,11 @@ Practice of multiplication tables from 1 to 50.
   same game screen, timer and keypad as the operation games.
 - Practice only: never moves levels, never ranked. Personal stats on the device (games, accuracy,
   slowest facts).
+
 ## 8. Tips page (new)
- 
+
 A page of mental-arithmetic advice, reached from a "Tips" card on Home.
- 
+
 - One section per operation, each split by tier band: **beginner (T0–T2), intermediate (T3–T5),
   advanced (T6–T9)**. Each tip = one sentence and one worked example. The player's own tier is
   highlighted.
@@ -263,4 +269,3 @@ A page of mental-arithmetic advice, reached from a "Tips" card on Home.
     2x from 0 to b is a triangle of area b².
 - The strategy detector built in Phase 5.1 links each tip to its strategy, so a later phase can
   show the right tip after a wrong answer.
- 

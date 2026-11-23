@@ -22,7 +22,6 @@ import '../upload_refusal_text.dart';
 import 'package:math_core/challenges/challenge_stats.dart';
 import 'package:math_core/challenges/tables.dart';
 import 'package:math_core/leveling/main_level.dart';
-import 'package:math_core/leveling/rules_version.dart';
 import '../../core/state/account_form_controller.dart';
 import '../../core/state/feedback_controller.dart';
 import '../theme/app_theme.dart';
@@ -169,7 +168,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             avgElapsedMs: results[2] as Map<ExerciseType, double>,
             windowSessions: [
               for (final session in results[3] as List<PersistedSession>)
-                if (session.rulesVersion == RulesVersion.current) session,
+                if (!session.rulesVersion.retired) session,
             ],
             recentSessions: results[4] as List<PersistedSession>,
           ),
@@ -746,9 +745,13 @@ class _RecentSessionRow extends StatelessWidget {
     // between the two "after" overall levels is exactly the effect of this
     // session.
     final after = session.overallLevelAfter;
-    // Across the Levels phase's reset the two are on different scales.
-    final previousAfter = previous?.rulesVersion == session.rulesVersion
-        ? previous?.overallLevelAfter
+    // Across the Levels phase's reset the two are on different scales
+    // (v1 against v2 and later; v2 and v3 share one).
+    final previous = this.previous;
+    final previousAfter =
+        previous != null &&
+            previous.rulesVersion.retired == session.rulesVersion.retired
+        ? previous.overallLevelAfter
         : null;
     final variation = after == null || previousAfter == null
         ? '—'

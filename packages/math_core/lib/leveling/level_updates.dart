@@ -5,9 +5,11 @@ import '../tiers/fluent_time.dart';
 import 'answer_outcome.dart';
 import 'level.dart';
 import 'level_change.dart';
+import 'level_rules.dart';
+import 'rules_version.dart';
 
-/// The level cache entries a **completed Levelling game** produces (rules
-/// v2, `doc/levels.md` section 3) — pure: the app
+/// The level cache entries a **completed Levelling game** produces under
+/// its [rulesVersion] (`doc/levels.md` section 3, `LevelRules.of`) — pure: the app
 /// (`LevelCacheOrchestrator`, prior levels from its cache) and the server
 /// (prior levels from its own tables) compute them with this one function,
 /// so an honest session lands on the same levels on both sides.
@@ -17,13 +19,15 @@ import 'level_change.dart';
 /// frozen level. [frozenLevels] is the level that generated the session (0
 /// when missing); [priorLevels] give the session counts; [now] is the
 /// session's own time — never the time of computation, or a replay later
-/// would differ.
+/// would differ. Throws for rules v1, retired.
 Map<ExerciseType, LevelCacheEntry> gameLevelUpdates({
   required List<AnswerResult> outcomes,
   required Map<ExerciseType, Level> frozenLevels,
   required Map<ExerciseType, LevelCacheEntry> priorLevels,
   required DateTime now,
+  required RulesVersion rulesVersion,
 }) {
+  final rules = LevelRules.of(rulesVersion);
   final outcomesByType = <ExerciseType, List<AnswerOutcome>>{};
   for (final outcome in outcomes) {
     outcomesByType
@@ -44,6 +48,7 @@ Map<ExerciseType, LevelCacheEntry> gameLevelUpdates({
         current: current,
         answers: answers,
         fluentMs: fluentTimeMs(type, current),
+        rules: rules,
       ),
       sessionsPlayed: (priorLevels[type]?.sessionsPlayed ?? 0) + 1,
       updatedAt: now,

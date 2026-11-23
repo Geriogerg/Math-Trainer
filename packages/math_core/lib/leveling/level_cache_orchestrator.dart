@@ -4,6 +4,7 @@ import '../persistence/level_cache_entry.dart';
 import '../persistence/session_repository.dart';
 import 'level.dart';
 import 'level_updates.dart';
+import 'rules_version.dart';
 
 /// How a finished session turns into level cache updates — a Levelling
 /// game ([LevelCacheOrchestrator]) or a Training game ([NoLevelUpdates]).
@@ -15,6 +16,7 @@ abstract interface class SessionLevelUpdates {
     required SessionRepository repository,
     required String playerId,
     required DateTime now,
+    required RulesVersion rulesVersion,
   });
 }
 
@@ -30,6 +32,7 @@ class NoLevelUpdates implements SessionLevelUpdates {
     required SessionRepository repository,
     required String playerId,
     required DateTime now,
+    required RulesVersion rulesVersion,
   }) async => const {};
 }
 
@@ -41,7 +44,7 @@ class LevelCacheOrchestrator implements SessionLevelUpdates {
 
   /// One entry per operation answered (`gameLevelUpdates`). [frozenLevels]
   /// is the level that actually generated the session, never re-read from
-  /// the cache at this point.
+  /// the cache at this point; [rulesVersion], the session's own.
   @override
   Future<Map<ExerciseType, LevelCacheEntry>> computeUpdates({
     required List<AnswerResult> outcomes,
@@ -49,10 +52,12 @@ class LevelCacheOrchestrator implements SessionLevelUpdates {
     required SessionRepository repository,
     required String playerId,
     required DateTime now,
+    required RulesVersion rulesVersion,
   }) async => gameLevelUpdates(
     outcomes: outcomes,
     frozenLevels: frozenLevels,
     priorLevels: await repository.currentLevels(playerId),
     now: now,
+    rulesVersion: rulesVersion,
   );
 }

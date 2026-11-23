@@ -31,7 +31,8 @@ ExerciseGenerator gameExerciseGenerator({
       'rulesVersion',
       'is retired: its questions are never drawn again.',
     ),
-    RulesVersion.v2 => TieredGameGenerator(
+    // v3 moved only the level update: the same questions as v2.
+    RulesVersion.v2 || RulesVersion.v3 => TieredGameGenerator(
       sequence: typeSequence,
       levels: levels,
     ),

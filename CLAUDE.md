@@ -3,7 +3,7 @@
 Competitive mental-arithmetic game in Flutter, for teens and adults. UI, code, docs and commits
 in English.
 
-**`doc/plan.md` (version 3.1) is the product plan**, and **`doc/levels.md` (v1) specifies the
+**`doc/plan.md` (version 3.2) is the product plan**, and **`doc/levels.md` (v1) specifies the
 level system**. Both are the owner's: read them at the start of every phase; never edit them.
 This file is the working file: keep it short, update it as the project moves, keep it
 consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/decisions.md`,
@@ -11,51 +11,43 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 
 ## Current phase
 
-**Levels phase — new level system, tables mode, tips** (`doc/plan.md`, section 7), run in **one
-pass**. **Specification: `doc/levels.md`** — binding; it replaces the level formula, the
-placement test and the operand curves. Entry: the Redesign close-out (plan, section 7), run first
-as its own commit. Done: the close-out, 0–8, exit test (23 Nov). **Open: the owner deploys the production server** (still `352f1d5`; commit 4.1 holds rules-v2 uploads on the devices until a server lists `rules: [2]` in `/health`), plays the phone checklist, and answers the provisional decisions. Update this block at every commit.
-
-**The beta-safety rule stays lifted.** The rules version stored with every session separates old
-data from new; old sessions are never replayed under the new rules.
-
-**Product rules** (detail and numbers: `doc/levels.md`)
-- **Levels 0–100**, integer hundredths, shown whole; **everyone starts at 0**; no placement test,
-  no type placement. Never decay; frozen at the start of a game.
-- **Ten tiers** per operation (T0 = 0–9 … T9 = 90–100). The tier decides the content (spec
-  section 5) and the **fluent time**; a game draws 70 % from the tier, 30 % from the tier below
-  (none at T0). Generation stays backwards (rule 10).
-- **Level update, per operation, Levelling games only**: credit 1.0 correct within fluent time,
-  0.75 correct slower within 30 s, 0 wrong or timeout; `q` = mean credit. Dead band 0.55–0.65;
-  up `cap_up(n) × min(1, (q − 0.65) / 0.25)` with `cap_up` 3 / 3 / 4 / 5 for n = 4 / 5 / 10 / 20;
-  down `2 × min(1, (0.55 − q) / 0.35)`. Integer arithmetic only (rule 18); the server replays it.
-  The old constants (`p_cible`, `f`, `K_haut`, `K_bas`, `δ`, `Δ_max`, `K_calib`, `boost_retour`,
-  √n) are retired.
-- **Rules versioned**: the version is stored with each session; the server replays each session
-  under the rules it was played with.
-- **Transition**: all levels reset to 0, history kept; old sessions stay in the history, off the
-  boards; boards start fresh. Training Easy / Medium / Hard = T1 / T4 / T7.
-- **Display**: + − × on right-aligned lines, ÷ on one line, tabular figures (spec section 6, plan
-  commit 5). **Tables mode** (spec section 7) and a **Tips page** (spec section 8), never ranked.
-- Kept: 30 s timer, three silent timeouts end the game uncounted, questions per operation
-  4/5/10/20, Training never moves levels, main level = mean of the four basics.
+**Levels close-out** (`doc/plan.md`, section 7, after "Levels outcome"), run in **one pass**.
+The Levels phase is done (23 Nov); the owner kept every provisional decision. Two commits:
 
 | # | Commit | Note |
 |---|---|---|
-| — | Redesign close-out: Training out of eligibility, Chain setup remembered, Play again on the result | |
-| 0 | Decisions in `doc/decisions.md`; level rules versioned, stored per session | |
-| 1 | New level update (spec 3), core and server; old constants retired; spec example table in tests | |
-| 2 | Ten tiers per operation (spec 5): generators by tier, 70/30 review; determinism VM/JS | |
-| 3 | Fluent time per tier replaces `t_rapide` | |
-| 4 | Transition (spec 4): levels to 0, old sessions off boards, placement removed, Training T1/T4/T7 | |
-| 5 | *(C)* Display (spec 6); new layout pins and goldens | |
-| 6 | *(C)* Tables mode (spec 7) | |
-| 7 | *(C)* Tips page (spec 8), the player's tier highlighted | |
-| 8 | Simulation: games to each tier for perfect / 80 % / 60 % players vs the spec's grind estimate | |
+| 1 | Tune the level update by simulation into **rules v3**: only the slow credit, the dead band and the down cap move | |
+| 2 | After every push changing the server or the core: production `/health` serves the commit and the expected `rules`, else an owner action at once | |
 
-**Exit:** the spec's example table and grind estimate reproduced by tests; every tier generates
-its examples' kind of question; a correct-but-slow game raises the level; all levels at 0 for
-every player; tables mode and tips playable on a phone.
+**Targets** (plan, close-out step 1): a player stalls between **60 and 70 % correct**; 4 questions
+all correct but slow gain **at least +1.5**; a perfect game still gains the full cap
+(+3 / +3 / +4 / +5); a bad game never costs more than **3** levels. Starting point to test: slow
+credit 0.85, dead band 0.62–0.72, down cap 3. v2 games stay replayed under v2; levels carry
+over (no reset).
+
+**Exit:** the chosen values reported with the simulation table, pinned by tests; v3 stored per
+session; production `/health` lists the new rules.
+
+Done: 1 — rules v3 = the starting point, every target met (stall 63.8–65.3 %, slow 4 +1.56;
+`doc/decisions.md`). Next: 2, production `/health` after the push. Update this block at every
+commit.
+
+**The level system** (`doc/levels.md`; v3 constants: `LevelRules.of`)
+- **Levels 0–100**, integer hundredths, shown whole; everyone started at 0 at the transition
+  (rules v2); no placement test. Never decay; frozen at the start of a game.
+- **Ten tiers** per operation (T0 = 0–9 … T9 = 90–100): the tier decides the content and the
+  **fluent time**; a game draws 70 % from the tier, 30 % from the tier below. Generation stays
+  backwards (rule 10).
+- **Level update, per operation, Levelling games only**: credit per answer (fluent 1.0, correct
+  but slow within 30 s, wrong or timeout 0); `q` = mean credit; a dead band; up
+  `cap_up(n) × min(1, (q − high) / 0.25)`, `cap_up` 3 / 3 / 4 / 5 for n = 4 / 5 / 10 / 20; down
+  `cap_down × min(1, (low − q) / 0.35)`. Integer arithmetic only (rule 18); the server replays it.
+- **Rules versioned**: stored with each session; the server replays each session under its own
+  rules and lists them in `/health`; the app holds a session until the server lists its rules.
+- Display: one line, two right-aligned lines when it doesn't fit, ÷ always one line. Tables mode
+  and the Tips page are never ranked. Kept: 30 s timer, three silent timeouts end the game
+  uncounted, questions per operation 4/5/10/20, Training never moves levels (T1 / T4 / T7),
+  main level = mean of the four basics.
 
 Still open from Phase 5.2: the owner's staging setup (`doc/online.md`, "Staging") and the CI
 beta code file for the slow-4G measurement.
@@ -117,8 +109,9 @@ Non-negotiable without explicit discussion.
   time. An absent level is 0. Recomputable from history by a core function. The **main level**
   (`mainLevel`) is the mean of the four basics only, unplayed at 0; the main board keeps the
   server key `overall` (cached builds call it by that name).
-- **Rules versions** (`RulesVersion`, stored with every session): v2 = `doc/levels.md`; v1 (all
-  before the transition) is retired — never replayed, refused by the server (`rulesRetired`),
+- **Rules versions** (`RulesVersion`, stored with every session): v2 = `doc/levels.md`; v3 = v2's
+  questions, the update tuned (Levels close-out, `LevelRules.v3`); v1 (all before the transition)
+  is retired — never replayed, refused by the server (`rulesRetired`),
   never sent by the app, kept in history.
 - **Sessions are self-contained**: everything deciding question order is stored with them.
 - **Session kinds**: game or training (fixed levels frozen in the session, no level update —
@@ -235,6 +228,9 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   `Strategy` names will be too (Phase 4 tips).
 - Changing what a tier draws changes every stored v2 session's replay: a new rules version
   instead (`RulesVersion`, `doc/levels.md` section 4), the old one kept replayable.
+- A new rules version goes in `RulesVersion` (`current`, `replayed`), `LevelRules.of` and
+  `gameExerciseGenerator`. The app holds its games until the server's `/health` lists it: after
+  the push, check production's `/health` (commit and `rules`), else tell the owner at once.
 - `PersistedSession`'s `rulesVersion` defaults to v1 (rows stored before it): a test session
   meant to upload or replay passes `RulesVersion.current`.
 - Integer levels round small steps to zero — never round before storing hundredths.

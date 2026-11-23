@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
+import 'package:math_core/leveling/rules_version.dart';
 import 'package:math_core/generation/exercise_source.dart';
 import 'package:math_core/leveling/level.dart';
 import 'package:math_core/leveling/level_cache_orchestrator.dart';
@@ -57,6 +58,7 @@ class _RaisedLevels implements SessionLevelUpdates {
     required SessionRepository repository,
     required String playerId,
     required DateTime now,
+    required RulesVersion rulesVersion,
   }) async => {
     ExerciseType.addition: LevelCacheEntry(
       level: to,

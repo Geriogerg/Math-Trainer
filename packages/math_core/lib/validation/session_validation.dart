@@ -142,6 +142,7 @@ ValidationResult validateSessionUpload({
     case RulesVersion.v1:
       return const Rejected(RejectionReason.rulesRetired, 'rules v1');
     case RulesVersion.v2:
+    case RulesVersion.v3:
       break;
   }
   if (session.createdAt.isAfter(receivedAt.add(maxClockSkew))) {
@@ -219,6 +220,7 @@ ValidationResult validateSessionUpload({
               frozenLevels: session.levels,
               priorLevels: state.levels,
               now: session.createdAt,
+              rulesVersion: session.rulesVersion,
             )
           : const {};
     case SessionKind.training:

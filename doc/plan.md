@@ -5,7 +5,8 @@
 > from the owner. The day-to-day working rules live in `CLAUDE.md`, which must always stay
 > consistent with this plan (section 11).
 >
-> Version 3.1 — 23 November 2026: Levels phase added, specified in `doc/levels.md`.
+> Version 3.2 — 23 November 2026: Levels outcome; level tuning targets; sections 2, 3, 6 and 10
+> aligned with `doc/levels.md`. Version 3.1 — 23 November 2026: Levels phase added, specified in `doc/levels.md`.
 > Version 3.0 — 22 November 2026: Redesign outcome and close-out; alignment fixes.
 > Version 2.9 — 22 November 2026: the Redesign phase (game modes and new interface) added; it changes the
 > level structure, the session flow and the home screen — section 3 describes the game before it.
@@ -47,8 +48,7 @@ These hold across every phase. A feature that contradicts one of them is redesig
 
 - **The level measures skill, not effort.** It rises and falls with performance; it never decays
   with absence; it is never bought or chosen.
-- **Never punish absence.** Coming back after weeks costs nothing; the level re-adjusts faster for
-  a few sessions instead.
+- **Never punish absence.** Coming back after weeks costs nothing; the level simply waits.
 - **Never show accuracy as progress.** Accuracy converges to the target by construction; progress
   is shown as level and response time.
 - **The server is the only authority on anything competitive** — levels used for ranking, ranks,
@@ -64,29 +64,19 @@ These hold across every phase. A feature that contradicts one of them is redesig
 
 ### 3.1 Session
 
-- 7 exercise types: addition, subtraction (never negative), multiplication, division (exact),
-  powers, square roots of perfect squares, whole-number percentages.
-- The player chooses which types are active (2 by default). Number of questions =
-  `n_min × active types` (`n_min` = 4), capped; beyond the cap, types rotate by sampling debt.
-- 15 s per question with automatic move to the next; a timeout counts as wrong. Three timeouts in a
-  row without any key pressed interrupt the session: it does not count for levels, but answers
-  already given are kept.
-- Custom on-screen keypad (digits, backspace, validate); physical keyboard on desktop.
-- Result screen: level change, score breakdown, right / wrong / timed out, best streak, types
-  played. Replay at once with the same types, updated levels and a **new seed**.
+- 8 operations in two families: *Basics* (addition, subtraction, multiplication, division) and
+  *Advanced* (powers, roots, percentages, integrals). Plus Tables mode and two challenges.
+- The player picks operations, 4/5/10/20 questions per operation, and Levelling or Training mode.
+- 30 s per question, ✓ to validate, a timeout counts as wrong; three timeouts in a row without a
+  key pressed end the game without counting it.
+- Result screen with Play again (same settings, new seed) and Home.
 
 ### 3.2 Levels
 
-- One level per operation, 1 to 100; an overall level averaging all seven, unplayed counted as 1.
-- A level is an estimate of skill: after a session, performance (correctness weighted by speed) is
-  compared with a target; the gap moves the level, up faster than down, inside a dead band, with a
-  maximum step per session, weighted by `√(n / n_min)` so longer sessions count more.
-- New players and returning players move faster for a few sessions (calibration and return boost).
-- Levels are **frozen at the start of a session** and stored with it.
-- Levels are a cache: fully recomputable from the answer history.
-- Difficulty is derived from the level (operand bounds per operation).
-- About 20 constants govern this system; all are educated guesses until real data exists.
-  Values and reasons: `doc/decisions.md`.
+Specified in **`doc/levels.md`**: levels 0–100 from zero for everyone, ten tiers of content per
+operation, credit per answer (fluent, slow, wrong), capped gains per game, versioned rules
+replayed by the server. Main level = the four basic operations. Levels are frozen at the start of
+a game and are a cache recomputable from history.
 
 ### 3.3 Scoring
 
@@ -191,9 +181,8 @@ runtime.
 - **Fast-guess penalty, only on evidence.** The high-speed-high-stakes rule (score =
   (2 × correct − 1) × time left) makes a fast wrong answer cost as much as a fast right one earns.
   Typed answers invite little guessing; adopted only if the data shows spam-typing.
-- **Placement test.** 60–90 seconds, adaptive, across three or four operations, sets the starting
-  levels and doubles as onboarding.
-- **Timeout scaled to the level**, derived from measured response times.
+- **No placement test**: everyone starts at 0 (`doc/levels.md`).
+- **Fluent time per tier** decides full or partial credit; the 30 s timer stays fixed.
 
 ### 6.2 Design: from a theme to an identity
 
@@ -240,7 +229,7 @@ notation, layout and durations. Identity comes from four levers.
 
 ### 6.4 Rankings
 
-- Ranked on **level**, computed by the server. One overall board, one board per operation.
+- Ranked on **level**, computed by the server. A main board (the four basic operations) and one board per operation.
   Ordered on the continuous level value, displayed as an integer.
 - **Eligibility**: a minimum of sessions per operation and play within the last 30 days. Inactive
   players leave the board; their level never decays.
@@ -850,9 +839,37 @@ replaces the previous level formula, placement and operand curves.
 its examples' kind of question; a correct-but-slow game raises the level; all levels at 0 for
 every player; tables mode and tips playable on a phone.
 
+### Levels outcome (23 November)
+
+All nine commits and the Redesign close-out delivered; levels reset to 0; the spec's example table
+and grind estimate reproduced by tests. Incident: the production server was not redeployed, so for
+about 30 minutes it refused rules-v2 games; fixed by holding uploads until the server announces
+rules v2 in `/health`. Owner decisions on the provisional choices — all kept (late v1 games
+refused; fluent time of the player's own tier; exact review counts; tier content choices; Profile
+curve on new rules only; duels drawing from tiers; Phase 3b window restarted at the reset; digits
+grouped with a space; "Roots" label; tables stats as right / answers; one tip per strategy).
+
+**Finding:** the simulation shows a 60 % player still creeping up (about one tier per 24 games);
+the level only stops moving at ~54 % correct, because gains outweigh losses. The spec intends a
+stall between 60 and 70 % correct.
+
+### Levels close-out (one pass)
+
+1. *(A)* **Tune the level update to these targets**, by simulation, changing only the credit for a
+   correct slow answer, the dead band and the down cap (`doc/levels.md` section 3):
+   - a player stalls between **60 and 70 % correct** answers;
+   - a game of 4 questions all correct but slow gains **at least +1.5**;
+   - a perfect game still gains the full cap (+3 / +3 / +4 / +5);
+   - a bad game never costs more than 3 levels.
+   Starting point to test: slow credit 0.85, dead band 0.62–0.72, down cap 3. Report the chosen
+   values with the simulation table; they become rules v3 (stored per session, v2 games still
+   replayed under v2).
+2. *(A)* After every push that changes the server or the core, check production `/health` serves
+   the new commit and the expected rules; if not, say so at once as an owner action.
+
 ### Phase 6 — Public web launch
 
-**Entry:** Phases 3a, 3b, 4, 5, 5.1, 5.2 and the Redesign done (staging running); name chosen; domain bought;
+**Entry:** Phases 3a, 3b, 4, 5, 5.1, 5.2, the Redesign and the Levels phase done (staging running); name chosen; domain bought;
 legal drafts reviewed.
 
 **Environments after launch:** production = the domain (Cloudflare Pages project and current
@@ -937,6 +954,8 @@ owner. Silence never turns a guess into the product.
 ## 10. Owner actions outside the code
 
 - Keep the repo on GitHub (CI and preview deployment depend on it).
+- Set the Render deploy hooks (production and staging) as GitHub secrets; until then, deploy the
+  server by hand after any change to the server or the core.
 - Keep 10–20 testers playing; watch Beta progress in the dashboard report.
 - Confirm the digit typeface (Phase 5 picked Space Grotesk provisionally).
 - Choose the app name before Phase 6; the domain, SMTP sender and store listings depend on it.

@@ -2,6 +2,7 @@ import 'package:math_core/tiers/fluent_time.dart';
 import 'package:math_core/leveling/level.dart';
 import 'package:math_core/leveling/level_cache_orchestrator.dart';
 import 'package:math_core/leveling/level_updates.dart';
+import 'package:math_core/leveling/rules_version.dart';
 import 'package:math_core/models/answer_result.dart';
 import 'package:math_core/models/exercise.dart';
 import 'package:math_core/models/exercise_type.dart';
@@ -33,7 +34,7 @@ void main() {
     ],
   ];
 
-  test('each operation moves by its own quality, from 0', () {
+  test('each operation moves by its own quality, from 0 (v2)', () {
     final updates = gameLevelUpdates(
       outcomes: outcomes,
       frozenLevels: {
@@ -48,6 +49,7 @@ void main() {
         ),
       },
       now: _at,
+      rulesVersion: RulesVersion.v2,
     );
     expect(updates[ExerciseType.addition]!.level, Level.fromHundredths(300));
     expect(updates[ExerciseType.addition]!.sessionsPlayed, 1);
@@ -66,6 +68,7 @@ void main() {
       frozenLevels: const {},
       priorLevels: const {},
       now: _at,
+      rulesVersion: RulesVersion.v2,
     );
     expect(updates[ExerciseType.addition]!.level, Level.fromHundredths(300));
     expect(
@@ -74,7 +77,21 @@ void main() {
     );
   });
 
-  test('the orchestrator scores a game with them', () async {
+  test("each session under its own rules: the same answers, all slow, give "
+      '+1.2 under v2 and +1.56 under v3; v1 is retired', () {
+    Level? multiplication(RulesVersion version) => gameLevelUpdates(
+      outcomes: outcomes,
+      frozenLevels: const {},
+      priorLevels: const {},
+      now: _at,
+      rulesVersion: version,
+    )[ExerciseType.multiplication]?.level;
+    expect(multiplication(RulesVersion.v2), Level.fromHundredths(120));
+    expect(multiplication(RulesVersion.v3), Level.fromHundredths(156));
+    expect(() => multiplication(RulesVersion.v1), throwsArgumentError);
+  });
+
+  test('the orchestrator scores a game with them, under its rules', () async {
     final repository = InMemorySessionRepository();
     final updates = await const LevelCacheOrchestrator().computeUpdates(
       outcomes: outcomes,
@@ -85,7 +102,12 @@ void main() {
       repository: repository,
       playerId: 'p',
       now: _at,
+      rulesVersion: RulesVersion.v3,
     );
     expect(updates[ExerciseType.addition]!.level, Level.fromHundredths(300));
+    expect(
+      updates[ExerciseType.multiplication]!.level,
+      Level.fromHundredths(156),
+    );
   });
 }

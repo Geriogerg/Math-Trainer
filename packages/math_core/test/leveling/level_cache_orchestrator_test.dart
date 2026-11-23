@@ -1,5 +1,6 @@
 import 'package:math_core/leveling/level.dart';
 import 'package:math_core/leveling/level_cache_orchestrator.dart';
+import 'package:math_core/leveling/rules_version.dart';
 import 'package:math_core/models/answer_result.dart';
 import 'package:math_core/models/exercise.dart';
 import 'package:math_core/models/exercise_type.dart';
@@ -56,6 +57,7 @@ void main() {
           repository: repository,
           playerId: 'test-player',
           now: DateTime.utc(2026, 8, 8),
+          rulesVersion: RulesVersion.current,
         );
         expect(updates.keys, {ExerciseType.addition, ExerciseType.subtraction});
         expect(updates[ExerciseType.addition]!.sessionsPlayed, 1);
@@ -97,6 +99,7 @@ void main() {
         repository: repository,
         playerId: 'test-player',
         now: now,
+        rulesVersion: RulesVersion.current,
       );
 
       // 50 + 3 (8 fluent answers), not 80 + 3; counted on from the cache.

@@ -421,6 +421,7 @@ class SessionController extends ChangeNotifier {
           repository: repository,
           playerId: playerId,
           now: createdAt,
+          rulesVersion: config.rulesVersion,
         );
       } on Exception catch (_) {
         // The level cache can be recomputed from history (see

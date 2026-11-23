@@ -5,9 +5,20 @@ void main() {
   test('stored numbers never move; an unknown number throws (rule 13)', () {
     expect(RulesVersion.v1.number, 1);
     expect(RulesVersion.v2.number, 2);
+    expect(RulesVersion.v3.number, 3);
     expect(RulesVersion.of(1), RulesVersion.v1);
     expect(RulesVersion.of(2), RulesVersion.v2);
+    expect(RulesVersion.of(3), RulesVersion.v3);
     expect(() => RulesVersion.of(0), throwsArgumentError);
-    expect(() => RulesVersion.of(3), throwsArgumentError);
+    expect(() => RulesVersion.of(4), throwsArgumentError);
+  });
+
+  test('new games play v3; v2 and v3 are replayed; only v1 is retired', () {
+    expect(RulesVersion.current, RulesVersion.v3);
+    expect(RulesVersion.replayed, [RulesVersion.v2, RulesVersion.v3]);
+    expect(
+      [for (final v in RulesVersion.values) v.retired],
+      [true, false, false],
+    );
   });
 }

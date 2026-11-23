@@ -1012,3 +1012,26 @@ new games use them, together with the reset (`doc/decisions.md`).
   validation live (not deployed: commit 4.1 holds uploads until it is).
 - Totals: core 449 (VM) / 422 (JavaScript) — the v1 suites left with their code (835 before);
   app 399; server 36; tool 10; SQL tests passed.
+
+## Levels close-out — the level update tuned (plan v3.2)
+
+Plan v3.2 records the Levels outcome (every provisional decision kept) and two steps. Production
+was deployed by the owner before it started: `/health` = `2a6657c`, `rules: [2]`.
+
+- **Commit 1** *(A)* — **Rules v3**: the level update tuned by simulation to the plan's four
+  targets, keeping the plan's starting point (slow 0.85, dead band 0.62–0.72, down cap 3):
+  stall at 63.8–65.3 % right, 4 slow answers +1.56, perfect games the full cap, worst −3
+  (`doc/decisions.md`, with the simulation table). Core: `LevelRules.v2` / `.v3` and
+  `LevelRules.of(RulesVersion)` (v1 throws); credits in percent (`answerCreditPercent`,
+  `levelChangeHundredths(creditPercent:)`, rules required everywhere — no default to
+  forget); `RulesVersion.v3` (`current`; `replayed` = v2, v3; `retired` = v1 only); v3
+  generates as v2; `gameLevelUpdates` and `SessionLevelUpdates.computeUpdates` take the
+  session's rules version (the app's controller passes its config's, the server's validation
+  the upload's). App: the Profile curve and the recent games' change span v2 and v3 (one
+  scale). Server: `/health` lists `rules: [2, 3]`. Tool: `tool/levels_simulation.dart` checks
+  the targets exactly (expected change over every outcome, stall by bisection), prints both
+  versions' tables, `--grid` lists every candidate meeting the targets. Tests: v3's targets,
+  values and example games; the stall pinned; v2 still replayed under v2 and a v3 game
+  chaining from v2 levels (validation); goldens of the mistakes result re-recorded (12 → 9,
+  the −3 cap). Totals: core 463 (VM) / 436 (JavaScript), app 399, server 36.
+

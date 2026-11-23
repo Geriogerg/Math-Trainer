@@ -38,6 +38,7 @@ List<Exercise> replaySessionQuestions(PersistedSession session, int count) {
     case RulesVersion.v1:
       throw const SessionNotReplayable('rules v1 are retired');
     case RulesVersion.v2:
+    case RulesVersion.v3:
       break;
   }
   switch (session.kind) {
