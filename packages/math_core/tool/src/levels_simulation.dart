@@ -4,6 +4,7 @@ import 'package:math_core/leveling/answer_outcome.dart';
 import 'package:math_core/leveling/level.dart';
 import 'package:math_core/leveling/level_change.dart';
 import 'package:math_core/leveling/level_rules.dart';
+import 'package:math_core/leveling/rules_version.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/tiers/fluent_time.dart';
 
@@ -39,7 +40,7 @@ List<int?> gamesToTiers(
   final reached = List<int?>.filled(9, null);
   var level = Level.zero;
   for (var game = 1; game <= maxGames; game++) {
-    final fluentMs = fluentTimeMs(type, level);
+    final fluentMs = fluentTimeMs(type, level, RulesVersion.current);
     final answers = [
       for (var i = 0; i < questions; i++)
         () {

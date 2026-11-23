@@ -207,7 +207,7 @@ class _BuggyLevelReadRepository implements SessionRepository {
 
 void main() {
   persistenceRobustnessTests();
-  const exercises = [
+  final exercises = [
     ArithmeticExercise(
       operandA: 2,
       operandB: 2,

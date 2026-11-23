@@ -87,7 +87,8 @@ class LevelRules {
       'is retired: its levels are never computed again.',
     ),
     RulesVersion.v2 => v2,
-    RulesVersion.v3 => v3,
+    // v4 changed the questions only.
+    RulesVersion.v3 || RulesVersion.v4 => v3,
   };
 
   /// A correct answer slower than the fluent time, within 30 s, in percent

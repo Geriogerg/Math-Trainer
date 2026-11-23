@@ -143,6 +143,7 @@ ValidationResult validateSessionUpload({
       return const Rejected(RejectionReason.rulesRetired, 'rules v1');
     case RulesVersion.v2:
     case RulesVersion.v3:
+    case RulesVersion.v4:
       break;
   }
   if (session.createdAt.isAfter(receivedAt.add(maxClockSkew))) {

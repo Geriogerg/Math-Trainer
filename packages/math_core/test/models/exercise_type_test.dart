@@ -9,48 +9,48 @@ import 'package:test/test.dart';
 (Exercise, Exercise) _samplePair(ExerciseType type) {
   return switch (type) {
     ExerciseType.addition => (
-      const ArithmeticExercise(
+      ArithmeticExercise(
         operandA: 4,
         operandB: 3,
         operationType: OperationType.addition,
       ),
-      const ArithmeticExercise(
+      ArithmeticExercise(
         operandA: 4,
         operandB: 3,
         operationType: OperationType.addition,
       ),
     ),
     ExerciseType.subtraction => (
-      const ArithmeticExercise(
+      ArithmeticExercise(
         operandA: 4,
         operandB: 3,
         operationType: OperationType.subtraction,
       ),
-      const ArithmeticExercise(
+      ArithmeticExercise(
         operandA: 4,
         operandB: 3,
         operationType: OperationType.subtraction,
       ),
     ),
     ExerciseType.multiplication => (
-      const ArithmeticExercise(
+      ArithmeticExercise(
         operandA: 4,
         operandB: 3,
         operationType: OperationType.multiplication,
       ),
-      const ArithmeticExercise(
+      ArithmeticExercise(
         operandA: 4,
         operandB: 3,
         operationType: OperationType.multiplication,
       ),
     ),
     ExerciseType.division => (
-      const ArithmeticExercise(
+      ArithmeticExercise(
         operandA: 12,
         operandB: 3,
         operationType: OperationType.division,
       ),
-      const ArithmeticExercise(
+      ArithmeticExercise(
         operandA: 12,
         operandB: 3,
         operationType: OperationType.division,

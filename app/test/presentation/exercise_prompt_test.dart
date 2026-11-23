@@ -19,7 +19,7 @@ void main() {
   );
 
   group('display (doc/levels.md section 6, plan v3.1)', () {
-    const big = ArithmeticExercise(
+    final big = ArithmeticExercise(
       operandA: 4789,
       operandB: 3657,
       operationType: OperationType.addition,
@@ -56,10 +56,30 @@ void main() {
       }
     });
 
+    testWidgets('three terms (rules v4): one line, or three right-aligned '
+        'rows with the operator before the last', (tester) async {
+      final three = ArithmeticExercise(
+        operandA: 27,
+        operandB: 46,
+        operandC: 73,
+        operationType: OperationType.addition,
+      );
+      await pump(tester, three, maxWidth: 2000);
+      expect(find.text('27 + 46 + 73'), findsOneWidget);
+      await pump(tester, three, maxWidth: 60);
+      expect(find.text('27'), findsOneWidget);
+      expect(find.text('46'), findsOneWidget);
+      expect(find.text('+ 73'), findsOneWidget);
+      expect(
+        tester.getTopRight(find.text('27')).dx,
+        tester.getTopRight(find.text('+ 73')).dx,
+      );
+    });
+
     testWidgets('division never stacks', (tester) async {
       await pump(
         tester,
-        const ArithmeticExercise(
+        ArithmeticExercise(
           operandA: 5628,
           operandB: 67,
           operationType: OperationType.division,
@@ -78,7 +98,7 @@ void main() {
   testWidgets('addition shows a + b', (tester) async {
     await pump(
       tester,
-      const ArithmeticExercise(
+      ArithmeticExercise(
         operandA: 4,
         operandB: 3,
         operationType: OperationType.addition,
@@ -92,7 +112,7 @@ void main() {
   ) async {
     await pump(
       tester,
-      const ArithmeticExercise(
+      ArithmeticExercise(
         operandA: 9,
         operandB: 2,
         operationType: OperationType.subtraction,
@@ -105,7 +125,7 @@ void main() {
   testWidgets('multiplication shows ×', (tester) async {
     await pump(
       tester,
-      const ArithmeticExercise(
+      ArithmeticExercise(
         operandA: 6,
         operandB: 7,
         operationType: OperationType.multiplication,
@@ -117,7 +137,7 @@ void main() {
   testWidgets('division shows ÷', (tester) async {
     await pump(
       tester,
-      const ArithmeticExercise(
+      ArithmeticExercise(
         operandA: 8,
         operandB: 4,
         operationType: OperationType.division,

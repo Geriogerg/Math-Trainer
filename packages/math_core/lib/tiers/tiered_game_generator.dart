@@ -4,10 +4,12 @@ import '../generation/exercise_generator.dart';
 import '../leveling/level.dart';
 import '../models/exercise.dart';
 import '../models/exercise_type.dart';
+import '../patterns/pattern_family.dart';
 import 'tier.dart';
 import 'tier_content.dart';
 
-/// A game's questions under rules v2 (`doc/levels.md`, sections 2 and 5):
+/// A game's questions under rules v2 and later (`doc/levels.md`, sections
+/// 2, 5 and 5b), each drawn by its rules' [TierContent]:
 /// each operation at the tier of its frozen level, **30 % of its questions
 /// from the tier below** (review; none at T0) and the rest from its own.
 ///
@@ -21,6 +23,7 @@ class TieredGameGenerator implements ExerciseGenerator {
   TieredGameGenerator({
     required List<ExerciseType> sequence,
     required Map<ExerciseType, Level> levels,
+    required this.content,
   }) : _sequence = List.unmodifiable(sequence),
        _tiers = {
          for (final type in sequence.toSet())
@@ -44,6 +47,8 @@ class TieredGameGenerator implements ExerciseGenerator {
     }
   }
 
+  /// How one question is drawn: its rules' content.
+  final TierContent content;
   final List<ExerciseType> _sequence;
   final Map<ExerciseType, Tier> _tiers;
   final _remaining = <ExerciseType, int>{};
@@ -54,6 +59,12 @@ class TieredGameGenerator implements ExerciseGenerator {
   /// below for a review). For tests and analysis; nothing is stored.
   Tier? get lastTier => _lastTier;
   Tier? _lastTier;
+
+  /// The pattern family the last question came from; `null` for a standard
+  /// question (and always under rules v2 and v3). The Method and analysis
+  /// read it; nothing is stored — a replay recomputes it.
+  PatternFamily? get lastFamily => _lastFamily;
+  PatternFamily? _lastFamily;
 
   @override
   Exercise next(Random random) {
@@ -69,6 +80,8 @@ class TieredGameGenerator implements ExerciseGenerator {
     if (review) _reviewsLeft[type] = reviews - 1;
     final drawn = review ? tier.below! : tier;
     _lastTier = drawn;
-    return exerciseAt(type, drawn, random);
+    final question = content(type, drawn, random);
+    _lastFamily = question.family;
+    return question.exercise;
   }
 }

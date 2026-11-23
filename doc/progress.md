@@ -1066,4 +1066,21 @@ server).
   rules v4, its switch at commit 5, the per-question pattern share, families recomputed by
   replay, a third addend, Method lines as checked expressions — and the addition and
   subtraction tiers of v2/v3 found not to match the spec's section 5 (fixed in v4).
+- **Commit 1** *(A)* — **Pattern questions, rules v4** (spec section 5b; replayed, not yet
+  played — `RulesVersion.current` stays v3 until commit 5). Core: `PatternFamily` (49 families,
+  the spec's order, each with its operation and starting tier; `availableAt`),
+  `patternQuestion` (one backwards generator per family, within 10-digit answers);
+  `longArithmeticAt` (v4's addition and subtraction, the spec's section 5 tables up to 9
+  digits); `patternedContent` (a pattern question 2 times in 5 where a family is available,
+  uniform among them, else the tier's standard question) next to `standardContent` (v2/v3,
+  unchanged); `TieredGameGenerator(content:)` and `lastFamily`; `RulesVersion.v4` (replayed:
+  2, 3, 4; `LevelRules.of(v4)` = v3's); `fluentTimeMs(type, level, rules)` (v4: addition and
+  subtraction 4–25 s, the spec's); `replaySessionPatterns` (families by replay);
+  `ArithmeticExercise.operandC` (three-term sums; stored only when present; the detector
+  skips them). App: three-term prompt, one line or three rows. Server: `/health` lists
+  `rules: [2, 3, 4]`. Tests: every family's support and the spec's examples, 3,000 draws per
+  family; v4 long tables per tier with the spec's examples; the share (38–42 % over 10,000
+  draws where families exist, 0 at T0) and only available families; v4 pinned on VM and
+  JavaScript (`test/tiers/tier_references_v4.dart`, v2's references unchanged); a v4 upload
+  replayed and accepted; families replayed as drawn.
 

@@ -5,6 +5,7 @@ import 'package:math_core/models/game_setup.dart';
 import 'package:math_core/models/answer_result.dart';
 import 'package:math_core/models/exercise.dart';
 import 'package:math_core/models/exercise_type.dart';
+import 'package:math_core/patterns/pattern_family.dart';
 import 'package:math_core/persistence/exercise_codec.dart';
 import 'package:math_core/persistence/level_cache_entry.dart';
 import 'package:math_core/persistence/persisted_answer.dart';
@@ -232,6 +233,39 @@ void main() {
   });
 
   group('an honest game', () {
+    test('rules v4 (pattern questions, long addition): replayed and '
+        'accepted, levels as the app computes them', () {
+      final upload = honestGame(
+        rulesVersion: RulesVersion.v4,
+        count: 20,
+        levels: {
+          ExerciseType.addition: Level.whole(55),
+          ExerciseType.multiplication: Level.whole(55),
+        },
+      );
+      final result = validate(
+        upload,
+        state: ServerPlayerState(
+          levels: {
+            for (final t in [
+              ExerciseType.addition,
+              ExerciseType.multiplication,
+            ])
+              t: LevelCacheEntry(
+                level: Level.whole(55),
+                sessionsPlayed: 3,
+                updatedAt: DateTime.utc(2026, 11, 20),
+              ),
+          },
+          lastSessionAt: null,
+          hasCompletedSession: true,
+        ),
+      );
+      expect(result, isA<Accepted>());
+      final patterns = replaySessionPatterns(upload.session, 20);
+      expect(patterns.whereType<PatternFamily>(), isNotEmpty);
+    });
+
     test('each session under its own rules: v2 still replayed under v2, v3 '
         'under v3; a v3 game chains from v2 levels (no reset)', () {
       // One wrong answer per operation (the sequence alternates): 3 / 4

@@ -22,7 +22,13 @@ ExerciseStorageDescription describeExerciseForStorage(Exercise exercise) {
     ArithmeticExercise() => (
       exerciseType: 'arithmetic',
       operationType: exercise.operationType.name,
-      operands: {'operandA': exercise.operandA, 'operandB': exercise.operandB},
+      // The third addend only when present (rules v4): two-term questions
+      // keep their shape.
+      operands: {
+        'operandA': exercise.operandA,
+        'operandB': exercise.operandB,
+        'operandC': ?exercise.operandC,
+      },
     ),
     PowerExercise() => (
       exerciseType: ExerciseType.power.name,

@@ -9,10 +9,11 @@ import 'package:math_core/tiers/fluent_time.dart';
 import 'package:test/test.dart';
 
 void main() {
-  test("the spec's fluent times, tier by tier (doc/levels.md, section 5)", () {
+  test("the spec's fluent times, tier by tier (doc/levels.md, section 5): "
+      'rules v4', () {
     final spec = {
-      ExerciseType.addition: [4, 4, 5, 5, 6, 8, 9, 10, 12, 14],
-      ExerciseType.subtraction: [4, 4, 5, 5, 6, 8, 9, 10, 12, 14],
+      ExerciseType.addition: [4, 5, 6, 8, 10, 12, 15, 18, 21, 25],
+      ExerciseType.subtraction: [4, 5, 6, 8, 10, 12, 15, 18, 21, 25],
       ExerciseType.multiplication: [4, 4, 6, 7, 8, 10, 12, 12, 15, 18],
       ExerciseType.division: [4, 5, 6, 7, 8, 10, 12, 12, 15, 18],
       ExerciseType.power: [4, 5, 6, 6, 8, 10, 12, 14, 16, 18],
@@ -24,7 +25,7 @@ void main() {
       expect(
         [
           for (var t = 0; t < 10; t++)
-            fluentTimeMs(type, Level.whole(10 * t + 5)),
+            fluentTimeMs(type, Level.whole(10 * t + 5), RulesVersion.v4),
         ],
         [for (final s in spec[type]!) s * 1000],
         reason: type.name,
@@ -32,13 +33,57 @@ void main() {
     }
   });
 
+  test('rules v2 and v3 keep their shorter addition and subtraction times; '
+      'the other six are the same under every version; v1 throws', () {
+    const old = [4, 4, 5, 5, 6, 8, 9, 10, 12, 14];
+    for (final rules in [RulesVersion.v2, RulesVersion.v3]) {
+      for (final type in ExerciseType.values) {
+        final times = [
+          for (var t = 0; t < 10; t++)
+            fluentTimeMs(type, Level.whole(10 * t + 5), rules) ~/ 1000,
+        ];
+        if (type == ExerciseType.addition || type == ExerciseType.subtraction) {
+          expect(times, old, reason: '${rules.name} ${type.name}');
+        } else {
+          expect(times, [
+            for (var t = 0; t < 10; t++)
+              fluentTimeMs(type, Level.whole(10 * t + 5), RulesVersion.v4) ~/
+                  1000,
+          ]);
+        }
+      }
+    }
+    expect(
+      () => fluentTimeMs(ExerciseType.addition, Level.zero, RulesVersion.v1),
+      throwsArgumentError,
+    );
+  });
+
   test('the tier of the level decides: 39.99 is T3, 40 is T4, 100 is T9', () {
     expect(
-      fluentTimeMs(ExerciseType.multiplication, Level.fromHundredths(3999)),
+      fluentTimeMs(
+        ExerciseType.multiplication,
+        Level.fromHundredths(3999),
+        RulesVersion.v4,
+      ),
       7000,
     );
-    expect(fluentTimeMs(ExerciseType.multiplication, Level.whole(40)), 8000);
-    expect(fluentTimeMs(ExerciseType.multiplication, Level.whole(100)), 18000);
+    expect(
+      fluentTimeMs(
+        ExerciseType.multiplication,
+        Level.whole(40),
+        RulesVersion.v4,
+      ),
+      8000,
+    );
+    expect(
+      fluentTimeMs(
+        ExerciseType.multiplication,
+        Level.whole(100),
+        RulesVersion.v4,
+      ),
+      18000,
+    );
   });
 
   test(

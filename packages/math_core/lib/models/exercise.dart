@@ -16,15 +16,29 @@ sealed class Exercise {
 }
 
 final class ArithmeticExercise extends Exercise {
-  const ArithmeticExercise({
+  /// Throws if [operandC] is given to anything but an addition (rule 13).
+  ArithmeticExercise({
     required this.operandA,
     required this.operandB,
     required this.operationType,
-  });
+    this.operandC,
+  }) {
+    if (operandC != null && operationType != OperationType.addition) {
+      throw ArgumentError.value(
+        operandC,
+        'operandC',
+        'only an addition has a third term.',
+      );
+    }
+  }
 
   final int operandA;
   final int operandB;
   final OperationType operationType;
+
+  /// A third addend: "three terms, two of them complements" (27 + 46 + 73,
+  /// `doc/levels.md` section 5b, rules v4). `null` for every other question.
+  final int? operandC;
 
   @override
   ExerciseType get type => switch (operationType) {
@@ -36,7 +50,7 @@ final class ArithmeticExercise extends Exercise {
 
   @override
   int get correctAnswer => switch (operationType) {
-    OperationType.addition => operandA + operandB,
+    OperationType.addition => operandA + operandB + (operandC ?? 0),
     OperationType.subtraction => operandA - operandB,
     OperationType.multiplication => operandA * operandB,
     OperationType.division => operandA ~/ operandB,
@@ -47,10 +61,11 @@ final class ArithmeticExercise extends Exercise {
       other is ArithmeticExercise &&
       other.operandA == operandA &&
       other.operandB == operandB &&
+      other.operandC == operandC &&
       other.operationType == operationType;
 
   @override
-  int get hashCode => Object.hash(operandA, operandB, operationType);
+  int get hashCode => Object.hash(operandA, operandB, operandC, operationType);
 }
 
 final class PowerExercise extends Exercise {

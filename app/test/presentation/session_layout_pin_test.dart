@@ -46,7 +46,7 @@ class _InertTimer implements Timer {
   int get tick => 0;
 }
 
-const _addition = ArithmeticExercise(
+final _addition = ArithmeticExercise(
   operandA: 47,
   operandB: 38,
   operationType: OperationType.addition,
@@ -58,7 +58,7 @@ SessionController _controller(
 }) => SessionController(
   config: SessionConfig(
     seed: 1,
-    enabledTypes: const {ExerciseType.addition},
+    enabledTypes: {ExerciseType.addition},
     exerciseCount: 10,
     levels: {ExerciseType.addition: Level.whole(12)},
   ),
@@ -74,7 +74,7 @@ Future<SessionController> _pump(
   WidgetTester tester, {
   required Size size,
   required ThemeData theme,
-  List<Exercise> exercises = const [_addition],
+  List<Exercise>? exercises,
   SessionEffects effects = const NoSessionEffects(),
   Duration? correctionDelay,
 }) async {
@@ -84,7 +84,10 @@ Future<SessionController> _pump(
     tester.view.resetPhysicalSize();
     tester.view.resetDevicePixelRatio();
   });
-  final controller = _controller(exercises, correctionDelay: correctionDelay);
+  final controller = _controller(
+    exercises ?? [_addition],
+    correctionDelay: correctionDelay,
+  );
   addTearDown(controller.dispose);
   // As in the app: the session screen sits in a Scaffold + SafeArea
   // (`SessionFlowScreen`).
@@ -272,7 +275,7 @@ void main() {
 
   testWidgets('effects never hold back the next question, even when they '
       'fail', (tester) async {
-    const next = ArithmeticExercise(
+    final next = ArithmeticExercise(
       operandA: 2,
       operandB: 2,
       operationType: OperationType.addition,
@@ -282,7 +285,7 @@ void main() {
       tester,
       size: const Size(412, 915),
       theme: buildDarkTheme(),
-      exercises: const [_addition, next],
+      exercises: [_addition, next],
       effects: effects,
     );
     effects.controller = controller;
@@ -296,7 +299,7 @@ void main() {
 
     expect(controller.state.outcomes.single.isCorrect, isTrue);
     expect(controller.state.currentExercise, next);
-    expect(find.byKey(const ValueKey<Exercise>(next)), findsOneWidget);
+    expect(find.byKey(ValueKey<Exercise>(next)), findsOneWidget);
     // Every effect ran after the controller had recorded the answer, and
     // its failure changed nothing.
     expect(effects.calls, [
@@ -305,7 +308,7 @@ void main() {
       'answered after 1 answers',
     ]);
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey<Exercise>(_addition)), findsNothing);
+    expect(find.byKey(ValueKey<Exercise>(_addition)), findsNothing);
   });
 
   testWidgets('a wrong answer pauses exactly the correction delay, effects '
@@ -315,7 +318,7 @@ void main() {
       tester,
       size: const Size(412, 915),
       theme: buildDarkTheme(),
-      exercises: const [_addition, _addition],
+      exercises: [_addition, _addition],
       effects: effects,
       correctionDelay: SessionController.defaultCorrectionDelay,
     );

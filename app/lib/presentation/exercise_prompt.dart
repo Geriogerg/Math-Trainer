@@ -71,23 +71,26 @@ class _ArithmeticPrompt extends StatelessWidget {
   Widget build(BuildContext context) {
     final a = groupedNumber(exercise.operandA);
     final b = groupedNumber(exercise.operandB);
+    final c = switch (exercise.operandC) {
+      final c? => groupedNumber(c),
+      null => null,
+    };
     final symbol = _operatorSymbol(exercise.operationType);
     if (!promptStacks(context, exercise, style: style, maxWidth: maxWidth)) {
-      return Text('$a $symbol $b', style: style, softWrap: false);
+      return Text(_oneLine(exercise), style: style, softWrap: false);
     }
     final color = style?.color ?? Theme.of(context).colorScheme.onSurface;
+    Text row(String text) =>
+        Text(text, style: style, textAlign: TextAlign.right, softWrap: false);
+    // Written column arithmetic: the operator before the last number only
+    // (a third addend: 27 / 46 / + 73).
     return IntrinsicWidth(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(a, style: style, textAlign: TextAlign.right, softWrap: false),
-          Text(
-            '$symbol $b',
-            style: style,
-            textAlign: TextAlign.right,
-            softWrap: false,
-          ),
+          row(a),
+          if (c == null) row('$symbol $b') else ...[row(b), row('$symbol $c')],
           const SizedBox(height: 4),
           Container(height: 2, color: color),
         ],
@@ -113,13 +116,9 @@ bool promptStacks(
       exercise.operationType == OperationType.division) {
     return false;
   }
-  final oneLine =
-      '${groupedNumber(exercise.operandA)} '
-      '${_operatorSymbol(exercise.operationType)} '
-      '${groupedNumber(exercise.operandB)}';
   final painter = TextPainter(
     text: TextSpan(
-      text: oneLine,
+      text: _oneLine(exercise),
       style: style ?? Theme.of(context).textTheme.displayMedium,
     ),
     textDirection: TextDirection.ltr,
@@ -129,6 +128,16 @@ bool promptStacks(
   final tooWide = painter.width > width;
   painter.dispose();
   return tooWide;
+}
+
+/// "4 789 + 3 657", "27 + 46 + 73".
+String _oneLine(ArithmeticExercise e) {
+  final symbol = _operatorSymbol(e.operationType);
+  return [
+    groupedNumber(e.operandA),
+    groupedNumber(e.operandB),
+    if (e.operandC case final c?) groupedNumber(c),
+  ].join(' $symbol ');
 }
 
 String _operatorSymbol(OperationType type) => switch (type) {

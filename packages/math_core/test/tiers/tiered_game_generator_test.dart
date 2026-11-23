@@ -6,6 +6,7 @@ import 'package:math_core/models/exercise.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/models/game_setup.dart';
 import 'package:math_core/tiers/tier.dart';
+import 'package:math_core/tiers/tier_content.dart';
 import 'package:math_core/tiers/tiered_game_generator.dart';
 import 'package:test/test.dart';
 
@@ -49,7 +50,11 @@ void main() {
       perOperation: perOperation,
       seed: seed,
     );
-    final generator = TieredGameGenerator(sequence: sequence, levels: levels);
+    final generator = TieredGameGenerator(
+      sequence: sequence,
+      levels: levels,
+      content: standardContent,
+    );
     final random = Random(seed);
     final drawn = <ExerciseType, List<Tier>>{};
     for (final type in sequence) {
@@ -106,7 +111,11 @@ void main() {
         perOperation: 10,
         seed: 42,
       );
-      final generator = TieredGameGenerator(sequence: sequence, levels: levels);
+      final generator = TieredGameGenerator(
+        sequence: sequence,
+        levels: levels,
+        content: standardContent,
+      );
       final random = Random(42);
       return [for (final _ in sequence) generator.next(random)];
     }
@@ -118,19 +127,25 @@ void main() {
 
   test('invalid configurations throw (rule 13)', () {
     expect(
-      () => TieredGameGenerator(sequence: const [], levels: const {}),
+      () => TieredGameGenerator(
+        sequence: const [],
+        levels: const {},
+        content: standardContent,
+      ),
       throwsArgumentError,
     );
     expect(
       () => TieredGameGenerator(
         sequence: const [ExerciseType.addition],
         levels: const {},
+        content: standardContent,
       ),
       throwsArgumentError,
     );
     final generator = TieredGameGenerator(
       sequence: const [ExerciseType.addition],
       levels: {ExerciseType.addition: Level.zero},
+      content: standardContent,
     );
     final random = Random(1);
     generator.next(random);

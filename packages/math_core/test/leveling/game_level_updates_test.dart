@@ -26,7 +26,11 @@ AnswerResult _answer(
 );
 
 void main() {
-  final fluent = fluentTimeMs(ExerciseType.addition, Level.zero);
+  final fluent = fluentTimeMs(
+    ExerciseType.addition,
+    Level.zero,
+    RulesVersion.v3,
+  );
   final outcomes = [
     for (var i = 0; i < 4; i++) ...[
       _answer(OperationType.addition, correct: true, ms: fluent),

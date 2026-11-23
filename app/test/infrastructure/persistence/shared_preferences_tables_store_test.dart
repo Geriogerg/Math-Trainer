@@ -32,7 +32,7 @@ void main() {
     expect(await store.loadStats(), TablesStats.none);
     final stats = TablesStats.none.record([
       AnswerResult(
-        exercise: const ArithmeticExercise(
+        exercise: ArithmeticExercise(
           operandA: 7,
           operandB: 8,
           operationType: OperationType.multiplication,

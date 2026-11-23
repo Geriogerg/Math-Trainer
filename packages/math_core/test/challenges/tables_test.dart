@@ -114,7 +114,7 @@ void main() {
       expect(
         () => TablesStats.none.record([
           AnswerResult(
-            exercise: const ArithmeticExercise(
+            exercise: ArithmeticExercise(
               operandA: 1,
               operandB: 1,
               operationType: OperationType.addition,

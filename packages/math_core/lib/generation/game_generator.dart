@@ -1,6 +1,7 @@
 import '../leveling/level.dart';
 import '../leveling/rules_version.dart';
 import '../models/exercise_type.dart';
+import '../tiers/tier_content.dart';
 import '../tiers/tiered_game_generator.dart';
 import 'exercise_generator.dart';
 
@@ -35,6 +36,12 @@ ExerciseGenerator gameExerciseGenerator({
     RulesVersion.v2 || RulesVersion.v3 => TieredGameGenerator(
       sequence: typeSequence,
       levels: levels,
+      content: standardContent,
+    ),
+    RulesVersion.v4 => TieredGameGenerator(
+      sequence: typeSequence,
+      levels: levels,
+      content: patternedContent,
     ),
   };
 }

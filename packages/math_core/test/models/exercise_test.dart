@@ -6,7 +6,7 @@ void main() {
   group('ArithmeticExercise', () {
     test('computes the right answer for each operation', () {
       expect(
-        const ArithmeticExercise(
+        ArithmeticExercise(
           operandA: 4,
           operandB: 3,
           operationType: OperationType.addition,
@@ -14,7 +14,7 @@ void main() {
         7,
       );
       expect(
-        const ArithmeticExercise(
+        ArithmeticExercise(
           operandA: 4,
           operandB: 3,
           operationType: OperationType.subtraction,
@@ -22,7 +22,7 @@ void main() {
         1,
       );
       expect(
-        const ArithmeticExercise(
+        ArithmeticExercise(
           operandA: 4,
           operandB: 3,
           operationType: OperationType.multiplication,
@@ -30,7 +30,7 @@ void main() {
         12,
       );
       expect(
-        const ArithmeticExercise(
+        ArithmeticExercise(
           operandA: 12,
           operandB: 3,
           operationType: OperationType.division,
@@ -40,7 +40,7 @@ void main() {
     });
 
     test('isCorrectAnswer compares integers', () {
-      const exercise = ArithmeticExercise(
+      final exercise = ArithmeticExercise(
         operandA: 12,
         operandB: 3,
         operationType: OperationType.division,
@@ -51,12 +51,12 @@ void main() {
     });
 
     test('two exercises with the same values are equal', () {
-      const a = ArithmeticExercise(
+      final a = ArithmeticExercise(
         operandA: 4,
         operandB: 3,
         operationType: OperationType.addition,
       );
-      const b = ArithmeticExercise(
+      final b = ArithmeticExercise(
         operandA: 4,
         operandB: 3,
         operationType: OperationType.addition,
@@ -68,7 +68,7 @@ void main() {
 
     test('rejects a wrong answer for each operation', () {
       expect(
-        const ArithmeticExercise(
+        ArithmeticExercise(
           operandA: 4,
           operandB: 3,
           operationType: OperationType.addition,
@@ -76,7 +76,7 @@ void main() {
         isFalse,
       );
       expect(
-        const ArithmeticExercise(
+        ArithmeticExercise(
           operandA: 4,
           operandB: 3,
           operationType: OperationType.subtraction,
@@ -84,7 +84,7 @@ void main() {
         isFalse,
       );
       expect(
-        const ArithmeticExercise(
+        ArithmeticExercise(
           operandA: 4,
           operandB: 3,
           operationType: OperationType.multiplication,
@@ -94,7 +94,7 @@ void main() {
     });
 
     test('subtraction with equal operands has a correct answer of zero', () {
-      const exercise = ArithmeticExercise(
+      final exercise = ArithmeticExercise(
         operandA: 5,
         operandB: 5,
         operationType: OperationType.subtraction,
@@ -102,6 +102,36 @@ void main() {
 
       expect(exercise.correctAnswer, 0);
       expect(exercise.isCorrectAnswer(0), isTrue);
+    });
+
+    test('a third addend (rules v4: 27 + 46 + 73): summed, compared; only an '
+        'addition has one (rule 13)', () {
+      final three = ArithmeticExercise(
+        operandA: 27,
+        operandB: 46,
+        operandC: 73,
+        operationType: OperationType.addition,
+      );
+      expect(three.correctAnswer, 146);
+      expect(
+        three,
+        isNot(
+          ArithmeticExercise(
+            operandA: 27,
+            operandB: 46,
+            operationType: OperationType.addition,
+          ),
+        ),
+      );
+      expect(
+        () => ArithmeticExercise(
+          operandA: 27,
+          operandB: 46,
+          operandC: 1,
+          operationType: OperationType.multiplication,
+        ),
+        throwsArgumentError,
+      );
     });
 
     // No test for "no numeric tolerance": isCorrectAnswer(int) can no longer

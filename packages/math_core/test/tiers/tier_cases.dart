@@ -7,6 +7,8 @@ import 'package:math_core/leveling/level.dart';
 import 'package:math_core/leveling/rules_version.dart';
 import 'package:math_core/models/exercise.dart';
 import 'package:math_core/models/exercise_type.dart';
+import 'package:math_core/patterns/pattern_family.dart';
+import 'package:math_core/patterns/pattern_questions.dart';
 import 'package:math_core/persistence/exercise_codec.dart';
 import 'package:math_core/tiers/tier.dart';
 import 'package:math_core/tiers/tier_content.dart';
@@ -37,15 +39,42 @@ final Map<ExerciseType, Level> gameLevels = {
     type: Level.fromHundredths(1234 * (type.index + 1) % 10001),
 };
 
+/// Rules v4's pinned cases (`test/tiers/tier_references_v4.dart`): six
+/// questions of every tier of [type] as v4 draws them, each with its
+/// family when it is a pattern question.
+String patternedSequence(ExerciseType type, int seed) {
+  final random = Random(seed);
+  return [
+    for (final tier in Tier.values)
+      for (var i = 0; i < 6; i++)
+        () {
+          final q = patternedContent(type, tier, random);
+          final family = q.family;
+          return '${describe(q.exercise)}'
+              '${family == null ? '' : '/${family.name}'}';
+        }(),
+  ].join(' ');
+}
+
+/// Three questions of every pattern family, in the spec's order, from
+/// [seed].
+String familySequence(int seed) {
+  final random = Random(seed);
+  return [
+    for (final family in PatternFamily.values)
+      for (var i = 0; i < 3; i++) describe(patternQuestion(family, random)),
+  ].join(' ');
+}
+
 /// A whole game of every type, 5 questions each, as the app plays it.
-String gameSequence(int seed) {
+String gameSequence(int seed, [RulesVersion rules = RulesVersion.v2]) {
   final sequence = shuffledTypeSequence(
     types: gameLevels.keys.toSet(),
     perOperation: 5,
     seed: seed,
   );
   final generator = gameExerciseGenerator(
-    rulesVersion: RulesVersion.v2,
+    rulesVersion: rules,
     enabledTypes: gameLevels.keys.toSet(),
     levels: gameLevels,
     typeSequence: sequence,

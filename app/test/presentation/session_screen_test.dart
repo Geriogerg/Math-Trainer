@@ -42,7 +42,7 @@ class _InertTimer implements Timer {
 void main() {
   group('physical keyboard', () {
     Future<SessionController> pumpSession(WidgetTester tester) async {
-      const exercises = [
+      final exercises = [
         ArithmeticExercise(
           operandA: 6,
           operandB: 6,
@@ -171,7 +171,7 @@ void main() {
           exerciseCount: 3,
           levels: {ExerciseType.addition: Level.whole(12)},
         ),
-        exerciseSource: _FixedExerciseSource(const [
+        exerciseSource: _FixedExerciseSource([
           ArithmeticExercise(
             operandA: 7,
             operandB: 8,
@@ -286,7 +286,7 @@ void main() {
         exerciseCount: 2,
         levels: {ExerciseType.addition: Level.whole(12)},
       ),
-      exerciseSource: _FixedExerciseSource(const [
+      exerciseSource: _FixedExerciseSource([
         ArithmeticExercise(
           operandA: 1,
           operandB: 1,

@@ -6,7 +6,10 @@ import '../leveling/rules_version.dart';
 import '../models/exercise.dart';
 import '../models/exercise_type.dart';
 import '../models/session_kind.dart';
+import '../patterns/pattern_family.dart';
 import '../persistence/persisted_session.dart';
+import '../tiers/tier_content.dart';
+import '../tiers/tiered_game_generator.dart';
 
 /// A stored session that does not hold everything its replay needs, or
 /// that nothing replays any more.
@@ -28,7 +31,11 @@ class SessionNotReplayable implements Exception {
 /// type sequence or a frozen level for an enabled type, or one whose plan
 /// is not the setup's (each operation the same number of questions, one of
 /// 4, 5, 10, 20).
-List<Exercise> replaySessionQuestions(PersistedSession session, int count) {
+List<Exercise> replaySessionQuestions(PersistedSession session, int count) => [
+  for (final q in _replay(session, count)) q.exercise,
+];
+
+List<TierQuestion> _replay(PersistedSession session, int count) {
   if (count > session.exerciseCount) {
     throw SessionNotReplayable(
       '$count answers for ${session.exerciseCount} questions',
@@ -39,6 +46,7 @@ List<Exercise> replaySessionQuestions(PersistedSession session, int count) {
       throw const SessionNotReplayable('rules v1 are retired');
     case RulesVersion.v2:
     case RulesVersion.v3:
+    case RulesVersion.v4:
       break;
   }
   switch (session.kind) {
@@ -70,8 +78,25 @@ List<Exercise> replaySessionQuestions(PersistedSession session, int count) {
   );
   // Same stream as `LocalExerciseSource`: one `Random(seed)`.
   final random = Random(session.seed);
-  return [for (var i = 0; i < count; i++) generator.next(random)];
+  return [
+    for (var i = 0; i < count; i++)
+      (
+        exercise: generator.next(random),
+        family: generator is TieredGameGenerator ? generator.lastFamily : null,
+      ),
+  ];
 }
+
+/// The pattern family of each of [session]'s first [count] questions
+/// (`doc/levels.md` section 5b), by the same replay as
+/// [replaySessionQuestions]: `null` for a standard question, always under
+/// rules v2 and v3. Families are never stored — this is how the Method
+/// knows a pattern question (section 9). Throws as
+/// [replaySessionQuestions] does.
+List<PatternFamily?> replaySessionPatterns(
+  PersistedSession session,
+  int count,
+) => [for (final q in _replay(session, count)) q.family];
 
 /// Every enabled operation, and only those, the same number of times, one
 /// of the setup's choices (plan v2.9): the level update's cap depends on

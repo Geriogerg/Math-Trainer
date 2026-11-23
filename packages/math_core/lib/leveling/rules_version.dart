@@ -19,7 +19,12 @@ enum RulesVersion {
   /// The Levels close-out's tuning (`doc/plan.md` v3.2): v2's questions,
   /// v2's level update with three constants moved (`LevelRules.v3`).
   /// Levels carry over from v2: the same scale, no reset.
-  v3(3);
+  v3(3),
+
+  /// The Patterns and Method phase (`doc/levels.md` v1.2): v3's level
+  /// update; new generation — pattern questions (section 5b) and the
+  /// spec's long addition and subtraction tables (section 5).
+  v4(4);
 
   const RulesVersion(this.number);
 
@@ -32,13 +37,13 @@ enum RulesVersion {
   /// the others). The server says so in its `/health` (`rules`), and the
   /// app holds a session back, pending, until the server it talks to knows
   /// its rules — an older server would refuse it for good.
-  static const replayed = [v2, v3];
+  static const replayed = [v2, v3, v4];
 
   /// Played before the Levels phase's transition: its levels are on the
   /// old scale (1–100 from placement), never compared with the others.
   bool get retired => switch (this) {
     v1 => true,
-    v2 || v3 => false,
+    v2 || v3 || v4 => false,
   };
 
   /// Throws [ArgumentError] for a number no version has (rule 13).

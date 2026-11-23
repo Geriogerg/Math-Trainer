@@ -29,7 +29,8 @@ mistake. The Phase 3b window restarts at this release.
 met; production `/health` lists rules 4; on a phone, a missed 17 × 23 shows (20 − 3)(20 + 3).
 
 Done: 0 (decisions; addition and subtraction of v2/v3 found off the spec's section 5 — fixed
-in v4). Update this block at every commit.
+in v4); 1 (49 families, `patternedContent`, v4 replayed but not played — `current` moves at
+5). Update this block at every commit.
 
 **The level system** (`doc/levels.md`; constants: `LevelRules.of`)
 - **Levels 0–100**, integer hundredths, shown whole; everyone started at 0 at the transition
@@ -237,9 +238,11 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 - Integer levels round small steps to zero — never round before storing hundredths.
 - `Level` is an `int` at runtime: string interpolation prints hundredths, and `level ?? 1`
   compiles (widens to `Object`). Display through `.whole`; fall back to `Level.zero`.
-- `packages/math_core/test/tiers/tier_references.dart` is generated (in `packages/math_core`:
-  `dart run tool/tier_references.dart`) only by a change meant to alter v2's questions — never
-  to make a JavaScript failure pass.
+- `packages/math_core/test/tiers/tier_references.dart` (v2) and `tier_references_v4.dart` (v4)
+  are generated (in `packages/math_core`: `dart run tool/tier_references.dart`) only by a change
+  meant to alter a version's questions — never to make a JavaScript failure pass. Once v4 is
+  `current`, its generation is frozen like v2's: a change is v5.
+- Pattern families are never stored: `replaySessionPatterns` recomputes them from the session.
 - `Random.secure()` throws under `-p node` (dart2js + Node 24); browsers are fine.
 - `web/sqlite3.wasm` and `web/sqflite_sw.js` come from `dart run sqflite_common_ffi_web:setup`;
   rerun with `--force` after upgrades. On GitHub Pages every path respects `/Math-Trainer/`.

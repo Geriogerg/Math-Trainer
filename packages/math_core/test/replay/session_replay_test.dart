@@ -4,10 +4,13 @@ import 'package:math_core/generation/game_generator.dart';
 import 'package:math_core/generation/question_plan.dart';
 import 'package:math_core/leveling/level.dart';
 import 'package:math_core/leveling/rules_version.dart';
+import 'package:math_core/models/exercise.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/models/session_kind.dart';
+import 'package:math_core/patterns/pattern_family.dart';
 import 'package:math_core/persistence/persisted_session.dart';
 import 'package:math_core/replay/session_replay.dart';
+import 'package:math_core/tiers/tiered_game_generator.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -53,6 +56,36 @@ void main() {
     final stored = session(typeSequence: plan);
     expect(replaySessionQuestions(stored, plan.length), live);
     expect(replaySessionQuestions(stored, 3), live.take(3).toList());
+  });
+
+  test('rules v4: the questions and their pattern families replay, the '
+      'families exactly as the generator drew them; v2 has none', () {
+    final generator = gameExerciseGenerator(
+      rulesVersion: RulesVersion.v4,
+      enabledTypes: types,
+      levels: levels,
+      typeSequence: plan,
+    );
+    final random = Random(seed);
+    final live = <Exercise>[];
+    final liveFamilies = <PatternFamily?>[];
+    for (final _ in plan) {
+      live.add(generator.next(random));
+      liveFamilies.add((generator as TieredGameGenerator).lastFamily);
+    }
+    final stored = session(typeSequence: plan, rules: RulesVersion.v4);
+    expect(replaySessionQuestions(stored, plan.length), live);
+    expect(replaySessionPatterns(stored, plan.length), liveFamilies);
+    // Addition at T4 and integrals at T0: some patterns among 10, by
+    // this seed; never on integrals at T0 (no family before T1).
+    expect(liveFamilies.whereType<PatternFamily>(), isNotEmpty);
+    for (final (i, family) in liveFamilies.indexed) {
+      if (plan[i] == ExerciseType.integral) expect(family, isNull);
+    }
+    expect(
+      replaySessionPatterns(session(typeSequence: plan), plan.length),
+      everyElement(isNull),
+    );
   });
 
   test('a Training game replays like a game, at its frozen levels', () {

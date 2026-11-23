@@ -27,7 +27,7 @@ import 'package:math_trainer/presentation/theme/app_theme.dart';
 /// has its moment; reduced motion is respected.
 class _Ones extends ExerciseSource {
   @override
-  Exercise next() => const ArithmeticExercise(
+  Exercise next() => ArithmeticExercise(
     operandA: 1,
     operandB: 1,
     operationType: OperationType.addition,

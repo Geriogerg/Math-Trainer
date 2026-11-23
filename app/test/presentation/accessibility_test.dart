@@ -28,7 +28,7 @@ import 'golden_test_utils.dart';
 /// setup page and the game screen.
 class _Source extends ExerciseSource {
   @override
-  Exercise next() => const ArithmeticExercise(
+  Exercise next() => ArithmeticExercise(
     operandA: 47,
     operandB: 8,
     operationType: OperationType.multiplication,

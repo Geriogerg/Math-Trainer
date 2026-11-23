@@ -6,7 +6,7 @@ import 'package:math_core/scoring/scorer.dart';
 import 'package:test/test.dart';
 
 void main() {
-  const exercise = ArithmeticExercise(
+  final exercise = ArithmeticExercise(
     operandA: 4,
     operandB: 3,
     operationType: OperationType.addition,

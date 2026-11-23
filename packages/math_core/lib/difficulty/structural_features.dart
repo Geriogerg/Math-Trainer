@@ -52,6 +52,8 @@ final class StructuralFeatures {
       'bigDigits: $bigDigits, roundDistance: $roundDistance)';
 }
 
+/// A three-term sum (rules v4) is read on its first two addends, as the SQL
+/// twin reads `operandA` and `operandB` only.
 StructuralFeatures structuralFeatures(Exercise exercise) {
   final (operands, carries, borrows) = switch (exercise) {
     ArithmeticExercise(

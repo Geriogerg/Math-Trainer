@@ -11,7 +11,7 @@ import 'package:math_core/persistence/persisted_session.dart';
 import 'package:test/test.dart';
 
 void main() {
-  const exercise = ArithmeticExercise(
+  final exercise = ArithmeticExercise(
     operandA: 1,
     operandB: 1,
     operationType: OperationType.addition,

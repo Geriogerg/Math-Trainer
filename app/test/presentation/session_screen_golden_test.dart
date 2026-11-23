@@ -58,17 +58,17 @@ void main() {
       // Too wide for one line on the golden's phone: two right-aligned
       // lines (Levels phase commit 5).
       if (stacked)
-        const ArithmeticExercise(
+        ArithmeticExercise(
           operandA: 4789,
           operandB: 3657,
           operationType: OperationType.multiplication,
         ),
-      const ArithmeticExercise(
+      ArithmeticExercise(
         operandA: 47,
         operandB: 18,
         operationType: OperationType.addition,
       ),
-      const ArithmeticExercise(
+      ArithmeticExercise(
         operandA: 9,
         operandB: 6,
         operationType: OperationType.multiplication,

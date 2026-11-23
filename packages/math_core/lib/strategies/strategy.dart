@@ -240,6 +240,8 @@ const friendlyPercentages = {10, 20, 25, 50, 75};
 /// before the difference of squares (two squares) before splitting a factor
 /// (two products and a sum).
 StrategyMove? bestStrategy(Exercise exercise) => switch (exercise) {
+  // A three-term sum: none of the table's moves is about three numbers.
+  ArithmeticExercise(operandC: _?) => null,
   ArithmeticExercise(:final operandA, :final operandB, :final operationType) =>
     switch (operationType) {
       OperationType.addition => _compensation(operandA, operandB),

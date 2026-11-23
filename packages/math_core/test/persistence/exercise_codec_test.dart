@@ -6,7 +6,7 @@ import 'package:test/test.dart';
 void main() {
   group('describeExerciseForStorage', () {
     test('describes an ArithmeticExercise with its operands', () {
-      const exercise = ArithmeticExercise(
+      final exercise = ArithmeticExercise(
         operandA: 4,
         operandB: 3,
         operationType: OperationType.addition,
@@ -48,5 +48,32 @@ void main() {
       expect(described.operationType, 'percentage');
       expect(described.operands, {'percent': 25, 'base': 80});
     });
+
+    test(
+      'a third addend only when present: two-term sums keep their shape',
+      () {
+        expect(
+          describeExerciseForStorage(
+            ArithmeticExercise(
+              operandA: 27,
+              operandB: 46,
+              operandC: 73,
+              operationType: OperationType.addition,
+            ),
+          ).operands,
+          {'operandA': 27, 'operandB': 46, 'operandC': 73},
+        );
+        expect(
+          describeExerciseForStorage(
+            ArithmeticExercise(
+              operandA: 27,
+              operandB: 46,
+              operationType: OperationType.addition,
+            ),
+          ).operands.keys,
+          ['operandA', 'operandB'],
+        );
+      },
+    );
   });
 }

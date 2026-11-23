@@ -47,7 +47,7 @@ Map<ExerciseType, LevelCacheEntry> gameLevelUpdates({
       level: levelAfterGame(
         current: current,
         answers: answers,
-        fluentMs: fluentTimeMs(type, current),
+        fluentMs: fluentTimeMs(type, current, rulesVersion),
         rules: rules,
       ),
       sessionsPlayed: (priorLevels[type]?.sessionsPlayed ?? 0) + 1,
