@@ -1083,4 +1083,17 @@ server).
   draws where families exist, 0 at T0) and only available families; v4 pinned on VM and
   JavaScript (`test/tiers/tier_references_v4.dart`, v2's references unchanged); a v4 upload
   replayed and accepted; families replayed as drawn.
+- **Commit 2** *(A)* — **The Method generator** (spec section 9), pure core. `method_expr.dart`:
+  integer expressions (`Num`, `Bin`, `Group`, `Pow`, `RootOf`, `PercentOf`) that evaluate
+  themselves — a remainder, a non-power root or a fractional percentage throws — and lay
+  themselves out as tokens (`exprTokens`: parentheses by precedence or by `Group`, two
+  bracketed factors side by side without ×), so the app formats numbers and never places a
+  bracket. `method.dart`: `MethodLine` (terms joined by = or <, continuing the previous line or
+  the question), `Method` (family, strategy or fallback), `methodProblems` (the checker).
+  `method_for.dart`: `methodFor(exercise, family:)` — the family's own lines for each of the
+  49 families, the detector's seven strategies, a fallback per operation. Tests: every family's
+  questions (2,000 each) get their own Method; every tier of every operation under v4 and
+  v2/v3 (3,000 questions each) gets a sound one — every line true, never negative, the last
+  the answer, 2 to 4 lines; the detector's strategy where it fits; the layout; the exit
+  example ("= (20 − 3)(20 + 3)").
 

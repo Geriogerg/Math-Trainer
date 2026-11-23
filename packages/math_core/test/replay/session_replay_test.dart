@@ -6,6 +6,7 @@ import 'package:math_core/leveling/level.dart';
 import 'package:math_core/leveling/rules_version.dart';
 import 'package:math_core/models/exercise.dart';
 import 'package:math_core/models/exercise_type.dart';
+import 'package:math_core/models/session_config.dart';
 import 'package:math_core/models/session_kind.dart';
 import 'package:math_core/patterns/pattern_family.dart';
 import 'package:math_core/persistence/persisted_session.dart';
@@ -85,6 +86,38 @@ void main() {
     expect(
       replaySessionPatterns(session(typeSequence: plan), plan.length),
       everyElement(isNull),
+    );
+  });
+
+  test("a live game's families from its config: the session's replay; "
+      'none without a type sequence', () {
+    final config = SessionConfig(
+      seed: seed,
+      enabledTypes: types,
+      exerciseCount: plan.length,
+      levels: levels,
+      typeSequence: plan,
+      rulesVersion: RulesVersion.v4,
+    );
+    expect(
+      gamePatterns(config, plan.length),
+      replaySessionPatterns(
+        session(typeSequence: plan, rules: RulesVersion.v4),
+        plan.length,
+      ),
+    );
+    expect(gamePatterns(config, 3), hasLength(3));
+    expect(
+      gamePatterns(
+        SessionConfig(
+          seed: seed,
+          enabledTypes: types,
+          exerciseCount: 4,
+          levels: levels,
+        ),
+        4,
+      ),
+      [null, null, null, null],
     );
   });
 

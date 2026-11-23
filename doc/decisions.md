@@ -277,6 +277,23 @@ detector's best otherwise, a fallback per operation; every line checked by tests
   tests evaluate every term and every relation, and the last term of the last line is the
   answer. A line may continue the previous one ("= 400 − 9").
 
+- **The Method's fallbacks, where section 9 leaves room** (commit 2): addition by place value
+  — digit columns up to 3 digits, groups of three digits (thousands, millions) beyond, the
+  "column with carries" of long numbers in at most three lines; under 10 + 10, make 10 (8 + 7
+  = 8 + 2 + 5). Subtraction: within 10, the addition it undoes (4 + 5 = 9, 9 − 4 = 5); else count
+  up through the round number at the subtrahend's leading place (178 → 200 → 403), else by
+  place value. Multiplication: split the larger factor (347 × 6 = (300 + 40 + 7) × 6); tables
+  by fives (8 × 7 = 8 × 5 + 8 × 2); × 1 and × 10 by the swapped fact. Division: the dividend
+  split along the quotient's leading place ((1 800 + 282) ÷ 6 = 300 + 47); a one-digit quotient
+  by its multiplication (4 × 7 = 28, 28 ÷ 4 = 7). Powers: squares from the nearest ten, other
+  powers one factor at a time. Roots: bracket between tens, the last digit, and — two roots
+  end the same way — the middle square (85² = 7 225 < 7 569 → 87). Percentages: the friendly
+  fractions (÷ 2, ÷ 4, ÷ 5, ÷ 10, × ¾), eighths, 10 % / 5 % / 1 % on a base divisible by 100,
+  the whole and the rest above 100 %, else p × base ÷ 100. Integrals: F(b) − F(a).
+- **The detector's "round the subtrahend" is skipped when it would pass below zero** (9 − 8 as
+  9 − 10 + 2): the fallback takes over. A question whose answer is already on screen (2¹) gets
+  one line; every other gets 2 to 4.
+
 ## Levels close-out — rules v3, the level update tuned (plan v3.2, 23 Nov 2026)
 
 The plan set four targets and opened three constants — the slow credit, the dead band and the

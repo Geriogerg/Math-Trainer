@@ -5,6 +5,7 @@ import '../generation/question_plan.dart';
 import '../leveling/rules_version.dart';
 import '../models/exercise.dart';
 import '../models/exercise_type.dart';
+import '../models/session_config.dart';
 import '../models/session_kind.dart';
 import '../patterns/pattern_family.dart';
 import '../persistence/persisted_session.dart';
@@ -97,6 +98,33 @@ List<PatternFamily?> replaySessionPatterns(
   PersistedSession session,
   int count,
 ) => [for (final q in _replay(session, count)) q.family];
+
+/// The pattern family of each of a game's first [count] questions, from
+/// its [config] — what the result screen's Method needs while the game is
+/// still in memory (`doc/levels.md` section 9): the same replay as
+/// [replaySessionPatterns], with the same stream as `LocalExerciseSource`.
+/// All `null` for a game without a type sequence (Tables mode, a list of
+/// questions) or of retired rules.
+List<PatternFamily?> gamePatterns(SessionConfig config, int count) {
+  final sequence = config.typeSequence;
+  if (sequence == null || config.rulesVersion.retired) {
+    return List.filled(count, null);
+  }
+  final generator = gameExerciseGenerator(
+    rulesVersion: config.rulesVersion,
+    enabledTypes: config.enabledTypes,
+    levels: config.levels,
+    typeSequence: sequence,
+  );
+  final random = Random(config.seed);
+  return [
+    for (var i = 0; i < count && i < sequence.length; i++)
+      () {
+        generator.next(random);
+        return generator is TieredGameGenerator ? generator.lastFamily : null;
+      }(),
+  ];
+}
 
 /// Every enabled operation, and only those, the same number of times, one
 /// of the setup's choices (plan v2.9): the level update's cap depends on
