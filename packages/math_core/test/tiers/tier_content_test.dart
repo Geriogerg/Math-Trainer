@@ -16,8 +16,12 @@ bool _isDigits(int n, int digits) => _digits(n) == digits;
 int _carries(ArithmeticExercise e) => structuralFeatures(e).carries;
 int _borrows(ArithmeticExercise e) => structuralFeatures(e).borrows;
 
-/// Each tier's description in `doc/levels.md`, section 5, as a predicate.
-/// A question passes when it is of one of the tier's kinds.
+/// Each tier's content under rules v2 and v3 ([exerciseAt]), as a
+/// predicate: `doc/levels.md` section 5, except addition and subtraction,
+/// an earlier draft's tables (4 digits at most) — the spec's own are
+/// `long_arithmetic_tiers_test.dart`'s. The spec file itself is checked by
+/// `test/spec/levels_spec_conformance_test.dart`. A question passes when
+/// it is of one of the tier's kinds.
 typedef _Spec = bool Function(Exercise e);
 
 bool _add(Exercise e, bool Function(int a, int b, ArithmeticExercise e) f) =>
@@ -319,7 +323,8 @@ final Map<ExerciseType, List<_Spec>> _specs = {
   ],
 };
 
-/// The spec's examples, tier by tier, as the question each one is.
+/// One example per tier, as the question each one is: the spec's, except
+/// for addition and subtraction (the earlier draft's).
 final Map<ExerciseType, List<Exercise>> _examples = {
   ExerciseType.addition: [
     for (final (a, b) in [

@@ -121,8 +121,10 @@ Every choice below was provisional at the phase's end; the owner kept them all (
 "Levels outcome"). The level update's constants moved afterwards, as rules v3 (next section).
 
 - **The rules version** is an enum stored with each session (`RulesVersion`: v1 = everything
-  before, v2 = `doc/levels.md`): app schema v10 `sessions.rules_version` (NULL = v1), the
-  upload's `rulesVersion` (absent = v1), and on the server a column read from the stored payload.
+  before, v2 = `doc/levels.md`, except addition and subtraction, built from an earlier draft —
+  found and fixed in v4, see "Patterns and Method phase"): app schema v10
+  `sessions.rules_version` (NULL = v1), the upload's `rulesVersion` (absent = v1), and on the
+  server a column read from the stored payload.
   **v2 is built alongside v1** through commits 1–3 and becomes the one new games use at commit 4,
   the transition: every intermediate build deployed to testers plays exactly as before, and the
   switch, the reset and the new content arrive together.
@@ -239,7 +241,11 @@ strategy's name and 2 to 4 lines of arithmetic with the question's numbers, endi
 answer, a "More tips" link; the pattern family's own strategy for a pattern question, the
 detector's best otherwise, a fallback per operation; every line checked by tests.
 
-### Gaps filled by Claude Code — provisional, for the owner to confirm
+### Gaps filled by Claude Code — confirmed by the owner (plan v3.4)
+
+Every choice below was provisional at the phase's end; the owner kept them all (plan v3.4,
+"Patterns and Method outcome"), and added a rule: `doc/levels.md` is checked by a test that
+reads the file (`packages/math_core/test/spec/levels_spec_conformance_test.dart`).
 
 - **Addition and subtraction follow the spec's section 5 tables from v4 on — a mismatch found
   in v2/v3.** The spec's addition and subtraction tiers run to 9 digits (T2 47 + 38, T5

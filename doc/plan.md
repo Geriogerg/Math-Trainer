@@ -5,6 +5,7 @@
 > from the owner. The day-to-day working rules live in `CLAUDE.md`, which must always stay
 > consistent with this plan (section 11).
 >
+> Version 3.4 — 23 November 2026: Patterns and Method outcome; spec-conformance rule.
 > Version 3.3 — 23 November 2026: Patterns and Method phase added (`doc/levels.md` sections 5b
 > and 9). Version 3.2 — 23 November 2026: Levels outcome; level tuning targets; sections 2, 3, 6 and 10
 > aligned with `doc/levels.md`. Version 3.1 — 23 November 2026: Levels phase added, specified in `doc/levels.md`.
@@ -898,9 +899,24 @@ accumulate data, so the Phase 3b window restarts at this release at little cost.
 **Exit:** every family's examples generated; every Method checked by tests; level targets still
 met; production `/health` lists rules 4; on a phone, a missed 17 × 23 shows (20 − 3)(20 + 3).
 
+### Patterns and Method outcome (23 November)
+
+All six commits live as rules v4; production updated itself after each push. 49 pattern families,
+a checked Method for every wrong answer and timeout, 54 tips. Owner decisions on the provisional
+choices — all kept (addition and subtraction fixed in v4 to the 9-digit tables; probabilistic
+2-in-5 pattern share; families recomputed by replay; third operand stored for three-term sums;
+fallback methods and strategy names as written; Method in Levelling and Training; duels pinned to
+their own rules version).
+
+**Finding:** addition and subtraction had been built from an earlier version of `doc/levels.md`
+(the 4-digit tables), and the tests checked the code against itself. **Rule from now on:** the
+tier tables and examples of `doc/levels.md` are checked by a test that reads the spec file itself —
+each example must be a question its tier can generate, and each tier's digit counts must match.
+A spec change then breaks a test instead of drifting silently.
+
 ### Phase 6 — Public web launch
 
-**Entry:** Phases 3a, 3b, 4, 5, 5.1, 5.2, the Redesign and the Levels phase done (staging running); name chosen; domain bought;
+**Entry:** Phases 3a, 3b, 4, 5, 5.1, 5.2, the Redesign, the Levels phase and the Patterns and Method phase done (staging running); name chosen; domain bought;
 legal drafts reviewed.
 
 **Environments after launch:** production = the domain (Cloudflare Pages project and current

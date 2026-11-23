@@ -3,7 +3,7 @@
 Competitive mental-arithmetic game in Flutter, for teens and adults. UI, code, docs and commits
 in English.
 
-**`doc/plan.md` (version 3.3) is the product plan**, and **`doc/levels.md` (v1.2) specifies the
+**`doc/plan.md` (version 3.4) is the product plan**, and **`doc/levels.md` (v1.2) specifies the
 level system**. Both are the owner's: read them at the start of every phase; never edit them.
 This file is the working file: keep it short, update it as the project moves, keep it
 consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/decisions.md`,
@@ -33,7 +33,9 @@ in v4); 1 (49 families, `patternedContent`, v4 replayed but not played — `curr
 5); 2 (Method generator: `methodFor`, `methodProblems`); 3 (Method on the result screen, goldens);
 4 (every family linked to a tip, 19 new tips); 5 (v4 played, window restarted, duels keep
 their rules; 40 % patterns from a family's second tier, 28 % at its first); exit test (23 Nov).
-**Open: the owner plays the phone checklist and answers the provisional decisions.**
+Outcome (plan v3.4): every provisional decision kept; new rule — `doc/levels.md` is checked
+by a test that reads the file (`test/spec/levels_spec_conformance_test.dart`).
+**Open: the owner plays the phone checklist.**
 
 **The level system** (`doc/levels.md`; constants: `LevelRules.of`)
 - **Levels 0–100**, integer hundredths, shown whole; everyone started at 0 at the transition
@@ -114,7 +116,8 @@ Non-negotiable without explicit discussion.
   time. An absent level is 0. Recomputable from history by a core function. The **main level**
   (`mainLevel`) is the mean of the four basics only, unplayed at 0; the main board keeps the
   server key `overall` (cached builds call it by that name).
-- **Rules versions** (`RulesVersion`, stored with every session): v2 = `doc/levels.md`; v3 = v2's
+- **Rules versions** (`RulesVersion`, stored with every session): v2 = the Levels phase's
+  `doc/levels.md` v1, except addition and subtraction (an earlier draft's 4-digit tables); v3 = v2's
   questions, the update tuned (Levels close-out, `LevelRules.v3`); v4 = v3's update, pattern
   questions and the spec's long addition and subtraction (current); v1 (all before the transition)
   is retired — never replayed, refused by the server (`rulesRetired`),
@@ -245,6 +248,12 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 - Integer levels round small steps to zero — never round before storing hundredths.
 - `Level` is an `int` at runtime: string interpolation prints hundredths, and `level ?? 1`
   compiles (widens to `Object`). Display through `.whole`; fall back to `Level.zero`.
+- **`doc/levels.md` is checked by reading the file** (plan v3.4):
+  `packages/math_core/test/spec/levels_spec_conformance_test.dart` (VM only) parses sections 5
+  and 5b — each example drawn by its tier or family under `RulesVersion.current`, each tier's
+  digit counts, levels and fluent time, each family's tier. When it fails after a spec change,
+  the code is behind the spec: a new rules version, never an edit of the test to fit the code.
+  Hand-copied tables in other tests are no proof of conformance.
 - `packages/math_core/test/tiers/tier_references.dart` (v2) and `tier_references_v4.dart` (v4)
   are generated (in `packages/math_core`: `dart run tool/tier_references.dart`) only by a change
   meant to alter a version's questions — never to make a JavaScript failure pass. Once v4 is

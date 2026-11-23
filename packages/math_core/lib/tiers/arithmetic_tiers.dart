@@ -5,7 +5,11 @@ import '../models/operation_type.dart';
 import 'draw.dart';
 import 'tier.dart';
 
-/// The four basic operations, tier by tier (`doc/levels.md`, section 5).
+/// The four basic operations, tier by tier, as built at the Levels phase
+/// (rules v2 and v3). Multiplication and division are `doc/levels.md`
+/// section 5's, under every rules version; addition and subtraction are an
+/// earlier draft's (4 digits at most), frozen for v2 and v3 games — from
+/// rules v4 on, the spec's own tables are `longArithmeticAt`'s.
 /// Every question is built from its parts (rule 10): digits drawn so that a
 /// carry or a borrow happens exactly where the tier wants it, a quotient
 /// drawn before its dividend. Never a draw followed by a check.

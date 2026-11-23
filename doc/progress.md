@@ -1142,3 +1142,21 @@ server).
 - Not verified here: CI's smoke test (private repository); the Method on a real phone.
 - Totals: core 686 (VM) / 659 (JavaScript), app 408, server 36, SQL tests passed.
 
+
+## Plan v3.4 — Patterns and Method outcome (23 Nov 2026)
+
+One commit. Every provisional decision of the phase kept (`doc/decisions.md`). The owner's new
+rule: `doc/levels.md` checked by a test that reads it —
+`packages/math_core/test/spec/levels_spec_conformance_test.dart` (VM only; the file is not
+available under `-p node`). It parses sections 5 and 5b and checks, under
+`RulesVersion.current`: each tier's levels (against `Tier.of`) and fluent time (against
+`fluentTimeMs`); each example a question its tier draws (one-question games through
+`gameExerciseGenerator`, standard questions only); each tier's digit counts ("N-digit", "N- and
+M-digit", and ranges beside the operator) — every question drawn fits a clause of the content
+and every count a clause names is drawn; "up to N digits" the most drawn; each operation's
+families in the spec's order, from their tier, each family example drawn by `patternQuestion`.
+"Drawn" is sampled (40,000 draws): exact when the sample holds every question there is,
+otherwise column by column on the example's shape. Checked by mutation: 8 spec edits (an
+example, a fluent time, digit counts, a family's tier, a family example) and the old 3-digit
+addition T7 each fail it. Stale mentions of v2 as "`doc/levels.md` v1" fixed (code comments,
+`CLAUDE.md`, `doc/decisions.md`): v2's addition and subtraction were an earlier draft's.

@@ -746,7 +746,7 @@ class _RecentSessionRow extends StatelessWidget {
     // session.
     final after = session.overallLevelAfter;
     // Across the Levels phase's reset the two are on different scales
-    // (v1 against v2 and later; v2 and v3 share one).
+    // (v1 against v2 and later; v2, v3 and v4 share one).
     final previous = this.previous;
     final previousAfter =
         previous != null &&

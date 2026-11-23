@@ -12,8 +12,11 @@ enum RulesVersion {
   /// replayed — the server refuses one uploaded late (`rulesRetired`).
   v1(1),
 
-  /// `doc/levels.md` v1: levels 0–100, ten tiers per operation, credit and
-  /// quality, no placement.
+  /// The Levels phase (`doc/levels.md` v1): levels 0–100, ten tiers per
+  /// operation, credit and quality, no placement. Its addition and
+  /// subtraction follow an earlier draft's tables (4 digits at most), not
+  /// the spec's section 5 — found at the Patterns and Method phase, fixed
+  /// in [v4]; kept as they were, so v2 and v3 games replay.
   v2(2),
 
   /// The Levels close-out's tuning (`doc/plan.md` v3.2): v2's questions,

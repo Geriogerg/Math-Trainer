@@ -12,9 +12,10 @@ import 'percentage_tiers.dart';
 import 'power_tiers.dart';
 import 'tier.dart';
 
-/// One question of [type] at [tier] (`doc/levels.md`, section 5) under
-/// rules v2 and v3, drawn from [random]. Frozen: their games replay with
-/// it — a change here is a new rules version.
+/// One question of [type] at [tier] under rules v2 and v3, drawn from
+/// [random]: `doc/levels.md` section 5, except addition and subtraction
+/// ([arithmeticAt]'s earlier, shorter tables). Frozen: their games replay
+/// with it — a change here is a new rules version.
 Exercise exerciseAt(ExerciseType type, Tier tier, Random random) =>
     switch (type) {
       ExerciseType.addition ||
