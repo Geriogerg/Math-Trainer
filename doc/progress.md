@@ -980,3 +980,12 @@ new games use them, together with the reset (`doc/decisions.md`).
   the marked band (level 37 → intermediate; never played → beginner), Home → Tips → back;
   goldens: the Tips page in both themes, Home with its two new cards. **To play on the
   phone.**
+- **Commit 8** *(A)* — Simulation (`packages/math_core/tool/levels_simulation.dart`,
+  `tool/src/levels_simulation.dart`): median games from 0 to each tier for a perfect, a
+  perfect-but-slow, an 80 % and a 60 % player (1001 seeded players each, the real update and
+  fluent times). Against the spec's grind estimate: exact (20 in 5 perfect games, 50 in 13);
+  a slow-but-right player climbs at 40 % of that pace; **finding**: a 60 % player creeps up a
+  tier every ~24 games instead of stalling — the expected change is zero at 54 % right, not
+  60–70 % (`doc/decisions.md`, for the owner; constants untouched). Tests
+  (`test/tool/levels_simulation_test.dart`): the estimate, slow climbs, 60 % ≥ 4× slower
+  than 80 %.

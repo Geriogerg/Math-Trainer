@@ -14,7 +14,7 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 **Levels phase — new level system, tables mode, tips** (`doc/plan.md`, section 7), run in **one
 pass**. **Specification: `doc/levels.md`** — binding; it replaces the level formula, the
 placement test and the operand curves. Entry: the Redesign close-out (plan, section 7), run first
-as its own commit. Done: the close-out, 0–7 (4.1: uploads held until the production server replays rules v2 — owner must deploy it). Update this block at every commit.
+as its own commit. Done: the close-out, 0–8 (4.1: uploads held until the production server replays rules v2 — owner must deploy it). Update this block at every commit.
 
 **The beta-safety rule stays lifted.** The rules version stored with every session separates old
 data from new; old sessions are never replayed under the new rules.

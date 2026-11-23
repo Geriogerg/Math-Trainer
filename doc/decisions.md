@@ -197,6 +197,33 @@ hundredths, frozen at the start, never decaying, recomputable, replayed by the s
   a never-played operation is in the beginner band (level 0). Plain text in Inter: "cube root
   of", "∫ … from 0 to 4" — no glyph the bundled faces lack.
 
+### The grind, simulated (commit 8, `tool/levels_simulation.dart`)
+
+Median games from level 0 to the start of each tier, 1001 seeded players each, the real update
+with each tier's fluent time; accuracy the same at every tier (real players stall where their
+accuracy drops):
+
+| 10 questions per game | T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9 |
+|---|---|---|---|---|---|---|---|---|---|
+| perfect | 3 | 5 | 8 | 10 | 13 | 15 | 18 | 20 | 23 |
+| perfect, all slow | 7 | 13 | 19 | 25 | 32 | 38 | 44 | 50 | 57 |
+| 80 % right, fluent | 5 | 9 | 13 | 17 | 22 | 26 | 30 | 34 | 38 |
+| 60 % right, fluent | 22 | 45 | 71 | 95 | 119 | 143 | 169 | 192 | 215 |
+
+With 4 questions per game: perfect 4 / 7 / 10 / 14 / 17 …, 80 % 7 / 12 / 19 / 25 / 31 …
+
+- **The spec's grind estimate holds exactly**: level 20 in 5 perfect games, 50 in 13.
+- **A correct-but-slow player climbs**, at 40 % of the perfect pace (q = 0.75 → +1.6 a game).
+- **Finding, for the owner (Phase 3b)**: a 60 % player does **not** stall as the spec expects
+  ("a player stalls around 60–70 % correct answers") — they creep up about a tier every 24
+  games. The dead band 0.55–0.65 is centred on 60 %, but games vary (4 of 10 right one game,
+  8 the next) and a step up is larger than a step down (cap +4 vs −2, span 25 vs 35 points),
+  so the expected change is +0.4 level a game at 60 % (+1.3 at 70 %). The expected change is
+  zero at **54 %** right (53 % with 4 questions, 56 % with 20). In play, accuracy falls as the
+  tiers get harder, so players will still stall — one tier or so above where the spec places
+  them. Nothing changed: the constants are the owner's (`doc/levels.md`, tunable); to stall
+  at 60–70 %, raise the dead band (e.g. 0.62–0.72) or make the down cap equal to the up cap.
+
 ## Redesign phase — owner decisions (plan v2.9, 22 Nov 2026)
 
 Decided by the owner in the plan; recorded here with their reason so they are not re-argued.
