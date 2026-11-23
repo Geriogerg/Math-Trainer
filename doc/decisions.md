@@ -227,6 +227,56 @@ With 4 questions per game: perfect 4 / 7 / 10 / 14 / 17 …, 80 % 7 / 12 / 19 / 
   them. Nothing changed: the constants are the owner's (`doc/levels.md`, tunable); to stall
   at 60–70 %, raise the dead band (e.g. 0.62–0.72) or make the down cap equal to the up cap.
 
+## Patterns and Method phase — owner decisions (plan v3.3, `doc/levels.md` v1.2, 23 Nov 2026)
+
+Specified by the owner in `doc/levels.md` sections 5b and 9 (binding). In short: each tier mixes
+in **pattern questions** — numbers a shortcut makes easy (17 × 23, 65 + 98, 123 456 ÷ 3) — about
+40 % of a tier's questions from the tier where a family starts, among the families available
+there, reviews included, same fluent time; generated backwards; a new rules version (**v4** = v3's
+level update + new generation), v2 and v3 generators kept so their games replay. On the result
+screen, every wrong answer and timeout of a Basics or Advanced game gets a **Method**: the
+strategy's name and 2 to 4 lines of arithmetic with the question's numbers, ending on the
+answer, a "More tips" link; the pattern family's own strategy for a pattern question, the
+detector's best otherwise, a fallback per operation; every line checked by tests.
+
+### Gaps filled by Claude Code — provisional, for the owner to confirm
+
+- **Addition and subtraction follow the spec's section 5 tables from v4 on — a mismatch found
+  in v2/v3.** The spec's addition and subtraction tiers run to 9 digits (T2 47 + 38, T5
+  4 789 + 3 657, T7 482 761 + 359 846) with fluent times 4–25 s; the generator built at the
+  Levels phase's commit 2 stops at 4 digits (T7 is 3-digit + 3-digit, T9 4-digit + 4-digit)
+  with fluent times 4–14 s, and its tests checked that table, not the spec's. The spec has
+  said this since it arrived (`5cdabd8`); the Levels phase's exit test was wrong to call these
+  two operations conforming. v2 and v3 games keep their generator and fluent times (they must
+  replay); **v4 generates and times addition and subtraction as section 5 says**. The other
+  six operations already matched. Players' levels carry over: an addition player at T5 meets
+  4-digit + 4-digit questions from v4 on instead of 3-digit + 2-digit.
+- **Fluent times are versioned** with the generation: `fluentTimeMs` takes the rules version
+  (v2/v3: the old addition and subtraction times; v4: the spec's). The level update itself is
+  v3's, unchanged.
+- **v4 is replayed from commit 1 and played from the last commit** (`RulesVersion.current` moves
+  to v4 with the simulation, commit 5): the server learns v4 first, the pattern generation can
+  still be corrected while the Method's tests exercise it, and no game is ever played under a
+  generation that later changes. The Phase 3b window restarts at that switch (migration, like
+  the Levels transition's).
+- **The pattern share is a per-question draw**: each question is a pattern question with
+  probability 2 / 5 when at least one family is available at the tier it is drawn from (its
+  own or, for a review, the one below), the family then drawn uniformly among them. "About
+  40 %" is the spec's wording; an exact quota per operation (as for reviews) would interact
+  with the review split, and a 4-question game is too short for "40 %" to mean one count.
+  Commit 5 reports the share actually served per tier.
+- **The pattern family is not stored**: a game's questions replay from its stored seed, so the
+  family of each question is recomputed by the same replay (`replaySessionPatterns`), never
+  guessed from the numbers. The Method uses it; history and uploads carry nothing new.
+- **A third addend** for "three terms, two of them complements" (27 + 46 + 73):
+  `ArithmeticExercise.operandC`, addition only, stored as `operandC` only when present (older
+  questions keep their shape); shown "27 + 46 + 73", stacked on three lines when too wide.
+  Structural features (Dart and SQL) keep reading the first two operands.
+- **Method lines are expressions, not strings**: each line is a chain of integer expressions
+  joined by = or <, rendered with the app's notation (raised exponents, grouped thousands); the
+  tests evaluate every term and every relation, and the last term of the last line is the
+  answer. A line may continue the previous one ("= 400 − 9").
+
 ## Levels close-out — rules v3, the level update tuned (plan v3.2, 23 Nov 2026)
 
 The plan set four targets and opened three constants — the slow credit, the dead band and the

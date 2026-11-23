@@ -1,4 +1,4 @@
-# Levels — specification (v1, 22 November 2026)
+# Levels — specification (v1.2, 23 November 2026: pattern questions and Method added)
 
 > Owned by the product owner, like `doc/plan.md`. Claude Code implements it and never edits it.
 > It replaces the level formula, the placement test and the operand-bound curves used until the
@@ -10,7 +10,7 @@
 2. **You get stuck because you can't answer, not because you're slow.** A correct answer given
    within the 30 s timer always counts in your favour. Speed only decides *how much*.
 3. **The early grind is easy but not instant**: a perfect game moves you at most 3 to 5 levels.
-4. **Going down is gentler than going up**: a bad game costs at most 2 levels.
+4. **A bad game costs at most 3 levels**; a perfect game gains 3 to 5.
 5. **Few constants, all readable.** The old formula (`p_cible`, `f`, `K_haut`, `K_bas`, `δ`,
    `Δ_max`, `K_calib`, `boost_retour`, the √n weighting) is retired.
 
@@ -27,12 +27,12 @@
 
 Computed **per operation**, at the end of a Levelling game, from that operation's answers.
 
-**Credit per answer:**
+**Credit per answer** (rules v3, current; v2 games are still replayed under v2):
 
 | Answer | Credit |
 |---|---|
 | Correct within the tier's **fluent time** (section 5) | 1.0 |
-| Correct, slower than the fluent time, within 30 s | 0.75 |
+| Correct, slower than the fluent time, within 30 s | 0.85 |
 | Wrong | 0 |
 | Timeout (30 s) | 0 |
 
@@ -40,9 +40,9 @@ Computed **per operation**, at the end of a Levelling game, from that operation'
 
 **Change** `Δ` (in levels):
 
-- `q` between 0.55 and 0.65 → `Δ = 0` (dead band: you're at your level). *Tunable.*
-- `q` above 0.65 → `Δ = cap_up(n) × min(1, (q − 0.65) / 0.25)`
-- `q` below 0.55 → `Δ = −cap_down × min(1, (0.55 − q) / 0.35)`
+- `q` between 0.62 and 0.72 → `Δ = 0` (dead band: you're at your level).
+- `q` above 0.72 → `Δ = cap_up(n) × min(1, (q − 0.72) / 0.25)`
+- `q` below 0.62 → `Δ = −cap_down × min(1, (0.62 − q) / 0.35)`
 
 with `n` = number of questions on that operation:
 
@@ -50,30 +50,44 @@ with `n` = number of questions on that operation:
 |---|---|---|---|---|
 | `cap_up(n)`, maximum gain | 3 | 3 | 4 | 5 |
 
-`cap_down` = 2. *Tunable.*
+`cap_down` = 3. All values *tunable* by Phase 3b, against the targets below.
+
+**Targets** (verified by simulation and pinned by tests):
+
+- a player stalls between **60 and 70 % correct** (measured: 64–65 %);
+- 4 answers all correct but slow gain **at least +1.5** (measured: +1.56);
+- a perfect game gains the full cap;
+- a bad game costs at most 3 levels.
 
 **What this gives** (4 questions per operation):
 
 | Game | q | Change |
 |---|---|---|
 | 4 / 4 correct and fluent | 1.00 | +3 |
-| 4 / 4 correct, all slow | 0.75 | +1.2 |
-| 3 / 4 fluent, 1 wrong | 0.75 | +1.2 |
-| 3 / 4 correct, all slow | 0.56 | 0 |
-| 2 / 4 correct, fluent | 0.50 | −0.3 |
-| 2 / 4 correct, slow | 0.38 | −1.0 |
-| 0 / 4 | 0 | −2 |
+| 4 / 4 correct, all slow | 0.85 | +1.56 |
+| 3 / 4 fluent, 1 wrong | 0.75 | +0.36 |
+| 3 / 4 correct, all slow, 1 wrong | 0.64 | 0 |
+| 2 / 4 correct, fluent | 0.50 | −1.03 |
+| 2 / 4 correct, slow | 0.43 | −1.67 |
+| 0 / 4 | 0 | −3 |
 
-A player who answers everything correctly but slowly **still climbs** (q = 0.75). A player stalls
-around 60–70 % correct answers — that is, when the questions become too hard to answer, which is
-principle 2.
+A player who answers everything correctly but slowly **still climbs**. A player stalls around
+64 % correct — when the questions become too hard to answer, which is principle 2. Faster players
+stall a little lower, slower ones a little higher (an all-slow player around 76 %).
 
 **Rules kept from before:** levels never decay with absence; three timeouts in a row without a key
 pressed end the game without counting it; Training games never move levels; the formula uses
 integer or `+ − × ÷` arithmetic only (rule 18) and is replayed by the server.
 
-**Grind estimate** (perfect games, 10 questions per operation, +4 each): level 0 → 20 in 5 games,
-→ 50 in 13 games. Real players stall earlier, at the tier where their accuracy drops.
+**Grind estimate** (median games of 10 questions, simulated under v3):
+
+| Player | T1 | T2 | T5 | T9 |
+|---|---|---|---|---|
+| Perfect | 3 | 5 | 13 | 23 |
+| Perfect but slow | 5 | 10 | 25 | 44 |
+| 80 % correct | 7 | 13 | 33 | 59 |
+| 70 % correct | 17 | 36 | 92 | 169 |
+| 60 % correct | 406 | never | never | never |
 
 ## 4. Transition
 
@@ -213,6 +227,113 @@ under which a correct answer earns full credit. *All fluent times tunable.*
 
 Every integrand stays ≥ 0 on its interval, so the answer is an area.
 
+## 5b. Pattern questions
+
+Besides the size-based questions of section 5, each tier mixes in **pattern questions**: numbers
+chosen so that a shortcut makes them easy, even when they are big (17 × 23, 65 + 98, 9 856 − 996,
+123 456 ÷ 3). They teach the shortcuts, and the Method (section 9) shows the shortcut when one is
+missed.
+
+- From the tier where a family first appears, about **40 %** of that tier's questions are pattern
+  questions, drawn among the families available at that tier. *Tunable.*
+- Review questions (30 %) follow the same mix for the tier below.
+- Pattern questions may use more digits than the tier's standard questions: the shortcut is what
+  makes them fit the tier.
+- Same fluent time as the tier.
+- Generated backwards, like everything else: draw the pattern (base, offset, factor), then the
+  numbers, then the answer.
+- **Changing the generation is a new rules version (v4).** Games played under v2 and v3 must still
+  regenerate their questions under their own version: keep the older generators.
+
+### Addition
+
+| Family | Example | From |
+|---|---|---|
+| Doubles and near doubles | 48 + 49, 250 + 251 | T1 |
+| Complements to a round number | 37 + 63, 418 + 582 | T2 |
+| Add a number just below a round one | 65 + 98, 347 + 199 | T2 |
+| Round numbers, big but easy | 3 500 + 4 500, 250 000 + 750 000 | T3 |
+| Three terms, two of them complements | 27 + 46 + 73 | T4 |
+| Big number + number just below a power of 10 | 4 562 + 998, 73 845 + 9 999 | T5 |
+
+### Subtraction
+
+| Family | Example | From |
+|---|---|---|
+| Subtract a number just below a round one | 742 − 198, 9 856 − 996 | T3 |
+| From a round number | 1 000 − 357, 10 000 − 2 486 | T4 |
+| Close numbers across a round number | 5 003 − 4 997 | T4 |
+| Same-gap shift | 803 − 497 (= 806 − 500) | T5 |
+| Big number − number just below a power of 10 | 84 312 − 9 998 | T6 |
+
+### Multiplication
+
+| Family | Example | From |
+|---|---|---|
+| × 5, × 50 (× 10 ÷ 2) | 4 864 × 5 | T2 |
+| × 11 | 43 × 11, 352 × 11 | T3 |
+| Near a base | 98 × 7, 103 × 8 | T4 |
+| × 25, × 125 (× 100 ÷ 4, × 1000 ÷ 8) | 36 × 25, 88 × 125 | T5 |
+| Difference of squares | 17 × 23, 47 × 53 | T5 |
+| Doubling and halving | 16 × 35 (= 8 × 70) | T5 |
+| × 9, × 99, × 999 | 47 × 99, 236 × 999 | T5 |
+| Same tens, units adding to 10 | 43 × 47 = 4 × 5 \| 3 × 7 = 2 021 | T6 |
+| × 101 | 47 × 101 | T6 |
+| Powers of 2 | 64 × 32 | T6 |
+| Both near 100 | 97 × 96, 98 × 102 | T7 |
+| Difference of squares around 100s | 195 × 205 | T9 |
+
+### Division
+
+| Family | Example | From |
+|---|---|---|
+| Big numbers ÷ 2 | 4 862 ÷ 2 | T2 |
+| Round numbers | 36 000 ÷ 400 | T4 |
+| Big numbers ÷ 3, 4, 5 | 123 456 ÷ 3, 864 312 ÷ 4 | T5 |
+| ÷ 25, ÷ 125 (× 4 ÷ 100, × 8 ÷ 1000) | 4 875 ÷ 25 | T5 |
+| ÷ 11 | 473 ÷ 11 | T6 |
+| Halving chains: ÷ 8, ÷ 16 | 7 344 ÷ 8 | T6 |
+| Big numbers ÷ 6, 7, 8, 9 | 7 254 ÷ 6, 2 450 245 ÷ 7 | T7 |
+
+### Powers
+
+| Family | Example | From |
+|---|---|---|
+| Powers of 2, up to 2²⁰ | 2¹⁰, 2¹⁶ = 65 536 | T1 |
+| Squares ending in 5 | 35², 105² = 11 025 | T3 |
+| Powers of 3, 4, 5 | 3⁸, 4⁵, 5⁴ | T4 |
+| Squares near 50 and 100 | 48², 103² | T5 |
+| Repunits and 11s | 111² = 12 321, 11³ = 1 331 | T6 |
+| Squares near 1 000 | 997² = 994 009 | T9 |
+
+### Roots
+
+| Family | Example | From |
+|---|---|---|
+| √ of powers of 2 and 4 | √1 024, √65 536 | T2 |
+| √ of squares ending in 25 | √7 225 | T3 |
+| √ near 100 | √10 201 | T5 |
+| ∛ of repunit cubes and round cubes | ∛1 331, ∛8 000 | T6 |
+| √ near 1 000 | √994 009 | T9 |
+
+### Percentages
+
+| Family | Example | From |
+|---|---|---|
+| 50 %, 25 % of big numbers | 50 % of 9 876, 25 % of 4 864 | T2 |
+| Swap | 8 % of 25, 12 % of 50 | T3 |
+| Percentages of big round numbers | 15 % of 2 400 000 | T5 |
+| 99 %, 101 %, 125 %, 200 % | 99 % of 300, 125 % of 64 | T7 |
+
+### Integrals
+
+| Family | Example | From |
+|---|---|---|
+| ∫₀ᵇ 2x dx = b² | ∫₀⁹ 2x dx | T1 |
+| ∫₀ᵇ 3x² dx = b³ | ∫₀⁵ 3x² dx | T4 |
+| ∫ₐᵇ 2x dx = (b − a)(b + a) | ∫₁₉²¹ 2x dx = 80 | T5 |
+| ∫₀ᵇ 4x³ dx = b⁴ | ∫₀³ 4x³ dx | T7 |
+
 ## 6. Display
 
 - **One line by default** (`47 × 8`, `2 468 + 785`).
@@ -269,3 +390,30 @@ A page of mental-arithmetic advice, reached from a "Tips" card on Home.
     2x from 0 to b is a triangle of area b².
 - The strategy detector built in Phase 5.1 links each tip to its strategy, so a later phase can
   show the right tip after a wrong answer.
+
+## 9. Method on wrong answers (new)
+
+- On the result screen, **every wrong answer and every timeout** of a Basics or Advanced game has a
+  **Method** button. Correct answers, Tables mode and the challenges have none.
+- Tapping it opens, in place, the **name of the strategy** and **2 to 4 worked steps with the
+  question's own numbers**, ending on the answer; a "More tips" link opens the matching section of
+  the Tips page.
+- The steps come from the strategy detector (Phase 5.1): the best strategy for that question, the
+  pattern family's own strategy for a pattern question.
+- **Fallback for every question no shortcut fits**, so every mistake gets a method:
+
+| Operation | Fallback |
+|---|---|
+| Addition | by place value, left to right (or column with carries for long numbers) |
+| Subtraction | count up from the smaller number, or by place value |
+| Multiplication | split the larger factor by place value |
+| Division | think of the multiplication; split the dividend |
+| Powers | (a + b)² from the nearest easy base |
+| Roots | last digit, then bracket between known squares |
+| Percentages | build from 10 %, 5 % and 1 % |
+| Integrals | antiderivative F, then F(b) − F(a) |
+
+- Minimal text: the strategy name and lines of arithmetic, no sentences.
+- **Every step is checked**: tests generate thousands of questions per tier and family, and every
+  line must be arithmetically true and the last line must equal the answer. Pure core, integer
+  arithmetic, same result on VM and JavaScript.

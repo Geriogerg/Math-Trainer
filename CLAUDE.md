@@ -3,7 +3,7 @@
 Competitive mental-arithmetic game in Flutter, for teens and adults. UI, code, docs and commits
 in English.
 
-**`doc/plan.md` (version 3.2) is the product plan**, and **`doc/levels.md` (v1) specifies the
+**`doc/plan.md` (version 3.3) is the product plan**, and **`doc/levels.md` (v1.2) specifies the
 level system**. Both are the owner's: read them at the start of every phase; never edit them.
 This file is the working file: keep it short, update it as the project moves, keep it
 consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/decisions.md`,
@@ -11,29 +11,27 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 
 ## Current phase
 
-**Levels close-out** (`doc/plan.md`, section 7, after "Levels outcome"), run in **one pass**.
-The Levels phase is done (23 Nov); the owner kept every provisional decision. Two commits:
+**Patterns and Method phase** (`doc/plan.md` v3.3, section 7), run in **one pass**.
+**Specification: `doc/levels.md` v1.2 sections 5b (pattern questions) and 9 (Method)** — binding.
+Goal: questions that reward shortcuts, not only digit count, and a worked method on every
+mistake. The Phase 3b window restarts at this release.
 
 | # | Commit | Note |
 |---|---|---|
-| 1 | Tune the level update by simulation into **rules v3**: only the slow credit, the dead band and the down cap move | |
-| 2 | After every push changing the server or the core: production `/health` serves the commit and the expected `rules`, else an owner action at once | |
+| 0 | Decisions; **rules v4** = v3's level update + new generation; v2 and v3 generators kept (their games replay) | |
+| 1 | Pattern families in the core generator, operation by operation, examples reproduced; ~40 % of a tier's questions where families start; determinism VM/JS; server replays v4 | |
+| 2 | Method generator in the core: steps for every family and detector strategy, a fallback per operation; every line true, last line = the answer, thousands of questions per tier and family | |
+| 3 | *(C)* Method on the result screen: a button on each wrong answer and timeout of Basics and Advanced games, steps in place, "More tips"; goldens in both themes | |
+| 4 | Tips page: each pattern family linked to its tip; tips added where a family has none | |
+| 5 | Simulation under v4: the four level targets still met; share of pattern questions served per tier | |
 
-**Targets** (plan, close-out step 1): a player stalls between **60 and 70 % correct**; 4 questions
-all correct but slow gain **at least +1.5**; a perfect game still gains the full cap
-(+3 / +3 / +4 / +5); a bad game never costs more than **3** levels. Starting point to test: slow
-credit 0.85, dead band 0.62–0.72, down cap 3. v2 games stay replayed under v2; levels carry
-over (no reset).
+**Exit:** every family's examples generated; every Method checked by tests; level targets still
+met; production `/health` lists rules 4; on a phone, a missed 17 × 23 shows (20 − 3)(20 + 3).
 
-**Exit:** the chosen values reported with the simulation table, pinned by tests; v3 stored per
-session; production `/health` lists the new rules.
+Done: 0 (decisions; addition and subtraction of v2/v3 found off the spec's section 5 — fixed
+in v4). Update this block at every commit.
 
-Done: 1 — rules v3 = the starting point, every target met (stall 63.8–65.3 %, slow 4 +1.56;
-`doc/decisions.md`); 2 — `tool/ci/server_check.sh`; production ran `107440e`, `rules: [2, 3]`,
-deployed by CI's hook 10 min after the push; exit test (23 Nov). **Open: the owner confirms v3's
-constants and plays the phone checklist.** Update this block at every commit.
-
-**The level system** (`doc/levels.md`; v3 constants: `LevelRules.of`)
+**The level system** (`doc/levels.md`; constants: `LevelRules.of`)
 - **Levels 0–100**, integer hundredths, shown whole; everyone started at 0 at the transition
   (rules v2); no placement test. Never decay; frozen at the start of a game.
 - **Ten tiers** per operation (T0 = 0–9 … T9 = 90–100): the tier decides the content and the

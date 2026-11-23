@@ -5,7 +5,8 @@
 > from the owner. The day-to-day working rules live in `CLAUDE.md`, which must always stay
 > consistent with this plan (section 11).
 >
-> Version 3.2 — 23 November 2026: Levels outcome; level tuning targets; sections 2, 3, 6 and 10
+> Version 3.3 — 23 November 2026: Patterns and Method phase added (`doc/levels.md` sections 5b
+> and 9). Version 3.2 — 23 November 2026: Levels outcome; level tuning targets; sections 2, 3, 6 and 10
 > aligned with `doc/levels.md`. Version 3.1 — 23 November 2026: Levels phase added, specified in `doc/levels.md`.
 > Version 3.0 — 22 November 2026: Redesign outcome and close-out; alignment fixes.
 > Version 2.9 — 22 November 2026: the Redesign phase (game modes and new interface) added; it changes the
@@ -866,6 +867,36 @@ stall between 60 and 70 % correct.
    replayed under v2).
 2. *(A)* After every push that changes the server or the core, check production `/health` serves
    the new commit and the expected rules; if not, say so at once as an owner action.
+
+### Levels close-out outcome (23 November)
+
+Rules v3 live (slow credit 0.85, dead band 0.62–0.72, down cap 3): stall at 64–65 % correct,
+all-correct-slow +1.56, perfect = cap, bad game −3. Owner confirmed all three effects. The deploy
+hook works: the server redeploys itself after a push.
+
+### Patterns and Method phase (one pass)
+
+**Goal:** questions that reward shortcuts, not only digit count, and a worked method on every
+mistake. **Specification: `doc/levels.md` sections 5b and 9** (binding). Runs before the testers
+accumulate data, so the Phase 3b window restarts at this release at little cost.
+
+0. *(A)* Decisions recorded; rules v4 = v3 level update + new generation; v2 and v3 generators
+   kept so their games still replay.
+1. *(A)* Pattern families in the core generator, operation by operation, each with its examples
+   reproduced, about 40 % of a tier's questions from the tier where families start; answers whole
+   and exact; determinism pinned on VM and JavaScript; server replays v4.
+2. *(A)* Method generator in the core: strategy steps for every pattern family and detector
+   strategy, fallback for every operation; tests on thousands of questions per tier and family —
+   every line true, last line = the answer.
+3. *(C)* Method on the result screen: a button on each wrong answer and timeout of Basics and
+   Advanced games, steps expanding in place, "More tips" link; minimal text; goldens in both
+   themes.
+4. *(A)* Tips page: each pattern family linked to its tip; tips added where a family has none.
+5. *(A)* Simulation rerun under v4: the four level targets still met; report the share of pattern
+   questions actually served per tier.
+
+**Exit:** every family's examples generated; every Method checked by tests; level targets still
+met; production `/health` lists rules 4; on a phone, a missed 17 × 23 shows (20 − 3)(20 + 3).
 
 ### Phase 6 — Public web launch
 

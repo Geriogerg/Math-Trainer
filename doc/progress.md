@@ -1056,3 +1056,14 @@ was deployed by the owner before it started: `/health` = `2a6657c`, `rules: [2]`
 - Not verified here: CI's smoke test (private repository); a live v3 game accepted (the
   owner's checklist).
 
+## Patterns and Method phase (plan v3.3, `doc/levels.md` v1.2)
+
+Pattern questions in every tier (spec section 5b) as rules v4, and a Method on every mistake
+(section 9). Owner actions: none by hand (CI applies migrations; the deploy hook redeploys the
+server).
+
+- **Commit 0** *(A)* — Decisions recorded (`doc/decisions.md`, "Patterns and Method phase"):
+  rules v4, its switch at commit 5, the per-question pattern share, families recomputed by
+  replay, a third addend, Method lines as checked expressions — and the addition and
+  subtraction tiers of v2/v3 found not to match the spec's section 5 (fixed in v4).
+
