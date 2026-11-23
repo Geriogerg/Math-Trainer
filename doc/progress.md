@@ -989,3 +989,26 @@ new games use them, together with the reset (`doc/decisions.md`).
   60–70 % (`doc/decisions.md`, for the owner; constants untouched). Tests
   (`test/tool/levels_simulation_test.dart`): the estimate, slow climbs, 60 % ≥ 4× slower
   than 80 %.
+
+### Levels phase exit test (23 Nov 2026)
+
+- **The spec's example table and grind estimate reproduced by tests**: yes —
+  `level_change_test.dart` (+3, +1.2, +1.2, 0, −0.3, −1.0, −2 to the hundredth and as
+  printed; 20 in 5 perfect games, 50 in 13) and the simulation's test.
+- **Every tier generates its examples' kind of question**: yes — `tier_content_test.dart`,
+  80 tiers × 3,000 draws against the spec's descriptions, each spec example of its tier's
+  kind; divisions, roots and percentages exact; v2 sequences identical on VM and JavaScript.
+- **A correct-but-slow game raises the level**: yes — for 4, 5, 10 and 20 questions (+1.2 at
+  4); simulated: a slow-but-right player reaches every tier.
+- **All levels at 0 for every player**: on the devices by schema v11 at the first load of
+  commit 4's build or later; on the server by `20261125010000_levels_transition.sql`, which CI
+  applied before deploying commit 4 (live since then). Not checked on live rows (the
+  dashboard is the owner's). Caveat: the production server is still `352f1d5` (no deploy
+  hook), so it may have written v1 levels in the minutes the old pages played after the
+  reset (`doc/decisions.md`).
+- **Tables mode and tips playable on a phone**: owner — widget tests play a Tables round end to
+  end and open the Tips page; goldens of both in both themes.
+- Not verified here: the CI smoke test (private repository); the production server's v2
+  validation live (not deployed: commit 4.1 holds uploads until it is).
+- Totals: core 449 (VM) / 422 (JavaScript) — the v1 suites left with their code (835 before);
+  app 399; server 36; tool 10; SQL tests passed.
