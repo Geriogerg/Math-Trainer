@@ -111,15 +111,15 @@ void main() {
       expect(controller.state.outcomes.single.submittedValue, 12);
     });
 
-    testWidgets('input is capped at 7 digits', (tester) async {
+    testWidgets('input is capped at 10 digits, shown grouped', (tester) async {
       await pumpSession(tester);
 
-      for (var i = 0; i < 10; i++) {
+      for (var i = 0; i < 12; i++) {
         await tester.sendKeyEvent(LogicalKeyboardKey.digit9);
       }
       await tester.pump();
 
-      expect(find.text('9999999'), findsOneWidget);
+      expect(find.text('9 999 999 999'), findsOneWidget);
     });
 
     testWidgets('each answer records which keys typed it', (tester) async {

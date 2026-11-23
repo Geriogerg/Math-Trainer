@@ -116,12 +116,20 @@ These characters are non-negotiable — the hyphen and the caret are forbidden.
 | Multiplication | `24 × 7` — U+00D7, never `x` |
 | Division | `96 ÷ 8` — U+00F7, never `/` |
 | Power | full-size base, raised exponent at ~55 % of the size, never `^` |
-| Square root | `√` with a **horizontal bar over the radicand** — without it, `√169` reads `√1` then `69` |
-| Percentage | `25% of 80` — the word is kept |
+| Root | `√` with a **horizontal bar over the radicand** — without it, `√169` reads `√1` then `69`; a cube root raises a small `3` before the `√` (no bundled face has `∛`) |
+| Percentage | `25% of 80`, `37.5% of 64` — the word is kept |
 | Integral | `∫` (1.33× the operation's size) with the upper bound top and the lower bottom (0.36×), the polynomial highest power first with raised exponents (0.83×), then `dx`; scaled down as a whole when too wide |
 
 The exponent is rendered with `Text.rich`: one `TextSpan` for the base, a raised and reduced span
 for the exponent. The root bar is a plain `Border(top:)` on the radicand.
+
+**Numbers and columns** (Levels phase, `doc/levels.md` section 6 and plan v3.1): every number of a
+question, an answer and a correction is grouped by three with a space (`12 500`, `1 234 567`;
+SI style — a comma reads as a decimal point in French), tabular figures throughout. Addition,
+subtraction and multiplication take **one line when it fits** the game's width; wider, they
+**stack on two lines aligned on the units digit** — the first number, then the operator and the
+second number, a rule under them — and the typed answer is right-aligned under that column, like
+written column arithmetic. Division always stays on one line. Answers take up to 10 digits.
 
 The domain exposes no display string: the presentation layer composes the prompt from each
 variant's fields (`base`/`exponent`, `percent`/`base`, etc.). The word "of" in percentages lives

@@ -7,6 +7,7 @@ import 'package:math_core/models/input_device.dart';
 import '../../core/effects/session_effects.dart';
 import '../../core/state/session_controller.dart';
 import '../exercise_prompt.dart';
+import '../number_format.dart';
 import '../kit/numeric_keypad.dart';
 import '../streak_tier.dart';
 import '../theme/app_theme.dart';
@@ -14,9 +15,10 @@ import 'empty_state.dart';
 
 export '../kit/numeric_keypad.dart' show keypadKeyKey;
 
-/// Longest possible answer: 10⁵ (powers); 7 leaves a margin without letting
-/// wild input overflow the screen.
-const _maxTypedDigits = 7;
+/// Ten digits (plan v3.1, Levels phase commit 5): every answer of the tiers
+/// fits with room to spare (the largest, 200², has five), and the grouped
+/// display ("1 234 567 890") still fits a phone.
+const _maxTypedDigits = 10;
 
 /// Stable handles on what the Phase 5 beta-safety rule pins (keypad
 /// geometry, question and answer positions):
@@ -250,68 +252,90 @@ class _SessionScreenState extends State<SessionScreen>
                 horizontal: metrics.rootPadding.left,
               ),
               // Large system text: the block shrinks as a whole rather than
-              // overflow; the keypad below keeps its height.
-              child: Center(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      KeyedSubtree(
-                        key: sessionQuestionKey,
-                        child: AnimatedSwitcher(
-                          duration: reduceMotion
-                              ? Duration.zero
-                              : transition.duration,
-                          switchInCurve: transition.curve,
-                          switchOutCurve: transition.curve,
-                          child: ExercisePrompt(
-                            key: ValueKey(exercise),
-                            exercise: exercise,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      _AnswerDisplay(
-                        key: sessionAnswerKey,
-                        typedDigits: correction == null
-                            ? _typedDigits
-                            : '${correction.exercise.correctAnswer}',
-                        feedback: _feedbackController,
-                        feedbackCorrect: _feedbackCorrect,
-                        reduceMotion: reduceMotion,
-                      ),
-                      const SizedBox(height: 8),
-                      // Always laid out, empty outside a correction: nothing
-                      // moves when it appears. No words (Redesign phase):
-                      // the wrong answer struck through, or an hourglass.
-                      SizedBox(
-                        key: sessionCorrectionKey,
-                        height: 28,
-                        child: switch (correction) {
-                          null => null,
-                          final c when c.isTimeout => Icon(
-                            Icons.hourglass_empty,
-                            size: 22,
-                            color: theme.extension<AppPalette>()!.textMuted,
-                            semanticLabel: "Time's up",
-                          ),
-                          final c => Text(
-                            '${c.submittedValue}',
-                            semanticsLabel: 'Your answer ${c.submittedValue}',
-                            style: theme.textTheme.titleMedium?.digits.copyWith(
-                              color: theme.extension<AppPalette>()!.textMuted,
-                              decoration: TextDecoration.lineThrough,
-                              decorationColor: theme
-                                  .extension<AppPalette>()!
-                                  .textMuted,
+              // overflow; the keypad below keeps its height. The width an
+              // arithmetic prompt has before it stacks on two lines is the
+              // block's (`ExercisePrompt.maxWidth`).
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final stacked = promptStacks(
+                    context,
+                    exercise,
+                    maxWidth: constraints.maxWidth,
+                  );
+                  return Center(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        // A stacked question: the answer right-aligned under
+                        // it, on the units column (`doc/levels.md` section 6).
+                        crossAxisAlignment: stacked
+                            ? CrossAxisAlignment.end
+                            : CrossAxisAlignment.center,
+                        children: [
+                          KeyedSubtree(
+                            key: sessionQuestionKey,
+                            child: AnimatedSwitcher(
+                              duration: reduceMotion
+                                  ? Duration.zero
+                                  : transition.duration,
+                              switchInCurve: transition.curve,
+                              switchOutCurve: transition.curve,
+                              child: ExercisePrompt(
+                                key: ValueKey(exercise),
+                                exercise: exercise,
+                                maxWidth: constraints.maxWidth,
+                              ),
                             ),
                           ),
-                        },
+                          const SizedBox(height: 16),
+                          _AnswerDisplay(
+                            key: sessionAnswerKey,
+                            typedDigits: correction == null
+                                ? _typedDigits
+                                : '${correction.exercise.correctAnswer}',
+                            feedback: _feedbackController,
+                            feedbackCorrect: _feedbackCorrect,
+                            reduceMotion: reduceMotion,
+                            alignRight: stacked,
+                          ),
+                          const SizedBox(height: 8),
+                          // Always laid out, empty outside a correction: nothing
+                          // moves when it appears. No words (Redesign phase):
+                          // the wrong answer struck through, or an hourglass.
+                          SizedBox(
+                            key: sessionCorrectionKey,
+                            height: 28,
+                            child: switch (correction) {
+                              null => null,
+                              final c when c.isTimeout => Icon(
+                                Icons.hourglass_empty,
+                                size: 22,
+                                color: theme.extension<AppPalette>()!.textMuted,
+                                semanticLabel: "Time's up",
+                              ),
+                              final c => Text(
+                                groupedNumber(c.submittedValue),
+                                semanticsLabel:
+                                    'Your answer ${c.submittedValue}',
+                                style: theme.textTheme.titleMedium?.digits
+                                    .copyWith(
+                                      color: theme
+                                          .extension<AppPalette>()!
+                                          .textMuted,
+                                      decoration: TextDecoration.lineThrough,
+                                      decorationColor: theme
+                                          .extension<AppPalette>()!
+                                          .textMuted,
+                                    ),
+                              ),
+                            },
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
+                    ),
+                  );
+                },
               ),
             ),
           ),
@@ -409,6 +433,7 @@ class _TopBar extends StatelessWidget {
 class _AnswerDisplay extends StatelessWidget {
   const _AnswerDisplay({
     super.key,
+    this.alignRight = false,
     required this.typedDigits,
     required this.feedback,
     required this.feedbackCorrect,
@@ -423,6 +448,9 @@ class _AnswerDisplay extends StatelessWidget {
   /// vibration), the scale and the shake go.
   final bool reduceMotion;
 
+  /// Under a stacked question: the digits on its units column.
+  final bool alignRight;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -433,7 +461,12 @@ class _AnswerDisplay extends StatelessWidget {
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: accent, width: 2)),
       ),
-      child: Text(typedDigits, textAlign: TextAlign.center, style: style),
+      child: Text(
+        groupedDigits(typedDigits),
+        textAlign: alignRight ? TextAlign.right : TextAlign.center,
+        style: style,
+        softWrap: false,
+      ),
     );
 
     return AnimatedBuilder(

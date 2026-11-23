@@ -6,12 +6,74 @@ import 'package:math_core/models/operation_type.dart';
 import 'package:math_trainer/presentation/exercise_prompt.dart';
 
 void main() {
-  Future<void> pump(WidgetTester tester, Exercise exercise) =>
-      tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(body: ExercisePrompt(exercise: exercise)),
+  Future<void> pump(
+    WidgetTester tester,
+    Exercise exercise, {
+    double? maxWidth,
+  }) => tester.pumpWidget(
+    MaterialApp(
+      home: Scaffold(
+        body: ExercisePrompt(exercise: exercise, maxWidth: maxWidth),
+      ),
+    ),
+  );
+
+  group('display (doc/levels.md section 6, plan v3.1)', () {
+    const big = ArithmeticExercise(
+      operandA: 4789,
+      operandB: 3657,
+      operationType: OperationType.addition,
+    );
+
+    testWidgets('one line when it fits, thousands grouped', (tester) async {
+      await pump(tester, big, maxWidth: 2000);
+      expect(find.text('4 789 + 3 657'), findsOneWidget);
+    });
+
+    testWidgets('two right-aligned lines and a rule when it does not', (
+      tester,
+    ) async {
+      await pump(tester, big, maxWidth: 120);
+      expect(find.text('4 789'), findsOneWidget);
+      expect(find.text('+ 3 657'), findsOneWidget);
+      final top = tester.getTopRight(find.text('4 789'));
+      final bottom = tester.getTopRight(find.text('+ 3 657'));
+      expect(top.dx, bottom.dx, reason: 'aligned on the units digit');
+      expect(bottom.dy, greaterThan(top.dy));
+    });
+
+    testWidgets('subtraction and multiplication stack too', (tester) async {
+      for (final op in [
+        OperationType.subtraction,
+        OperationType.multiplication,
+      ]) {
+        await pump(
+          tester,
+          ArithmeticExercise(operandA: 7003, operandB: 2468, operationType: op),
+          maxWidth: 120,
+        );
+        expect(find.text('7 003'), findsOneWidget, reason: '$op');
+      }
+    });
+
+    testWidgets('division never stacks', (tester) async {
+      await pump(
+        tester,
+        const ArithmeticExercise(
+          operandA: 5628,
+          operandB: 67,
+          operationType: OperationType.division,
         ),
+        maxWidth: 120,
       );
+      expect(find.text('5 628 ÷ 67'), findsOneWidget);
+    });
+
+    testWidgets('no width given: one line', (tester) async {
+      await pump(tester, big);
+      expect(find.text('4 789 + 3 657'), findsOneWidget);
+    });
+  });
 
   testWidgets('addition shows a + b', (tester) async {
     await pump(

@@ -147,7 +147,9 @@ const _keyMargin = 4.0;
 /// The question's centre, the same for every operation; the empty answer
 /// field's top and height (its accent underline included), per operation
 /// (a taller prompt — a root's bar, a raised exponent, an integral's
-/// bounds — pushes it down).
+/// bounds, a product stacked on two lines — pushes it down). The stacked
+/// case added at the Levels phase's commit 5: 4 789 × 3 657 fits one line
+/// at 412 px and stacks at 360 px.
 final _questionCentre = {
   Size(412, 915): (206.0, 284.5),
   Size(360, 640): (180.0, 147.0),
@@ -159,6 +161,7 @@ final _answer = {
     'root': (206.0, 330.5),
     'percent': (206.0, 328.5),
     'integral': (206.0, 337.5),
+    'stacked': (206.0, 328.5),
   },
   Size(360, 640): {
     'addition': (180.0, 191.0),
@@ -166,6 +169,7 @@ final _answer = {
     'root': (180.0, 193.0),
     'percent': (180.0, 191.0),
     'integral': (180.0, 200.0),
+    'stacked': (196.64, 222.0),
   },
 };
 const _answerHeight = 43.0;
@@ -176,6 +180,11 @@ final _prompts = <String, Exercise>{
   'root': SquareRootExercise(radicand: 169),
   'percent': PercentageExercise(percent: 25, base: 80),
   'integral': IntegralExercise(lower: 0, upper: 3, c0: 0, c1: 2, c2: 0, c3: 0),
+  'stacked': ArithmeticExercise(
+    operandA: 4789,
+    operandB: 3657,
+    operationType: OperationType.multiplication,
+  ),
 };
 
 /// Measured to a tenth of a pixel; the tolerance only absorbs rounding.

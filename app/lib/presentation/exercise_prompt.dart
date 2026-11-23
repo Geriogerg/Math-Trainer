@@ -3,12 +3,19 @@ import 'package:material_ui/material_ui.dart';
 import 'package:math_core/models/exercise.dart';
 import 'package:math_core/models/operation_type.dart';
 
+import 'number_format.dart';
+
 /// Builds the display of an [Exercise] from its variant's fields — the
 /// domain produces no text (`doc/decisions.md`, "`Exercise.prompt` left the
 /// domain"). Exhaustive `switch` without `default` (rule 11): any new
 /// exercise type fails to compile here until it has its rendering.
 class ExercisePrompt extends StatelessWidget {
-  const ExercisePrompt({super.key, required this.exercise, this.style});
+  const ExercisePrompt({
+    super.key,
+    required this.exercise,
+    this.style,
+    this.maxWidth,
+  });
 
   final Exercise exercise;
 
@@ -16,23 +23,112 @@ class ExercisePrompt extends StatelessWidget {
   /// screen's mistakes list passes a smaller one.
   final TextStyle? style;
 
+  /// The width the prompt may take. An addition, subtraction or
+  /// multiplication wider than this on one line is set on two lines,
+  /// right-aligned, like written column arithmetic (`doc/levels.md`
+  /// section 6, plan v3.1). `null`: always one line.
+  final double? maxWidth;
+
   @override
   Widget build(BuildContext context) {
     final style = this.style ?? Theme.of(context).textTheme.displayMedium;
     return switch (exercise) {
-      ArithmeticExercise e => Text(
-        '${e.operandA} ${_operatorSymbol(e.operationType)} ${e.operandB}',
+      ArithmeticExercise e => _ArithmeticPrompt(
+        exercise: e,
         style: style,
+        maxWidth: maxWidth,
       ),
       PowerExercise e => _PowerPrompt(exercise: e, style: style),
       SquareRootExercise e => _SquareRootPrompt(exercise: e, style: style),
       PercentageExercise e => Text(
-        '${e.percent}${e.tenths == 0 ? '' : '.${e.tenths}'}% of ${e.base}',
+        '${e.percent}${e.tenths == 0 ? '' : '.${e.tenths}'}% of '
+        '${groupedNumber(e.base)}',
         style: style,
+        softWrap: false,
       ),
       IntegralExercise e => _IntegralPrompt(exercise: e, style: style),
     };
   }
+}
+
+/// One line, "4 789 + 3 657", when it fits [maxWidth]; otherwise
+/// + − × stack: the first number, then the operator and the second number,
+/// right-aligned on the units digit, a rule under them. Division never
+/// stacks (`doc/levels.md`: the written division layout is not a vertical
+/// stack). Tabular figures (the digit face's `tnum`) keep the columns.
+class _ArithmeticPrompt extends StatelessWidget {
+  const _ArithmeticPrompt({
+    required this.exercise,
+    required this.style,
+    required this.maxWidth,
+  });
+
+  final ArithmeticExercise exercise;
+  final TextStyle? style;
+  final double? maxWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    final a = groupedNumber(exercise.operandA);
+    final b = groupedNumber(exercise.operandB);
+    final symbol = _operatorSymbol(exercise.operationType);
+    if (!promptStacks(context, exercise, style: style, maxWidth: maxWidth)) {
+      return Text('$a $symbol $b', style: style, softWrap: false);
+    }
+    final color = style?.color ?? Theme.of(context).colorScheme.onSurface;
+    return IntrinsicWidth(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(a, style: style, textAlign: TextAlign.right, softWrap: false),
+          Text(
+            '$symbol $b',
+            style: style,
+            textAlign: TextAlign.right,
+            softWrap: false,
+          ),
+          const SizedBox(height: 4),
+          Container(height: 2, color: color),
+        ],
+      ),
+    );
+  }
+}
+
+/// Whether [ExercisePrompt] sets [exercise] on two lines in [context]: an
+/// addition, subtraction or multiplication whose one-line text is wider
+/// than [maxWidth] in [style] (default `displayMedium`, the game's). Never
+/// a division or another type, never without a width. The game screen asks
+/// too, to set the answer under the units column.
+bool promptStacks(
+  BuildContext context,
+  Exercise exercise, {
+  TextStyle? style,
+  double? maxWidth,
+}) {
+  final width = maxWidth;
+  if (width == null ||
+      exercise is! ArithmeticExercise ||
+      exercise.operationType == OperationType.division) {
+    return false;
+  }
+  final oneLine =
+      '${groupedNumber(exercise.operandA)} '
+      '${_operatorSymbol(exercise.operationType)} '
+      '${groupedNumber(exercise.operandB)}';
+  final painter = TextPainter(
+    text: TextSpan(
+      text: oneLine,
+      style: style ?? Theme.of(context).textTheme.displayMedium,
+    ),
+    textDirection: TextDirection.ltr,
+    textScaler: MediaQuery.textScalerOf(context),
+    maxLines: 1,
+  )..layout();
+  final tooWide = painter.width > width;
+  painter.dispose();
+  return tooWide;
 }
 
 String _operatorSymbol(OperationType type) => switch (type) {
@@ -118,7 +214,11 @@ class _SquareRootPrompt extends StatelessWidget {
               ),
             ),
           ),
-          child: Text('${exercise.radicand}', style: style),
+          child: Text(
+            groupedNumber(exercise.radicand),
+            style: style,
+            softWrap: false,
+          ),
         ),
       ],
     );

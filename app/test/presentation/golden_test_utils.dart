@@ -30,8 +30,10 @@ Future<void> _loadFont(String family, String assetKey) async {
 /// Fixed screen size for reproducible goldens — without it, the test
 /// harness's default size (often tied to the machine) would vary the
 /// captured layout.
-Future<void> setGoldenSurfaceSize(WidgetTester tester) async {
-  const size = Size(412, 915);
+Future<void> setGoldenSurfaceSize(
+  WidgetTester tester, {
+  Size size = const Size(412, 915),
+}) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1.0;
   addTearDown(() {

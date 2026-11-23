@@ -6,7 +6,8 @@ String exerciseTypeLabel(ExerciseType type) => switch (type) {
   ExerciseType.multiplication => 'Multiplication',
   ExerciseType.division => 'Division',
   ExerciseType.power => 'Powers',
-  ExerciseType.squareRoot => 'Square roots',
+  // Square and cube roots since the Levels phase (`doc/levels.md`).
+  ExerciseType.squareRoot => 'Roots',
   ExerciseType.percentage => 'Percentages',
   ExerciseType.integral => 'Integrals',
 };

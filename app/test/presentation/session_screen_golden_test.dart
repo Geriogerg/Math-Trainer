@@ -50,10 +50,19 @@ void main() {
   SessionController buildController({
     bool correcting = false,
     bool integral = false,
+    bool stacked = false,
   }) {
     final exercises = [
       if (integral)
         IntegralExercise(lower: 0, upper: 3, c0: 0, c1: 2, c2: 0, c3: 0),
+      // Too wide for one line on the golden's phone: two right-aligned
+      // lines (Levels phase commit 5).
+      if (stacked)
+        const ArithmeticExercise(
+          operandA: 4789,
+          operandB: 3657,
+          operationType: OperationType.multiplication,
+        ),
       const ArithmeticExercise(
         operandA: 47,
         operandB: 18,
@@ -86,20 +95,27 @@ void main() {
   }
 
   // Mockups 3 and 4 (`doc/mockups/redesign.html`), the correction pause.
-  for (final (scenario, correcting, integral) in [
-    ('', false, false),
-    ('_correction', true, false),
-    ('_integral', false, true),
+  for (final (scenario, correcting, integral, stacked) in [
+    ('', false, false, false),
+    ('_correction', true, false, false),
+    ('_integral', false, true, false),
+    ('_stacked', false, false, true),
   ]) {
     for (final mode in [
       (name: 'light', theme: buildLightTheme()),
       (name: 'dark', theme: buildDarkTheme()),
     ]) {
       testWidgets('session screen$scenario — ${mode.name}', (tester) async {
-        await setGoldenSurfaceSize(tester);
+        // The stacked question on the small phone: on 412 px it fits one
+        // line.
+        await setGoldenSurfaceSize(
+          tester,
+          size: stacked ? const Size(360, 640) : const Size(412, 915),
+        );
         final controller = buildController(
           correcting: correcting,
           integral: integral,
+          stacked: stacked,
         );
         addTearDown(controller.dispose);
 

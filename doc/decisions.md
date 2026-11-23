@@ -169,6 +169,17 @@ hundredths, frozen at the start, never decaying, recomputable, replayed by the s
   level 1). The score is feedback only.
 - **Training keeps 15 / 40 / 70**: inside T1 / T4 / T7, so stored Training games keep their
   difficulty and the server's check of them is unchanged.
+- **Display — the plan's rule over the spec's** (commit 5): `doc/levels.md` section 6 sets
+  + − × **always** on two right-aligned lines; the plan's commit 5 says "one line, two
+  right-aligned lines when it doesn't fit, thousands grouped, 10-digit answers". `CLAUDE.md`:
+  the plan wins a conflict, reported. Built: one line when it fits the game's width, stacked
+  otherwise (a rule under the operands, the answer right-aligned on their units column);
+  division never stacks (the spec). Switching to "always stacked" is one condition in
+  `promptStacks`.
+- **Thousands grouped with a space** ("12 500"), not a comma: French-speaking players read
+  "4,789" as a decimal, and the space is the SI separator. A plain space, which the digit face
+  draws (a narrow no-break space is not in its subset).
+- **"Roots"** replaces "Square roots" as the label: the family has cube roots since the tiers.
 
 ## Redesign phase — owner decisions (plan v2.9, 22 Nov 2026)
 

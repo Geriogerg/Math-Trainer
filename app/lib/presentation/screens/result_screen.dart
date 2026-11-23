@@ -11,6 +11,7 @@ import '../../core/effects/session_effects.dart';
 import '../../core/state/session_controller.dart';
 import '../../core/state/session_state.dart';
 import '../exercise_prompt.dart';
+import '../number_format.dart';
 import '../exercise_type_labels.dart';
 import '../theme/app_theme.dart';
 
@@ -264,7 +265,10 @@ class _MistakeRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           ExercisePrompt(exercise: outcome.exercise, style: style),
-          Text(' = ${outcome.exercise.correctAnswer}', style: style),
+          Text(
+            ' = ${groupedNumber(outcome.exercise.correctAnswer)}',
+            style: style,
+          ),
           const SizedBox(width: 12),
           if (outcome.isTimeout)
             Icon(
@@ -275,7 +279,7 @@ class _MistakeRow extends StatelessWidget {
             )
           else
             Text(
-              '${outcome.submittedValue}',
+              groupedNumber(outcome.submittedValue),
               semanticsLabel: 'Your answer ${outcome.submittedValue}',
               style: theme.textTheme.bodyLarge?.digits.copyWith(
                 color: muted,

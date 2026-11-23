@@ -833,7 +833,7 @@ String _labelFor(ExerciseType type) => switch (type) {
   ExerciseType.multiplication => 'Multiplication',
   ExerciseType.division => 'Division',
   ExerciseType.power => 'Powers',
-  ExerciseType.squareRoot => 'Square roots',
+  ExerciseType.squareRoot => 'Roots',
   ExerciseType.percentage => 'Percentages',
   ExerciseType.integral => 'Integrals',
 };

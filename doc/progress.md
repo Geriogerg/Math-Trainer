@@ -943,3 +943,15 @@ new games use them, together with the reset (`doc/decisions.md`).
   made meanwhile. Tests: client (old server: nothing sent), v12, SQL, `/health`.
   **Owner**: deploy the production server (doc/online.md) — until then games are held on the
   devices, unranked.
+- **Commit 5** *(C)* — Display (spec section 6, plan commit 5). Numbers grouped by three with a
+  space everywhere a question, an answer or a correction shows one (`groupedNumber`); + − ×
+  on one line when it fits the game's width, otherwise stacked on two lines aligned on the
+  units digit with a rule under them and the typed answer right-aligned on that column
+  (`promptStacks`, measured with the screen's text scale); ÷ always one line (the spec);
+  answers up to 10 digits (was 7); "Roots" for the family that now has cube roots. The plan
+  and the spec differ on when to stack: the plan's rule built, provisional
+  (`doc/decisions.md`). Pins: a stacked case added (4 789 × 3 657: one line at 412 px,
+  stacked at 360 px, answer under the units column), every earlier pin unchanged. Goldens:
+  the stacked game screen at 360 × 640 in both themes; Profile's "Roots". Also SQL
+  `20261125030000_old_server_v2_rejections_again.sql`: commit 4.1's cleanup once more.
+  **To play on the phone.**
