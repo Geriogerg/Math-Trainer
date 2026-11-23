@@ -46,7 +46,6 @@ void main() {
       controller.dispose();
     }
 
-    await play(buildPlacementController(environment));
     final all = ExerciseType.values.toSet();
     for (final types in [
       {ExerciseType.addition, ExerciseType.subtraction},
@@ -82,7 +81,7 @@ void main() {
 
     var state = ServerPlayerState.empty;
     final pending = await repository.pendingUploads('player');
-    expect(pending, hasLength(7));
+    expect(pending, hasLength(6));
     for (final session in pending) {
       final upload = SessionUpload(
         session: session,

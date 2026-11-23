@@ -8,7 +8,6 @@ import 'package:math_core/models/session_kind.dart';
 import 'package:math_core/persistence/level_cache_entry.dart';
 import 'package:math_core/persistence/persisted_answer.dart';
 import 'package:math_core/persistence/persisted_session.dart';
-import 'package:math_core/placement/placement.dart';
 import 'package:math_core/sync/session_upload.dart';
 import 'package:math_core/sync/session_upload_client.dart';
 import 'package:test/test.dart';
@@ -23,7 +22,7 @@ void main() {
     totalScore: 77,
     levels: {
       ExerciseType.addition: Level.fromHundredths(3742),
-      ExerciseType.division: Level.floor,
+      ExerciseType.division: Level.zero,
     },
     createdAt: DateTime.utc(2026, 11, 19, 10, 30),
     typeSequence: const [ExerciseType.division, ExerciseType.addition],
@@ -132,21 +131,24 @@ void main() {
     );
   });
 
-  test('a placement stored without a sequence gets its rules\' order', () {
-    final placement = PersistedSession(
+  test('a session without its type sequence cannot be read back: the queue '
+      'never sends one (rules v1, retired)', () {
+    final old = PersistedSession(
       id: 'p',
       playerId: 'player-1',
       seed: 1,
-      enabledTypes: placementTypes.toSet(),
-      exerciseCount: placementRulesV1.questionCount,
+      enabledTypes: const {ExerciseType.addition},
+      exerciseCount: 4,
       totalScore: 0,
-      levels: {for (final t in placementTypes) t: Level.whole(35)},
+      levels: {ExerciseType.addition: Level.whole(35)},
       createdAt: DateTime.utc(2026, 11, 19),
       kind: SessionKind.placementV1,
     );
-    final j = SessionUpload(session: placement, answers: const []).toJson();
-    final back = SessionUpload.fromJson(jsonDecode(jsonEncode(j)));
-    expect(back.session.typeSequence, placementTypeSequence(placementRulesV1));
+    final j = SessionUpload(session: old, answers: const []).toJson();
+    expect(
+      () => SessionUpload.fromJson(jsonDecode(jsonEncode(j))),
+      throwsFormatException,
+    );
   });
 
   group('app version and input device (after Phase 3a)', () {
@@ -157,7 +159,7 @@ void main() {
       enabledTypes: const {ExerciseType.addition},
       exerciseCount: 3,
       totalScore: 0,
-      levels: {ExerciseType.addition: Level.floor},
+      levels: {ExerciseType.addition: Level.zero},
       createdAt: DateTime.utc(2026, 11, 20),
       typeSequence: const [
         ExerciseType.addition,

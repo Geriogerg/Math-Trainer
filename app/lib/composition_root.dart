@@ -8,12 +8,12 @@ import 'package:math_core/account/account_repository.dart';
 import 'package:math_core/account/beta_access.dart';
 import 'package:math_core/feedback/feedback.dart';
 import 'package:math_core/account/profile_repository.dart';
-import 'package:math_core/generation/composite_exercise_generator.dart';
-import 'package:math_core/generation/fixed_type_sequence.dart';
+import 'package:math_core/generation/game_generator.dart';
 import 'package:math_core/generation/local_exercise_source.dart';
 import 'package:math_core/generation/question_plan.dart';
 import 'package:math_core/leveling/level.dart';
 import 'package:math_core/leveling/level_cache_orchestrator.dart';
+import 'package:math_core/leveling/rules_version.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/models/game_setup.dart';
 import 'package:math_core/challenges/challenge_stats.dart';
@@ -21,20 +21,15 @@ import 'package:math_core/persistence/chain_setup_store.dart';
 import 'package:math_core/persistence/game_setup_store.dart';
 import 'package:math_core/models/session_config.dart';
 import 'package:math_core/models/session_kind.dart';
-import 'package:math_core/persistence/level_cache_entry.dart';
 import 'package:math_core/persistence/local_player_id_provider.dart';
 import 'package:math_core/leaderboard/leaderboard.dart';
 import 'package:math_core/persistence/abandoned_guest_cleanup.dart';
-import 'package:math_core/persistence/placement_skip_store.dart';
 import 'package:math_core/sync/server_levels.dart';
 import 'package:math_core/sync/session_upload_client.dart';
 import 'package:math_core/sync/session_upload_queue.dart';
 import 'package:math_core/persistence/session_repository.dart';
 import 'package:math_core/persistence/theme_mode_store.dart';
 import 'package:math_core/persistence/type_selection_store.dart';
-import 'package:math_core/placement/placement.dart';
-import 'package:math_core/placement/placement_exercise_source.dart';
-import 'package:math_core/placement/placement_level_orchestrator.dart';
 import 'core/state/session_controller.dart';
 import 'infrastructure/backend/http_session_upload_client.dart';
 import 'infrastructure/backend/supabase_beta_code_repository.dart';
@@ -57,7 +52,6 @@ import 'infrastructure/persistence/shared_preferences_effect_settings_store.dart
 import 'infrastructure/persistence/shared_preferences_challenge_stats_store.dart';
 import 'infrastructure/persistence/shared_preferences_chain_setup_store.dart';
 import 'infrastructure/persistence/shared_preferences_game_setup_store.dart';
-import 'infrastructure/persistence/shared_preferences_placement_skip_store.dart';
 import 'infrastructure/persistence/shared_preferences_player_id_provider.dart';
 import 'infrastructure/persistence/shared_preferences_theme_mode_store.dart';
 import 'infrastructure/persistence/shared_preferences_type_selection_store.dart';
@@ -78,7 +72,6 @@ class AppEnvironment {
     this.chainSetupStore = const SharedPreferencesChainSetupStore(),
     this.challengeStatsStore = const SharedPreferencesChallengeStatsStore(),
     this.themeModeStore = const SharedPreferencesThemeModeStore(),
-    this.placementSkipStore = const SharedPreferencesPlacementSkipStore(),
     this.abandonedGuestStore = const SharedPreferencesAbandonedGuestStore(),
     this.uploadClient,
     this.uploadQueue,
@@ -130,9 +123,6 @@ class AppEnvironment {
   /// Same reasoning as `typeSelectionStore`: optional so as not to break
   /// construction in tests that do not care about the theme toggle.
   final ThemeModeStore themeModeStore;
-
-  /// Same reasoning as `typeSelectionStore`.
-  final PlacementSkipStore placementSkipStore;
 
   /// Guests this device left for another account (`AuthGate`), whose
   /// hidden games go after 30 days.
@@ -191,7 +181,6 @@ class AppEnvironment {
     chainSetupStore: chainSetupStore,
     challengeStatsStore: challengeStatsStore,
     themeModeStore: themeModeStore,
-    placementSkipStore: placementSkipStore,
     abandonedGuestStore: abandonedGuestStore,
     uploadClient: uploadClient,
     leaderboardRepository: leaderboardRepository,
@@ -370,16 +359,16 @@ Future<AppEnvironment> buildAppEnvironment() async {
   );
 }
 
-/// Builds a `SessionController` ready to play: local exercise source (a mix
-/// of [enabledTypes], chosen by the player on `PlayTab`) + a fresh seed +
-/// the dependencies of [environment]. Asynchronous: reads the player's level
-/// cache (rule 4, repositories always async) to freeze this session's levels
-/// — level 1 for any operation never played (no estimated skill = start at
-/// the bottom).
+/// Builds a `SessionController` ready to play [enabledTypes] (chosen on
+/// `PlayTab`) under the current rules (`doc/levels.md`): a fresh seed, the
+/// type order of [setup] (every operation `questionsPerOperation` times,
+/// shuffled by the seed and stored with the session), and the levels it is
+/// generated at, frozen.
 ///
-/// [setup] (the setup page's choices, plan v2.9): every operation gets
-/// exactly `questionsPerOperation` questions, the order shuffled by the seed
-/// and stored with the session (`shuffledTypeSequence`).
+/// Levelling (the default): the player's levels, 0 for an operation never
+/// played — read after the server's when every local session is settled.
+/// Training: [setup]'s fixed difficulty for every operation, no level
+/// update.
 Future<SessionController> buildSessionController(
   AppEnvironment environment,
   Set<ExerciseType> enabledTypes, {
@@ -387,7 +376,14 @@ Future<SessionController> buildSessionController(
 }) async {
   final plan = setup ?? GameSetup();
   if (plan.mode == GameMode.training) {
-    return buildTrainingController(environment, enabledTypes, plan);
+    return _controllerFor(
+      environment,
+      enabledTypes,
+      plan,
+      levels: {for (final t in enabledTypes) t: plan.difficulty.level},
+      kind: SessionKind.training,
+      levelUpdates: const NoLevelUpdates(),
+    );
   }
   // A game starts from the server's levels when every local session is
   // settled: after a game on another device, the local ones are behind and
@@ -407,169 +403,56 @@ Future<SessionController> buildSessionController(
   final priorLevels = await environment.repository.currentLevels(
     environment.playerId,
   );
-  // An operation never played has no level to start from: this first game
-  // on it is a short placement instead (plan v2.3, Phase 3a commit 7) —
-  // on the never-played operations only; the next game plays them all.
-  final neverPlayed = neverPlayedTypes(enabledTypes, priorLevels);
-  if (neverPlayed.isNotEmpty) {
-    return buildTypePlacementController(environment, neverPlayed);
-  }
-  final levels = {
-    for (final type in enabledTypes)
-      type: priorLevels[type]?.level ?? Level.floor,
-  };
+  return _controllerFor(
+    environment,
+    enabledTypes,
+    plan,
+    levels: {
+      for (final type in enabledTypes)
+        type: priorLevels[type]?.level ?? Level.zero,
+    },
+    kind: SessionKind.game,
+    levelUpdates: const LevelCacheOrchestrator(),
+  );
+}
 
+SessionController _controllerFor(
+  AppEnvironment environment,
+  Set<ExerciseType> enabledTypes,
+  GameSetup setup, {
+  required Map<ExerciseType, Level> levels,
+  required SessionKind kind,
+  required SessionLevelUpdates levelUpdates,
+}) {
   final seed = DateTime.now().millisecondsSinceEpoch;
   // Decided once here and stored with the session, so the session replays
   // from what it stores alone (plan, Phase 2 commit 1).
   final typeSequence = shuffledTypeSequence(
     types: enabledTypes,
-    perOperation: plan.questionsPerOperation,
-    seed: seed,
-  );
-  return SessionController(
-    config: SessionConfig(
-      seed: seed,
-      enabledTypes: enabledTypes,
-      exerciseCount: typeSequence.length,
-      levels: levels,
-      typeSequence: typeSequence,
-    ),
-    exerciseSource: LocalExerciseSource(
-      generator: CompositeExerciseGenerator(
-        enabledTypes: enabledTypes,
-        levels: levels,
-        strategy: FixedTypeSequence(typeSequence),
-      ),
-      seed: seed,
-    ),
-    repository: environment.repository,
-    playerId: environment.playerId,
-    correctionDelay: SessionController.defaultCorrectionDelay,
-    appVersion: appVersion,
-    questionTimeout: questionTimeoutFor(
-      isDebugBuild: kDebugMode,
-      noTimeoutRequested: _debugNoTimeout,
-    ),
-  );
-}
-
-/// A Training game (plan v2.9): every operation at the fixed level of
-/// [setup]'s difficulty, frozen in the session for the replay; its own
-/// session kind; no level update ([NoLevelUpdates]), so no reason to wait
-/// for the server's levels or to place a never-played operation first.
-SessionController buildTrainingController(
-  AppEnvironment environment,
-  Set<ExerciseType> enabledTypes,
-  GameSetup setup,
-) {
-  final seed = DateTime.now().millisecondsSinceEpoch;
-  final levels = {for (final t in enabledTypes) t: setup.difficulty.level};
-  final typeSequence = shuffledTypeSequence(
-    types: enabledTypes,
     perOperation: setup.questionsPerOperation,
     seed: seed,
   );
+  const rulesVersion = RulesVersion.current;
   return SessionController(
     config: SessionConfig(
       seed: seed,
       enabledTypes: enabledTypes,
       exerciseCount: typeSequence.length,
       levels: levels,
-      kind: SessionKind.training,
+      kind: kind,
       typeSequence: typeSequence,
+      rulesVersion: rulesVersion,
     ),
     exerciseSource: LocalExerciseSource(
-      generator: CompositeExerciseGenerator(
+      generator: gameExerciseGenerator(
+        rulesVersion: rulesVersion,
         enabledTypes: enabledTypes,
         levels: levels,
-        strategy: FixedTypeSequence(typeSequence),
+        typeSequence: typeSequence,
       ),
       seed: seed,
     ),
-    levelCacheOrchestrator: const NoLevelUpdates(),
-    repository: environment.repository,
-    playerId: environment.playerId,
-    correctionDelay: SessionController.defaultCorrectionDelay,
-    appVersion: appVersion,
-    questionTimeout: questionTimeoutFor(
-      isDebugBuild: kDebugMode,
-      noTimeoutRequested: _debugNoTimeout,
-    ),
-  );
-}
-
-/// The placement test (plan, Phase 1 commit 6): the four basic operations
-/// in turn, each on its own adaptive staircase, then starting levels from
-/// `placementLevels`. Offered by `PlayTab` to a player with no history.
-/// The operations of [enabledTypes] with no level yet: never played (nor
-/// placed) by this player. What turns a game into a type placement.
-Set<ExerciseType> neverPlayedTypes(
-  Set<ExerciseType> enabledTypes,
-  Map<ExerciseType, LevelCacheEntry> levels,
-) => {
-  for (final type in enabledTypes)
-    if (!levels.containsKey(type)) type,
-};
-
-/// The first game on never-played operations (Phase 3a commit 7): the
-/// placement test's staircase on [types] only, five questions each, in
-/// turn. Sets their starting levels; an interrupted one sets nothing and is
-/// offered again at the next start.
-SessionController buildTypePlacementController(
-  AppEnvironment environment,
-  Set<ExerciseType> types,
-) {
-  const rules = typePlacementRules;
-  final sequence = typePlacementSequence(types, rules: rules);
-  final seed = DateTime.now().millisecondsSinceEpoch;
-  return SessionController(
-    config: SessionConfig(
-      seed: seed,
-      enabledTypes: types,
-      exerciseCount: sequence.length,
-      levels: {for (final t in types) t: Level.whole(rules.startLevel)},
-      kind: placementKindFor(rules),
-      typeSequence: sequence,
-    ),
-    exerciseSource: PlacementExerciseSource(
-      seed: seed,
-      rules: rules,
-      sequence: sequence,
-    ),
-    levelCacheOrchestrator: PlacementLevelOrchestrator(
-      rules: rules,
-      sequence: sequence,
-    ),
-    repository: environment.repository,
-    playerId: environment.playerId,
-    correctionDelay: SessionController.defaultCorrectionDelay,
-    appVersion: appVersion,
-    questionTimeout: questionTimeoutFor(
-      isDebugBuild: kDebugMode,
-      noTimeoutRequested: _debugNoTimeout,
-    ),
-  );
-}
-
-SessionController buildPlacementController(AppEnvironment environment) {
-  const rules = currentPlacementRules;
-  final seed = DateTime.now().millisecondsSinceEpoch;
-  return SessionController(
-    config: SessionConfig(
-      seed: seed,
-      enabledTypes: placementTypes.toSet(),
-      exerciseCount: rules.questionCount,
-      // The staircases' common start, recorded with the session; the level
-      // of each question follows the answers (`PlacementExerciseSource`).
-      levels: {
-        for (final t in placementTypes) t: Level.whole(rules.startLevel),
-      },
-      kind: placementKindFor(rules),
-      typeSequence: placementTypeSequence(rules),
-    ),
-    exerciseSource: PlacementExerciseSource(seed: seed, rules: rules),
-    levelCacheOrchestrator: const PlacementLevelOrchestrator(rules: rules),
+    levelCacheOrchestrator: levelUpdates,
     repository: environment.repository,
     playerId: environment.playerId,
     correctionDelay: SessionController.defaultCorrectionDelay,

@@ -15,7 +15,6 @@ import 'package:math_trainer/presentation/screens/play_tab.dart';
 import 'package:math_trainer/presentation/theme/app_theme.dart';
 
 import '../fake_account_repository.dart';
-import '../fake_placement_skip_store.dart';
 import '../fake_profile_repository.dart';
 import '../fake_stores.dart';
 import 'kit_finders.dart';
@@ -27,7 +26,7 @@ PersistedSession _session(String id) => PersistedSession(
   enabledTypes: const {ExerciseType.addition},
   exerciseCount: 1,
   totalScore: 0,
-  levels: {ExerciseType.addition: Level.floor},
+  levels: {ExerciseType.addition: Level.zero},
   createdAt: DateTime.utc(2026, 11, 1),
 );
 
@@ -43,7 +42,7 @@ PersistedAnswer _answer(String sessionId) => PersistedAnswer(
   createdAt: DateTime.utc(2026, 11, 1),
 );
 
-/// A player past the placement: one completed game, addition at [level].
+/// A player with one completed game, addition at [level].
 Future<InMemorySessionRepository> _playedRepository({int level = 42}) async {
   final repository = InMemorySessionRepository();
   await repository.recordSession(
@@ -89,7 +88,6 @@ void main() {
     FakeTypeSelectionStore? selection,
     FakeGameSetupStore? setup,
     FakeChainSetupStore? chainSetup,
-    FakePlacementSkipStore? skips,
   }) => AppEnvironment(
     repository: repository,
     playerId: 'test-player',
@@ -98,76 +96,14 @@ void main() {
     typeSelectionStore: selection ?? FakeTypeSelectionStore(),
     gameSetupStore: setup ?? FakeGameSetupStore(),
     chainSetupStore: chainSetup ?? FakeChainSetupStore(),
-    placementSkipStore: skips ?? FakePlacementSkipStore(),
   );
 
-  group('placement offer', () {
-    testWidgets('a player with no session is offered the placement first', (
-      tester,
-    ) async {
-      await pumpPlayTab(tester, environmentWith(InMemorySessionRepository()));
-      expect(find.text('Find your level'), findsOneWidget);
-      expect(find.text('Basics'), findsNothing);
-    });
-
-    testWidgets('Skip goes to Home, and is remembered', (tester) async {
-      final skips = FakePlacementSkipStore();
-      await pumpPlayTab(
-        tester,
-        environmentWith(InMemorySessionRepository(), skips: skips),
-      );
-      await tester.tap(find.text('Skip'));
-      await tester.pumpAndSettle();
-      expect(find.text('Basics'), findsOneWidget);
-      expect(skips.skipped, {'test-player'});
-
-      await tester.pumpWidget(const SizedBox());
-      await pumpPlayTab(
-        tester,
-        environmentWith(InMemorySessionRepository(), skips: skips),
-      );
-      expect(find.text('Find your level'), findsNothing);
-    });
-
-    testWidgets('an interrupted session does not count: still offered', (
-      tester,
-    ) async {
-      final repository = InMemorySessionRepository();
-      await repository.recordSession(
-        session: _session('interrupted'),
-        answers: const [],
-        levelUpdates: const {},
-      );
-      await pumpPlayTab(tester, environmentWith(repository));
-      expect(find.text('Find your level'), findsOneWidget);
-    });
-
-    testWidgets('nothing is drawn before the startup read resolves', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: buildLightTheme(),
-          home: Scaffold(
-            body: PlayTab(
-              environment: environmentWith(InMemorySessionRepository()),
-            ),
-          ),
-        ),
-      );
-      expect(find.text('Basics'), findsNothing);
-      expect(find.text('Find your level'), findsNothing);
-      await tester.pumpAndSettle();
-      expect(find.text('Find your level'), findsOneWidget);
-    });
-
-    testWidgets('Start plays the placement', (tester) async {
-      await pumpPlayTab(tester, environmentWith(InMemorySessionRepository()));
-      await tester.tap(find.text('Start'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 500));
-      expect(find.text('1 / 20'), findsOneWidget);
-    });
+  testWidgets('a new player lands on Home, every level at 0 — no placement '
+      '(doc/levels.md)', (tester) async {
+    await pumpPlayTab(tester, environmentWith(InMemorySessionRepository()));
+    expect(find.text('Basics'), findsOneWidget);
+    expect(find.text('Find your level'), findsNothing);
+    expect(findLevelBadge(0), findsWidgets);
   });
 
   group('Home', () {
@@ -181,12 +117,12 @@ void main() {
       }
       expect(find.text('Get the count'), findsOneWidget);
       expect(find.text('Chain operations'), findsOneWidget);
-      // Main level: (42 + 3 × 1) / 4 ≈ 11.
+      // Main level: (42 + 3 × 0) / 4 = 10.5, shown 11.
       expect(findLevelBadge(11), findsOneWidget);
       expect(find.byType(OperationButton), findsNWidgets(8));
       expect(find.text('42'), findsOneWidget);
-      // Never played: shown at 1, the level it counts as.
-      expect(find.text('1'), findsNWidgets(7));
+      // Never played: shown at 0, where everyone starts.
+      expect(find.text('0'), findsNWidgets(7));
       // No explanatory sentence: labels only.
       expect(find.textContaining('.'), findsNothing);
       // Each row's Play says which row to screen readers (and to the
@@ -348,12 +284,12 @@ void main() {
       await tester.tap(find.text('Start'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
-      // Multiplication was never played: its first game is its type
-      // placement (5 questions), as before.
-      expect(find.text('1 / 5'), findsOneWidget);
+      // Addition and multiplication, 4 each — a never-played operation
+      // starts at 0, no placement first (`doc/levels.md`).
+      expect(find.text('1 / 8'), findsOneWidget);
     });
 
-    testWidgets('Training starts at once, no type placement', (tester) async {
+    testWidgets('Training starts at once too', (tester) async {
       await openBasicsSetup(
         tester,
         stored: GameSetup(questionsPerOperation: 4, mode: GameMode.training),

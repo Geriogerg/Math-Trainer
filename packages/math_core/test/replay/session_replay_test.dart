@@ -1,230 +1,132 @@
 import 'dart:math';
 
-import 'package:math_core/generation/composite_exercise_generator.dart';
-import 'package:math_core/generation/fixed_type_sequence.dart';
+import 'package:math_core/generation/game_generator.dart';
+import 'package:math_core/generation/question_plan.dart';
 import 'package:math_core/leveling/level.dart';
 import 'package:math_core/leveling/rules_version.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/models/session_kind.dart';
 import 'package:math_core/persistence/persisted_session.dart';
-import 'package:math_core/placement/placement.dart';
-import 'package:math_core/placement/placement_exercise_source.dart';
 import 'package:math_core/replay/session_replay.dart';
 import 'package:test/test.dart';
 
-import '../support/legacy_game_plan.dart';
-
 void main() {
-  const allTypes = ExerciseType.values;
+  const types = {ExerciseType.addition, ExerciseType.integral};
   final levels = {
-    for (final t in allTypes) t: Level.fromHundredths(1000 + 731 * t.index),
+    ExerciseType.addition: Level.fromHundredths(4231),
+    ExerciseType.integral: Level.fromHundredths(870),
   };
+  const seed = 1763510400123;
+  final plan = shuffledTypeSequence(types: types, perOperation: 5, seed: seed);
 
-  PersistedSession game({
+  PersistedSession session({
     List<ExerciseType>? typeSequence,
     Map<ExerciseType, Level>? frozen,
-    int count = 24,
+    Set<ExerciseType> enabled = types,
+    SessionKind kind = SessionKind.game,
+    RulesVersion rules = RulesVersion.v2,
+    int? count,
   }) => PersistedSession(
     id: 's',
     playerId: 'p',
-    seed: 1763510400123,
-    enabledTypes: allTypes.toSet(),
-    exerciseCount: count,
+    seed: seed,
+    enabledTypes: enabled,
+    exerciseCount: count ?? typeSequence?.length ?? plan.length,
     totalScore: 0,
     levels: frozen ?? levels,
-    createdAt: DateTime.utc(2026, 11, 19),
+    createdAt: DateTime.utc(2026, 11, 23),
     typeSequence: typeSequence,
+    kind: kind,
+    rulesVersion: rules,
   );
 
-  List<({bool isCorrect, int elapsedMs})> answers(int n) => [
-    for (var i = 0; i < n; i++) (isCorrect: i.isEven, elapsedMs: 1500 + i),
-  ];
-
-  test('a fixed sequence generates exactly what the debt strategy did', () {
-    // 7 types, 24 questions: the order depends on the per-type counts.
-    final strategy = DebtAwareTypeSelectionStrategy(
-      exerciseCount: 24,
-      nMin: 4,
-      sessionsPlayedByType: {
-        ExerciseType.addition: 9,
-        ExerciseType.multiplication: 2,
-        ExerciseType.percentage: 5,
-      },
+  test('a game replays from its stored fields alone, prefix included — '
+      'the questions the app drew', () {
+    final generator = gameExerciseGenerator(
+      rulesVersion: RulesVersion.v2,
+      enabledTypes: types,
+      levels: levels,
+      typeSequence: plan,
     );
-    final sequence = strategy.sequenceFor(allTypes.toList());
-    String run(CompositeExerciseGenerator g) {
-      final random = Random(42);
-      return [for (var i = 0; i < 24; i++) g.next(random)].join(';');
-    }
+    final random = Random(seed);
+    final live = [for (final _ in plan) generator.next(random)];
+    final stored = session(typeSequence: plan);
+    expect(replaySessionQuestions(stored, plan.length), live);
+    expect(replaySessionQuestions(stored, 3), live.take(3).toList());
+  });
 
+  test('a Training game replays like a game, at its frozen levels', () {
+    final training = session(typeSequence: plan, kind: SessionKind.training);
     expect(
-      run(
-        CompositeExerciseGenerator(
-          enabledTypes: allTypes.toSet(),
-          levels: levels,
-          strategy: FixedTypeSequence(sequence),
-        ),
-      ),
-      run(
-        CompositeExerciseGenerator(
-          enabledTypes: allTypes.toSet(),
-          levels: levels,
-          strategy: strategy,
-        ),
-      ),
+      replaySessionQuestions(training, plan.length),
+      replaySessionQuestions(session(typeSequence: plan), plan.length),
     );
-  });
-
-  test('a game replays from its stored fields alone, prefix included', () {
-    final sequence = [
-      for (var i = 0; i < 24; i++) allTypes[(i * 5) % allTypes.length],
-    ];
-    final session = game(typeSequence: sequence);
-    final full = replaySessionQuestions(session, answers(24));
-    expect(full.map((e) => e.type), sequence);
-    // An interrupted session: its answered prefix, the same questions.
-    expect(replaySessionQuestions(session, answers(7)), full.take(7));
-    // Deterministic.
-    expect(replaySessionQuestions(session, answers(24)), full);
-  });
-
-  test('a placement replays with its own rules version', () {
-    for (final rules in [placementRulesV1, placementRulesV2]) {
-      final session = PersistedSession(
-        id: 'p',
-        playerId: 'p',
-        seed: 99,
-        enabledTypes: placementTypes.toSet(),
-        exerciseCount: rules.questionCount,
-        totalScore: 0,
-        levels: {for (final t in placementTypes) t: Level.whole(35)},
-        createdAt: DateTime.utc(2026, 11, 19),
-        kind: placementKindFor(rules),
-        typeSequence: placementTypeSequence(rules),
-      );
-      final given = answers(rules.questionCount);
-      expect(
-        replaySessionQuestions(session, given),
-        replayPlacementQuestions(seed: 99, answers: given, rules: rules),
-      );
-    }
   });
 
   group('not replayable', () {
-    test('rules v2: a game replays from tiers; a placement or a plan other '
-        "than the setup's does not", () {
-      PersistedSession v2({
-        required List<ExerciseType> sequence,
-        SessionKind kind = SessionKind.game,
-      }) => PersistedSession(
-        id: 's',
-        playerId: 'p',
-        seed: 1763510400123,
-        enabledTypes: sequence.toSet(),
-        exerciseCount: sequence.length,
-        totalScore: 0,
-        levels: {for (final t in sequence) t: Level.whole(42)},
-        createdAt: DateTime.utc(2026, 11, 23),
-        typeSequence: sequence,
-        kind: kind,
-        rulesVersion: RulesVersion.v2,
-      );
-      final plan = [
-        for (var i = 0; i < 4; i++) ...[
-          ExerciseType.addition,
-          ExerciseType.integral,
-        ],
-      ];
-      expect(
-        replaySessionQuestions(v2(sequence: plan), answers(8)),
-        hasLength(8),
-      );
-      expect(
-        () => replaySessionQuestions(
-          v2(sequence: plan, kind: SessionKind.placementV2),
-          answers(3),
-        ),
-        throwsA(isA<SessionNotReplayable>()),
-      );
-      expect(
-        () => replaySessionQuestions(
-          v2(sequence: List.filled(3, ExerciseType.addition)),
-          answers(3),
-        ),
-        throwsA(isA<SessionNotReplayable>()),
-      );
+    void refused(PersistedSession s, [int count = 3]) => expect(
+      () => replaySessionQuestions(s, count),
+      throwsA(isA<SessionNotReplayable>()),
+    );
+
+    test('rules v1, retired', () {
+      refused(session(typeSequence: plan, rules: RulesVersion.v1));
     });
 
-    test('no stored type sequence (interrupted before schema v6)', () {
-      expect(
-        () => replaySessionQuestions(game(), answers(3)),
-        throwsA(isA<SessionNotReplayable>()),
-      );
+    test('a placement, of any version', () {
+      for (final kind in [
+        SessionKind.placementV1,
+        SessionKind.placementV2,
+        SessionKind.typePlacementV3,
+      ]) {
+        refused(session(typeSequence: plan, kind: kind));
+      }
+    });
+
+    test('no stored type sequence', () {
+      refused(session(count: 10));
     });
 
     test('a frozen level missing for an enabled type', () {
-      final sequence = List.filled(24, ExerciseType.addition);
-      expect(
-        () => replaySessionQuestions(
-          game(
-            typeSequence: sequence,
-            frozen: {ExerciseType.addition: Level.floor},
-          ),
-          answers(3),
+      refused(
+        session(
+          typeSequence: plan,
+          frozen: {ExerciseType.addition: Level.zero},
         ),
-        throwsA(isA<SessionNotReplayable>()),
       );
     });
 
     test('more answers than planned questions', () {
-      final sequence = List.filled(4, ExerciseType.addition);
-      expect(
-        () => replaySessionQuestions(
-          game(typeSequence: sequence, count: 4),
-          answers(5),
+      refused(session(typeSequence: plan), plan.length + 1);
+    });
+
+    test("a plan other than the setup's", () {
+      // Unequal counts.
+      refused(
+        session(
+          typeSequence: [
+            ...List.filled(4, ExerciseType.addition),
+            ...List.filled(5, ExerciseType.integral),
+          ],
         ),
-        throwsA(isA<SessionNotReplayable>()),
       );
-    });
-
-    test('a placement whose type sequence contradicts its rules', () {
-      final session = PersistedSession(
-        id: 'p',
-        playerId: 'p',
-        seed: 1,
-        enabledTypes: placementTypes.toSet(),
-        exerciseCount: 20,
-        totalScore: 0,
-        levels: const {},
-        createdAt: DateTime.utc(2026, 11, 19),
-        kind: SessionKind.placementV2,
-        typeSequence: List.filled(20, ExerciseType.addition),
+      // Equal, but 3 each.
+      refused(
+        session(
+          typeSequence: [
+            ...List.filled(3, ExerciseType.addition),
+            ...List.filled(3, ExerciseType.integral),
+          ],
+        ),
       );
-      expect(
-        () => replaySessionQuestions(session, answers(2)),
-        throwsA(isA<SessionNotReplayable>()),
-      );
-    });
-  });
-
-  group('FixedTypeSequence', () {
-    test('refuses an empty sequence', () {
-      expect(() => FixedTypeSequence(const []), throwsArgumentError);
-    });
-
-    test('refuses a type that is not enabled', () {
-      expect(
-        () => FixedTypeSequence(const [
-          ExerciseType.power,
-        ]).sequenceFor(const [ExerciseType.addition]),
-        throwsArgumentError,
-      );
+      // An enabled operation never asked.
+      refused(session(typeSequence: List.filled(4, ExerciseType.addition)));
     });
   });
 
   test('PersistedSession refuses a type sequence of the wrong length', () {
     expect(
-      () => game(typeSequence: const [ExerciseType.addition]),
+      () => session(typeSequence: plan, count: plan.length + 1),
       throwsArgumentError,
     );
   });

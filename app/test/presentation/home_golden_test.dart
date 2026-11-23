@@ -13,7 +13,6 @@ import 'package:math_trainer/presentation/screens/play_tab.dart';
 import 'package:math_trainer/presentation/theme/app_theme.dart';
 
 import '../fake_account_repository.dart';
-import '../fake_placement_skip_store.dart';
 import '../fake_profile_repository.dart';
 import '../fake_stores.dart';
 import 'golden_test_utils.dart';
@@ -39,7 +38,7 @@ Future<AppEnvironment> _environment() async {
       enabledTypes: const {ExerciseType.addition},
       exerciseCount: 1,
       totalScore: 0,
-      levels: {ExerciseType.addition: Level.floor},
+      levels: {ExerciseType.addition: Level.zero},
       createdAt: at,
     ),
     answers: [
@@ -74,7 +73,6 @@ Future<AppEnvironment> _environment() async {
       ExerciseType.multiplication,
     }),
     gameSetupStore: FakeGameSetupStore(GameSetup(mode: GameMode.training)),
-    placementSkipStore: FakePlacementSkipStore(),
   );
 }
 

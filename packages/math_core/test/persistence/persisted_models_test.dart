@@ -219,7 +219,7 @@ void main() {
     });
 
     test('rejects an overall level outside [1, 100]', () {
-      expect(() => buildSession(overallLevelAfter: 0.5), throwsArgumentError);
+      expect(() => buildSession(overallLevelAfter: -0.5), throwsArgumentError);
       expect(() => buildSession(overallLevelAfter: 100.5), throwsArgumentError);
       expect(buildSession(overallLevelAfter: 1).overallLevelAfter, 1);
       expect(buildSession(overallLevelAfter: 100).overallLevelAfter, 100);

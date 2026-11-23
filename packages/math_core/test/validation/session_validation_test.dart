@@ -1,5 +1,4 @@
 import 'package:math_core/leveling/level.dart';
-import 'package:math_core/leveling/level_updater.dart';
 import 'package:math_core/leveling/level_updates.dart';
 import 'package:math_core/leveling/rules_version.dart';
 import 'package:math_core/models/game_setup.dart';
@@ -11,8 +10,6 @@ import 'package:math_core/persistence/level_cache_entry.dart';
 import 'package:math_core/persistence/persisted_answer.dart';
 import 'package:math_core/persistence/persisted_session.dart';
 import 'package:math_core/models/session_kind.dart';
-import 'package:math_core/placement/placement.dart';
-import 'package:math_core/placement/placement_exercise_source.dart';
 import 'package:math_core/replay/session_replay.dart';
 import 'package:math_core/sync/session_upload.dart';
 import 'package:math_core/validation/session_validation.dart';
@@ -31,7 +28,7 @@ SessionUpload honestGame({
   int? answered,
   int seed = 777,
   SessionKind kind = SessionKind.game,
-  RulesVersion rulesVersion = RulesVersion.v1,
+  RulesVersion rulesVersion = RulesVersion.v2,
   ({int value, int ms}) Function(int i, Exercise q)? answer,
 }) {
   final types = {ExerciseType.addition, ExerciseType.multiplication};
@@ -43,7 +40,7 @@ SessionUpload honestGame({
     enabledTypes: types,
     exerciseCount: count,
     totalScore: 0,
-    levels: levels ?? {for (final t in types) t: Level.floor},
+    levels: levels ?? {for (final t in types) t: Level.zero},
     createdAt: createdAt,
     kind: kind,
     typeSequence: [
@@ -52,10 +49,7 @@ SessionUpload honestGame({
     ],
     rulesVersion: rulesVersion,
   );
-  final n = answered ?? count;
-  final questions = replaySessionQuestions(session, [
-    for (var i = 0; i < n; i++) (isCorrect: true, elapsedMs: 0),
-  ]);
+  final questions = replaySessionQuestions(session, answered ?? count);
   return SessionUpload(
     session: session,
     answers: [
@@ -134,18 +128,10 @@ PersistedAnswer copyAnswer(
 );
 
 void main() {
-  group('rules v2 (doc/levels.md)', () {
-    final zero = {
-      ExerciseType.addition: Level.zero,
-      ExerciseType.multiplication: Level.zero,
-    };
-
-    test('an honest game from 0: accepted, each operation moved by its '
-        'quality — what the app computes', () {
+  group('rules (doc/levels.md)', () {
+    test('an honest game from 0: each operation moved by its quality', () {
       // Additions fluent, multiplications right but slow.
       final upload = honestGame(
-        rulesVersion: RulesVersion.v2,
-        levels: zero,
         answer: (i, q) => (value: q.correctAnswer, ms: i.isEven ? 1000 : 20000),
       );
       final result = validate(upload) as Accepted;
@@ -157,52 +143,12 @@ void main() {
         result.levelUpdates[ExerciseType.multiplication]!.level,
         Level.fromHundredths(120),
       );
-      final appSide = gameLevelUpdates(
-        outcomes: [
-          for (final (i, q) in replaySessionQuestions(upload.session, [
-            for (var k = 0; k < 8; k++) (isCorrect: true, elapsedMs: 0),
-          ]).indexed)
-            AnswerResult(
-              exercise: q,
-              submittedValue: q.correctAnswer,
-              isCorrect: true,
-              elapsedMs: i.isEven ? 1000 : 20000,
-              answeredAt: upload.session.createdAt,
-            ),
-        ],
-        frozenLevels: zero,
-        priorLevels: const {},
-        now: upload.session.createdAt,
-        rulesVersion: RulesVersion.v2,
-      );
-      expect(
-        {for (final e in result.levelUpdates.entries) e.key: e.value.level},
-        {for (final e in appSide.entries) e.key: e.value.level},
-      );
     });
 
-    test("a game claiming rules v1's level 1 for a new player is refused", () {
-      final result = validate(honestGame(rulesVersion: RulesVersion.v2));
-      expect((result as Rejected).reason, RejectionReason.levelsMismatch);
-    });
-
-    test('a forged question is refused', () {
-      final upload = honestGame(rulesVersion: RulesVersion.v2, levels: zero);
-      final forged = tamper(
-        upload,
-        0,
-        (a) => copyAnswer(a, operands: {'operandA': 1, 'operandB': 1}),
-      );
-      expect(
-        (validate(forged) as Rejected).reason,
-        RejectionReason.questionMismatch,
-      );
-    });
-
-    test("a plan other than the setup's (3 questions each) cannot replay", () {
-      final v1 = honestGame(count: 6);
-      final s = v1.session;
-      final upload = SessionUpload(
+    test('a session of retired rules (v1) is refused, never replayed', () {
+      final v2 = honestGame();
+      final s = v2.session;
+      final v1 = SessionUpload(
         session: PersistedSession(
           id: s.id,
           playerId: s.playerId,
@@ -210,12 +156,75 @@ void main() {
           enabledTypes: s.enabledTypes,
           exerciseCount: s.exerciseCount,
           totalScore: 0,
-          levels: zero,
+          levels: s.levels,
           createdAt: s.createdAt,
           typeSequence: s.typeSequence,
+        ),
+        answers: v2.answers,
+      );
+      expect(v1.session.rulesVersion, RulesVersion.v1);
+      final result = validate(v1) as Rejected;
+      expect(result.reason, RejectionReason.rulesRetired);
+    });
+
+    test('a placement is refused: there is none any more', () {
+      for (final kind in [
+        SessionKind.placementV1,
+        SessionKind.placementV2,
+        SessionKind.typePlacementV3,
+      ]) {
+        final v2 = honestGame();
+        final s = v2.session;
+        final placement = SessionUpload(
+          session: PersistedSession(
+            id: s.id,
+            playerId: s.playerId,
+            seed: s.seed,
+            enabledTypes: s.enabledTypes,
+            exerciseCount: s.exerciseCount,
+            totalScore: 0,
+            levels: s.levels,
+            createdAt: s.createdAt,
+            typeSequence: s.typeSequence,
+            kind: kind,
+            rulesVersion: RulesVersion.v2,
+          ),
+          answers: v2.answers,
+        );
+        final result = validate(placement) as Rejected;
+        expect(result.reason, RejectionReason.notReplayable, reason: '$kind');
+      }
+    });
+
+    test("a game claiming rules v1's level 1 for a new player is refused", () {
+      final result = validate(
+        honestGame(
+          levels: {
+            ExerciseType.addition: Level.whole(1),
+            ExerciseType.multiplication: Level.whole(1),
+          },
+        ),
+      );
+      expect((result as Rejected).reason, RejectionReason.levelsMismatch);
+    });
+
+    test("a plan other than the setup's (3 questions each) cannot replay", () {
+      final v2 = honestGame();
+      final s = v2.session;
+      final upload = SessionUpload(
+        session: PersistedSession(
+          id: s.id,
+          playerId: s.playerId,
+          seed: s.seed,
+          enabledTypes: s.enabledTypes,
+          exerciseCount: 6,
+          totalScore: 0,
+          levels: s.levels,
+          createdAt: s.createdAt,
+          typeSequence: s.typeSequence!.take(6).toList(),
           rulesVersion: RulesVersion.v2,
         ),
-        answers: v1.answers,
+        answers: v2.answers.take(6).toList(),
       );
       final result = validate(upload);
       expect((result as Rejected).reason, RejectionReason.notReplayable);
@@ -230,9 +239,10 @@ void main() {
       expect(result.completed, isTrue);
       final appSide = gameLevelUpdates(
         outcomes: [
-          for (final (i, q) in replaySessionQuestions(upload.session, [
-            for (final _ in upload.answers) (isCorrect: true, elapsedMs: 0),
-          ]).indexed)
+          for (final (i, q) in replaySessionQuestions(
+            upload.session,
+            upload.answers.length,
+          ).indexed)
             AnswerResult(
               exercise: q,
               submittedValue: upload.answers[i].submittedValue,
@@ -244,7 +254,6 @@ void main() {
         frozenLevels: upload.session.levels,
         priorLevels: const {},
         now: upload.session.createdAt,
-        levelUpdater: LevelUpdater(),
       );
       expect(result.levelUpdates.keys, appSide.keys);
       for (final type in appSide.keys) {
@@ -263,7 +272,7 @@ void main() {
         at: DateTime.utc(2026, 11, 20, 11, 5),
         levels: {
           for (final t in [ExerciseType.addition, ExerciseType.multiplication])
-            t: first.newState.levels[t]?.level ?? Level.floor,
+            t: first.newState.levels[t]?.level ?? Level.zero,
         },
       );
       expect(validate(next, state: first.newState), isA<Accepted>());
@@ -301,7 +310,7 @@ void main() {
               ExerciseType.addition,
               ExerciseType.multiplication,
             ])
-              t: first.newState.levels[t]?.level ?? Level.floor,
+              t: first.newState.levels[t]?.level ?? Level.zero,
           },
         );
         expect(validate(next, state: result.newState), isA<Accepted>());
@@ -379,7 +388,7 @@ void main() {
         lastSessionAt: DateTime.utc(2026, 11, 19),
         hasCompletedSession: true,
       );
-      // Played at level 1 while the server says 60.
+      // Played at level 0 while the server says 60.
       expectRejected(
         validate(honestGame(), state: state),
         RejectionReason.levelsMismatch,
@@ -423,219 +432,6 @@ void main() {
         ),
         RejectionReason.badElapsed,
       );
-    });
-  });
-
-  group('placement', () {
-    SessionUpload placement({
-      PlacementRules rules = placementRulesV2,
-      int? answered,
-    }) {
-      final n = answered ?? rules.questionCount;
-      final at = DateTime.utc(2026, 11, 20, 10);
-      final session = PersistedSession(
-        id: 'pl',
-        playerId: 'p1',
-        seed: 31337,
-        enabledTypes: placementTypes.toSet(),
-        exerciseCount: rules.questionCount,
-        totalScore: 0,
-        levels: {
-          for (final t in placementTypes) t: Level.whole(rules.startLevel),
-        },
-        createdAt: at,
-        kind: placementKindFor(rules),
-        typeSequence: placementTypeSequence(rules),
-      );
-      // Right and fast on additions only: the staircases diverge.
-      final outcomes = <({bool isCorrect, int elapsedMs})>[];
-      final answers = <PersistedAnswer>[];
-      for (var i = 0; i < n; i++) {
-        final q = replayPlacementQuestions(
-          seed: session.seed,
-          answers: [...outcomes, (isCorrect: false, elapsedMs: 0)],
-          rules: rules,
-        )[i];
-        final right = q.type == ExerciseType.addition;
-        final given = (
-          value: right ? q.correctAnswer : q.correctAnswer + 1,
-          ms: 1200 + 31 * i,
-        );
-        outcomes.add((isCorrect: right, elapsedMs: given.ms));
-        answers.add(_answerOf('pl', i, q, given, at));
-      }
-      return SessionUpload(session: session, answers: answers);
-    }
-
-    test('a complete placement sets the four starting levels', () {
-      final result = validate(placement()) as Accepted;
-      expect(result.levelUpdates.keys, unorderedEquals(placementTypes));
-      expect(
-        result.levelUpdates[ExerciseType.addition]!.level.hundredths,
-        greaterThan(3500),
-      );
-      expect(
-        result.levelUpdates[ExerciseType.division]!.level.hundredths,
-        lessThan(3500),
-      );
-    });
-
-    test('version 1 still replays', () {
-      expect(validate(placement(rules: placementRulesV1)), isA<Accepted>());
-    });
-
-    test('interrupted: kept, no level', () {
-      final result = validate(placement(answered: 7)) as Accepted;
-      expect(result.levelUpdates, isEmpty);
-    });
-
-    test('not after a completed game', () {
-      final result = validate(
-        placement(),
-        state: ServerPlayerState(
-          hasCompletedSession: true,
-          lastSessionAt: DateTime.utc(2026, 11, 19),
-        ),
-      );
-      expect((result as Rejected).reason, RejectionReason.placementAfterGames);
-    });
-
-    test('a forged answer reshapes the next questions: rejected', () {
-      // Claiming the first division right changes its staircase, so the
-      // next division question differs from what was really asked.
-      final honest = placement();
-      final forged = tamper(honest, 3, (a) => copyAnswer(a, isCorrect: true));
-      expect(validate(forged), isA<Rejected>());
-    });
-
-    test('not from other starting levels', () {
-      final honest = placement();
-      final s = honest.session;
-      final moved = SessionUpload(
-        session: PersistedSession(
-          id: s.id,
-          playerId: s.playerId,
-          seed: s.seed,
-          enabledTypes: s.enabledTypes,
-          exerciseCount: s.exerciseCount,
-          totalScore: 0,
-          levels: {for (final t in placementTypes) t: Level.whole(80)},
-          createdAt: s.createdAt,
-          kind: s.kind,
-          typeSequence: s.typeSequence,
-        ),
-        answers: honest.answers,
-      );
-      expect(
-        (validate(moved) as Rejected).reason,
-        RejectionReason.levelsMismatch,
-      );
-    });
-  });
-
-  group('type placement (Phase 3a commit 7)', () {
-    const placed = {ExerciseType.power, ExerciseType.percentage};
-
-    SessionUpload typePlacement({
-      int? answered,
-      List<ExerciseType>? sequence,
-      int startLevel = 35,
-    }) {
-      final seq = sequence ?? typePlacementSequence(placed);
-      final n = answered ?? seq.length;
-      final at = DateTime.utc(2026, 11, 20, 10);
-      final session = PersistedSession(
-        id: 'tp',
-        playerId: 'p1',
-        seed: 4242,
-        enabledTypes: placed,
-        exerciseCount: seq.length,
-        totalScore: 0,
-        levels: {for (final t in placed) t: Level.whole(startLevel)},
-        createdAt: at,
-        kind: SessionKind.typePlacementV3,
-        typeSequence: seq,
-      );
-      // Right and fast on powers only: the two staircases diverge.
-      final outcomes = <({bool isCorrect, int elapsedMs})>[];
-      final answers = <PersistedAnswer>[];
-      for (var i = 0; i < n; i++) {
-        final q = replayPlacementQuestions(
-          seed: session.seed,
-          answers: [...outcomes, (isCorrect: false, elapsedMs: 0)],
-          rules: typePlacementRules,
-          sequence: seq,
-        )[i];
-        final right = q.type == ExerciseType.power;
-        final given = (
-          value: right ? q.correctAnswer : q.correctAnswer + 1,
-          ms: 1400 + 13 * i,
-        );
-        outcomes.add((isCorrect: right, elapsedMs: given.ms));
-        answers.add(_answerOf('tp', i, q, given, at));
-      }
-      return SessionUpload(session: session, answers: answers);
-    }
-
-    test('sets levels for its operations only, boost kept', () {
-      final result = validate(typePlacement()) as Accepted;
-      expect(result.levelUpdates.keys, unorderedEquals(placed));
-      expect(
-        result.levelUpdates[ExerciseType.power]!.level.hundredths,
-        greaterThan(3500),
-      );
-      expect(
-        result.levelUpdates[ExerciseType.percentage]!.level.hundredths,
-        lessThan(3500),
-      );
-      for (final entry in result.levelUpdates.values) {
-        expect(entry.sessionsPlayed, typePlacementRules.sessionsPlayedAfter);
-      }
-    });
-
-    test('allowed after games, on operations the server never saw', () {
-      final state = ServerPlayerState(
-        hasCompletedSession: true,
-        lastSessionAt: DateTime.utc(2026, 11, 19),
-        levels: {
-          ExerciseType.addition: LevelCacheEntry(
-            level: Level.whole(40),
-            sessionsPlayed: 6,
-            updatedAt: DateTime.utc(2026, 11, 19),
-          ),
-        },
-      );
-      expect(validate(typePlacement(), state: state), isA<Accepted>());
-    });
-
-    test('an operation the server has a level for is refused', () {
-      final state = ServerPlayerState(
-        levels: {
-          ExerciseType.percentage: LevelCacheEntry(
-            level: Level.whole(12),
-            sessionsPlayed: 2,
-            updatedAt: DateTime.utc(2026, 11, 19),
-          ),
-        },
-      );
-      final result = validate(typePlacement(), state: state);
-      expect((result as Rejected).reason, RejectionReason.typeAlreadyPlayed);
-    });
-
-    test('a start level other than the rules’ is refused', () {
-      final result = validate(typePlacement(startLevel: 60));
-      expect((result as Rejected).reason, RejectionReason.levelsMismatch);
-    });
-
-    test('a rotation other than the rules’ cannot replay', () {
-      final reordered = typePlacementSequence(placed).reversed.toList();
-      final result = validate(typePlacement(sequence: reordered));
-      expect((result as Rejected).reason, RejectionReason.notReplayable);
-    });
-
-    test('interrupted: accepted, sets nothing', () {
-      final result = validate(typePlacement(answered: 4)) as Accepted;
-      expect(result.levelUpdates, isEmpty);
     });
   });
 

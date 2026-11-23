@@ -7,6 +7,7 @@ import 'package:math_trainer/composition_root.dart';
 import 'package:math_core/account/account.dart';
 import 'package:math_core/account/account_repository.dart';
 import 'package:math_core/leveling/level.dart';
+import 'package:math_core/leveling/rules_version.dart';
 import 'package:math_core/persistence/level_cache_entry.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/persistence/in_memory_session_repository.dart';
@@ -157,77 +158,28 @@ void main() {
     });
   }
 
-  group('placement from Profile (owner, end of Phase 1)', () {
-    Future<void> pumpProfile(
-      WidgetTester tester,
-      InMemorySessionRepository repository,
-    ) async {
-      await setTallSurface(tester);
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: buildLightTheme(),
-          home: Scaffold(
-            body: ProfileScreen(
-              environment: AppEnvironment(
-                repository: repository,
-                playerId: 'test-player',
-                accountRepository: FakeAccountRepository(),
-                profileRepository: FakeProfileRepository(),
-              ),
+  testWidgets('no placement offered; the main level is 0 before any game', (
+    tester,
+  ) async {
+    await setTallSurface(tester);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildLightTheme(),
+        home: Scaffold(
+          body: ProfileScreen(
+            environment: AppEnvironment(
+              repository: InMemorySessionRepository(),
+              playerId: 'test-player',
+              accountRepository: FakeAccountRepository(),
+              profileRepository: FakeProfileRepository(),
             ),
           ),
         ),
-      );
-      await tester.pumpAndSettle();
-    }
-
-    PersistedSession game(int exerciseCount) => PersistedSession(
-      id: 'game',
-      playerId: 'test-player',
-      seed: 1,
-      enabledTypes: const {ExerciseType.addition},
-      exerciseCount: exerciseCount,
-      totalScore: 10,
-      levels: {ExerciseType.addition: Level.floor},
-      createdAt: DateTime.utc(2026, 11, 1),
+      ),
     );
-
-    PersistedAnswer anAnswer() => PersistedAnswer(
-      id: 'answer',
-      sessionId: 'game',
-      exerciseType: 'arithmetic',
-      operationType: 'addition',
-      operands: const {'left': 1, 'right': 1},
-      submittedValue: 2,
-      isCorrect: true,
-      elapsedMs: 900,
-      createdAt: DateTime.utc(2026, 11, 1),
-    );
-
-    testWidgets('offered while no session is completed', (tester) async {
-      final repository = InMemorySessionRepository();
-      // Interrupted: 1 answer out of 4.
-      await repository.recordSession(
-        session: game(4),
-        answers: [anAnswer()],
-        levelUpdates: const {},
-      );
-      await pumpProfile(tester, repository);
-
-      expect(find.text('Find my level'), findsOneWidget);
-    });
-
-    testWidgets('gone once a session is completed', (tester) async {
-      final repository = InMemorySessionRepository();
-      await repository.recordSession(
-        session: game(1),
-        answers: [anAnswer()],
-        levelUpdates: const {},
-      );
-      await pumpProfile(tester, repository);
-
-      expect(find.text('Find my level'), findsNothing);
-    });
+    await tester.pumpAndSettle();
+    expect(find.text('Find my level'), findsNothing);
+    expect(findLevelBadge(0), findsOneWidget);
   });
 
   testWidgets('a refused game says why it is not ranked (Phase 3a commit 2)', (
@@ -478,6 +430,7 @@ void main() {
           // What the controller stores: the overall level (7 types, six at
           // the floor) once addition has moved to [level].
           overallLevelAfter: (level + 6) / 7,
+          rulesVersion: RulesVersion.current,
         ),
         answers: answers,
         levelUpdates: {

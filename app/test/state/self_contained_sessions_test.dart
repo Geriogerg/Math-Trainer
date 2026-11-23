@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:math_trainer/composition_root.dart';
+import 'package:math_core/leveling/rules_version.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/models/session_kind.dart';
 import 'package:math_core/persistence/exercise_codec.dart';
@@ -54,7 +55,6 @@ void main() {
       controller.dispose();
     }
 
-    await play(buildPlacementController(environment));
     final all = ExerciseType.values.toSet();
     for (final types in [
       {ExerciseType.addition, ExerciseType.subtraction},
@@ -69,19 +69,14 @@ void main() {
     await play(await buildSessionController(environment, all), stopAfter: 5);
 
     final sessions = await repository.recentSessions('player', limit: 100);
-    expect(sessions, hasLength(7));
-    expect(
-      sessions.where((s) => s.kind == SessionKind.placementV2),
-      hasLength(1),
-    );
+    expect(sessions, hasLength(6));
+    // Every one under the current rules (`doc/levels.md`).
+    expect(sessions.map((s) => s.rulesVersion).toSet(), {RulesVersion.current});
 
     for (final session in sessions) {
       expect(session.typeSequence, hasLength(session.exerciseCount));
       final answers = await repository.answersForSession(session.id);
-      final questions = replaySessionQuestions(session, [
-        for (final a in answers)
-          (isCorrect: a.isCorrect, elapsedMs: a.elapsedMs),
-      ]);
+      final questions = replaySessionQuestions(session, answers.length);
       expect(questions, hasLength(answers.length));
       for (var i = 0; i < answers.length; i++) {
         final described = describeExerciseForStorage(questions[i]);

@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:math_trainer/composition_root.dart';
 import 'package:math_core/leveling/level.dart';
+import 'package:math_core/leveling/rules_version.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/persistence/level_cache_entry.dart';
 import 'package:math_core/persistence/persisted_answer.dart';
@@ -97,6 +98,7 @@ class _FixedLevelsRepository implements SessionRepository {
     // Same value as the entry level: keeps the curve and gaps of the
     // reference image from before `overallLevelAfter` (20 → 30 → 42).
     overallLevelAfter: level.toDouble(),
+    rulesVersion: RulesVersion.current,
   );
 
   @override

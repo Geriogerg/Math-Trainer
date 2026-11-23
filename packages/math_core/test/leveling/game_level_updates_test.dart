@@ -2,7 +2,6 @@ import 'package:math_core/tiers/fluent_time.dart';
 import 'package:math_core/leveling/level.dart';
 import 'package:math_core/leveling/level_cache_orchestrator.dart';
 import 'package:math_core/leveling/level_updates.dart';
-import 'package:math_core/leveling/rules_version.dart';
 import 'package:math_core/models/answer_result.dart';
 import 'package:math_core/models/exercise.dart';
 import 'package:math_core/models/exercise_type.dart';
@@ -34,7 +33,7 @@ void main() {
     ],
   ];
 
-  test('rules v2: each operation moves by its own quality, from 0', () {
+  test('each operation moves by its own quality, from 0', () {
     final updates = gameLevelUpdates(
       outcomes: outcomes,
       frozenLevels: {
@@ -49,7 +48,6 @@ void main() {
         ),
       },
       now: _at,
-      rulesVersion: RulesVersion.v2,
     );
     expect(updates[ExerciseType.addition]!.level, Level.fromHundredths(300));
     expect(updates[ExerciseType.addition]!.sessionsPlayed, 1);
@@ -62,13 +60,12 @@ void main() {
     expect(updates[ExerciseType.multiplication]!.updatedAt, _at);
   });
 
-  test('rules v2: a missing frozen level counts as 0', () {
+  test('a missing frozen level counts as 0', () {
     final updates = gameLevelUpdates(
       outcomes: outcomes,
       frozenLevels: const {},
       priorLevels: const {},
       now: _at,
-      rulesVersion: RulesVersion.v2,
     );
     expect(updates[ExerciseType.addition]!.level, Level.fromHundredths(300));
     expect(
@@ -77,19 +74,18 @@ void main() {
     );
   });
 
-  test('the orchestrator scores with its rules version', () async {
+  test('the orchestrator scores a game with them', () async {
     final repository = InMemorySessionRepository();
-    final updates = await LevelCacheOrchestrator(rulesVersion: RulesVersion.v2)
-        .computeUpdates(
-          outcomes: outcomes,
-          frozenLevels: const {
-            ExerciseType.addition: Level.zero,
-            ExerciseType.multiplication: Level.zero,
-          },
-          repository: repository,
-          playerId: 'p',
-          now: _at,
-        );
+    final updates = await const LevelCacheOrchestrator().computeUpdates(
+      outcomes: outcomes,
+      frozenLevels: const {
+        ExerciseType.addition: Level.zero,
+        ExerciseType.multiplication: Level.zero,
+      },
+      repository: repository,
+      playerId: 'p',
+      now: _at,
+    );
     expect(updates[ExerciseType.addition]!.level, Level.fromHundredths(300));
   });
 }

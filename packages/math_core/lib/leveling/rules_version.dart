@@ -7,7 +7,9 @@
 enum RulesVersion {
   /// Until the Levels phase: levels 1–100, operand curves by level, the
   /// `p_cible` formula, placement and type placement. Sessions stored
-  /// without a version are v1.
+  /// without a version are v1. **Retired** at the Levels phase's transition
+  /// (commit 4): its code is gone, its sessions stay in history, never
+  /// replayed — the server refuses one uploaded late (`rulesRetired`).
   v1(1),
 
   /// `doc/levels.md` v1: levels 0–100, ten tiers per operation, credit and
@@ -19,7 +21,7 @@ enum RulesVersion {
   final int number;
 
   /// What new sessions are played under.
-  static const current = v1;
+  static const current = v2;
 
   /// Throws [ArgumentError] for a number no version has (rule 13).
   static RulesVersion of(int number) {

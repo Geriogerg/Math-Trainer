@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:math_core/leveling/level.dart';
+import 'package:math_core/leveling/rules_version.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/persistence/in_memory_session_repository.dart';
 import 'package:math_core/persistence/level_cache_entry.dart';
@@ -53,6 +54,7 @@ void main() {
     DateTime at, {
     bool withSequence = true,
     String player = 'me',
+    RulesVersion rules = RulesVersion.v2,
   }) => repository.recordSession(
     session: PersistedSession(
       id: id,
@@ -61,9 +63,10 @@ void main() {
       enabledTypes: const {ExerciseType.addition},
       exerciseCount: 1,
       totalScore: 0,
-      levels: {ExerciseType.addition: Level.floor},
+      levels: {ExerciseType.addition: Level.zero},
       createdAt: at,
       typeSequence: withSequence ? const [ExerciseType.addition] : null,
+      rulesVersion: rules,
     ),
     answers: [
       PersistedAnswer(
@@ -180,16 +183,22 @@ void main() {
     },
   );
 
-  test(
-    'a game without its type sequence is refused locally, never sent',
-    () async {
-      await store('legacy', DateTime.utc(2026, 11, 1), withSequence: false);
-      final run = await queue.flush();
-      expect(run.refused, 1);
-      expect(client.sent, isEmpty);
-      expect(repository.uploadRefusal('legacy'), 'notReplayable');
-    },
-  );
+  test('a session of retired rules (v1) is refused locally, never sent — '
+      'with or without its type sequence', () async {
+    await store(
+      'legacy',
+      DateTime.utc(2026, 11, 1),
+      withSequence: false,
+      rules: RulesVersion.v1,
+    );
+    await store('v1', DateTime.utc(2026, 11, 2), rules: RulesVersion.v1);
+    await store('v2', DateTime.utc(2026, 11, 3));
+    final run = await queue.flush();
+    expect(run.refused, 2);
+    expect(client.sent, ['v2']);
+    expect(repository.uploadRefusal('legacy'), 'rulesRetired');
+    expect(repository.uploadRefusal('v1'), 'rulesRetired');
+  });
 
   test('a flush during a run shares it, then runs once more', () async {
     await store('s1', DateTime.utc(2026, 11, 1));

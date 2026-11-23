@@ -4,6 +4,7 @@ import 'package:math_core/generation/question_plan.dart';
 import 'package:math_core/leveling/level.dart';
 import 'package:math_core/models/exercise.dart';
 import 'package:math_core/models/exercise_type.dart';
+import 'package:math_core/models/game_setup.dart';
 import 'package:math_core/tiers/tier.dart';
 import 'package:math_core/tiers/tiered_game_generator.dart';
 import 'package:test/test.dart';
@@ -18,6 +19,12 @@ void main() {
     expect(Tier.of(Level.whole(100)), Tier.t9);
     expect(Tier.t0.below, isNull);
     expect(Tier.t5.below, Tier.t4);
+  });
+
+  test('Training: Easy T1, Medium T4, Hard T7 (doc/levels.md, section 4)', () {
+    expect(Tier.of(TrainingDifficulty.easy.level), Tier.t1);
+    expect(Tier.of(TrainingDifficulty.medium.level), Tier.t4);
+    expect(Tier.of(TrainingDifficulty.hard.level), Tier.t7);
   });
 
   test('review questions: 30 %, half up — 1 of 4, 2 of 5, 3 of 10, 6 of 20; '

@@ -909,3 +909,24 @@ new games use them, together with the reset (`doc/decisions.md`).
   operation, reviews included (provisional, `doc/decisions.md`, with commits 1–2's gaps).
   Tests: every table value, the tier boundaries (39.99 / 40 / 100), the fluent time itself
   counted as fluent, 0.1 s over it as slow. Rules v1 keep their `t_rapide` until commit 4.
+- **Commit 4** *(A)* — The transition (spec section 4). `RulesVersion.current` = v2: every
+  new game, Levelling and Training, draws from the tiers and moves levels by commit 1's update.
+  **Rules v1 deleted**: the `p_cible` update and its constants, confidence boosts, the operand
+  curves and v1 generators (`CompositeExerciseGenerator`, `FixedTypeSequence`, the debt
+  strategy), placement and type placement (core, app builders, the Home offer, Profile's "Find
+  my level", the skip store, the result screen's placement branch); the stored `SessionKind`
+  names stay, never replayed. `replaySessionQuestions(session, count)` replays v2 only;
+  validation refuses v1 (`rulesRetired`, new reason, "Not ranked: played before the new levels.")
+  and the upload queue never sends a v1 session. **Levels to 0**: app schema v11 empties the
+  level cache (history kept); SQL `20261125010000_levels_transition.sql` widens
+  `server_levels` to 0–10000, empties it, ranks the main board with unplayed basics at 0 and
+  counts only rules-v2 games toward its three, and restarts Phase 3b's calibration window.
+  Everyone starts at 0: Home, Profile and the result show 0 for an operation never played;
+  Profile's curve and 30-day change use v2 sessions only. Training stays 15 / 40 / 70 = T1 /
+  T4 / T7 (tested). Duels draw from the tiers; their three pins re-recorded on purpose (no duel
+  stored). Scores: the difficulty multiplier from level 0. Smoke test: Home is the first
+  screen (no Skip). Tests: v1 suites and pins removed with their code (core 835 → 437 on the
+  VM); replay, validation (v1 refused, placements refused, the v2 chain), queue, migration
+  (v3 → v11), SQL (v1 games off the main board, level 0 stored, unplayed 0); goldens of Home,
+  Profile and the result screen regenerated and checked by eye (levels at 0, no placement
+  block, +3 on a perfect 4-question game). Not run locally: the smoke test (production).

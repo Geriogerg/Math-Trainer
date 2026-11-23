@@ -330,14 +330,17 @@ void main() {
       expect(sessions, hasLength(1));
       expect(sessions.single.playerId, 'test-player');
       expect(sessions.single.totalScore, controller.state.score);
-      expect(sessions.single.levels, {ExerciseType.addition: Level.floor});
+      expect(sessions.single.levels, {ExerciseType.addition: Level.whole(1)});
 
       final answers = await repository.answersForSession(sessions.single.id);
       expect(answers, hasLength(3));
       expect(answers.map((a) => a.isCorrect), [true, false, true]);
 
-      // 3 answers < n_min (4, step 4.2): the level cache is left untouched.
-      expect(await repository.currentLevels('test-player'), isEmpty);
+      // Completed: the game moves its operation's level, whatever the
+      // number of answers (`doc/levels.md`, no n_min any more).
+      expect((await repository.currentLevels('test-player')).keys, {
+        ExerciseType.addition,
+      });
     });
 
     test(
@@ -1317,10 +1320,10 @@ void persistenceRobustnessTests() {
         ))[ExerciseType.addition]!.level.value;
         final session = (await repository.recentSessions('test-player')).first;
         // Main level: addition updated + multiplication 50 + the two other
-        // basics at the floor, over 4.
+        // basics at 0, over 4.
         expect(
           session.overallLevelAfter,
-          closeTo((additionAfter + 50 + 2) / 4, 1e-9),
+          closeTo((additionAfter + 50) / 4, 1e-9),
         );
       },
     );

@@ -60,14 +60,11 @@ class _PlayTabState extends State<PlayTab> {
   bool _isStarting = false;
   String? _startError;
 
-  /// `null` until read, or if the read failed (levels then show as 1).
+  /// `null` until read, or if the read failed (levels then show as 0).
   Map<ExerciseType, LevelCacheEntry>? _levels;
 
-  /// No completed session and the offer never skipped (Phase 1).
-  bool _offerPlacement = false;
-
-  /// Nothing is drawn before the first read resolves, or a new player would
-  /// see Home flash before the placement offer.
+  /// Nothing is drawn before the first read resolves: Home would flash the
+  /// default selection first.
   bool _startupResolved = false;
 
   @override
@@ -107,30 +104,17 @@ class _PlayTabState extends State<PlayTab> {
       final results = await Future.wait([
         environment.typeSelectionStore.load(),
         environment.repository.currentLevels(environment.playerId),
-        environment.repository.hasCompletedSession(environment.playerId),
-        environment.placementSkipStore.hasSkipped(environment.playerId),
       ]);
       if (!mounted) return;
       final storedSelection = results[0] as Set<ExerciseType>?;
-      final completed = results[2] as bool;
-      final skipped = results[3] as bool;
       setState(() {
         if (storedSelection != null) _selectedTypes = storedSelection;
         _levels = results[1] as Map<ExerciseType, LevelCacheEntry>;
-        _offerPlacement = !completed && !skipped;
         _startupResolved = true;
       });
     } on Exception catch (_) {
       if (mounted) setState(() => _startupResolved = true);
     }
-  }
-
-  void _skipPlacement() {
-    setState(() => _offerPlacement = false);
-    // A failed write only costs the offer again at the next launch.
-    widget.environment.placementSkipStore
-        .markSkipped(widget.environment.playerId)
-        .ignore();
   }
 
   void _toggle(ExerciseType type) {
@@ -190,9 +174,6 @@ class _PlayTabState extends State<PlayTab> {
     );
   }
 
-  Future<void> _startPlacement() =>
-      _run(() async => buildPlacementController(widget.environment));
-
   Future<void> _run(
     Future<SessionController> Function() build, {
     GameSetup? setup,
@@ -231,14 +212,6 @@ class _PlayTabState extends State<PlayTab> {
   @override
   Widget build(BuildContext context) {
     if (!_startupResolved) return const SizedBox.expand();
-    if (_offerPlacement) {
-      return _PlacementOfferView(
-        onStart: _isStarting ? null : _startPlacement,
-        onSkip: _skipPlacement,
-        isStarting: _isStarting,
-        startError: _startError,
-      );
-    }
     if (_chainSetupOpen) {
       return PopScope(
         canPop: false,
@@ -278,7 +251,7 @@ class _PlayTabState extends State<PlayTab> {
     final levels = _levels ?? const {};
     return _HomeView(
       mainLevel: mainLevel(levels).round(),
-      levelOf: (type) => (levels[type]?.level ?? Level.floor).whole,
+      levelOf: (type) => (levels[type]?.level ?? Level.zero).whole,
       selectionOf: _selectionOf,
       onToggle: _toggle,
       onPlay: _openSetup,
@@ -575,60 +548,6 @@ class _ChainSetupView extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-/// A new player's first screen (Phase 1): the placement, or Skip to Home.
-class _PlacementOfferView extends StatelessWidget {
-  const _PlacementOfferView({
-    required this.onStart,
-    required this.onSkip,
-    required this.isStarting,
-    required this.startError,
-  });
-
-  final VoidCallback? onStart;
-  final VoidCallback onSkip;
-  final bool isStarting;
-  final String? startError;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Center(
-      child: SingleChildScrollView(
-        padding: theme.extension<AppMetrics>()!.rootPadding,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'Find your level',
-              style: theme.textTheme.titleLarge,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            AppButton.primary(
-              onPressed: onStart,
-              busy: isStarting,
-              label: 'Start',
-            ),
-            const SizedBox(height: 8),
-            AppButton.secondary(onPressed: onSkip, label: 'Skip'),
-            if (startError != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                startError!,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.error,
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
     );
   }
 }

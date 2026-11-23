@@ -1,6 +1,7 @@
 /// A level, kept in **integer hundredths**: 3742 is level 37.42 (plan,
 /// Phase 1 commit 2; architecture rule 18). Range [0.00, 100.00]
-/// (`doc/levels.md`: everyone starts at 0; rules v1 never went below 1).
+/// (`doc/levels.md`: everyone starts at 0, the level of an operation never
+/// played).
 ///
 /// Why hundredths: with integer levels, every update was rounded to a whole
 /// level, which swallowed every step under 0.5 — an extra dead band that
@@ -49,18 +50,9 @@ extension type const Level._(int hundredths) {
   static const minHundredths = 0;
   static const maxHundredths = 10000;
 
-  /// Level 0: where everyone starts under rules v2 (`doc/levels.md`).
+  /// Level 0: where everyone starts, the level of an operation never
+  /// played (`doc/levels.md`).
   static const Level zero = Level._(0);
-
-  /// Rules v1's floor, 1.00: the level of an operation never played until
-  /// the Levels phase's transition (commit 4), and the lowest a v1 update
-  /// or placement ever reaches.
-  static const Level floor = Level._(100);
-
-  /// [hundredths] clamped into rules v1's range [1.00, 100.00].
-  factory Level.clampedV1(int hundredths) => Level.clamped(
-    hundredths < floor.hundredths ? floor.hundredths : hundredths,
-  );
 
   /// The whole part (37 for 37.99): what generation reads and what the
   /// player sees. Truncation, not rounding, so the displayed level is the

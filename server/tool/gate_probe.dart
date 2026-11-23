@@ -16,6 +16,7 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 import 'package:math_core/leveling/level.dart';
+import 'package:math_core/leveling/rules_version.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/persistence/persisted_session.dart';
 import 'package:math_core/persistence/uuid.dart';
@@ -71,9 +72,10 @@ Future<void> main(List<String> args) async {
         enabledTypes: const {ExerciseType.addition},
         exerciseCount: 1,
         totalScore: 0,
-        levels: {ExerciseType.addition: Level.floor},
+        levels: {ExerciseType.addition: Level.zero},
         createdAt: DateTime.now().toUtc(),
         typeSequence: const [ExerciseType.addition],
+        rulesVersion: RulesVersion.current,
       ),
       answers: const [],
     );

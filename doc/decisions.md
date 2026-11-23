@@ -148,6 +148,27 @@ hundredths, frozen at the start, never decaying, recomputable, replayed by the s
   term covers from the lower bound on. A tier with two kinds draws each half the time.
 - **Cube roots show a small raised 3 before √**: no bundled face has `∛`, and the page never
   fetches a font (a missing glyph shows as a box).
+- **The transition (commit 4)**: rules v1's code is deleted (the `p_cible` formula and its
+  constants, the operand curves, the v1 generators, the placement and type placement); the
+  stored `SessionKind` placement names stay, never replayed. Locally (schema v11) the level
+  cache empties — an absent level is 0 — and on the server `server_levels` empties in the same
+  release; the main board counts only rules-v2 games toward its three, an unplayed basic at 0.
+  The app never sends a v1 session (refused locally, `rulesRetired`); the server refuses one
+  anyway. Known gap: between CI's migration and the new server's deploy (minutes), the old
+  server can accept a v1 game from an old page and write a v1 level to the fresh cache — small
+  (it chains from the reset), and it becomes that player's v2 starting point.
+- **Profile after the reset**: the curve and its 30-day change use the sessions of the
+  current rules only (a v1 level is on another scale); the recent games keep the whole history,
+  with no change shown across the reset. The main level shows 0 before any game.
+- **Duels move to the tiers** (`DuelConfig.questions` draws like a game under the current
+  rules, reviews included): their three pinned duels are re-recorded on purpose — no duel was
+  ever stored (Phase 7 builds them).
+- **Phase 3b's window restarts at this release** (`calibration_window`, moved by the
+  transition's migration): its games must measure the new rules. The owner can move it.
+- **Scores**: the difficulty multiplier runs from 1 at level 0 to 2 at level 100 (it ran from
+  level 1). The score is feedback only.
+- **Training keeps 15 / 40 / 70**: inside T1 / T4 / T7, so stored Training games keep their
+  difficulty and the server's check of them is unchanged.
 
 ## Redesign phase — owner decisions (plan v2.9, 22 Nov 2026)
 

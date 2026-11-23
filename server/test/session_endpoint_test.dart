@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:math_core/leveling/level.dart';
+import 'package:math_core/leveling/rules_version.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/persistence/exercise_codec.dart';
 import 'package:math_core/persistence/persisted_answer.dart';
@@ -136,16 +137,15 @@ SessionUpload honest(
     enabledTypes: _types,
     exerciseCount: 8,
     totalScore: 0,
-    levels: levels ?? {for (final t in _types) t: Level.floor},
+    levels: levels ?? {for (final t in _types) t: Level.zero},
     createdAt: DateTime.utc(2026, 11, 20, 9, minute),
     typeSequence: [
       for (var i = 0; i < 8; i++)
         i.isEven ? ExerciseType.addition : ExerciseType.subtraction,
     ],
+    rulesVersion: RulesVersion.current,
   );
-  final questions = replaySessionQuestions(session, [
-    for (var i = 0; i < 8; i++) (isCorrect: true, elapsedMs: 0),
-  ]);
+  final questions = replaySessionQuestions(session, 8);
   return SessionUpload(
     session: session,
     answers: [

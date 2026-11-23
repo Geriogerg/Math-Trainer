@@ -11,9 +11,9 @@
 //
 // Steps, each failing loudly with a screenshot (smoke-failure.png):
 //   1. fresh profile → an anonymous player is created (no form);
-//   2. the placement offer is skipped; the first 2-type game (a short
-//      placement on the never-played operations since Phase 3a) is played
-//      to its result screen — every answer typed at once ("1", Enter), so the
+//   2. Home: the default Basics selection's first game (a game from level
+//      0 since the Levels phase — no placement) is played to its result
+//      screen — every answer typed at once ("1", Enter), so the
 //      per-question timeout (always on in a release build) never fires;
 //   3. reload with the session about to expire → the page refreshes it
 //      while the files download (Phase 5.1), same player; Profile shows the
@@ -26,7 +26,7 @@
 // SMOKE_READ_ONLY=1 (production since Phase 5.2, where tests must leave no
 // trace): every request that could write — anything but GET, HEAD and
 // OPTIONS to another origin than the site — is blocked by the browser; the
-// visit stops at the first screen (the beta gate, or the placement offer),
+// visit stops at the first screen (the beta gate, or Home),
 // after checking it is installable. SMOKE_EXPECT_VERSION=<short sha> also
 // checks the site serves that build.
 //
@@ -307,9 +307,9 @@ const guestId = () =>
 /// The read-only visit ends at the first screen: it rendered, the site is
 /// installable, the build is the expected one, nothing was written.
 async function readOnlyEnd(gate) {
-  const shown = gate || (await findText('Find your level'));
-  if (!shown) await fail('no first screen (beta gate or placement offer) within 60 s');
-  console.log(`  first screen: ${gate ? 'beta gate' : 'placement offer'} (${((Date.now() - started) / 1000).toFixed(1)} s from navigation)`);
+  const shown = gate || (await findText('Play Basics'));
+  if (!shown) await fail('no first screen (beta gate or Home) within 60 s');
+  console.log(`  first screen: ${gate ? 'beta gate' : 'Home'} (${((Date.now() - started) / 1000).toFixed(1)} s from navigation)`);
   const { installabilityErrors = [] } = await send('Page.getInstallabilityErrors');
   if (installabilityErrors.length) {
     await fail(`not installable: ${installabilityErrors.map((e) => e.errorId).join(', ')}`);
@@ -344,7 +344,7 @@ await enableSemantics();
   const end = Date.now() + 60000;
   let gate = false;
   while (Date.now() < end) {
-    if (await findText('Find your level')) break;
+    if (await findText('Play Basics')) break;
     if (await findText('Invitation code')) {
       gate = true;
       break;
@@ -362,8 +362,8 @@ await enableSemantics();
   }
 }
 
-step('a guest is created, no form: the placement offer appears');
-await waitForText('Find your level', 60000);
+step('a guest is created, no form: Home appears');
+await waitForText('Play Basics', 60000);
 const id = await guestId();
 if (!id) await fail('no anonymous session stored');
 console.log(`  guest ${id} (${((Date.now() - started) / 1000).toFixed(1)} s from navigation)`);
@@ -382,15 +382,12 @@ let installProblem = null;
   if (errors.length > 0) installProblem = `not installable: ${errors.join(', ')}`;
 }
 
-step('skip the placement; Home: Play the default Basics selection, then Start');
-await tapText('Skip', 30000, { exact: true });
+step('Home: Play the default Basics selection, then Start');
 // Home (Redesign phase): each row's Play opens the setup page; its
 // accessible label names the row ("Play" alone is the title and a tab too).
 await tapText('Play Basics', 30000, { exact: true });
 await tapText('Start', 30000, { exact: true });
-// A new player's first game on never-played operations is a short
-// placement (Phase 3a commit 7): 5 questions per operation instead of a
-// game's 10. Read the count from the "1 / N" counter.
+// Read the count from the "1 / N" counter (10 per operation by default).
 let questions = null;
 {
   const end = Date.now() + 30000;
@@ -409,7 +406,7 @@ let questions = null;
   }
   if (questions === null) await fail('no question counter "1 / N" appeared');
 }
-// Three taps (Skip, Play, Start) included: what a new visitor going
+// Two taps (Play, Start) included: what a new visitor going
 // straight to a game experiences, at script speed.
 console.log(`  first question ${((Date.now() - started) / 1000).toFixed(1)} s from navigation (${questions} questions)`);
 if (trace) printWaterfall(Date.now());

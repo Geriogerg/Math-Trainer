@@ -1,6 +1,5 @@
 import 'package:math_core/leveling/level.dart';
 import 'package:math_core/leveling/level_updates.dart';
-import 'package:math_core/leveling/rules_version.dart';
 import 'package:math_core/models/answer_result.dart';
 import 'package:math_core/models/exercise.dart';
 import 'package:math_core/models/exercise_type.dart';
@@ -61,7 +60,6 @@ void main() {
         frozenLevels: {ExerciseType.addition: Level.whole(55)},
         priorLevels: const {},
         now: DateTime.utc(2026, 11, 23),
-        rulesVersion: RulesVersion.v2,
       )[ExerciseType.addition]!.level;
       expect(after(7900), Level.whole(58)); // +3: all fluent
       expect(after(8000), Level.whole(58)); // the fluent time itself counts

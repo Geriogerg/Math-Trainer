@@ -13,7 +13,7 @@ import 'session_rows.dart';
 
 /// Current schema version. Every change increments this value and adds a
 /// branch in [_onUpgrade] — never destructive, never retroactive.
-const schemaVersion = 10;
+const schemaVersion = 11;
 
 /// The app's database, where each platform expects it. On web: same schema
 /// and same SQL as elsewhere, SQLite compiled to WebAssembly
@@ -162,6 +162,17 @@ Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     // Levels phase commit 0 (`doc/levels.md`, section 4): the rules each
     // session was played under. NULL for everything before: rules v1.
     await db.execute('ALTER TABLE sessions ADD COLUMN rules_version INTEGER');
+  }
+  if (oldVersion < 11) {
+    // Levels phase commit 4 (`doc/levels.md`, section 4, approved by the
+    // owner): every level back to 0 for every player, history kept. The
+    // level cache empties — an absent level is 0 — and the sessions stay.
+    // The server's levels reset in the same release.
+    final cache = await db.rawQuery(
+      "SELECT 1 FROM sqlite_master WHERE type = 'table' "
+      "AND name = 'player_levels'",
+    );
+    if (cache.isNotEmpty) await db.delete('player_levels');
   }
 }
 

@@ -22,6 +22,7 @@ String uploadRefusalText(String reason) {
     RejectionReason.typeAlreadyPlayed =>
       'Not ranked: these operations already had a level (from another '
           'device), so this placement could not set them.',
+    RejectionReason.rulesRetired => 'Not ranked: played before the new levels.',
     RejectionReason.wrongPlayer ||
     RejectionReason.futureTimestamp ||
     RejectionReason.badAnswerCount ||

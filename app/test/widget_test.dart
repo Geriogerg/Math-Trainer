@@ -80,9 +80,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  // Levels for the default selection (addition, subtraction): Start plays
-  // a game. Without them it plays a type placement instead (Phase 3a
-  // commit 7; tested on its own below).
+  // Levels for the default selection (addition, subtraction).
   final sharedRepository = InMemorySessionRepository();
   setUpAll(
     () => sharedRepository.replaceLevelCache('test-player', {
@@ -102,14 +100,10 @@ void main() {
   );
 
   /// The app up to the type selection: `AuthGate` and `PlayTab` resolve
-  /// their local reads, then a new player skips the placement offer.
+  /// their local reads.
   Future<void> openPlay(WidgetTester tester, AppEnvironment environment) async {
     await tester.pumpWidget(MathTrainerApp(environment: environment));
     await tester.pumpAndSettle();
-    if (find.text('Skip').evaluate().isNotEmpty) {
-      await tester.tap(find.text('Skip'));
-      await tester.pumpAndSettle();
-    }
   }
 
   /// Home's Basics Play: the setup page (Redesign phase).
@@ -265,11 +259,10 @@ void main() {
   });
 
   testWidgets(
-    'a first game on never-played types is a short placement, then the '
-    "Play screen's overall level is re-read (Phase 3a commit 7)",
+    "a new player's first Start is a game from level 0 — no placement "
+    '(doc/levels.md)',
     (WidgetTester tester) async {
-      // Fresh environment: the shared one has levels, this test needs a
-      // player without history.
+      // Fresh environment: the shared one has levels.
       final environment = AppEnvironment(
         repository: InMemorySessionRepository(),
         playerId: 'test-player',
@@ -277,25 +270,13 @@ void main() {
         profileRepository: FakeProfileRepository(),
       );
       await openPlay(tester, environment);
+      expect(find.text('Find your level'), findsNothing);
       await openBasicsSetup(tester);
       await tester.tap(find.text('Start'));
       await settlePageTransition(tester);
-      expect(find.text('1 / 10'), findsOneWidget);
-      for (
-        var i = 0;
-        i < 20 && find.text('Your starting levels').evaluate().isEmpty;
-        i++
-      ) {
-        await tester.tap(find.byKey(keypadKeyKey('1')));
-        await tester.tap(find.byKey(keypadKeyKey('submit')));
-        await tester.pump();
-        await tester.pump(SessionController.defaultCorrectionDelay);
-      }
-      expect(find.text('Your starting levels'), findsOneWidget);
-      expect(find.textContaining('Addition — level'), findsOneWidget);
-      expect(find.textContaining('Subtraction — level'), findsOneWidget);
-
-      // Play again and Home, like every result (Redesign close-out).
+      // Addition and subtraction, 10 each: a game, not a placement.
+      expect(find.text('1 / 20'), findsOneWidget);
+      await playToCompletion(tester);
       expect(find.text('Play again'), findsOneWidget);
       await tester.tap(
         find.descendant(
@@ -305,8 +286,12 @@ void main() {
       );
       await settlePageTransition(tester);
       await tester.pumpAndSettle();
-
       expect(find.text('Basics'), findsOneWidget);
+      // AuthGate plays as the signed-in account.
+      final levels = await environment.repository.currentLevels(
+        'fake-account-id',
+      );
+      expect(levels.keys, {ExerciseType.addition, ExerciseType.subtraction});
     },
   );
 

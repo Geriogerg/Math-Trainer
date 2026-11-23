@@ -53,12 +53,13 @@ class SessionController extends ChangeNotifier {
     this.appVersion,
     SessionLevelUpdates? levelCacheOrchestrator,
   }) : levelCacheOrchestrator =
-           levelCacheOrchestrator ?? LevelCacheOrchestrator();
+           levelCacheOrchestrator ?? const LevelCacheOrchestrator();
 
   final SessionConfig config;
   final ExerciseSource exerciseSource;
 
-  /// A game's level updates by default; a placement passes its own.
+  /// A Levelling game's updates by default; Training passes
+  /// `NoLevelUpdates`.
   final SessionLevelUpdates levelCacheOrchestrator;
   final SessionRepository repository;
   final String playerId;
@@ -273,14 +274,11 @@ class SessionController extends ChangeNotifier {
       answeredAt: answeredAt,
       inputDevice: inputDevice,
     );
-    // Before any `next()` below: an adaptive source (placement) picks the
-    // next question from this answer.
-    exerciseSource.onAnswered(outcome);
     final points = scorer.pointsFor(
       outcome,
       currentStreak: nextStreak,
       // The score multiplier reads the whole level, like generation.
-      level: (config.levels[exercise.type] ?? Level.floor).whole,
+      level: (config.levels[exercise.type] ?? Level.zero).whole,
     );
     final outcomes = [..._state.outcomes, outcome];
     final isSessionComplete = outcomes.length >= config.exerciseCount;

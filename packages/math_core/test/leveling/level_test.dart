@@ -18,11 +18,9 @@ void main() {
       expect(Level.whole(37).whole, 37);
     });
 
-    test("zero is 0.00; rules v1's floor is 1.00", () {
+    test('zero is 0.00', () {
       expect(Level.zero.hundredths, 0);
       expect(Level.zero, Level.whole(0));
-      expect(Level.floor.hundredths, 100);
-      expect(Level.floor, Level.whole(1));
     });
 
     test('rejects hundredths outside [0, 10000]', () {
@@ -41,13 +39,6 @@ void main() {
       expect(Level.clamped(99).hundredths, 99);
       expect(Level.clamped(4242).hundredths, 4242);
       expect(Level.clamped(10301).hundredths, 10000);
-    });
-
-    test('clampedV1 keeps rules v1 at 1.00 or above', () {
-      expect(Level.clampedV1(-500).hundredths, 100);
-      expect(Level.clampedV1(99).hundredths, 100);
-      expect(Level.clampedV1(4242).hundredths, 4242);
-      expect(Level.clampedV1(10301).hundredths, 10000);
     });
 
     test('equality is by value (stored and compared as an int)', () {

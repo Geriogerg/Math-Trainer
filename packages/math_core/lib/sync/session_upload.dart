@@ -5,7 +5,6 @@ import '../models/input_device.dart';
 import '../models/session_kind.dart';
 import '../persistence/persisted_answer.dart';
 import '../persistence/persisted_session.dart';
-import '../placement/placement.dart';
 
 /// One stored session as the app uploads it and the server replays it
 /// (plan, Phase 2 commit 5): the session's stored fields and its answers in
@@ -56,7 +55,9 @@ class SessionUpload {
         for (final t in ExerciseType.values)
           if (session.levels[t] case final level?) t.name: level.hundredths,
       },
-      'typeSequence': [for (final t in _typeSequenceOf(session)) t.name],
+      'typeSequence': [
+        for (final t in session.typeSequence ?? const <ExerciseType>[]) t.name,
+      ],
       'createdAt': session.createdAt.toIso8601String(),
       'appVersion': ?session.appVersion,
       'rulesVersion': session.rulesVersion.number,
@@ -126,15 +127,6 @@ class SessionUpload {
     }
   }
 }
-
-/// A placement stored before schema v6 has no sequence, but its order is
-/// fixed by its rules: exact. A game without one is never uploaded
-/// (`SessionUploadQueue`).
-List<ExerciseType> _typeSequenceOf(PersistedSession session) =>
-    session.typeSequence ??
-    (session.kind.isPlacement
-        ? placementTypeSequence(placementRulesFor(session.kind))
-        : const []);
 
 PersistedAnswer _answer(Map<String, Object?> a, String sessionId) {
   final operands = _map(a['operands'], 'operands');

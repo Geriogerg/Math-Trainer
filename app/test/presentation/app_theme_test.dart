@@ -11,8 +11,8 @@ import '../fake_account_repository.dart';
 import '../fake_profile_repository.dart';
 
 void main() {
-  // `PlayTab` reads the remembered selection and placement skip before it
-  // draws (no flash of the selection before the placement offer).
+  // `PlayTab` reads the remembered selection before it draws (no flash of
+  // the default selection).
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
   final testEnvironment = AppEnvironment(
@@ -39,7 +39,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(find.text('Find your level'), findsOneWidget);
+    expect(find.text('Basics'), findsOneWidget);
   });
 
   testWidgets('the app builds without throwing in forced dark mode', (
@@ -52,6 +52,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(find.text('Find your level'), findsOneWidget);
+    expect(find.text('Basics'), findsOneWidget);
   });
 }

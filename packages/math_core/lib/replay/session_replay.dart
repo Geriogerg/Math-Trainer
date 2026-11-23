@@ -3,14 +3,13 @@ import 'dart:math';
 import '../generation/game_generator.dart';
 import '../generation/question_plan.dart';
 import '../leveling/rules_version.dart';
-import '../models/exercise_type.dart';
 import '../models/exercise.dart';
+import '../models/exercise_type.dart';
 import '../models/session_kind.dart';
 import '../persistence/persisted_session.dart';
-import '../placement/placement.dart';
-import '../placement/placement_exercise_source.dart';
 
-/// A stored session that does not hold everything its replay needs.
+/// A stored session that does not hold everything its replay needs, or
+/// that nothing replays any more.
 class SessionNotReplayable implements Exception {
   const SessionNotReplayable(this.reason);
 
@@ -20,134 +19,75 @@ class SessionNotReplayable implements Exception {
   String toString() => 'SessionNotReplayable: $reason';
 }
 
-/// The questions of a stored [session], regenerated from what it stores
-/// alone — seed, kind, frozen levels, type sequence — one per answer in
-/// [answers] (an interrupted session replays its answered prefix). Rule 2,
-/// and what the server checks an upload against (plan, Phase 2).
+/// The first [count] questions of a stored [session], regenerated from what
+/// it stores alone — seed, frozen levels, type sequence, rules version
+/// (rule 2). What the server checks an upload against (plan, Phase 2).
 ///
-/// [answers] are `(isCorrect, elapsedMs)` in the order given: a placement's
-/// next question depends on them. A game ignores their values. The caller
-/// passes correctness it has **recomputed** from the submitted values,
-/// never the client's claim.
-///
-/// Throws [SessionNotReplayable] if the session lacks its type sequence
-/// (interrupted before schema v6) or a frozen level for an enabled type.
-List<Exercise> replaySessionQuestions(
-  PersistedSession session,
-  List<PlacementAnswer> answers,
-) {
-  if (answers.length > session.exerciseCount) {
+/// Throws [SessionNotReplayable] for a session of retired rules (v1, and
+/// with them every placement: `doc/levels.md` section 4), one without its
+/// type sequence or a frozen level for an enabled type, or one whose plan
+/// is not the setup's (each operation the same number of questions, one of
+/// 4, 5, 10, 20).
+List<Exercise> replaySessionQuestions(PersistedSession session, int count) {
+  if (count > session.exerciseCount) {
     throw SessionNotReplayable(
-      '${answers.length} answers for ${session.exerciseCount} questions',
+      '$count answers for ${session.exerciseCount} questions',
     );
   }
-  if (session.rulesVersion == RulesVersion.v2 && session.kind.isPlacement) {
-    // Rules v2 have no placement (`doc/levels.md`, section 4).
-    throw const SessionNotReplayable('no placement under rules v2');
+  switch (session.rulesVersion) {
+    case RulesVersion.v1:
+      throw const SessionNotReplayable('rules v1 are retired');
+    case RulesVersion.v2:
+      break;
   }
   switch (session.kind) {
     case SessionKind.game:
     case SessionKind.training:
       // Training draws exactly like a game, at its frozen fixed levels.
-      return _replayGame(session, answers.length);
+      break;
     case SessionKind.placementV1:
     case SessionKind.placementV2:
-      return _replayPlacement(session, answers);
     case SessionKind.typePlacementV3:
-      return _replayTypePlacement(session, answers);
+      throw const SessionNotReplayable('no placement under rules v2');
   }
-}
-
-/// A type placement (Phase 3a commit 7): its stored rotation must be the
-/// one its operations imply — the staircases follow it question by
-/// question.
-List<Exercise> _replayTypePlacement(
-  PersistedSession session,
-  List<PlacementAnswer> answers,
-) {
-  final rules = placementRulesFor(session.kind);
-  final sequence = session.typeSequence;
-  if (sequence == null) {
-    throw const SessionNotReplayable('no stored type sequence');
-  }
-  final expected = typePlacementSequence(session.enabledTypes, rules: rules);
-  if (sequence.length != expected.length ||
-      [
-        for (var i = 0; i < expected.length; i++) sequence[i] == expected[i],
-      ].contains(false)) {
-    throw const SessionNotReplayable(
-      'type sequence differs from the type placement rules',
-    );
-  }
-  return replayPlacementQuestions(
-    seed: session.seed,
-    answers: answers,
-    rules: rules,
-    sequence: sequence,
-  );
-}
-
-List<Exercise> _replayGame(PersistedSession session, int count) {
   final sequence = session.typeSequence;
   if (sequence == null) {
     throw const SessionNotReplayable('no stored type sequence');
   }
   for (final type in session.enabledTypes) {
-    // The generator falls back to a default level for a missing type: a
-    // replay must never guess.
+    // A replay never guesses a level.
     if (!session.levels.containsKey(type)) {
       throw SessionNotReplayable('no frozen level for ${type.name}');
     }
   }
-  if (session.rulesVersion == RulesVersion.v2) _checkQuestionPlan(session);
+  _checkQuestionPlan(session.enabledTypes, sequence);
   final generator = gameExerciseGenerator(
     rulesVersion: session.rulesVersion,
     enabledTypes: session.enabledTypes,
     levels: session.levels,
     typeSequence: sequence,
   );
-  // Same stream as `LocalExerciseSource`: one `Random(seed)` shared by the
-  // type draw (none here) and the value draws.
+  // Same stream as `LocalExerciseSource`: one `Random(seed)`.
   final random = Random(session.seed);
   return [for (var i = 0; i < count; i++) generator.next(random)];
 }
 
-/// Under rules v2 a game gives every operation the same number of
-/// questions, one of the setup's choices (plan v2.9) — the level update's
-/// cap depends on it, so a session that claims another plan is not
-/// replayed.
-void _checkQuestionPlan(PersistedSession session) {
+/// Every enabled operation, and only those, the same number of times, one
+/// of the setup's choices (plan v2.9): the level update's cap depends on
+/// it.
+void _checkQuestionPlan(
+  Set<ExerciseType> enabled,
+  List<ExerciseType> sequence,
+) {
   final counts = <ExerciseType, int>{};
-  for (final type in session.typeSequence!) {
+  for (final type in sequence) {
     counts[type] = (counts[type] ?? 0) + 1;
   }
   final perOperation = counts.values.toSet();
-  if (!counts.keys.toSet().containsAll(session.enabledTypes) ||
+  if (counts.length != enabled.length ||
+      !enabled.every(counts.containsKey) ||
       perOperation.length != 1 ||
       !questionsPerOperationChoices.contains(perOperation.single)) {
     throw SessionNotReplayable('not a question plan: $counts');
   }
-}
-
-List<Exercise> _replayPlacement(
-  PersistedSession session,
-  List<PlacementAnswer> answers,
-) {
-  final rules = placementRulesFor(session.kind);
-  final sequence = session.typeSequence;
-  if (sequence != null) {
-    final expected = placementTypeSequence(rules);
-    for (var i = 0; i < expected.length; i++) {
-      if (sequence.length != expected.length || sequence[i] != expected[i]) {
-        throw const SessionNotReplayable(
-          'type sequence differs from the placement rules',
-        );
-      }
-    }
-  }
-  return replayPlacementQuestions(
-    seed: session.seed,
-    answers: answers,
-    rules: rules,
-  );
 }

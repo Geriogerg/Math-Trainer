@@ -1,5 +1,4 @@
 import '../leveling/level.dart';
-import '../leveling/level_updater.dart';
 import '../leveling/level_updates.dart';
 import '../leveling/rules_version.dart';
 import '../models/game_setup.dart';
@@ -9,8 +8,6 @@ import '../models/exercise_type.dart';
 import '../models/session_kind.dart';
 import '../persistence/exercise_codec.dart';
 import '../persistence/level_cache_entry.dart';
-import '../placement/placement.dart';
-import '../placement/placement_level_orchestrator.dart';
 import '../replay/session_replay.dart';
 import '../sync/session_upload.dart';
 
@@ -63,13 +60,18 @@ enum RejectionReason {
   /// never gave — another device, or history from before uploads.
   levelsMismatch,
 
-  /// A completed placement after a completed session: levels come from
-  /// games from then on.
+  /// A completed placement after a completed session. No longer produced:
+  /// placements were removed with rules v1 (kept, the name is stored).
   placementAfterGames,
 
-  /// A type placement on an operation the server already has a level for
-  /// (Phase 3a commit 7): only a never-played operation is placed.
+  /// A type placement on an already-played operation. No longer produced,
+  /// like [placementAfterGames].
   typeAlreadyPlayed,
+
+  /// Played under rules that no longer exist (rules v1, before the Levels
+  /// phase's transition): its levels are gone, so it can move nothing
+  /// (`doc/levels.md`, section 4; `doc/decisions.md`).
+  rulesRetired,
 }
 
 /// Something worth a human look that is not a reason to refuse (plan 6.4:
@@ -129,13 +131,18 @@ ValidationResult validateSessionUpload({
   required String callerId,
   required ServerPlayerState state,
   required DateTime receivedAt,
-  LevelUpdater? levelUpdater,
 }) {
   final session = upload.session;
   final answers = upload.answers;
 
   if (session.playerId != callerId) {
     return const Rejected(RejectionReason.wrongPlayer, 'player id');
+  }
+  switch (session.rulesVersion) {
+    case RulesVersion.v1:
+      return const Rejected(RejectionReason.rulesRetired, 'rules v1');
+    case RulesVersion.v2:
+      break;
   }
   if (session.createdAt.isAfter(receivedAt.add(maxClockSkew))) {
     return Rejected(
@@ -159,20 +166,16 @@ ValidationResult validateSessionUpload({
     }
   }
 
-  // Questions and correctness, in order: a placement's question i depends
-  // on the recomputed correctness of the answers before it.
+  // Every question regenerated from what the session stores.
+  final List<Exercise> questions;
+  try {
+    questions = replaySessionQuestions(session, answers.length);
+  } on SessionNotReplayable catch (e) {
+    return Rejected(RejectionReason.notReplayable, e.reason);
+  }
   final outcomes = <AnswerResult>[];
   for (final (i, answer) in answers.indexed) {
-    final Exercise question;
-    try {
-      question = replaySessionQuestions(session, [
-        for (final o in outcomes)
-          (isCorrect: o.isCorrect, elapsedMs: o.elapsedMs),
-        (isCorrect: false, elapsedMs: 0), // question i ignores answer i
-      ])[i];
-    } on SessionNotReplayable catch (e) {
-      return Rejected(RejectionReason.notReplayable, e.reason);
-    }
+    final question = questions[i];
     final described = describeExerciseForStorage(question);
     if (described.exerciseType != answer.exerciseType ||
         described.operationType != answer.operationType ||
@@ -198,13 +201,10 @@ ValidationResult validateSessionUpload({
   final Map<ExerciseType, LevelCacheEntry> updates;
   switch (session.kind) {
     case SessionKind.game:
-      // The chain: a game must start from the levels the server holds.
-      final unplayed = switch (session.rulesVersion) {
-        RulesVersion.v1 => Level.floor,
-        RulesVersion.v2 => Level.zero,
-      };
+      // The chain: a game must start from the levels the server holds, 0
+      // for an operation never played.
       for (final type in session.enabledTypes) {
-        final expected = state.levels[type]?.level ?? unplayed;
+        final expected = state.levels[type]?.level ?? Level.zero;
         if (session.levels[type] != expected) {
           return Rejected(
             RejectionReason.levelsMismatch,
@@ -218,29 +218,6 @@ ValidationResult validateSessionUpload({
               outcomes: outcomes,
               frozenLevels: session.levels,
               priorLevels: state.levels,
-              now: session.createdAt,
-              levelUpdater: levelUpdater ?? LevelUpdater(),
-              rulesVersion: session.rulesVersion,
-            )
-          : const {};
-    case SessionKind.placementV1:
-    case SessionKind.placementV2:
-      final rules = placementRulesFor(session.kind);
-      for (final type in placementTypes) {
-        if (session.levels[type] != Level.whole(rules.startLevel)) {
-          return Rejected(
-            RejectionReason.levelsMismatch,
-            'placement start ${type.name}',
-          );
-        }
-      }
-      if (completed && state.hasCompletedSession) {
-        return const Rejected(RejectionReason.placementAfterGames, '');
-      }
-      updates = completed
-          ? placementLevelUpdates(
-              outcomes: outcomes,
-              rules: rules,
               now: session.createdAt,
             )
           : const {};
@@ -261,29 +238,11 @@ ValidationResult validateSessionUpload({
         );
       }
       updates = const {};
+    case SessionKind.placementV1:
+    case SessionKind.placementV2:
     case SessionKind.typePlacementV3:
-      // Never-played operations only, each from the staircase's start.
-      final rules = placementRulesFor(session.kind);
-      for (final type in session.enabledTypes) {
-        if (state.levels.containsKey(type)) {
-          return Rejected(RejectionReason.typeAlreadyPlayed, type.name);
-        }
-        if (session.levels[type] != Level.whole(rules.startLevel)) {
-          return Rejected(
-            RejectionReason.levelsMismatch,
-            'type placement start ${type.name}',
-          );
-        }
-      }
-      updates = completed
-          ? placementLevelUpdates(
-              outcomes: outcomes,
-              rules: rules,
-              now: session.createdAt,
-              // Replay above already checked it against the operations.
-              sequence: session.typeSequence,
-            )
-          : const {};
+      // The replay above already refused it (no placement under rules v2).
+      return const Rejected(RejectionReason.notReplayable, 'placement');
   }
 
   return Accepted(

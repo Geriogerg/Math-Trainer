@@ -42,11 +42,11 @@ class PersistedSession {
       );
     }
     final overall = overallLevelAfter;
-    if (overall != null && (overall < 1 || overall > 100)) {
+    if (overall != null && (overall < 0 || overall > 100)) {
       throw ArgumentError.value(
         overall,
         'overallLevelAfter',
-        'must be in [1, 100].',
+        'must be in [0, 100].',
       );
     }
     if (!createdAt.isUtc) {

@@ -55,7 +55,7 @@ Future<void> _play(InMemorySessionRepository repository, String playerId) =>
         enabledTypes: const {ExerciseType.addition},
         exerciseCount: 4,
         totalScore: 40,
-        levels: {ExerciseType.addition: Level.floor},
+        levels: {ExerciseType.addition: Level.zero},
         createdAt: DateTime.utc(2026, 11, 19),
       ),
       answers: const [],

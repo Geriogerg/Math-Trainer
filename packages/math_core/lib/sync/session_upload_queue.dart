@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import '../models/session_kind.dart';
+import '../leveling/rules_version.dart';
 import '../persistence/session_repository.dart';
 import 'session_upload.dart';
 import 'session_upload_client.dart';
@@ -85,10 +85,12 @@ class SessionUploadQueue {
     final pending = await repository.pendingUploads(playerId);
     for (final session in pending) {
       if (_disposed) break;
-      // A game interrupted before schema v6 lacks its type order: it can
-      // never replay, so it is never sent.
-      if (session.kind == SessionKind.game && session.typeSequence == null) {
-        await repository.markUploadRefused(session.id, 'notReplayable');
+      // Played under retired rules (before the Levels phase's transition):
+      // the server would refuse it (`rulesRetired`) and it can move
+      // nothing, so it is never sent. That covers every session without a
+      // type order (before schema v6) too.
+      if (session.rulesVersion == RulesVersion.v1) {
+        await repository.markUploadRefused(session.id, 'rulesRetired');
         refused++;
         continue;
       }

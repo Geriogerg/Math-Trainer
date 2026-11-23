@@ -1,8 +1,8 @@
 import 'dart:math';
 
-import '../generation/composite_exercise_generator.dart';
-import '../generation/fixed_type_sequence.dart';
+import '../generation/game_generator.dart';
 import '../leveling/level.dart';
+import '../leveling/rules_version.dart';
 import '../models/exercise.dart';
 import '../models/exercise_type.dart';
 
@@ -89,10 +89,13 @@ final class DuelConfig {
       for (final type in ExerciseType.values)
         if ((quotas[type] ?? 0) > 0) type,
     };
-    final generator = CompositeExerciseGenerator(
+    // Like a game under the current rules: the bracket's tier, with its
+    // reviews (Levels phase commit 4 — no duel was stored before).
+    final generator = gameExerciseGenerator(
+      rulesVersion: RulesVersion.current,
       enabledTypes: played,
       levels: {for (final type in played) type: level},
-      strategy: FixedTypeSequence(sequence),
+      typeSequence: sequence,
     );
     return [for (var i = 0; i < sequence.length; i++) generator.next(random)];
   }

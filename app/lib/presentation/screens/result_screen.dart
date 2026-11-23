@@ -45,11 +45,8 @@ class ResultScreen extends StatelessWidget {
     final theme = Theme.of(context);
     final result = controller.result;
     final status = controller.state.status;
-    final isPlacement = controller.config.kind.isPlacement;
     final interrupted = status == SessionStatus.interrupted;
-    final title = isPlacement
-        ? (interrupted ? 'Placement interrupted' : 'Your starting levels')
-        : (interrupted ? 'Session interrupted' : 'Session complete');
+    final title = interrupted ? 'Session interrupted' : 'Session complete';
     final breakdown = result.scoreBreakdown;
     final labelStyle = theme.textTheme.bodyMedium;
     final mistakes = result.outcomes.where((o) => !o.isCorrect).toList();
@@ -73,34 +70,13 @@ class ResultScreen extends StatelessWidget {
                 // No level change for an interrupted session — countsForLevels
                 // stayed false, lastLevelUpdates is never set
                 // (`doc/decisions.md`).
-                // A placement shows where the player starts, not a change
-                // from the staircases' common start; no score (it measures
-                // nothing there).
-                if (isPlacement) ...[
-                  // Interrupted: the title says it, nothing moved (labels
-                  // only, Redesign phase).
-                  if (!interrupted)
-                    // The placement test: the four basic operations; a type
-                    // placement: the ones it placed.
-                    for (final type
-                        in controller.config.enabledTypes.toList()
-                          ..sort((a, b) => a.index - b.index))
-                      Text(
-                        controller.lastLevelUpdates?[type] == null
-                            ? '${exerciseTypeLabel(type)} — …'
-                            : '${exerciseTypeLabel(type)} — level '
-                                  '${controller.lastLevelUpdates![type]!.level.whole}',
-                        textAlign: TextAlign.center,
-                        style: labelStyle,
-                      ),
-                  const SizedBox(height: 16),
-                  // Training moves no level: nothing to show.
-                ] else if (status == SessionStatus.finished &&
+                // Training moves no level: nothing to show.
+                if (status == SessionStatus.finished &&
                     controller.config.kind != SessionKind.training) ...[
                   for (final type in controller.config.enabledTypes)
                     _LevelChangeRow(
                       label: exerciseTypeLabel(type),
-                      before: controller.config.levels[type] ?? Level.floor,
+                      before: controller.config.levels[type] ?? Level.zero,
                       updates: controller.lastLevelUpdates,
                       type: type,
                     ),
@@ -113,7 +89,7 @@ class ResultScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                 ],
-                if (!isPlacement) ...[
+                ...[
                   Center(
                     child: SizedBox(
                       width: 160,
@@ -140,9 +116,8 @@ class ResultScreen extends StatelessWidget {
                     textAlign: TextAlign.center,
                     style: labelStyle,
                   ),
-                  // 0 for every player below a meaningful level
-                  // (`_difficultyMultiplier(1) == 1`) — a line at 0 for most
-                  // sessions of the first weeks teaches nothing.
+                  // 0 at level 0 (`_difficultyMultiplier(0) == 1`) — a
+                  // line at 0 for a player's first games teaches nothing.
                   if (breakdown.difficultyBonus != 0)
                     Text(
                       'Difficulty bonus: ${breakdown.difficultyBonus}',
@@ -232,10 +207,8 @@ class ResultScreen extends StatelessWidget {
               // Centred (`doc/design.md`) — Play again stays visually
               // dominant through its filled style (`AppButton.primary`), not
               // its position.
-              // Every result, a placement's too (Redesign close-out, plan
-              // v3.0): a Wrap, not a Row — with a large system text size
-              // the two no longer fit side by side and stack instead of
-              // overflowing.
+              // A Wrap, not a Row: with a large system text size the two no
+              // longer fit side by side and stack instead of overflowing.
               Wrap(
                 alignment: WrapAlignment.center,
                 crossAxisAlignment: WrapCrossAlignment.center,
@@ -424,7 +397,7 @@ bool leveledUp(
 ) =>
     updates != null &&
     updates.entries.any(
-      (e) => e.value.level.whole > (before[e.key] ?? Level.floor).whole,
+      (e) => e.value.level.whole > (before[e.key] ?? Level.zero).whole,
     );
 
 /// "Level up", under the number that just went up: pulses once as it

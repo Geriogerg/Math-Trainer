@@ -13,11 +13,9 @@ import 'session_screen.dart';
 
 /// Starts [controller] and shows it full screen over the tabs; resolves
 /// once the player has left and the end-of-session write is done — the
-/// caller can then re-read levels and history. Shared by Play and Profile
-/// (the placement can be taken from both).
+/// caller can then re-read levels and history.
 ///
-/// [setup]: what Play again replays with (a placement passes none: its
-/// Play again is a game with the default setup).
+/// [setup]: what Play again replays with.
 Future<void> playSessionFlow(
   BuildContext context,
   AppEnvironment environment,

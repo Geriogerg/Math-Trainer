@@ -13,8 +13,8 @@ import '../fake_account_repository.dart';
 import '../fake_profile_repository.dart';
 
 void main() {
-  // `PlayTab` reads the remembered selection and placement skip before it
-  // draws (no flash of the selection before the placement offer).
+  // `PlayTab` reads the remembered selection before it draws (no flash of
+  // the default selection).
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
   testWidgets(
@@ -33,8 +33,6 @@ void main() {
           home: AppShell(environment: environment),
         ),
       );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Skip'));
       await tester.pumpAndSettle();
 
       await tester.tap(find.bySemanticsLabel(RegExp('^Multiplication, ')));

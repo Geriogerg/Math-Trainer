@@ -1,6 +1,5 @@
 import 'dart:math';
 
-import 'package:math_core/generation/composite_exercise_generator.dart';
 import 'package:math_core/leveling/level.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/models/input_device.dart';
@@ -8,6 +7,8 @@ import 'package:math_core/persistence/exercise_codec.dart';
 import 'package:math_core/persistence/persisted_answer.dart';
 import 'package:math_core/persistence/persisted_session.dart';
 import 'package:math_core/sync/session_upload.dart';
+import 'package:math_core/tiers/tier.dart';
+import 'package:math_core/tiers/tier_content.dart';
 import 'package:test/test.dart';
 
 /// Phase 3a commit 8: what Phase 3b calibrates from must be in every
@@ -36,7 +37,7 @@ void main() {
     final answers = <PersistedAnswer>[
       for (final (i, type) in types.indexed)
         () {
-          final q = exerciseGeneratorFor(type, 40).next(random);
+          final q = exerciseAt(type, Tier.t4, random);
           final d = describeExerciseForStorage(q);
           return PersistedAnswer(
             id: 'a$i',

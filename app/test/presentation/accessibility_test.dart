@@ -18,7 +18,6 @@ import 'package:math_trainer/presentation/screens/session_screen.dart';
 import 'package:math_trainer/presentation/theme/app_theme.dart';
 
 import '../fake_account_repository.dart';
-import '../fake_placement_skip_store.dart';
 import '../fake_profile_repository.dart';
 import '../fake_stores.dart';
 import 'golden_test_utils.dart';
@@ -52,7 +51,6 @@ AppEnvironment _environment() => AppEnvironment(
   profileRepository: FakeProfileRepository(),
   typeSelectionStore: FakeTypeSelectionStore({ExerciseType.addition}),
   gameSetupStore: FakeGameSetupStore(GameSetup(mode: GameMode.training)),
-  placementSkipStore: FakePlacementSkipStore()..skipped.add('p'),
 );
 
 Future<void> _pump(

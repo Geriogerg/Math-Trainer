@@ -260,12 +260,14 @@ void main() {
     expect(sessions['s1']!['levels_json'], '{"addition":4200,"division":100}');
     expect(sessions['s2']!['levels_json'], '{}');
     // v9: recomputed as the main level from the cache (no completed
-    // session to walk back): (43 + 1 + 1 + 100) / 4.
-    expect(sessions['s1']!['overall_level_after'], 36.25);
+    // session to walk back): (43 + 0 + 0 + 100) / 4.
+    expect(sessions['s1']!['overall_level_after'], 35.75);
     expect(sessions['s1']!['seed'], 7);
     // Through v5 as well: every older session is a game.
     expect(sessions['s1']!['kind'], 'game');
-    expect(levels, {'addition': 4300, 'division': 10000});
+    // v11: every level back to 0 (the cache empties), history kept.
+    expect(levels, isEmpty);
+    expect(sessions, hasLength(2));
     expect(await v4db.getVersion(), schemaVersion);
 
     await v4db.close();
@@ -432,9 +434,9 @@ void main() {
     };
     // Powers never count; an interrupted session moved nothing; walking
     // back restores each completed game's frozen addition level.
-    expect(after['cut'], (18 + 3) / 4);
-    expect(after['new'], (18 + 3) / 4);
-    expect(after['old'], (14 + 3) / 4);
+    expect(after['cut'], 18 / 4);
+    expect(after['new'], 18 / 4);
+    expect(after['old'], 14 / 4);
 
     await db.close();
     await databaseFactory.deleteDatabase(path);

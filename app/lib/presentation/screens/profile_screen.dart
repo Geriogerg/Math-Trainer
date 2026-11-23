@@ -21,6 +21,7 @@ import '../exercise_type_labels.dart';
 import '../upload_refusal_text.dart';
 import 'package:math_core/challenges/challenge_stats.dart';
 import 'package:math_core/leveling/main_level.dart';
+import 'package:math_core/leveling/rules_version.dart';
 import '../../core/state/account_form_controller.dart';
 import '../../core/state/feedback_controller.dart';
 import '../theme/app_theme.dart';
@@ -28,7 +29,6 @@ import 'empty_state.dart';
 import 'feedback_screen.dart';
 import 'privacy_screen.dart';
 import 'save_progress_screen.dart';
-import 'session_flow_screen.dart';
 import 'sign_in_screen.dart';
 
 const _windowDuration = Duration(days: 30);
@@ -57,7 +57,6 @@ class _ProfileData {
     required this.avgElapsedMs,
     required this.windowSessions,
     required this.recentSessions,
-    required this.hasCompletedSession,
   });
 
   /// Frozen once per load — `_LevelCurve` positions its points relative to
@@ -70,15 +69,13 @@ class _ProfileData {
   final Map<ExerciseType, LevelCacheEntry> levels;
   final Map<ExerciseType, double> avgElapsedMs;
 
-  /// `sessionsSince(playerId, now - 30 days)`, sorted old → recent.
+  /// `sessionsSince(playerId, now - 30 days)`, sorted old → recent, those
+  /// of the current rules only: a level from before the Levels phase's reset
+  /// is on another scale (`doc/levels.md`, section 4).
   final List<PersistedSession> windowSessions;
 
   /// `recentSessions(playerId, limit: 10)`, sorted recent → old.
   final List<PersistedSession> recentSessions;
-
-  /// No completed session yet: the placement test is offered here, even
-  /// after a skip on Play (owner, end of Phase 1).
-  final bool hasCompletedSession;
 }
 
 /// Formerly "Progress" (step 5). Renamed Profile in step 6, slice 2: it
@@ -162,16 +159,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
           repository.averageElapsedMsByType(playerId),
           repository.sessionsSince(playerId, since),
           repository.recentSessions(playerId, limit: _recentSessionsLimit),
-          repository.hasCompletedSession(playerId),
         ]).then(
           (results) => _ProfileData(
             now: now,
             account: results[0] as Account,
             levels: results[1] as Map<ExerciseType, LevelCacheEntry>,
             avgElapsedMs: results[2] as Map<ExerciseType, double>,
-            windowSessions: results[3] as List<PersistedSession>,
+            windowSessions: [
+              for (final session in results[3] as List<PersistedSession>)
+                if (session.rulesVersion == RulesVersion.current) session,
+            ],
             recentSessions: results[4] as List<PersistedSession>,
-            hasCompletedSession: results[5] as bool,
           ),
         );
     _loadProfile();
@@ -335,17 +333,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     messenger.showSnackBar(SnackBar(content: Text(message)));
   }
 
-  /// The placement test, from Profile: same flow as from Play.
-  Future<void> _findLevel() async {
-    final environment = widget.environment;
-    await playSessionFlow(
-      context,
-      environment,
-      buildPlacementController(environment),
-    );
-    if (mounted) setState(_load);
-  }
-
   /// Sign in to an existing account; `AuthGate` swaps the whole shell on
   /// success, so nothing to reload here.
   void _signInExisting(bool isGuest, bool hasProgress) {
@@ -379,7 +366,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           return const Center(child: CircularProgressIndicator());
         }
         final data = snapshot.data!;
-        final globalLevel = data.levels.isEmpty ? null : mainLevel(data.levels);
+        // 0 before any game: everyone starts there (`doc/levels.md`).
+        final globalLevel = mainLevel(data.levels);
         // Same points as the curve: the change is the gap between its first
         // and last points, never a separate computation.
         final windowLevels = [
@@ -415,16 +403,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 );
               },
             ),
-            if (!data.hasCompletedSession) ...[
-              const SizedBox(height: 24),
-              _FindLevelBlock(onStart: _findLevel),
-            ],
             const SizedBox(height: 24),
             Row(
               children: [
                 Text('Main level', style: theme.textTheme.titleMedium),
                 const SizedBox(width: 12),
-                LevelBadge(level: globalLevel?.round(), large: true),
+                LevelBadge(level: globalLevel.round(), large: true),
               ],
             ),
             const SizedBox(height: 4),
@@ -511,34 +495,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         );
       },
-    );
-  }
-}
-
-/// Offered while the player has no completed session.
-class _FindLevelBlock extends StatelessWidget {
-  const _FindLevelBlock({required this.onStart});
-
-  final VoidCallback onStart;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Find your level', style: theme.textTheme.bodyLarge),
-        const SizedBox(height: 4),
-        Text(
-          'About a minute of + − × ÷, so your games start at the right '
-          'difficulty.',
-          style: theme.textTheme.bodyMedium,
-        ),
-        const SizedBox(height: 8),
-        // Not the screen's main action: secondary, as `FilledButton.tonal`
-        // was before the kit.
-        AppButton.secondary(onPressed: onStart, label: 'Find my level'),
-      ],
     );
   }
 }
@@ -773,7 +729,10 @@ class _RecentSessionRow extends StatelessWidget {
     // between the two "after" overall levels is exactly the effect of this
     // session.
     final after = session.overallLevelAfter;
-    final previousAfter = previous?.overallLevelAfter;
+    // Across the Levels phase's reset the two are on different scales.
+    final previousAfter = previous?.rulesVersion == session.rulesVersion
+        ? previous?.overallLevelAfter
+        : null;
     final variation = after == null || previousAfter == null
         ? '—'
         : _formatDelta(after - previousAfter);

@@ -3,12 +3,10 @@ import '../models/exercise_type.dart';
 import '../persistence/level_cache_entry.dart';
 import '../persistence/session_repository.dart';
 import 'level.dart';
-import 'level_updater.dart';
 import 'level_updates.dart';
-import 'rules_version.dart';
 
-/// How a finished session turns into level cache updates — a game
-/// ([LevelCacheOrchestrator]) or a placement (`PlacementLevelOrchestrator`).
+/// How a finished session turns into level cache updates — a Levelling
+/// game ([LevelCacheOrchestrator]) or a Training game ([NoLevelUpdates]).
 /// `SessionController` only knows this.
 abstract interface class SessionLevelUpdates {
   Future<Map<ExerciseType, LevelCacheEntry>> computeUpdates({
@@ -35,25 +33,15 @@ class NoLevelUpdates implements SessionLevelUpdates {
   }) async => const {};
 }
 
-/// Computes the level cache updates at the end of a game. Taken out of
-/// `SessionController` (step 4.1, commit D) to stay pure Dart, runnable
-/// server-side (rule 1) — exactly what revalidating a duel will one day
-/// have to redo.
+/// Computes the level cache updates at the end of a Levelling game. Taken
+/// out of `SessionController` (step 4.1, commit D) to stay pure Dart,
+/// runnable server-side (rule 1).
 class LevelCacheOrchestrator implements SessionLevelUpdates {
-  LevelCacheOrchestrator({
-    LevelUpdater? levelUpdater,
-    this.rulesVersion = RulesVersion.current,
-  }) : levelUpdater = levelUpdater ?? LevelUpdater();
+  const LevelCacheOrchestrator();
 
-  final LevelUpdater levelUpdater;
-
-  /// The rules of the games it scores (`gameLevelUpdates`).
-  final RulesVersion rulesVersion;
-
-  /// One entry per enabled type that received at least `n_min` answers this
-  /// session (the others are a noise sample, see `doc/decisions.md` — their
-  /// cache is left untouched). [frozenLevels] is the level that actually
-  /// generated the session, never re-read from the cache at this point.
+  /// One entry per operation answered (`gameLevelUpdates`). [frozenLevels]
+  /// is the level that actually generated the session, never re-read from
+  /// the cache at this point.
   @override
   Future<Map<ExerciseType, LevelCacheEntry>> computeUpdates({
     required List<AnswerResult> outcomes,
@@ -66,7 +54,5 @@ class LevelCacheOrchestrator implements SessionLevelUpdates {
     frozenLevels: frozenLevels,
     priorLevels: await repository.currentLevels(playerId),
     now: now,
-    levelUpdater: levelUpdater,
-    rulesVersion: rulesVersion,
   );
 }

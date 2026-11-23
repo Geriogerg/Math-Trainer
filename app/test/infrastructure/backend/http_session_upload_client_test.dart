@@ -19,7 +19,7 @@ void main() {
       enabledTypes: const {ExerciseType.addition},
       exerciseCount: 1,
       totalScore: 0,
-      levels: {ExerciseType.addition: Level.floor},
+      levels: {ExerciseType.addition: Level.zero},
       createdAt: DateTime.utc(2026, 11, 20),
       typeSequence: const [ExerciseType.addition],
     ),

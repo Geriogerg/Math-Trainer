@@ -53,13 +53,13 @@ void main() {
   });
 
   group('mainLevel', () {
-    test('no type played: floor level 1', () {
-      expect(mainLevel(const {}), 1);
+    test('no type played: level 0', () {
+      expect(mainLevel(const {}), 0);
     });
 
-    test('a basic never played counts at the floor', () {
-      // (43 + 3 × 1) / 4.
-      expect(mainLevel({ExerciseType.addition: _level(4300)}), 11.5);
+    test('a basic never played counts at 0', () {
+      // (43 + 3 × 0) / 4.
+      expect(mainLevel({ExerciseType.addition: _level(4300)}), 10.75);
     });
 
     test('advanced operations never count', () {
@@ -75,7 +75,7 @@ void main() {
     test('continuous: hundredths reach the mean, in level units', () {
       expect(
         mainLevel({ExerciseType.addition: _level(3742)}),
-        closeTo((37.42 + 3) / 4, 1e-12),
+        closeTo(37.42 / 4, 1e-12),
       );
     });
   });
@@ -91,8 +91,8 @@ void main() {
         ],
         current: {ExerciseType.addition: Level.fromHundredths(1400)},
       );
-      expect(after['b'], (14 + 3) / 4);
-      expect(after['a'], (12 + 3) / 4);
+      expect(after['b'], 14 / 4);
+      expect(after['a'], 12 / 4);
     });
 
     test('an interrupted session moved nothing', () {
@@ -105,8 +105,8 @@ void main() {
         ],
         current: {ExerciseType.addition: Level.fromHundredths(1100)},
       );
-      expect(after['b'], (11 + 3) / 4);
-      expect(after['a'], (11 + 3) / 4);
+      expect(after['b'], 11 / 4);
+      expect(after['a'], 11 / 4);
     });
 
     test('undoing a placement removes the levels it created', () {
@@ -139,7 +139,7 @@ void main() {
         sessions: [(session: training, completed: true)],
         current: {ExerciseType.addition: Level.fromHundredths(1200)},
       );
-      expect(after['t'], (12 + 3) / 4);
+      expect(after['t'], 12 / 4);
     });
 
     test('advanced games change no main level', () {
@@ -148,7 +148,7 @@ void main() {
         sessions: [(session: power, completed: true)],
         current: {ExerciseType.power: Level.fromHundredths(5000)},
       );
-      expect(after['w'], 1);
+      expect(after['w'], 0);
     });
   });
 }

@@ -6,9 +6,11 @@ import '../leveling/level.dart';
 /// nothing is ranked (plan v2.9). The names are stored (setup store).
 enum GameMode { training, levelling }
 
-/// Training's fixed difficulty: every operation played at the operand
-/// bounds of one level (plan v2.9, proposed 15 / 40 / 70; provisional,
-/// `doc/decisions.md`). The names are stored (setup store).
+/// Training's fixed difficulty: every operation played at one level, so at
+/// one tier — Easy T1, Medium T4, Hard T7 (`doc/levels.md`, section 4;
+/// levels 15 / 40 / 70 since plan v2.9, each inside its tier, so stored
+/// Training games keep their difficulty). The names are stored (setup
+/// store).
 enum TrainingDifficulty {
   easy(15),
   medium(40),

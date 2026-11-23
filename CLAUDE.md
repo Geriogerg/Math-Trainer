@@ -14,7 +14,7 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 **Levels phase — new level system, tables mode, tips** (`doc/plan.md`, section 7), run in **one
 pass**. **Specification: `doc/levels.md`** — binding; it replaces the level formula, the
 placement test and the operand curves. Entry: the Redesign close-out (plan, section 7), run first
-as its own commit. Done: the close-out, 0–3. Update this block at every commit.
+as its own commit. Done: the close-out, 0–4 (live: levels reset, rules v2). Update this block at every commit.
 
 **The beta-safety rule stays lifted.** The rules version stored with every session separates old
 data from new; old sessions are never replayed under the new rules.
@@ -86,7 +86,7 @@ Non-negotiable without explicit discussion.
 1. **Pure-Dart core**: `packages/math_core` has no dependency at all (no Flutter); app and
    server import it by path.
 2. **Deterministic generation**: explicit seed, no unseeded `Random()`; same (seed, config) → same
-   sequence. Placement: same (seed, answers so far) → same next question.
+   sequence.
 3. **Persistence behind abstractions**: storage packages only in `infrastructure/`.
 4. **Repositories always async.**
 5. **UUIDs**, never `AUTOINCREMENT`.
@@ -111,14 +111,17 @@ Non-negotiable without explicit discussion.
 
 - Local SQLite (web: WebAssembly + IndexedDB), keyed by the Supabase user id. Every answer stored
   with its own timestamp, operands, given answer, time, correctness, level.
-- **Levels**: integer hundredths (3742 = 37.42), shown as a whole number with a progress bar
-  inside the level; generation reads the whole part. Recomputable from history by a core function.
-  The **main level** (`mainLevel`) is the mean of the four basics only; the main board keeps
-  the server key `overall` (cached builds call it by that name).
+- **Levels**: integer hundredths in [0, 10000] (3742 = 37.42), shown as a whole number with a
+  progress bar inside the level; the whole part's tier (`Tier.of`) sets the content and the fluent
+  time. An absent level is 0. Recomputable from history by a core function. The **main level**
+  (`mainLevel`) is the mean of the four basics only, unplayed at 0; the main board keeps the
+  server key `overall` (cached builds call it by that name).
+- **Rules versions** (`RulesVersion`, stored with every session): v2 = `doc/levels.md`; v1 (all
+  before the transition) is retired — never replayed, refused by the server (`rulesRetired`),
+  never sent by the app, kept in history.
 - **Sessions are self-contained**: everything deciding question order is stored with them.
-- **Session kinds**: game, placement, or training (fixed levels frozen in the session, no level
-  update — `NoLevelUpdates`; uploaded and validated, never ranked). Placement answers become
-  starting levels through a pure core function.
+- **Session kinds**: game or training (fixed levels frozen in the session, no level update —
+  `NoLevelUpdates`; uploaded and validated, never ranked). The placement kinds are history only.
 - **Anonymous-first**: anonymous user created on first launch; linking keeps the same user id;
   email already used → sign in after a "guest progress replaced" warning, no merge; no sign-out
   for anonymous players; deletion via a `security definer` SQL function on `auth.uid()` only.
@@ -224,21 +227,21 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 - CI analyzes with `--fatal-infos` (core and tooling): run `dart analyze --fatal-infos` locally,
   an info-level lint fails the build.
 - Never draw at random from a `Set` (insertion order); use a list sorted by enum `index`.
-- The useless `nextInt(1)` in `CompositeExerciseGenerator` stays: removing it changes every
-  sequence.
 - `ExerciseType` and `SessionKind` names are stored discriminants; renaming breaks history.
-- `duel_config_test.dart` pins three duels' questions: a change to generation that moves them
-  breaks every stored duel (Phase 7) — never update the pins to make a test pass.
+- `duel_config_test.dart` pins three duels' questions (re-recorded once, on purpose, when duels
+  moved to the tiers): a change to generation that moves them breaks every stored duel (Phase
+  7) — never update the pins to make a test pass.
   `Strategy` names will be too (Phase 4 tips).
-- Changing `placementRulesV1` changes stored placements' replay: add a `placementV2` instead.
-- A new player's first Start is a type placement (`typePlacementV3`), not a game: tests that
-  mean a game give the player levels first (`widget_test.dart`'s shared repository).
+- Changing what a tier draws changes every stored v2 session's replay: a new rules version
+  instead (`RulesVersion`, `doc/levels.md` section 4), the old one kept replayable.
+- `PersistedSession`'s `rulesVersion` defaults to v1 (rows stored before it): a test session
+  meant to upload or replay passes `RulesVersion.current`.
 - Integer levels round small steps to zero — never round before storing hundredths.
 - `Level` is an `int` at runtime: string interpolation prints hundredths, and `level ?? 1`
-  compiles (widens to `Object`). Display through `.whole`; fall back to `Level.floor`.
-- `packages/math_core/test/determinism/determinism_references.dart` is generated (in
-  `packages/math_core`: `dart run tool/determinism_references.dart`) only by a change meant to alter sequences or
-  level updates — never to make a JavaScript failure pass.
+  compiles (widens to `Object`). Display through `.whole`; fall back to `Level.zero`.
+- `packages/math_core/test/tiers/tier_references.dart` is generated (in `packages/math_core`:
+  `dart run tool/tier_references.dart`) only by a change meant to alter v2's questions — never
+  to make a JavaScript failure pass.
 - `Random.secure()` throws under `-p node` (dart2js + Node 24); browsers are fine.
 - `web/sqlite3.wasm` and `web/sqflite_sw.js` come from `dart run sqflite_common_ffi_web:setup`;
   rerun with `--force` after upgrades. On GitHub Pages every path respects `/Math-Trainer/`.
@@ -273,8 +276,9 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   sessions chain from the local levels. Never without a server either — its levels are empty.
 - The privacy notice (`privacy_screen.dart`) states what is stored and that deletion removes it
   all: a new table of player data must cascade from `auth.users` and be named there.
-- Level updates have one implementation: `gameLevelUpdates` / `placementLevelUpdates`, used by
-  the app's orchestrators and the server's validation. Never compute levels elsewhere.
+- Level updates have one implementation: `gameLevelUpdates`, used by the app's orchestrator
+  and the server's validation. Never compute levels elsewhere. Questions likewise:
+  `gameExerciseGenerator` for the app, the replay and duels.
 - The server enforces the gate too (`upload_allowed`, env `BETA_GATE`, on unless `false`): a
   blocked upload is a 403 the app retries, never a refusal — keep it so, or late-redeemed
   testers lose games. Check a deploy with `/health` (`version`, `betaGate`).
@@ -293,9 +297,8 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 - SQL tests set `PGCLIENTENCODING=UTF8`: psql on Windows otherwise reads files in the console's
   code page. Git Bash also mangles non-ASCII command-line arguments to Windows programs — put
   such SQL in a file.
-- Rotation by sampling debt makes question order depend on past games: sessions store their
-  type sequence (schema v6). Replay with `replaySessionQuestions`, never by re-running the
-  strategy.
+- Sessions store their type sequence (schema v6), shuffled once by the seed: replay with
+  `replaySessionQuestions`, never by re-running `shuffledTypeSequence`.
 - No Google fonts at runtime (`fontFallbackBaseUrl: 'fonts/'` in `web/flutter_bootstrap.js`):
   a glyph missing from the bundled fonts shows as a box. Check new UI symbols in the network
   panel.

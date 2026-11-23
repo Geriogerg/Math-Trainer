@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:math_core/leveling/level.dart';
+import 'package:math_core/leveling/rules_version.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:math_trainer/composition_root.dart';
@@ -123,8 +124,8 @@ class _RecordingUploadClient implements SessionUploadClient {
 }
 
 void main() {
-  // `PlayTab` reads the remembered selection and placement skip before it
-  // draws (no flash of the selection before the placement offer).
+  // `PlayTab` reads the remembered selection before it draws (no flash of
+  // the default selection).
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
   Future<AppEnvironment> pumpGate(
@@ -158,7 +159,7 @@ void main() {
 
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
     expect(find.byType(TextField), findsNothing);
-    expect(find.text('Find your level'), findsNothing);
+    expect(find.text('Basics'), findsNothing);
   });
 
   testWidgets(
@@ -178,7 +179,7 @@ void main() {
       accountRepository.completeAnonymous(_guest);
       await tester.pumpAndSettle();
 
-      expect(find.text('Find your level'), findsOneWidget);
+      expect(find.text('Basics'), findsOneWidget);
       expect(find.byType(TextField), findsNothing);
     },
   );
@@ -196,7 +197,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(accountRepository.anonymousSignIns, 0);
-    expect(find.text('Find your level'), findsOneWidget);
+    expect(find.text('Basics'), findsOneWidget);
   });
 
   testWidgets('repeated "no session" states start a single anonymous sign-in', (
@@ -235,7 +236,7 @@ void main() {
 
     accountRepository.completeAnonymous(_guest);
     await tester.pumpAndSettle();
-    expect(find.text('Find your level'), findsOneWidget);
+    expect(find.text('Basics'), findsOneWidget);
   });
 
   testWidgets('rate limited: its own message', (tester) async {
@@ -303,12 +304,12 @@ void main() {
 
     const accountA = Account(id: 'compte-a', email: 'a@test.com');
     const accountB = Account(id: 'compte-b', email: 'b@test.com');
-    // What a player with no session sees first (Phase 1 commit 6).
-    const welcome = 'Find your level';
+    // The device's main level: addition 43, the three other basics at 0.
+    const deviceMainLevel = 11; // 43 / 4 = 10.75
 
     /// Game played under the device's local id (`test-player`, the one of
-    /// `pumpGate`), as before accounts. Addition at level 43, the six other
-    /// basics at the floor: main level (43 + 3) / 4 = 11.5, shown as 12.
+    /// `pumpGate`), as before accounts. Addition at level 43, the three
+    /// other basics at 0: main level 43 / 4 = 10.75, shown as 11.
     Future<void> playOnDevice(AppEnvironment environment) =>
         environment.repository.recordSession(
           session: PersistedSession(
@@ -321,7 +322,7 @@ void main() {
             levels: {ExerciseType.addition: Level.whole(40)},
             createdAt: DateTime.utc(2026, 11, 1),
           ),
-          // Played to the end: a completed session, so no placement offer.
+          // Played to the end: a completed session.
           answers: [
             for (var i = 0; i < 4; i++)
               PersistedAnswer(
@@ -354,7 +355,7 @@ void main() {
 
         accountRepository.resolveSession(accountA);
         await tester.pumpAndSettle();
-        expect(findLevelBadge(12), findsOneWidget);
+        expect(findLevelBadge(deviceMainLevel), findsOneWidget);
 
         // Signed out: a guest is being created (pending) — a spinner,
         // which never settles.
@@ -362,7 +363,7 @@ void main() {
         await tester.pump();
         accountRepository.resolveSession(accountB);
         await tester.pumpAndSettle();
-        expect(find.text(welcome), findsOneWidget);
+        expect(findLevelBadge(deviceMainLevel), findsNothing);
 
         // Signed out: a guest is being created (pending) — a spinner,
         // which never settles.
@@ -370,7 +371,7 @@ void main() {
         await tester.pump();
         accountRepository.resolveSession(accountA);
         await tester.pumpAndSettle();
-        expect(findLevelBadge(12), findsOneWidget);
+        expect(findLevelBadge(deviceMainLevel), findsOneWidget);
       },
     );
 
@@ -382,12 +383,12 @@ void main() {
       await playOnDevice(environment);
       accountRepository.resolveSession(accountA);
       await tester.pumpAndSettle();
-      expect(findLevelBadge(12), findsOneWidget);
+      expect(findLevelBadge(deviceMainLevel), findsOneWidget);
 
       accountRepository.resolveSession(accountB);
       await tester.pumpAndSettle();
 
-      expect(find.text(welcome), findsOneWidget);
+      expect(findLevelBadge(deviceMainLevel), findsNothing);
     });
   });
 
@@ -404,9 +405,10 @@ void main() {
         enabledTypes: const {ExerciseType.addition},
         exerciseCount: 1,
         totalScore: 0,
-        levels: {ExerciseType.addition: Level.floor},
+        levels: {ExerciseType.addition: Level.zero},
         createdAt: DateTime.utc(2026, 11, 19),
         typeSequence: const [ExerciseType.addition],
+        rulesVersion: RulesVersion.current,
       ),
       answers: const [],
       levelUpdates: const {},

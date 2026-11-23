@@ -5,8 +5,8 @@ import '../persistence/persisted_session.dart';
 import 'level.dart';
 
 /// The main level (plan v2.9): the mean of the four **basic** operations,
-/// one never played counting at the floor level (1 — the domain is
-/// [1, 100]) rather than left out of the mean. Advanced operations never
+/// one never played counting at 0 (`doc/levels.md`: everyone starts there)
+/// rather than left out of the mean. Advanced operations never
 /// count in it: each has its own level and board. The same rule ranks the
 /// main board server-side (`leaderboard_rows`, board `overall`).
 ///
@@ -24,7 +24,7 @@ double mainLevelOf(Map<ExerciseType, Level> levels) {
   final basics = ExerciseFamily.basics.types;
   var sum = 0;
   for (final type in basics) {
-    sum += (levels[type] ?? Level.floor).hundredths;
+    sum += (levels[type] ?? Level.zero).hundredths;
   }
   return sum / basics.length / 100;
 }

@@ -17,7 +17,7 @@ class ScoringRules {
   final int maxStreakBonus;
 
   /// At level 100, raw points are multiplied by `1 + difficultyBonusMax`;
-  /// at level 1, by 1 (no bonus). Uncalibrated, see
+  /// at level 0, by 1 (no bonus). Uncalibrated, see
   /// `doc/decisions.md`.
   final double difficultyBonusMax;
 }
@@ -80,9 +80,9 @@ class Scorer {
   }
 
   double _difficultyMultiplier(int level) {
-    if (level < 1 || level > 100) {
-      throw ArgumentError.value(level, 'level', 'must be between 1 and 100.');
+    if (level < 0 || level > 100) {
+      throw ArgumentError.value(level, 'level', 'must be between 0 and 100.');
     }
-    return 1 + (level - 1) / 99 * rules.difficultyBonusMax;
+    return 1 + level / 100 * rules.difficultyBonusMax;
   }
 }

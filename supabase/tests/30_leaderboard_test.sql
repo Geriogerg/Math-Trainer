@@ -20,7 +20,7 @@ begin
       (id, 'addition', 800 * k, case when k = 11 then 2 else 3 end, now());
     for g in 1..3 loop
       insert into public.uploaded_sessions (id, player_id, created_at, kind, payload, completed)
-      values (gen_random_uuid(), id, now(), 'game', '{}', true);
+      values (gen_random_uuid(), id, now(), 'game', '{"session": {"rulesVersion": 2}}', true);
     end loop;
   end loop;
   -- Player 13: signed up, never uploaded anything.
@@ -113,8 +113,8 @@ end;
 $$;
 
 -- The main board ('overall'): the mean of the four basics, unplayed =
--- level 1; advanced levels never count (Redesign phase). Player 10:
--- (8000 + 3 × 100) / 4 = 2075, whatever their power level.
+-- level 0 (Levels phase); advanced levels never count (Redesign phase).
+-- Player 10: (8000 + 3 × 0) / 4 = 2000, whatever their power level.
 reset role;
 insert into public.server_levels values
   ('00000000-0000-0000-0000-000000000110', 'power', 9900, 3, now());
@@ -124,7 +124,7 @@ do $$
 declare
   me jsonb := public.leaderboard_around_me('overall');
 begin
-  assert (me ->> 'level')::int = 2075, 'main level ' || (me ->> 'level');
+  assert (me ->> 'level')::int = 2000, 'main level ' || (me ->> 'level');
   -- Player 11 has 3 completed games: on the overall board, not on addition.
   assert (me ->> 'total')::int = 11, 'overall total ' || (me ->> 'total');
 end;
@@ -202,11 +202,11 @@ begin
   insert into public.server_levels values (id, 'addition', 1500, 2, now());
   for g in 1..2 loop
     insert into public.uploaded_sessions (id, player_id, created_at, kind, payload, completed)
-    values (gen_random_uuid(), id, now(), 'game', '{}', true);
+    values (gen_random_uuid(), id, now(), 'game', '{"session": {"rulesVersion": 2}}', true);
   end loop;
   for g in 1..5 loop
     insert into public.uploaded_sessions (id, player_id, created_at, kind, payload, completed)
-    values (gen_random_uuid(), id, now(), 'training', '{}', true);
+    values (gen_random_uuid(), id, now(), 'training', '{"session": {"rulesVersion": 2}}', true);
   end loop;
 end;
 $$;
@@ -220,6 +220,41 @@ begin
   assert (me ->> 'sessionsNeeded')::int = 1, me::text;
   me := public.leaderboard_around_me('addition');
   assert me ->> 'reason' = 'notEnoughSessions', 'addition: ' || me::text;
+end;
+$$;
+reset role;
+
+-- The boards start fresh at the Levels phase's transition: games of the old
+-- rules (no rulesVersion in the payload: rules v1) never count toward the
+-- main board. Player 15 has 5 completed v1 games and 2 v2 games.
+do $$
+declare
+  id uuid := '00000000-0000-0000-0000-000000000115';
+begin
+  insert into auth.users (id, is_anonymous) values (id, false);
+  insert into public.profiles (id, display_name) values (id, 'Player 15');
+  insert into public.server_players (player_id, version, last_session_at, has_completed_session)
+  values (id, 7, now(), true);
+  -- Level 0 is a level (an operation played down to it).
+  insert into public.server_levels values (id, 'addition', 0, 2, now());
+  for g in 1..5 loop
+    insert into public.uploaded_sessions (id, player_id, created_at, kind, payload, completed)
+    values (gen_random_uuid(), id, now() - interval '2 days', 'game', '{}', true);
+  end loop;
+  for g in 1..2 loop
+    insert into public.uploaded_sessions (id, player_id, created_at, kind, payload, completed)
+    values (gen_random_uuid(), id, now(), 'game', '{"session": {"rulesVersion": 2}}', true);
+  end loop;
+end;
+$$;
+set role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000115', false);
+do $$
+declare
+  me jsonb := public.leaderboard_around_me('overall');
+begin
+  assert me ->> 'reason' = 'notEnoughSessions', 'v1 games counted: ' || me::text;
+  assert (me ->> 'sessionsNeeded')::int = 1, me::text;
 end;
 $$;
 reset role;
