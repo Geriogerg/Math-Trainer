@@ -23,6 +23,12 @@ enum RulesVersion {
   /// What new sessions are played under.
   static const current = v2;
 
+  /// The rules a server built from this code replays (validation refuses
+  /// the others). The server says so in its `/health` (`rules`), and the
+  /// app holds a session back, pending, until the server it talks to knows
+  /// its rules — an older server would refuse it for good.
+  static const replayed = [v2];
+
   /// Throws [ArgumentError] for a number no version has (rule 13).
   static RulesVersion of(int number) {
     for (final version in values) {

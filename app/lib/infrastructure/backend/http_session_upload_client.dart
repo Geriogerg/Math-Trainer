@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:math_core/leveling/rules_version.dart';
 import 'package:math_core/sync/session_upload.dart';
 import 'package:math_core/sync/session_upload_client.dart';
 
@@ -10,6 +11,12 @@ import 'package:math_core/sync/session_upload_client.dart';
 /// may pass (offline, timeout, server asleep or down, expired token) is an
 /// [UploadUnavailable]: the queue retries later. Only the server's own
 /// answer — accepted or refused — is final.
+///
+/// A session is sent only to a server that replays its rules (its
+/// `/health` lists them, Levels phase): the server deploys apart from the
+/// site, and one that does not know the rules yet would refuse the session
+/// for good. Until it does, the session waits, pending — which also keeps
+/// the app from adopting that server's levels (`syncLevelsBeforeGame`).
 class HttpSessionUploadClient implements SessionUploadClient {
   HttpSessionUploadClient({
     required this.serverUrl,
@@ -27,10 +34,46 @@ class HttpSessionUploadClient implements SessionUploadClient {
   /// uploads are background work.
   final Duration timeout;
 
+  /// The rules the server said it replays; asked again until it knows the
+  /// one a session needs (a deploy changes it, never back).
+  Set<int>? _serverRules;
+
+  Future<void> _requireServerRules(RulesVersion rules) async {
+    if (_serverRules?.contains(rules.number) ?? false) return;
+    final http.Response response;
+    try {
+      response = await _client
+          .get(serverUrl.resolve('/health'))
+          .timeout(timeout);
+    } on TimeoutException {
+      throw const UploadUnavailable('timeout');
+    } on http.ClientException catch (e) {
+      throw UploadUnavailable('network: ${e.message}');
+    }
+    Object? body;
+    try {
+      body = jsonDecode(response.body);
+    } on FormatException {
+      body = null;
+    }
+    final listed = body is Map ? body['rules'] : null;
+    _serverRules = {
+      if (listed is List)
+        for (final v in listed)
+          if (v is int) v,
+    };
+    if (!_serverRules!.contains(rules.number)) {
+      throw UploadUnavailable(
+        'the server does not replay rules v${rules.number} yet',
+      );
+    }
+  }
+
   @override
   Future<UploadOutcome> upload(SessionUpload upload) async {
     final token = await accessToken();
     if (token == null) throw const UploadUnavailable('not signed in');
+    await _requireServerRules(upload.session.rulesVersion);
     final http.Response response;
     try {
       response = await _client

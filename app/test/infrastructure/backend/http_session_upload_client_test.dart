@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:math_core/leveling/level.dart';
+import 'package:math_core/leveling/rules_version.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/persistence/persisted_session.dart';
 import 'package:math_core/sync/session_upload.dart';
@@ -22,17 +23,9 @@ void main() {
       levels: {ExerciseType.addition: Level.zero},
       createdAt: DateTime.utc(2026, 11, 20),
       typeSequence: const [ExerciseType.addition],
+      rulesVersion: RulesVersion.v2,
     ),
     answers: const [],
-  );
-
-  HttpSessionUploadClient clientAnswering(
-    http.Response Function(http.Request request) answer, {
-    String? token = 'jwt',
-  }) => HttpSessionUploadClient(
-    serverUrl: Uri.parse('https://server.example'),
-    accessToken: () async => token,
-    client: MockClient((request) async => answer(request)),
   );
 
   http.Response json(int status, Object body) => http.Response(
@@ -40,6 +33,60 @@ void main() {
     status,
     headers: {'content-type': 'application/json'},
   );
+
+  /// A server that replays [rules] (its `/health`), answering uploads with
+  /// [answer].
+  HttpSessionUploadClient clientAnswering(
+    http.Response Function(http.Request request) answer, {
+    String? token = 'jwt',
+    List<int> rules = const [2],
+  }) => HttpSessionUploadClient(
+    serverUrl: Uri.parse('https://server.example'),
+    accessToken: () async => token,
+    client: MockClient(
+      (request) async => request.url.path == '/health'
+          ? json(200, {'status': 'ok', 'version': 'x', 'rules': rules})
+          : answer(request),
+    ),
+  );
+
+  group("a server that does not replay the session's rules yet", () {
+    test('nothing is sent; the session waits (unavailable)', () async {
+      var posted = 0;
+      final client = clientAnswering((_) {
+        posted++;
+        return json(200, {
+          'status': 'accepted',
+          'syncedAt': '2026-11-20T10:00:00Z',
+        });
+      }, rules: const []);
+      await expectLater(
+        client.upload(upload),
+        throwsA(isA<UploadUnavailable>()),
+      );
+      expect(posted, 0);
+    });
+
+    test('an older server, whose /health lists no rules: the same', () async {
+      var posted = 0;
+      final client = HttpSessionUploadClient(
+        serverUrl: Uri.parse('https://server.example'),
+        accessToken: () async => 'jwt',
+        client: MockClient((request) async {
+          if (request.url.path == '/health') {
+            return json(200, {'status': 'ok', 'version': '352f1d5'});
+          }
+          posted++;
+          return json(400, {'status': 'refused', 'reason': 'badRequest'});
+        }),
+      );
+      await expectLater(
+        client.upload(upload),
+        throwsA(isA<UploadUnavailable>()),
+      );
+      expect(posted, 0);
+    });
+  });
 
   test('posts the upload with the bearer token; accepted', () async {
     late http.Request sent;

@@ -153,3 +153,25 @@ begin
   where id in ('10000000-0000-0000-0000-0000000000f1', '10000000-0000-0000-0000-0000000000f2');
 end;
 $$;
+
+-- Levels phase commit 4.1: the old server's rejections of rules-v2 games
+-- are cleared by the migration (here: the statement it runs), never other
+-- rejections.
+do $$
+begin
+  insert into public.upload_rejections (session_id, player_id, reason, payload)
+  values
+    ('10000000-0000-0000-0000-0000000000e1', '00000000-0000-0000-0000-0000000000c2',
+     'questionMismatch', '{"session": {"rulesVersion": 2}}'),
+    ('10000000-0000-0000-0000-0000000000e2', '00000000-0000-0000-0000-0000000000c2',
+     'questionMismatch', '{"session": {}}');
+  delete from public.upload_rejections
+  where coalesce((payload -> 'session' ->> 'rulesVersion')::integer, 1) >= 2;
+  assert not exists (select from public.upload_rejections
+    where session_id = '10000000-0000-0000-0000-0000000000e1'), 'v2 rejection kept';
+  assert exists (select from public.upload_rejections
+    where session_id = '10000000-0000-0000-0000-0000000000e2'), 'v1 rejection lost';
+  delete from public.upload_rejections
+  where session_id = '10000000-0000-0000-0000-0000000000e2';
+end;
+$$;

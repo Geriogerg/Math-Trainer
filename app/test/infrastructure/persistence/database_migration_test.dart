@@ -382,6 +382,48 @@ void main() {
     await databaseFactory.deleteDatabase(path);
   });
 
+  test('v12: rules-v2 games the old server refused are pending again; '
+      'other refusals stay', () async {
+    const path = 'migration_v12_test.db';
+    await databaseFactory.deleteDatabase(path);
+    var db = await openMathTrainerDatabase(path);
+    for (final (id, rules, refused) in [
+      ('v2-refused', 2, 'questionMismatch'),
+      ('v2-pending', 2, null),
+      ('v1-retired', null, 'rulesRetired'),
+      ('v1-refused', null, 'levelsMismatch'),
+    ]) {
+      await db.insert('sessions', {
+        'id': id,
+        'player_id': 'player',
+        'seed': 1,
+        'operation_types': '["addition"]',
+        'exercise_count': 4,
+        'total_score': 0,
+        'created_at': DateTime.utc(2026, 11, 23).toIso8601String(),
+        'rules_version': rules,
+        'upload_refused': refused,
+      });
+    }
+    await db.setVersion(11);
+    await db.close();
+
+    db = await openMathTrainerDatabase(path);
+    final refusals = {
+      for (final row in await db.query('sessions'))
+        row['id']: row['upload_refused'],
+    };
+    expect(refusals, {
+      'v2-refused': null,
+      'v2-pending': null,
+      'v1-retired': 'rulesRetired',
+      'v1-refused': 'levelsMismatch',
+    });
+    expect(await db.getVersion(), schemaVersion);
+    await db.close();
+    await databaseFactory.deleteDatabase(path);
+  });
+
   test('v9 recomputes each stored point as the main level after it', () async {
     const path = 'migration_v9_test.db';
     await databaseFactory.deleteDatabase(path);

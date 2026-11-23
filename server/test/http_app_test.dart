@@ -49,6 +49,8 @@ void main() {
       'service': 'math_trainer_server',
       'version': 'dev',
       'betaGate': true,
+      // The rules it replays: the app holds sessions of others back.
+      'rules': [2],
     });
   });
 

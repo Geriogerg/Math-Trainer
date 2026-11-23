@@ -13,7 +13,7 @@ import 'session_rows.dart';
 
 /// Current schema version. Every change increments this value and adds a
 /// branch in [_onUpgrade] — never destructive, never retroactive.
-const schemaVersion = 11;
+const schemaVersion = 12;
 
 /// The app's database, where each platform expects it. On web: same schema
 /// and same SQL as elsewhere, SQLite compiled to WebAssembly
@@ -173,6 +173,18 @@ Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
       "AND name = 'player_levels'",
     );
     if (cache.isNotEmpty) await db.delete('player_levels');
+  }
+  if (oldVersion < 12) {
+    // Levels phase commit 4.1: the production server was still the one
+    // before rules v2 when the transition went live, and refused every
+    // rules-v2 game (it cannot read level 0, nor replay the tiers). No
+    // server knew rules v2 then, so every such refusal is the old server's:
+    // those games are pending again, and wait until a server replays them
+    // (`HttpSessionUploadClient` checks its `/health`).
+    await db.rawUpdate(
+      'UPDATE sessions SET upload_refused = NULL '
+      'WHERE rules_version = 2 AND upload_refused IS NOT NULL',
+    );
   }
 }
 

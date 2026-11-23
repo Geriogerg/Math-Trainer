@@ -930,3 +930,16 @@ new games use them, together with the reset (`doc/decisions.md`).
   (v3 → v11), SQL (v1 games off the main board, level 0 stored, unplayed 0); goldens of Home,
   Profile and the result screen regenerated and checked by eye (levels at 0, no placement
   block, +3 on a perfect 4-question game). Not run locally: the smoke test (production).
+- **Commit 4.1** *(A)* — Urgent fix after commit 4 went live. The production server was still
+  `352f1d5` (its deploys wait for the owner's production deploy hook, part of the staging setup
+  still open), so it refused every rules-v2 game for good — it cannot read level 0 nor replay
+  the tiers — and with nothing pending, the next Start adopted its levels (empty since the
+  reset): a tester's progress dropped back to 0 after each game. Now: the server's `/health`
+  lists the rules it replays (`RulesVersion.replayed`); the app sends a session only to a
+  server that replays its rules, otherwise it stays pending (which also stops the adoption).
+  App schema v12: rules-v2 sessions the old server refused are pending again. SQL
+  `20261125020000_old_server_v2_rejections.sql`: the old server's rejections of v2 games are
+  deleted (a resend of a known id gets its stored verdict); repeated in commit 5 for those
+  made meanwhile. Tests: client (old server: nothing sent), v12, SQL, `/health`.
+  **Owner**: deploy the production server (doc/online.md) — until then games are held on the
+  devices, unranked.

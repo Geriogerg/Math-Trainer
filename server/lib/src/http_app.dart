@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:math_core/leveling/rules_version.dart';
 import 'package:shelf/shelf.dart';
 
 import 'config.dart';
@@ -22,6 +23,9 @@ Handler buildHandler(ServerConfig config, {List<Route> routes = const []}) {
         // deploy is checked from outside by asking the server itself.
         'version': config.version,
         'betaGate': config.requireBetaCode,
+        // The rules versions this server replays (Levels phase): the app
+        // sends a session only to a server that knows its rules.
+        'rules': [for (final v in RulesVersion.replayed) v.number],
       }),
     ),
     ...routes,
