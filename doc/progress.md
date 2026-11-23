@@ -970,3 +970,13 @@ new games use them, together with the reset (`doc/decisions.md`).
   stats, JSON), store, Play tab (card, setup, range, ends, remembered), a full round end to
   end (stats recorded, history and levels untouched, Play again), Profile block; goldens: the
   Tables setup page and Home with its card, both themes. **To play on the phone.**
+- **Commit 7** *(C)* — Tips page (spec section 8). Core `TipBand` (beginner T0–T2,
+  intermediate T3–T5, advanced T6–T9). App `presentation/tips/tips.dart`: 35 tips, one
+  sentence and one worked example each, every operation in every band, each of the
+  detector's seven strategies linked to exactly one (`Tip.strategy`, for a later phase's
+  tip after a wrong answer); `TipsView` per operation and band, the player's band marked
+  (outline, marker icon, weight; selected for screen readers); a "Tips" card on Home under
+  Tables. Every character checked against Inter's coverage. Tests: band rule, content rules,
+  the marked band (level 37 → intermediate; never played → beginner), Home → Tips → back;
+  goldens: the Tips page in both themes, Home with its two new cards. **To play on the
+  phone.**

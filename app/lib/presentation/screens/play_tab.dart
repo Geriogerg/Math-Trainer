@@ -17,6 +17,7 @@ import '../theme/app_theme.dart';
 import 'chain_screen.dart';
 import 'count_screen.dart';
 import 'session_flow_screen.dart';
+import 'tips_view.dart';
 
 /// Addition and subtraction ticked for a player who never chose: inverse
 /// operations, the lightest start (step 4.1, `doc/decisions.md`).
@@ -63,6 +64,9 @@ class _PlayTabState extends State<PlayTab> {
   /// choices, remembered (`TablesStore`).
   bool _tablesSetupOpen = false;
   TablesSetup _tablesSetup = TablesSetup();
+
+  /// The Tips page is open (`doc/levels.md` section 8).
+  bool _tipsOpen = false;
 
   bool _isStarting = false;
   String? _startError;
@@ -158,6 +162,7 @@ class _PlayTabState extends State<PlayTab> {
     _setupFamily = null;
     _chainSetupOpen = false;
     _tablesSetupOpen = false;
+    _tipsOpen = false;
   });
 
   void _updateTablesSetup(TablesSetup Function(TablesSetup) change) {
@@ -255,6 +260,19 @@ class _PlayTabState extends State<PlayTab> {
   @override
   Widget build(BuildContext context) {
     if (!_startupResolved) return const SizedBox.expand();
+    if (_tipsOpen) {
+      final levels = _levels ?? const {};
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) _closeSetup();
+        },
+        child: TipsView(
+          levelOf: (type) => levels[type]?.level ?? Level.zero,
+          onBack: _closeSetup,
+        ),
+      );
+    }
     if (_tablesSetupOpen) {
       return PopScope(
         canPop: false,
@@ -315,6 +333,7 @@ class _PlayTabState extends State<PlayTab> {
       onGetTheCount: () => playCount(context, widget.environment),
       onChainOperations: () => setState(() => _chainSetupOpen = true),
       onTables: () => setState(() => _tablesSetupOpen = true),
+      onTips: () => setState(() => _tipsOpen = true),
     );
   }
 }
@@ -330,6 +349,7 @@ class _HomeView extends StatelessWidget {
     required this.onGetTheCount,
     required this.onChainOperations,
     required this.onTables,
+    required this.onTips,
   });
 
   final int mainLevel;
@@ -340,6 +360,7 @@ class _HomeView extends StatelessWidget {
   final VoidCallback? onGetTheCount;
   final VoidCallback? onChainOperations;
   final VoidCallback? onTables;
+  final VoidCallback? onTips;
 
   @override
   Widget build(BuildContext context) {
@@ -398,6 +419,9 @@ class _HomeView extends StatelessWidget {
           const SizedBox(height: 8),
           // Its own card, under Challenges (`doc/levels.md`, section 7).
           AppCard(label: 'Tables', onTap: onTables),
+          const SizedBox(height: 8),
+          // Reached from its own card (`doc/levels.md`, section 8).
+          AppCard(label: 'Tips', onTap: onTips),
         ],
       ),
     );

@@ -189,6 +189,13 @@ hundredths, frozen at the start, never decaying, recomputable, replayed by the s
   the device: games, right answers as "right / answers" (a raw count, as the result screen's —
   never a rate presented as progress), and the three slowest facts by average time, on
   Profile under the challenges.
+- **Tips page, the gaps** (commit 7): reached from a "Tips" card under Tables; the spec's tips
+  written one sentence and one example each and placed in bands by the tier their example
+  belongs to, so every operation has tips in all three bands; the seven strategies of the
+  detector are each one tip's (`Tip.strategy`). The player's band on each operation is marked
+  by an outline, a marker icon and a heavier label (never colour alone) and heard as selected;
+  a never-played operation is in the beginner band (level 0). Plain text in Inter: "cube root
+  of", "∫ … from 0 to 4" — no glyph the bundled faces lack.
 
 ## Redesign phase — owner decisions (plan v2.9, 22 Nov 2026)
 

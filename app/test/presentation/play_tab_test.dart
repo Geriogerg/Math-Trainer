@@ -256,6 +256,18 @@ void main() {
     });
   });
 
+  testWidgets('the Tips card opens the Tips page; back returns '
+      '(doc/levels.md section 8)', (tester) async {
+    await pumpPlayTab(tester, environmentWith(await _playedRepository()));
+    await tester.scrollUntilVisible(find.text('Tips'), 100);
+    await tester.tap(find.text('Tips'));
+    await tester.pumpAndSettle();
+    expect(find.text('Make 10 first, then add what is left.'), findsOneWidget);
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    expect(find.text('Basics'), findsOneWidget);
+  });
+
   testWidgets('the chain setup is remembered (Redesign close-out)', (
     tester,
   ) async {
