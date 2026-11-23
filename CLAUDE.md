@@ -29,8 +29,9 @@ over (no reset).
 session; production `/health` lists the new rules.
 
 Done: 1 — rules v3 = the starting point, every target met (stall 63.8–65.3 %, slow 4 +1.56;
-`doc/decisions.md`). Next: 2, production `/health` after the push. Update this block at every
-commit.
+`doc/decisions.md`); 2 — `tool/ci/server_check.sh`; production ran `107440e`, `rules: [2, 3]`,
+deployed by CI's hook 10 min after the push; exit test (23 Nov). **Open: the owner confirms v3's
+constants and plays the phone checklist.** Update this block at every commit.
 
 **The level system** (`doc/levels.md`; v3 constants: `LevelRules.of`)
 - **Levels 0–100**, integer hundredths, shown whole; everyone started at 0 at the transition
@@ -184,6 +185,7 @@ dart format app/lib app/test packages server tool   # what CI checks
 node tool/smoke/preview_smoke.mjs <url> [chrome]   # smoke test; SMOKE_NETWORK=slow4g to time it
 bash tool/sql/test_sql.sh <postgres admin url>     # migrations (twice) + SQL tests, scratch DB
 bash tool/dashboard/dashboard.sh [command]        # owner report and chores (live DB, local only)
+bash tool/ci/server_check.sh <server url>          # server up to date with HEAD (commit, rules)? read-only
 python -P -E tool/fonts/subset_digits.py <Font[wght].ttf> <out.ttf>  # digit face subset (fonttools)
 python -P -E tool/fonts/instance_inter.py <Inter[opsz,wght].ttf> app/assets/fonts/Inter.ttf
 node tool/web/boot_config.mjs app/build/web app/dart_defines.json  # after a local release build
@@ -230,7 +232,8 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   instead (`RulesVersion`, `doc/levels.md` section 4), the old one kept replayable.
 - A new rules version goes in `RulesVersion` (`current`, `replayed`), `LevelRules.of` and
   `gameExerciseGenerator`. The app holds its games until the server's `/health` lists it: after
-  the push, check production's `/health` (commit and `rules`), else tell the owner at once.
+  every push changing `server/` or the core, `tool/ci/server_check.sh <production url>`; not up to
+  date (CI's deploy waits for tests, ~15 min) → tell the owner at once.
 - `PersistedSession`'s `rulesVersion` defaults to v1 (rows stored before it): a test session
   meant to upload or replay passes `RulesVersion.current`.
 - Integer levels round small steps to zero — never round before storing hundredths.

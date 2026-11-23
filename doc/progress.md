@@ -1034,4 +1034,25 @@ was deployed by the owner before it started: `/health` = `2a6657c`, `rules: [2]`
   values and example games; the stall pinned; v2 still replayed under v2 and a v3 game
   chaining from v2 levels (validation); goldens of the mistakes result re-recorded (12 → 9,
   the −3 cap). Totals: core 463 (VM) / 436 (JavaScript), app 399, server 36.
+- **Commit 2** *(A)* — Production checked after every push changing the server or the core:
+  `tool/ci/server_check.sh <server url>` (read-only, one GET of `/health`) says whether the
+  server runs this checkout's `server/` and core and lists `RulesVersion.current`, else prints
+  the owner's action and exits 1. After commit 1: production ran `107440e` with
+  `rules: [2, 3]`, deployed by CI 10 minutes after the push — the production deploy hook is set
+  (the Levels phase's incident cannot recur silently). CI unchanged: a missing hook stays a
+  warning, since the site's deploy waits on that job and the app holds games the server
+  cannot check. `CLAUDE.md`: the command and the pitfall.
+
+### Levels close-out exit test (23 Nov 2026)
+
+- **Chosen values reported with the simulation table, pinned by tests**: slow 0.85, dead band
+  0.62–0.72, down cap 3 (`doc/decisions.md`, both tables);
+  `level_change_test.dart` and `test/tool/levels_simulation_test.dart` pin the targets, the
+  stall (65.3 / 63.8 / 64.0 / 64.2 %) and v3's example games.
+- **v3 stored per session**: `RulesVersion.current` = v3, written by the app (schema v10's
+  column) and the upload; v2 replayed under v2 (validation test).
+- **Production `/health` lists the new rules**: yes — `107440e`, `rules: [2, 3]`; the preview
+  serves `107440e`.
+- Not verified here: CI's smoke test (private repository); a live v3 game accepted (the
+  owner's checklist).
 
