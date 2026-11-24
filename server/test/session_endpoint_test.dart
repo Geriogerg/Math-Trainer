@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:math_core/leveling/level.dart';
@@ -225,9 +226,19 @@ void main() {
       expect(gateway.calls, isEmpty);
     });
 
-    test('Supabase down: 503; too large: 413', () async {
+    test('Supabase down: 503, the reason logged; too large: 413', () async {
       gateway.down = true;
-      expect((await post(honest('s').toJson())).$1, 503);
+      final logged = <String>[];
+      final status = await runZoned(
+        () async => (await post(honest('s').toJson())).$1,
+        zoneSpecification: ZoneSpecification(
+          print: (_, _, _, line) => logged.add(line),
+        ),
+      );
+      expect(status, 503);
+      // The gateway's detail reaches the host's logs: a key without the
+      // service role otherwise looks like a sleeping Supabase.
+      expect(logged, ['503 on POST /v1/sessions: down']);
       gateway.down = false;
       expect((await post('x' * (maxUploadBytes + 1))).$1, 413);
     });

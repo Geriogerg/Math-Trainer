@@ -299,6 +299,11 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 - The server enforces the gate too (`upload_allowed`, env `BETA_GATE`, on unless `false`): a
   blocked upload is a 403 the app retries, never a refusal — keep it so, or late-redeemed
   testers lose games. Check a deploy with `/health` (`version`, `betaGate`).
+- Uploads answering 503 `unavailable` while `/health` is fine: Supabase refused the server's
+  call — the reason is in the Render logs (`503 on POST /v1/sessions: …`). On staging (23 Nov)
+  the key passed Auth but every RPC failed — most likely a legacy anon JWT in
+  `SUPABASE_SECRET_KEY`, which `ServerConfig` now refuses at start.
+  `SMOKE_TRACE=1` prints each upload's status and error body.
 - The beta gate is a build switch (`BETA_GATE=true`): with it on, the smoke test needs the
   `SMOKE_BETA_CODE` secret. Never put a real code in the repository, private or not.
 - `RejectionReason` and `ValidationFlag` names are stored server-side and sent to the app:

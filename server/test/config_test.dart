@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:math_trainer_server/server.dart';
 import 'package:test/test.dart';
 
@@ -74,6 +76,36 @@ void main() {
         'SUPABASE_SECRET_KEY': 'sb_publishable_abc',
       }),
       throwsArgumentError,
+    );
+  });
+
+  // The legacy anon JWT passes Auth, then every RPC is denied and uploads
+  // answer 503 forever (staging's symptom, 23 Nov 2026). Refused at start.
+  test('refuses a legacy JWT key unless its role is service_role', () {
+    String jwt(String payload) => [
+      base64Url.encode(utf8.encode('{"alg":"HS256","typ":"JWT"}')),
+      base64Url.encode(utf8.encode(payload)).replaceAll('=', ''),
+      'signature',
+    ].join('.');
+    expect(
+      () => ServerConfig.fromEnvironment({
+        ...env,
+        'SUPABASE_SECRET_KEY': jwt('{"iss":"supabase","role":"anon"}'),
+      }),
+      throwsA(
+        isA<ArgumentError>().having(
+          (e) => e.message,
+          'message',
+          allOf(contains('"anon"'), isNot(contains('signature'))),
+        ),
+      ),
+    );
+    expect(
+      ServerConfig.fromEnvironment({
+        ...env,
+        'SUPABASE_SECRET_KEY': jwt('{"iss":"supabase","role":"service_role"}'),
+      }).supabaseSecretKey,
+      startsWith('ey'),
     );
   });
 

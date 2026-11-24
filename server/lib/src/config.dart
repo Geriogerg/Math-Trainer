@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 /// The server's settings, from environment variables only — never from a
 /// file in the repo (rule 17: the secret key never appears in the repo or
 /// in logs). Set on the host (`render.yaml` lists them, without values).
@@ -26,6 +28,17 @@ class ServerConfig {
       throw ArgumentError(
         'SUPABASE_SECRET_KEY holds a publishable key; the server needs the '
         'secret key (Supabase dashboard → Project Settings → API Keys).',
+      );
+    }
+    // Same for the legacy anon JWT: it signs the server in (Auth accepts
+    // it), then every RPC is denied — uploads answer 503 forever. Staging,
+    // 23 Nov 2026. Only a legacy key's role is read; the key is not printed.
+    final role = _legacyJwtRole(supabaseSecretKey);
+    if (role != null && role != 'service_role') {
+      throw ArgumentError(
+        'SUPABASE_SECRET_KEY holds a legacy JWT with role "$role"; the server '
+        'needs the secret key (sb_secret_…) or the legacy service_role key '
+        '(Supabase dashboard → Project Settings → API Keys).',
       );
     }
     if (port <= 0 || port > 65535) {
@@ -80,6 +93,23 @@ class ServerConfig {
 
   /// The deployed commit, short (`/health`); `dev` outside Render.
   final String version;
+
+  /// The `role` claim of a legacy JWT key (`header.payload.signature`);
+  /// null for anything else (new-style keys, unreadable payloads).
+  static String? _legacyJwtRole(String key) {
+    final parts = key.split('.');
+    if (parts.length != 3) return null;
+    try {
+      final payload = jsonDecode(
+        utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))),
+      );
+      return payload is Map && payload['role'] is String
+          ? payload['role'] as String
+          : null;
+    } on FormatException {
+      return null;
+    }
+  }
 
   /// Never prints the key.
   @override

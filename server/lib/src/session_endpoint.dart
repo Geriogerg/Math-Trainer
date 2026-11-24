@@ -54,8 +54,8 @@ class SessionEndpoint {
     final AuthenticatedUser? user;
     try {
       user = await gateway.userForToken(authorization.substring(7));
-    } on GatewayUnavailable {
-      return jsonResponse(503, {'error': 'unavailable'});
+    } on GatewayUnavailable catch (e) {
+      return _unavailable(e);
     }
     if (user == null) return jsonResponse(401, {'error': 'unauthorized'});
 
@@ -83,9 +83,19 @@ class SessionEndpoint {
         }
       }
       return await store(upload, receivedAt: _clock().toUtc());
-    } on GatewayUnavailable {
-      return jsonResponse(503, {'error': 'unavailable'});
+    } on GatewayUnavailable catch (e) {
+      return _unavailable(e);
     }
+  }
+
+  /// The app only sees 503 and retries; the reason (which call, Supabase's
+  /// status and the start of its answer — never a key or token) goes to the
+  /// host's logs. Without it a server that can never write looks like a
+  /// sleeping one (staging, 23 Nov 2026: a key without the service role).
+  Response _unavailable(GatewayUnavailable e) {
+    // ignore: avoid_print
+    print('503 on POST /v1/sessions: ${e.detail}');
+    return jsonResponse(503, {'error': 'unavailable'});
   }
 
   /// Decides [upload] once and for all (plan 6.4): an id already decided

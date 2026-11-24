@@ -188,8 +188,10 @@ accepts `https://math-trainer-staging*.pages.dev` (one-label pattern, `originAll
    `STAGING_SUPABASE_DB_PASSWORD`. `SUPABASE_ACCESS_TOKEN` already covers both projects.
 3. Render → the Math Trainer Blueprint → **Sync** (if it did not sync by itself): it creates
    `math-trainer-server-staging` and asks for `SUPABASE_URL` and `SUPABASE_SECRET_KEY` — the
-   **staging** ones. Then, on each service, **Settings → Deploy Hook** → copy into GitHub
-   secrets `RENDER_DEPLOY_HOOK_STAGING` and `RENDER_DEPLOY_HOOK_PRODUCTION`. GitHub **variable**
+   **staging** ones; the key is the **secret** one (`sb_secret_…`, API Keys tab) or the legacy
+   **service_role** JWT — never the legacy anon JWT, which passes sign-in and then has every
+   upload answered 503 (the server now refuses to start with it). Then, on each service,
+   **Settings → Deploy Hook** → copy into GitHub secrets `RENDER_DEPLOY_HOOK_STAGING` and `RENDER_DEPLOY_HOOK_PRODUCTION`. GitHub **variable**
    `STAGING_SERVER_URL` = the staging service's address (top of its page).
 4. GitHub **variable** `STAGING` = `on`, then Actions → CI → **Run workflow** on `main`.
 

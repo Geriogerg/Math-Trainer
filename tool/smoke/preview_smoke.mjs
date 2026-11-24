@@ -7,7 +7,9 @@
 // cache — the plan's exit test: the first question within 30 s on slow 4G
 // from a fresh browser. The times are printed either way.
 // SMOKE_TRACE=1 also prints every request up to the first question (start,
-// end, path without its query) — where the first-load time goes.
+// end, path without its query) — where the first-load time goes — and,
+// live, every write to another origin (upload, RPC) with its status and,
+// on an error, the response body.
 //
 // Steps, each failing loudly with a screenshot (smoke-failure.png):
 //   1. fresh profile → an anonymous player is created (no form);
@@ -106,15 +108,40 @@ function traceEvent(method, p) {
     if (!/^https?:$/.test(url.protocol)) return;
     // The path only: queries carry tokens and keys, never printed.
     const where = url.origin === new URL(appUrl).origin ? '' : url.hostname.split('.')[0] + ':';
-    requests.set(p.requestId, { name: `${p.request.method} ${where}${url.pathname}`, start: Date.now(), end: null });
+    requests.set(p.requestId, {
+      name: `${p.request.method} ${where}${url.pathname}`,
+      start: Date.now(),
+      end: null,
+      // Writes to another origin (uploads, sign-ins, RPCs): printed live
+      // with their status, at any point of the visit.
+      api: where !== '' && p.request.method !== 'GET',
+    });
+  } else if (method === 'Network.responseReceived') {
+    const r = requests.get(p.requestId);
+    if (r) r.status = p.response.status;
   } else if (method === 'Network.loadingFinished' || method === 'Network.loadingFailed') {
     const r = requests.get(p.requestId);
     if (r && r.end === null) {
       r.end = Date.now();
       r.bytes = p.encodedDataLength ?? 0;
       r.failed = method === 'Network.loadingFailed';
+      if (r.api && r.name.split(' ')[0] !== 'OPTIONS') traceApi(p.requestId, r, p.errorText);
     }
   }
+}
+/// One API call: status, and the body of an error answer (the server's
+/// JSON errors name the reason; never a token — responses carry none
+/// except sign-ins, whose bodies are not printed).
+async function traceApi(requestId, r, errorText) {
+  const at = ((r.end - started) / 1000).toFixed(1);
+  let line = `  [api ${at} s] ${r.name} → ${r.failed ? `failed (${errorText})` : r.status}`;
+  if (!r.failed && r.status >= 400 && !r.name.includes('/auth/')) {
+    try {
+      const { body } = await send('Network.getResponseBody', { requestId });
+      line += ` ${body.slice(0, 300)}`;
+    } catch (_) {}
+  }
+  console.log(line);
 }
 function printWaterfall(until) {
   const s = (t) => ((t - started) / 1000).toFixed(1).padStart(5);
@@ -199,11 +226,19 @@ if (network) {
 }
 
 // --- helpers ---------------------------------------------------------------
+// True from typing SMOKE_BETA_CODE until Home replaces the gate. The failure
+// screenshot is uploaded as a CI artifact, and GitHub masks secrets in logs,
+// not in images: no screenshot while the code may be on screen.
+let codeOnScreen = false;
 async function fail(message) {
-  try {
-    const { data } = await send('Page.captureScreenshot', { format: 'png' });
-    writeFileSync('smoke-failure.png', Buffer.from(data, 'base64'));
-  } catch (_) {}
+  if (codeOnScreen) {
+    console.error('screenshot withheld: the invitation code may be on screen');
+  } else {
+    try {
+      const { data } = await send('Page.captureScreenshot', { format: 'png' });
+      writeFileSync('smoke-failure.png', Buffer.from(data, 'base64'));
+    } catch (_) {}
+  }
   console.error(`SMOKE FAILED: ${message}`);
   if (consoleErrors.length) console.error('page exceptions:\n  ' + consoleErrors.join('\n  '));
   annotate(message + (consoleErrors.length ? `\npage exceptions: ${consoleErrors.slice(0, 3).join(' | ')}` : ''));
@@ -357,6 +392,7 @@ await enableSemantics();
     const code = process.env.SMOKE_BETA_CODE;
     if (!code) await fail('the build has the beta gate on, but SMOKE_BETA_CODE is not set');
     await tapText('Invitation code');
+    codeOnScreen = true;
     await send('Input.insertText', { text: code });
     await tapText('Continue', 10000, { exact: true });
   }
@@ -364,6 +400,7 @@ await enableSemantics();
 
 step('a guest is created, no form: Home appears');
 await waitForText('Play Basics', 60000);
+codeOnScreen = false;
 const id = await guestId();
 if (!id) await fail('no anonymous session stored');
 console.log(`  guest ${id} (${((Date.now() - started) / 1000).toFixed(1)} s from navigation)`);
