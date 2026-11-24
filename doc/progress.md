@@ -1359,3 +1359,21 @@ in a migration CI applies).
   game or a Drill never reaches an older server, which would refuse it for good as
   `badRequest`). Tests: the client waits for a practice kind on a server listing none, sends a
   game there, sends a drill to a server listing it; the server's `/health`; the lists.
+- **Commit 3** *(A)* — **The server checks that a game's weak spots were due.** Migration
+  `20261129000000_upload_history`: `player_upload_history(player)` — the player's accepted
+  payloads, oldest first (ties by id), service role only (SQL test `99_upload_history_test`).
+  Core: `ValidationFlag.weakSpotsNotDue` (a stored name), `needsUploadHistory` (a Levelling game
+  holding weak spots), `weakSpotsNotDue(session, history)` — the schedule rebuilt by
+  `scheduleFromHistory`, each weak spot due in it; `validateSessionUpload(history:)` flags,
+  never refuses (accepted for levels). Server: reads the history once, only for such a game.
+  App: its schedule leaves out the sessions the server refused, so both sides rebuild from the
+  same games. Tests: due → no flag; not due → accepted, levels moved, flagged; not checked
+  without history; the server flags and reads the history only when needed; the app ignores a
+  refused session. SQL tests passed.
+
+### Phase 4 close-out exit (24 Nov 2026)
+
+All three commits live (see below for the deploy check). Not verified here: CI's smoke test
+(private repository). Remaining differences between the app's schedule and the server's, each
+giving a flag at most: a game played on another device (the server has it, this device does
+not), and a session refused after a later game chose its weak spots.

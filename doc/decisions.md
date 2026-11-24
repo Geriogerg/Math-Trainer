@@ -1818,3 +1818,12 @@ of an existing history changes only from the first v8 game on. Skills keep v7's 
 skill does not enter). v8's questions and level update are v7's. Known limit (the outcome's):
 the server checks a game's weak spots for tier and caps, not that they were due — the
 close-out's commit 3.
+
+**Close-out, commit 3 (plan v3.6): the weak spots checked against the accepted history** —
+provisional. The server rebuilds the player's schedule from every session it accepted
+(`player_upload_history`) and flags a Levelling game whose weak spots are not all due
+(`weakSpotsNotDue`); the game still counts for levels. Read only for a game holding weak spots
+(its cost grows with the history: fine at beta scale, to revisit before Phase 7). The app
+leaves refused sessions out of its own schedule so both sides rebuild from the same games;
+what can still differ (another device's games, a refusal arriving after a later game was
+built) only raises the flag. Weak spots games and Drills are not checked: never ranked.

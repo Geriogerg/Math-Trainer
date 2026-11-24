@@ -19,7 +19,7 @@ but one, which commit 1 applies.
 |---|---|---|
 | 1 | *(A)* **Rules v8**: a correct but slow answer on a fact enters the schedule at box 2 (it changes which items are due) | done |
 | 2 | *(A)* `/health` lists the session kinds the server accepts; the app holds an upload until its kind is listed, as for rules versions | done |
-| 3 | *(A)* Server-side check that a game's weak spots were due, from the player's uploaded history; a failure is still accepted for levels, its weak spots flagged | |
+| 3 | *(A)* Server-side check that a game's weak spots were due, from the player's uploaded history; a failure is still accepted for levels, its weak spots flagged | done |
 
 **Phase 4's rules** (plan v3.5–v3.6; detail in `doc/decisions.md`, "Phase 4"):
 - **Facts** (bonds within 20 and complements to 100 with their subtractions, tables to 20 × 20
@@ -34,6 +34,9 @@ but one, which commit 1 applies.
   most ⌊N/5⌋ per game and ⌈n/5⌉ per operation, stored with the session, replayed by the
   server. Weak spots and Drill games are practice kinds: uploaded, never move levels, never
   ranked.
+
+Done: 1–3 (24 Nov; `doc/progress.md`, "Phase 4 close-out"). **Open: the owner confirms the
+commit 3 provisional decision (`doc/decisions.md`).**
 
 Phase 3b is a data check, not a blocker: a report once the dashboard reaches ~300 sessions from
 10+ testers since the rules v5 release (`owner_dashboard.calibration_window`).
@@ -336,6 +339,9 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   and its **session kind** (`kinds`; none listed = games and Training). A new `SessionKind`
   goes in `SessionKind.acceptedByServer` with its validation — never a kind the server would
   refuse as `badRequest`.
+- The server flags a Levelling game whose weak spots were not due in the schedule it rebuilds
+  from the accepted history (`weakSpotsNotDue`); the app's schedule must leave out the
+  sessions the server refused (`loadWeakSpotSchedule`), or honest games get flagged.
 - `RejectionReason` and `ValidationFlag` names are stored server-side and sent to the app:
   renaming breaks both. Same for `InputDevice` names (answers, uploads).
 - Tests apply every migration twice: a later migration must not change the columns of a view

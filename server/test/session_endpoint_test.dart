@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 
+import 'package:math_core/generation/game_generator.dart';
+import 'package:math_core/generation/question_plan.dart';
 import 'package:math_core/leveling/level.dart';
 import 'package:math_core/leveling/rules_version.dart';
 import 'package:math_core/models/exercise_type.dart';
@@ -9,6 +12,7 @@ import 'package:math_core/persistence/persisted_answer.dart';
 import 'package:math_core/persistence/persisted_session.dart';
 import 'package:math_core/replay/session_replay.dart';
 import 'package:math_core/sync/session_upload.dart';
+import 'package:math_core/weak_spots/item.dart';
 import 'package:math_trainer_server/server.dart';
 import 'package:shelf/shelf.dart';
 import 'package:test/test.dart';
@@ -32,6 +36,9 @@ class FakeGateway implements SupabaseGateway {
   final completed = <String>{};
   final levels = <String, Map<String, Object?>>{};
   final flags = <String, List<Object?>>{};
+
+  /// Accepted payloads per player, in the order accepted.
+  final payloads = <String, List<Object?>>{};
 
   /// Players who redeemed an invitation code (`beta_code_uses`).
   final withCode = <String>{};
@@ -98,12 +105,15 @@ class FakeGateway implements SupabaseGateway {
           ...(p['p_level_updates'] as Map).cast<String, Object?>(),
         };
         flags[id] = p['p_flags'] as List<Object?>;
+        payloads.putIfAbsent(player, () => []).add(p['p_payload']);
         versions[player] = (versions[player] ?? 0) + 1;
         lastSessionAt[player] = p['p_created_at'] as String;
         if (p['p_completed'] == true) completed.add(player);
         return [
           {'outcome': 'applied', 'received_at': at},
         ];
+      case 'player_upload_history':
+        return payloads[p['p_player_id']] ?? const [];
       case 'upload_allowed':
         final player = p['p_player_id'] as String;
         return withCode.contains(player) ||
@@ -367,6 +377,77 @@ void main() {
       expect(gateway.versions['p1'], 2);
     },
   );
+
+  test('a game whose weak spots were not due: accepted, levels moved, '
+      'flagged (Phase 4 close-out)', () async {
+    final gateway = FakeGateway();
+    final endpoint = SessionEndpoint(gateway);
+    final sequence = shuffledTypeSequence(
+      types: _types,
+      perOperation: 4,
+      seed: 77,
+    );
+    final levels = {for (final t in _types) t: Level.zero};
+    final weakSpots = [Item.parse('fact:addition:3,4')];
+    final session = PersistedSession(
+      id: 'w1',
+      playerId: 'p1',
+      seed: 77,
+      enabledTypes: _types,
+      exerciseCount: 8,
+      totalScore: 0,
+      levels: levels,
+      createdAt: DateTime.utc(2026, 11, 20, 9),
+      typeSequence: sequence,
+      rulesVersion: RulesVersion.current,
+      weakSpots: weakSpots,
+    );
+    final generator = gameExerciseGenerator(
+      rulesVersion: RulesVersion.current,
+      enabledTypes: _types,
+      levels: levels,
+      typeSequence: sequence,
+      weakSpots: weakSpots,
+    );
+    final random = Random(77);
+    final upload = SessionUpload(
+      session: session,
+      answers: [
+        for (var i = 0; i < 8; i++)
+          () {
+            final q = generator.next(random);
+            final d = describeExerciseForStorage(q);
+            return PersistedAnswer(
+              id: 'w1-$i',
+              sessionId: 'w1',
+              exerciseType: d.exerciseType,
+              operationType: d.operationType,
+              operands: d.operands,
+              submittedValue: q.correctAnswer,
+              isCorrect: true,
+              elapsedMs: 1500 + 37 * i,
+              createdAt: session.createdAt,
+            );
+          }(),
+      ],
+    );
+    final response = await endpoint.store(
+      upload,
+      receivedAt: DateTime.utc(2026, 11, 20, 10),
+    );
+    expect(response.statusCode, 200);
+    expect(gateway.calls, contains('player_upload_history'));
+    expect(gateway.flags['w1'], contains('weakSpotsNotDue'));
+    expect(gateway.levels['p1'], isNotEmpty);
+  });
+
+  test('a game without weak spots never reads the history', () async {
+    final gateway = FakeGateway();
+    await SessionEndpoint(
+      gateway,
+    ).store(honest('plain'), receivedAt: DateTime.utc(2026, 11, 20, 10));
+    expect(gateway.calls, isNot(contains('player_upload_history')));
+  });
 
   test('resent: the same answer, nothing written twice', () async {
     await post(honest('s1').toJson());

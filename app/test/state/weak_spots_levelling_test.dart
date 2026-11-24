@@ -240,4 +240,57 @@ void main() {
       }
     }
   });
+
+  test('a session the server refused is left out of the schedule, as the '
+      'server never has it (Phase 4 close-out)', () async {
+    final repository = InMemorySessionRepository();
+    final environment = AppEnvironment(
+      repository: repository,
+      playerId: 'player',
+      accountRepository: FakeAccountRepository(),
+      profileRepository: FakeProfileRepository(),
+    );
+    final missed = ArithmeticExercise(
+      operandA: 3,
+      operandB: 4,
+      operationType: OperationType.multiplication,
+    );
+    final d = describeExerciseForStorage(missed);
+    for (final id in ['refused', 'kept']) {
+      final s = PersistedSession(
+        id: id,
+        playerId: 'player',
+        seed: 1,
+        enabledTypes: {ExerciseType.multiplication},
+        exerciseCount: 4,
+        totalScore: 0,
+        levels: {ExerciseType.multiplication: Level.zero},
+        createdAt: DateTime.utc(2026, 11, id == 'refused' ? 20 : 21),
+        rulesVersion: RulesVersion.v8,
+      );
+      await repository.recordSession(
+        session: s,
+        answers: [
+          if (id == 'refused')
+            PersistedAnswer(
+              id: '$id-a',
+              sessionId: id,
+              exerciseType: d.exerciseType,
+              operationType: d.operationType,
+              operands: d.operands,
+              submittedValue: 11,
+              isCorrect: false,
+              elapsedMs: 3000,
+              createdAt: s.createdAt,
+            ),
+        ],
+        levelUpdates: const {},
+      );
+    }
+    expect((await loadWeakSpotSchedule(environment)).tracked, isNotEmpty);
+    await repository.markUploadRefused('refused', 'levelsMismatch');
+    final schedule = await loadWeakSpotSchedule(environment);
+    expect(schedule.tracked, isEmpty);
+    expect(schedule.games, 1);
+  });
 }

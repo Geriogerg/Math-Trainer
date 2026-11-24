@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:math_core/persistence/session_repository.dart';
 import 'package:math_core/sync/session_upload.dart';
 import 'package:math_core/sync/session_upload_client.dart';
 import 'package:math_core/validation/session_validation.dart';
@@ -123,6 +124,15 @@ class SessionEndpoint {
       return refused(409, '${row['reason']}');
     }
 
+    // A game holding weak spots: were they due? Its accepted history, read
+    // once (Phase 4 close-out). Never a refusal: a flag.
+    final history = needsUploadHistory(session)
+        ? parseUploadHistory(
+            await gateway.rpc('player_upload_history', {
+              'p_player_id': session.playerId,
+            }),
+          )
+        : null;
     for (var attempt = 0; attempt < maxAttempts; attempt++) {
       final (version, state) = parseServerState(
         await gateway.rpc('player_server_state', {
@@ -134,6 +144,7 @@ class SessionEndpoint {
         callerId: session.playerId,
         state: state,
         receivedAt: receivedAt,
+        history: history,
       );
       switch (verdict) {
         case Rejected(:final reason, :final detail):
@@ -190,6 +201,23 @@ Response accepted(Object? receivedAt, {bool duplicate = false}) => jsonResponse(
   200,
   {'status': 'accepted', 'syncedAt': receivedAt, 'duplicate': duplicate},
 );
+
+/// `player_upload_history`'s JSON (accepted payloads, oldest first) as
+/// stored games. A payload that no longer reads is left out: it was
+/// accepted by an older server, and the check is only a flag.
+List<StoredGame> parseUploadHistory(Object? json) {
+  if (json is! List) throw StateError('player_upload_history: $json');
+  final games = <StoredGame>[];
+  for (final payload in json) {
+    try {
+      final upload = SessionUpload.fromJson(payload);
+      games.add((session: upload.session, answers: upload.answers));
+    } on FormatException {
+      // Skipped.
+    }
+  }
+  return games;
+}
 
 /// `player_server_state`'s JSON as (version, math_core state).
 (int, ServerPlayerState) parseServerState(Object? json) {

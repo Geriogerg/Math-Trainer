@@ -9,7 +9,11 @@ import '../models/session_kind.dart';
 import '../persistence/exercise_codec.dart';
 import '../persistence/level_cache_entry.dart';
 import '../replay/session_replay.dart';
+import '../persistence/persisted_session.dart';
+import '../persistence/session_repository.dart';
 import '../sync/session_upload.dart';
+import '../weak_spots/history.dart';
+import '../weak_spots/item.dart';
 
 /// What the server knows of a player before an upload: its own level cache
 /// (written only by accepted sessions), the time of the last accepted
@@ -82,6 +86,12 @@ enum ValidationFlag {
 
   /// Unnaturally flat response times over many right answers.
   flatTimes,
+
+  /// A Levelling game re-asked weak spots the player's accepted history
+  /// does not make due (Phase 4 close-out). The game is still accepted for
+  /// levels — its weak spots are from the player's tier either way — but
+  /// worth a look before duels are ranked on it (plan v3.6).
+  weakSpotsNotDue,
 }
 
 sealed class ValidationResult {
@@ -126,11 +136,18 @@ const maxElapsedMs = 30000;
 /// question from the seed and the stored config with the same core, recheck
 /// every answer, replay the level update from the server's own state.
 /// Pure: the server reads the state, calls this, writes the result.
+///
+/// [history]: the player's accepted sessions, oldest first — read by the
+/// server only for a Levelling game holding weak spots
+/// ([needsUploadHistory]); each weak spot must be due in the schedule
+/// rebuilt from it (`scheduleFromHistory`), or the game is flagged
+/// [ValidationFlag.weakSpotsNotDue]. `null`: not checked.
 ValidationResult validateSessionUpload({
   required SessionUpload upload,
   required String callerId,
   required ServerPlayerState state,
   required DateTime receivedAt,
+  List<StoredGame>? history,
 }) {
   final session = upload.session;
   final answers = upload.answers;
@@ -260,13 +277,34 @@ ValidationResult validateSessionUpload({
   return Accepted(
     completed: completed,
     levelUpdates: updates,
-    flags: timingFlags(outcomes),
+    flags: {
+      ...timingFlags(outcomes),
+      if (history != null &&
+          needsUploadHistory(session) &&
+          weakSpotsNotDue(session, history).isNotEmpty)
+        ValidationFlag.weakSpotsNotDue,
+    },
     newState: ServerPlayerState(
       levels: {...state.levels, ...updates},
       lastSessionAt: session.createdAt,
       hasCompletedSession: state.hasCompletedSession || completed,
     ),
   );
+}
+
+/// Whether checking [session] needs the player's accepted history: a
+/// Levelling game holding weak spots (Phase 4 close-out).
+bool needsUploadHistory(PersistedSession session) =>
+    session.kind == SessionKind.game && session.weakSpots.isNotEmpty;
+
+/// [session]'s weak spots that are not due in the schedule rebuilt from
+/// [history] (the player's earlier accepted sessions); empty when all are.
+List<Item> weakSpotsNotDue(PersistedSession session, List<StoredGame> history) {
+  final schedule = scheduleFromHistory(history);
+  return [
+    for (final item in session.weakSpots)
+      if (!schedule.isDue(item)) item,
+  ];
 }
 
 /// Implausible timing (plan 6.4): flagged for review, never a rejection.

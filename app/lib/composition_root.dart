@@ -665,12 +665,17 @@ SessionController _practiceController(
 }
 
 /// The player's weak-spot schedule, rebuilt from every stored game
-/// (Phase 4: nothing about it is stored).
+/// (Phase 4: nothing about it is stored) — except the ones the server
+/// refused: it rebuilds the same schedule from the ones it accepted, to
+/// check a game's weak spots were due (Phase 4 close-out).
 Future<WeakSpotSchedule> loadWeakSpotSchedule(
   AppEnvironment environment,
-) async => scheduleFromHistory(
-  await environment.repository.storedGames(environment.playerId),
-);
+) async => scheduleFromHistory([
+  for (final game in await environment.repository.storedGames(
+    environment.playerId,
+  ))
+    if (game.session.uploadRefused == null) game,
+]);
 
 /// Debug switch: `flutter run --dart-define=DEBUG_NO_TIMEOUT=true` turns the
 /// per-question timeout off, for slow manual checks and screenshots.
