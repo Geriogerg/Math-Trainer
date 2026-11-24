@@ -30,6 +30,10 @@ core, no AI, **no change to how Levelling games move levels**.
 Weak spots and Drill games playable on a phone; level targets still met; production lists
 rules 7.
 
+Done: 0–7 and the exit test (24 Nov; `doc/progress.md`). **Open: the owner confirms the
+provisional decisions (`doc/decisions.md`, "Phase 4"), plays the phone checklist and runs
+`dashboard.sh weak-spots`.**
+
 **Phase 4's rules** (plan v3.5):
 - **Facts** (addition bonds within 20, complements to 100, tables to 20 × 20, squares to 30²,
   cubes to 10³, 2¹–2¹², friendly percentages, their roots and divisions; commutative facts
@@ -339,6 +343,9 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   on this (24 Nov). The SQL test stub models the newer kind, so a missing grant fails there.
 - The beta gate is a build switch (`BETA_GATE=true`): with it on, the smoke test needs the
   `SMOKE_BETA_CODE` secret. Never put a real code in the repository, private or not.
+- The app holds an upload back until the server lists its **rules version** — not its session
+  kind: a new `SessionKind` reaching an older server is a `badRequest`, refused for good.
+  Ship a new kind with the server first (Phase 4's kinds went with rules v7's server).
 - `RejectionReason` and `ValidationFlag` names are stored server-side and sent to the app:
   renaming breaks both. Same for `InputDevice` names (answers, uploads).
 - Tests apply every migration twice: a later migration must not change the columns of a view

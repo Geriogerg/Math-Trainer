@@ -1320,3 +1320,19 @@ the end: the phone checklist, and `bash tool/dashboard/dashboard.sh weak-spots` 
   comparison — with the regression-to-the-mean caveat printed. Player ids cut to 8
   characters. Test on a scripted history (VM). Not run here on live data: the owner's.
   Core 1 069 (VM) / 843 (JS), app 416, server 37.
+
+### Phase 4 exit test (24 Nov 2026)
+
+- **A missed 7 × 8 comes back within the next games until answered fluently three times**:
+  yes in the core — `scheduler_test.dart`: missed in game 0, due in games 1, 3 and 7, then
+  box 4 (8 games). Levelling games re-ask it only at T1 (`belongsTo`, the replay refuses
+  otherwise); a T2+ player gets it from the Weak spots card. App: a missed 3 × 4 re-asked in
+  the next Levelling game, stored, replayed alone (`weak_spots_levelling_test.dart`).
+- **Weak spots and Drill games playable on a phone**: owner — widget and flow tests cover the
+  card, the game, the Profile block and every tip's Drill (54 tips at four levels).
+- **Level targets still met**: yes — v7's update is v3's; the four targets tested; weak spots
+  served never off the current tier and never above 20 % of a game (simulation, every
+  operation and tier).
+- **Production lists rules 7**: yes — `/health` `rules: [2, 3, 4, 5, 6, 7]` since commit 3.
+- Not verified here: CI's smoke test (private repository), the phone, the dashboard report on
+  live data (owner's machine).
