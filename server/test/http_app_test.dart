@@ -50,7 +50,7 @@ void main() {
       'version': 'dev',
       'betaGate': true,
       // The rules it replays: the app holds sessions of others back.
-      'rules': [2, 3, 4],
+      'rules': [2, 3, 4, 5],
     });
   });
 

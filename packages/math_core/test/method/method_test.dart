@@ -8,6 +8,7 @@ import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/models/operation_type.dart';
 import 'package:math_core/patterns/pattern_family.dart';
 import 'package:math_core/patterns/pattern_questions.dart';
+import 'package:math_core/patterns/pattern_questions_v4.dart';
 import 'package:math_core/strategies/strategy.dart';
 import 'package:math_core/tiers/tier.dart';
 import 'package:math_core/tiers/tier_content.dart';
@@ -31,21 +32,30 @@ ArithmeticExercise _a(int a, int b, OperationType op) =>
 
 void main() {
   group("every family's questions get the family's own Method, every line "
-      'true, the last the answer (2,000 each)', () {
+      'true, the last the answer (v4: 2,000 each; v5: 1,000 at every tier '
+      'from its first)', () {
     for (final family in PatternFamily.values) {
       test(family.name, () {
         final random = Random(1000 + family.index);
         for (var i = 0; i < 2000; i++) {
-          final q = patternQuestion(family, random);
+          final q = patternQuestionV4(family, random);
           final method = methodFor(q, family: family);
           expect(method.family, family, reason: '$q');
-          _expectSound(method, q, reason: family.name);
+          _expectSound(method, q, reason: 'v4 ${family.name}');
+        }
+        for (final tier in Tier.values.skip(family.from.index)) {
+          for (var i = 0; i < 1000; i++) {
+            final q = patternQuestion(family, tier, random);
+            final method = methodFor(q, family: family);
+            expect(method.family, family, reason: '$q');
+            _expectSound(method, q, reason: 'v5 ${tier.label} ${family.name}');
+          }
         }
       });
     }
   });
 
-  group('every tier of every operation, as v4 and v2/v3 draw them: a sound '
+  group('every tier of every operation, as v5, v4 and v2/v3 draw them: a sound '
       'Method for every question (3,000 each)', () {
     for (final type in ExerciseType.values) {
       test(type.name, () {
@@ -57,6 +67,12 @@ void main() {
               methodFor(v4.exercise, family: v4.family),
               v4.exercise,
               reason: 'v4 ${tier.label}',
+            );
+            final v5 = patternedContentV5(type, tier, random);
+            _expectSound(
+              methodFor(v5.exercise, family: v5.family),
+              v5.exercise,
+              reason: 'v5 ${tier.label}',
             );
             final v2 = standardContent(type, tier, random).exercise;
             _expectSound(methodFor(v2), v2, reason: 'v2 ${tier.label}');

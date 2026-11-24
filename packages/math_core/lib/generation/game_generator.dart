@@ -37,11 +37,21 @@ ExerciseGenerator gameExerciseGenerator({
       sequence: typeSequence,
       levels: levels,
       content: standardContent,
+      withReviews: true,
     ),
     RulesVersion.v4 => TieredGameGenerator(
       sequence: typeSequence,
       levels: levels,
       content: patternedContent,
+      withReviews: true,
+    ),
+    // Pattern questions sized by tier; every question from the player's
+    // tier (`doc/levels.md` v1.4).
+    RulesVersion.v5 => TieredGameGenerator(
+      sequence: typeSequence,
+      levels: levels,
+      content: patternedContentV5,
+      withReviews: false,
     ),
   };
 }

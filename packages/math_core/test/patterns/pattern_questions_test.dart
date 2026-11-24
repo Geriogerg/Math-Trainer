@@ -5,6 +5,7 @@ import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/models/operation_type.dart';
 import 'package:math_core/patterns/pattern_family.dart';
 import 'package:math_core/patterns/pattern_questions.dart';
+import 'package:math_core/patterns/pattern_questions_v4.dart';
 import 'package:math_core/strategies/strategy.dart';
 import 'package:math_core/tiers/tier.dart';
 import 'package:math_core/tiers/tier_content.dart';
@@ -407,7 +408,163 @@ final Map<PatternFamily, List<Exercise>> _examples = {
   PatternFamily.fourXCubedFromZero: [_integral(0, 3, c3: 4)],
 };
 
-/// The spec's "From" column (section 5b).
+/// Each family's kind of question at any size (rules v5 sizes them by tier;
+/// the sizes themselves are the spec-conformance test's): the shape that
+/// makes the shortcut work, nothing about how big.
+final _kind = <PatternFamily, bool Function(Exercise)>{
+  PatternFamily.doubles: (e) => _add(e, (a, b) => _in(b - a, 0, 1)),
+  PatternFamily.complements: (e) =>
+      _add(e, (a, b) => _isPowerOf10(a + b) && a + b >= 100),
+  PatternFamily.addJustBelowRound: (e) =>
+      _add(e, (a, b) => _justBelowRound(b, 3)),
+  PatternFamily.roundNumbers: (e) => _add(
+    e,
+    (a, b) =>
+        a % 10 == 0 &&
+        b % 10 == 0 &&
+        _significant(a) <= 2 &&
+        _significant(b) <= 2,
+  ),
+  PatternFamily.threeTerms: (e) =>
+      e is ArithmeticExercise &&
+      e.operandC != null &&
+      _isPowerOf10(e.operandA + e.operandC!) &&
+      e.operandA + e.operandC! >= 100,
+  PatternFamily.addJustBelowPowerOf10: (e) =>
+      _add(e, (a, b) => _in(_nextPowerOf10(b) - b, 1, 3) && a > b),
+  PatternFamily.subtractJustBelowRound: (e) =>
+      _sub(e, (a, b) => _justBelowRound(b, 4) && a > b),
+  PatternFamily.fromRound: (e) =>
+      _sub(e, (a, b) => _isPowerOf10(a) && b % 10 != 0 && b < a),
+  PatternFamily.acrossRound: (e) => _sub(e, (a, b) {
+    final round = _roundAbove(b, 100, 9);
+    return round != null && _in(a - round, 1, 9);
+  }),
+  PatternFamily.sameGapShift: (e) =>
+      _sub(e, (a, b) => _justBelowRound(b, 9) && a > b),
+  PatternFamily.subtractJustBelowPowerOf10: (e) =>
+      _sub(e, (a, b) => _in(_nextPowerOf10(b) - b, 1, 3) && a > b),
+  PatternFamily.times5: (e) => _mul(e, (a, b) => b == 5 || b == 50),
+  PatternFamily.times11: (e) => _mul(e, (a, b) => b == 11),
+  PatternFamily.nearBase: (e) => _mul(
+    e,
+    (a, b) =>
+        (_signedWithin(a - 100, 9) || _signedWithin(a - 1000, 9)) &&
+        _in(b, 2, 19),
+  ),
+  PatternFamily.times25: (e) => _mul(e, (a, b) => b == 25 || b == 125),
+  PatternFamily.differenceOfSquares: (e) => _mul(e, (a, b) {
+    final middle = (a + b) ~/ 2;
+    return (a + b).isEven && middle % 10 == 0 && _in((b - a) ~/ 2, 1, 9);
+  }),
+  PatternFamily.doublingHalving: (e) =>
+      _mul(e, (a, b) => a.isEven && b % 10 == 5),
+  PatternFamily.times9s: (e) => _mul(e, (a, b) => [9, 99, 999].contains(b)),
+  PatternFamily.sameTensUnitsTo10: (e) => _mul(
+    e,
+    (a, b) => a ~/ 10 == b ~/ 10 && _in(a % 10, 1, 9) && a % 10 + b % 10 == 10,
+  ),
+  PatternFamily.times101: (e) => _mul(e, (a, b) => b == 101),
+  PatternFamily.powersOf2Product: (e) =>
+      _mul(e, (a, b) => a >= 8 && b >= 8 && _isPowerOf2(a) && _isPowerOf2(b)),
+  PatternFamily.bothNear100: (e) =>
+      _mul(e, (a, b) => _signedWithin(a - 100, 9) && _signedWithin(b - 100, 9)),
+  PatternFamily.differenceOfSquaresHundreds: (e) => _mul(e, (a, b) {
+    final middle = (a + b) ~/ 2;
+    return (a + b).isEven && middle % 100 == 0 && _in((b - a) ~/ 2, 1, 9);
+  }),
+  PatternFamily.halveBig: (e) => _div(e, (q, d) => d == 2),
+  PatternFamily.roundDivision: (e) => _div(
+    e,
+    (q, d) => d % 10 == 0 && _significant(d) == 1 && _significant(q) <= 2,
+  ),
+  PatternFamily.bigBy3To5: (e) => _div(e, (q, d) => _in(d, 3, 5)),
+  PatternFamily.by25: (e) => _div(e, (q, d) => d == 25 || d == 125),
+  PatternFamily.by11: (e) => _div(e, (q, d) => d == 11),
+  PatternFamily.halvingChain: (e) => _div(e, (q, d) => d == 8 || d == 16),
+  PatternFamily.bigBy6To9: (e) => _div(e, (q, d) => _in(d, 6, 9)),
+  PatternFamily.powersOf2: (e) => _pow(e, (b, n) => b == 2),
+  PatternFamily.squaresEndingIn5: (e) =>
+      _pow(e, (b, n) => n == 2 && b % 10 == 5),
+  PatternFamily.powersOf3To5: (e) => _pow(e, (b, n) => _in(b, 3, 5)),
+  PatternFamily.squaresNear50And100: (e) => _pow(
+    e,
+    (b, n) => n == 2 && (_signedWithin(b - 50, 9) || _signedWithin(b - 100, 9)),
+  ),
+  PatternFamily.repunits: (e) => _pow(e, (b, n) => [11, 111, 1111].contains(b)),
+  PatternFamily.squaresNear1000: (e) =>
+      _pow(e, (b, n) => n == 2 && _signedWithin(b - 1000, 9)),
+  PatternFamily.rootsOfPowersOf2: (e) =>
+      _root(e, (root, i) => i == 2 && _isPowerOf2(root)),
+  PatternFamily.rootsEndingIn25: (e) =>
+      _root(e, (root, i) => i == 2 && root % 10 == 5),
+  PatternFamily.rootsNear100: (e) =>
+      _root(e, (root, i) => i == 2 && _signedWithin(root - 100, 9)),
+  PatternFamily.cubeRootsRepunitAndRound: (e) =>
+      _root(e, (root, i) => i == 3 && (root == 11 || root % 10 == 0)),
+  PatternFamily.rootsNear1000: (e) =>
+      _root(e, (root, i) => i == 2 && _signedWithin(root - 1000, 9)),
+  PatternFamily.halfAndQuarterOfBig: (e) =>
+      _pct(e, (p, b) => p == 50 || p == 25),
+  PatternFamily.swap: (e) => _pct(e, (p, b) => b == 25 || b == 50),
+  PatternFamily.percentOfBigRound: (e) => _pct(
+    e,
+    (p, b) => p % 5 == 0 && p != 50 && b % 100 == 0 && _significant(b) <= 2,
+  ),
+  PatternFamily.nearHundredPercent: (e) =>
+      _pct(e, (p, b) => [99, 101, 125, 200].contains(p)),
+  PatternFamily.twoXFromZero: (e) => _int(e, 1, 2, (lo, hi) => lo == 0),
+  PatternFamily.threeXSquaredFromZero: (e) =>
+      _int(e, 2, 3, (lo, hi) => lo == 0),
+  PatternFamily.twoXDifferenceOfSquares: (e) => _int(e, 1, 2, (lo, hi) {
+    final middle = (lo + hi) ~/ 2;
+    return (lo + hi).isEven && middle % 10 == 0 && _in((hi - lo) ~/ 2, 1, 9);
+  }),
+  PatternFamily.fourXCubedFromZero: (e) => _int(e, 3, 4, (lo, hi) => lo == 0),
+};
+
+bool _isPowerOf10(int n) {
+  if (n < 1) return false;
+  while (n % 10 == 0) {
+    n ~/= 10;
+  }
+  return n == 1;
+}
+
+bool _isPowerOf2(int n) => n > 0 && n & (n - 1) == 0;
+
+int _nextPowerOf10(int n) {
+  var p = 1;
+  while (p <= n) {
+    p *= 10;
+  }
+  return p;
+}
+
+/// 98, 199, 3 997, 28: [maxGap] or less below a round number m × 10ᵏ.
+bool _justBelowRound(int n, int maxGap) {
+  for (var k = 1; k <= maxGap; k++) {
+    final round = n + k;
+    var unit = 1;
+    while (unit * 10 <= round) {
+      unit *= 10;
+    }
+    if (round >= 10 && round % unit == 0) return true;
+  }
+  return false;
+}
+
+int _significant(int n) {
+  var m = n.abs();
+  if (m == 0) return 1;
+  while (m % 10 == 0) {
+    m ~/= 10;
+  }
+  return _digits(m);
+}
+
+/// The spec's "From" column (section 5b, v1.4: √ of powers of 2 from T3;
+/// rules v4 drew it from T2).
 const _from = {
   PatternFamily.doubles: 1,
   PatternFamily.complements: 2,
@@ -445,7 +602,7 @@ const _from = {
   PatternFamily.squaresNear50And100: 5,
   PatternFamily.repunits: 6,
   PatternFamily.squaresNear1000: 9,
-  PatternFamily.rootsOfPowersOf2: 2,
+  PatternFamily.rootsOfPowersOf2: 3,
   PatternFamily.rootsEndingIn25: 3,
   PatternFamily.rootsNear100: 5,
   PatternFamily.cubeRootsRepunitAndRound: 6,
@@ -490,20 +647,32 @@ void main() {
         expect(examples, isNotEmpty);
         for (final e in examples) {
           expect(e.type, family.type);
-          expect(_support[family]!(e), isTrue, reason: '$e');
+          expect(_support[family]!(e), isTrue, reason: 'v4: $e');
+          expect(_kind[family]!(e), isTrue, reason: 'v5: $e');
         }
       });
     }
   });
 
-  group('every family generates only its kind, whole and exact, at most '
+  test("v4 questions are their family's kind too: _kind is only looser "
+      'about size (1,000 draws a family)', () {
+    for (final family in PatternFamily.values) {
+      final random = Random(family.index);
+      for (var i = 0; i < 1000; i++) {
+        final e = patternQuestionV4(family, random);
+        expect(_kind[family]!(e), isTrue, reason: '${family.name}: $e');
+      }
+    }
+  });
+
+  group('v4: every family generates only its kind, whole and exact, at most '
       '10 digits (3,000 draws)', () {
     for (final family in PatternFamily.values) {
       test(family.name, () {
         final random = Random(family.index + 1);
         final seen = <Exercise>{};
         for (var i = 0; i < 3000; i++) {
-          final e = patternQuestion(family, random);
+          final e = patternQuestionV4(family, random);
           seen.add(e);
           expect(e.type, family.type);
           expect(_support[family]!(e), isTrue, reason: '$e');
@@ -517,6 +686,25 @@ void main() {
   });
 
   group('rules v4 content', () {
+    test('v4 drew √ of powers of 2 from T2, v5 from T3', () {
+      expect(PatternFamily.availableAtV4(ExerciseType.squareRoot, Tier.t2), [
+        PatternFamily.rootsOfPowersOf2,
+      ]);
+      expect(
+        PatternFamily.availableAt(ExerciseType.squareRoot, Tier.t2),
+        isEmpty,
+      );
+      for (final family in PatternFamily.values) {
+        if (family == PatternFamily.rootsOfPowersOf2) continue;
+        for (final tier in Tier.values) {
+          expect(
+            PatternFamily.availableAtV4(family.type, tier).contains(family),
+            PatternFamily.availableAt(family.type, tier).contains(family),
+          );
+        }
+      }
+    });
+
     test('families are available from their tier on, in the spec order', () {
       expect(
         PatternFamily.availableAt(ExerciseType.addition, Tier.t0),
@@ -546,11 +734,11 @@ void main() {
             if (family == null) continue;
             patterns++;
             expect(family.type, type);
-            expect(family.from.index, lessThanOrEqualTo(tier.index));
+            expect(PatternFamily.availableAtV4(type, tier), contains(family));
             expect(_support[family]!(q.exercise), isTrue);
           }
           final share = patterns / 10000;
-          if (PatternFamily.availableAt(type, tier).isEmpty) {
+          if (PatternFamily.availableAtV4(type, tier).isEmpty) {
             expect(share, 0, reason: '${type.name} ${tier.label}');
           } else {
             expect(
@@ -563,4 +751,106 @@ void main() {
       }
     });
   });
+  group('rules v5: every family at every tier from its first generates only '
+      'its kind, whole and exact, at most 10 digits (3,000 draws a tier)', () {
+    for (final family in PatternFamily.values) {
+      test(family.name, () {
+        for (final tier in Tier.values.skip(family.from.index)) {
+          final random = Random(100 * family.index + tier.index);
+          final seen = <Exercise>{};
+          for (var i = 0; i < 3000; i++) {
+            final e = patternQuestion(family, tier, random);
+            seen.add(e);
+            final reason = '${tier.label} $e';
+            expect(e.type, family.type, reason: reason);
+            expect(_kind[family]!(e), isTrue, reason: reason);
+            expect(e.correctAnswer, greaterThan(0), reason: reason);
+            expect(e.correctAnswer, lessThan(10000000000), reason: reason);
+          }
+          // √ of powers of 2 has one question in each of its bands but the
+          // last (√64 at T3–T4, the mirror of 2⁵–2⁶).
+          expect(seen, isNotEmpty);
+        }
+      });
+    }
+  });
+
+  test('rules v5: a family drawn below its first tier throws (rule 13)', () {
+    for (final family in PatternFamily.values) {
+      for (final tier in Tier.values.take(family.from.index)) {
+        expect(
+          () => patternQuestion(family, tier, Random(1)),
+          throwsArgumentError,
+          reason: '${family.name} ${tier.label}',
+        );
+      }
+    }
+  });
+
+  test('rules v5: a family grows with the tier — the digits of its smallest '
+      'and of its largest question never shrink from one tier to the next '
+      '(2,000 draws a tier)', () {
+    for (final family in PatternFamily.values) {
+      int? lastLow;
+      int? lastHigh;
+      for (final tier in Tier.values.skip(family.from.index)) {
+        final random = Random(7 * family.index + tier.index);
+        var low = 1 << 40;
+        var high = 0;
+        for (var i = 0; i < 2000; i++) {
+          final size = _digits(_size(patternQuestion(family, tier, random)));
+          low = min(low, size);
+          high = max(high, size);
+        }
+        final reason = '${family.name} ${tier.label}';
+        if (lastLow != null) {
+          expect(low, greaterThanOrEqualTo(lastLow), reason: reason);
+          expect(high, greaterThanOrEqualTo(lastHigh!), reason: reason);
+        }
+        lastLow = low;
+        lastHigh = high;
+      }
+    }
+  });
+
+  test('rules v5: about 40 % pattern questions at every tier where a family '
+      'is available — its first included — none where none is (10,000 '
+      'draws a tier)', () {
+    for (final type in ExerciseType.values) {
+      for (final tier in Tier.values) {
+        final random = Random(37 * type.index + tier.index);
+        var patterns = 0;
+        for (var i = 0; i < 10000; i++) {
+          final q = patternedContentV5(type, tier, random);
+          expect(q.exercise.type, type);
+          final family = q.family;
+          if (family == null) continue;
+          patterns++;
+          expect(PatternFamily.availableAt(type, tier), contains(family));
+        }
+        final share = patterns / 10000;
+        final reason = '${type.name} ${tier.label}';
+        if (PatternFamily.availableAt(type, tier).isEmpty) {
+          expect(share, 0, reason: reason);
+        } else {
+          expect(share, inInclusiveRange(0.38, 0.42), reason: reason);
+        }
+      }
+    }
+  });
 }
+
+/// A question's size: the largest number it shows or answers (a power's
+/// value, a root's radicand).
+int _size(Exercise e) => switch (e) {
+  ArithmeticExercise(:final operandA, :final operandB, :final operandC) => [
+    operandA,
+    operandB,
+    ?operandC,
+    e.correctAnswer,
+  ].reduce(max),
+  PowerExercise() => e.correctAnswer,
+  SquareRootExercise(:final radicand) => radicand,
+  PercentageExercise(:final base) => max(base, e.correctAnswer),
+  IntegralExercise(:final upper) => max(upper, e.correctAnswer),
+};

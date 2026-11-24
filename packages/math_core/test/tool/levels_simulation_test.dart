@@ -70,20 +70,71 @@ void main() {
         'where families exist, reviews included (within 2 points)', () {
       for (final type in ExerciseType.values) {
         for (final tier in Tier.values) {
-          final served = patternShareServed(type, tier, games: 400);
+          final served = sharesServed(
+            type,
+            tier,
+            rules: RulesVersion.v4,
+            games: 400,
+          ).patterns;
           expect(
             served,
-            closeTo(patternShareExpected(type, tier), 0.02),
+            closeTo(
+              patternShareExpected(type, tier, rules: RulesVersion.v4),
+              0.02,
+            ),
             reason: '${type.name} ${tier.label}',
           );
         }
       }
       // From the second tier with families on: ~40 %.
       expect(
-        patternShareExpected(ExerciseType.multiplication, Tier.t5),
+        patternShareExpected(
+          ExerciseType.multiplication,
+          Tier.t5,
+          rules: RulesVersion.v4,
+        ),
         closeTo(0.4, 1e-9),
       );
-      expect(patternShareExpected(ExerciseType.addition, Tier.t0), 0);
+      expect(
+        patternShareExpected(
+          ExerciseType.addition,
+          Tier.t0,
+          rules: RulesVersion.v4,
+        ),
+        0,
+      );
+    });
+  });
+
+  group('rules v5 (pattern questions sized by tier, no reviews)', () {
+    test("v5's level update is v3's: the four targets still met", () {
+      final v5 = LevelRules.of(RulesVersion.v5);
+      expect(v5, same(LevelRules.v3));
+      for (final t in targetsFor(v5)) {
+        expect(t.met, isTrue, reason: '${t.target}: ${t.measured}');
+      }
+    });
+
+    test('served per tier: 2 in 5 pattern questions wherever a family '
+        'exists — its first tier included — and none from a lower tier', () {
+      for (final type in ExerciseType.values) {
+        for (final tier in Tier.values) {
+          final served = sharesServed(type, tier, games: 400);
+          final reason = '${type.name} ${tier.label}';
+          expect(
+            served.patterns,
+            closeTo(patternShareExpected(type, tier), 0.02),
+            reason: reason,
+          );
+          expect(served.lowerTier, 0, reason: reason);
+        }
+      }
+      // The first tier with families (T1 for addition): 40 %, no longer
+      // diluted by reviews from a tier without families.
+      expect(
+        patternShareExpected(ExerciseType.addition, Tier.t1),
+        closeTo(0.4, 1e-9),
+      );
     });
   });
 

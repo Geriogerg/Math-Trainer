@@ -1192,7 +1192,31 @@ at `aaee7a2` (smoke-staging, migrations, server-production, deploy-cloudflare, s
 1. The Patterns and Method phone checklist (below, and in the phase report).
 2. Invite testers: `bash tool/dashboard/dashboard.sh new-code <label> [uses]`, one code per
    tester; `codes` shows their uses.
-3. Phase 3b starts at ~300 sessions from 10+ testers since the v4 release
+3. Phase 3b starts at ~300 sessions from 10+ testers since the v5 release (was: v4)
    (`owner_dashboard.calibration_window`; the dashboard's report counts them).
 4. Still parked, optional: the slow-4G first-question measurement past the gate (needs a CI
    beta code; Phase 5.2 commit 0).
+
+## Rules v5 — pattern questions sized by tier (24 Nov 2026, `doc/levels.md` v1.4)
+
+Beta bug: level 15–20 games served level-70 questions (2²⁰ at level 15). Diagnosis (games at
+levels 5, 15, 25, 50, every operation, rules v4): the level reached the generator correctly
+(whole part, `Tier.of`); the cause was the v4 pattern generator, which had no tier input —
+every family drew its full range from its first tier (powers of 2: 2⁷–2²⁰ at T1;
+√2²⁰ at T2; 4-digit × 5, ÷ 2, 25 % of 4-digit at T2; ∫₀¹⁹ 2x at T1) — plus 30 % review
+questions from the tier below (spec v1.2).
+
+- **Rules v5** (current): `patternQuestion(family, tier, r)` sizes every family by tier
+  (size table and hard limit, `doc/decisions.md` "Rules v5"); no reviews
+  (`withReviews: false`); √ of powers of 2 from T3. v2–v4 generators unchanged (references
+  regenerate byte-identical). Server replays v5; `/health` lists `[2, 3, 4, 5]`.
+- **Method**: four addition families recognised at any size.
+- **Tests**: spec-conformance test reads section 5b's size table and checks every row band by
+  band, and the hard limit for every other family at T0–T8 (3,000 seeds per family and tier);
+  every family at every tier (kind, exact, ≤ 10 digits, grows, throws below its tier); no
+  question from a lower tier at any level (every 0.37 level, every n); no power above 2⁶ and
+  none above 225 at every hundredth of levels 10–19; v5 determinism pins VM/JS; the Method on
+  every family at every tier.
+- **Simulation**: the four targets met (65.3 / 63.8 / 64.0 / 64.2 % stall; +1.56 slow; full
+  cap; −3); v5 serves 40 % pattern questions from each family's first tier, 0 % lower-tier.
+- Phase 3b window restarted at the release (migration `20261128000000_rules_v5_window`).

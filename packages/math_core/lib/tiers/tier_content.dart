@@ -4,6 +4,7 @@ import '../models/exercise.dart';
 import '../models/exercise_type.dart';
 import '../patterns/pattern_family.dart';
 import '../patterns/pattern_questions.dart';
+import '../patterns/pattern_questions_v4.dart';
 import 'arithmetic_tiers.dart';
 import 'draw.dart';
 import 'integral_tiers.dart';
@@ -44,17 +45,31 @@ TierQuestion standardContent(ExerciseType type, Tier tier, Random random) =>
 /// (`doc/levels.md` section 5b: about 40 %, tunable): 2 in 5.
 const patternShareFifths = 2;
 
-/// Rules v4 (`doc/levels.md` sections 5 and 5b): at a tier where at least
-/// one family of [type] is available, a pattern question 2 times in 5, its
-/// family drawn uniformly among them; otherwise the tier's standard
+/// Rules v4 (`doc/levels.md` v1.2 sections 5 and 5b): at a tier where at
+/// least one family of [type] is available, a pattern question 2 times in
+/// 5, its family drawn uniformly among them; otherwise the tier's standard
 /// question — addition and subtraction from the spec's long tables
 /// ([longArithmeticAt]), the other six as under v2. Nothing is drawn for
-/// the share where no family is available (T0).
+/// the share where no family is available (T0). Its pattern questions have
+/// one size for every tier ([patternQuestionV4]). Frozen: v4 games replay
+/// with it.
 TierQuestion patternedContent(ExerciseType type, Tier tier, Random random) {
+  final families = PatternFamily.availableAtV4(type, tier);
+  if (families.isNotEmpty && random.nextInt(5) < patternShareFifths) {
+    final family = drawOne(random, families);
+    return (exercise: patternQuestionV4(family, random), family: family);
+  }
+  return (exercise: _standardV4(type, tier, random), family: null);
+}
+
+/// Rules v5 (`doc/levels.md` v1.4 sections 5 and 5b): v4's mix and
+/// standard questions, with pattern questions **sized by the tier**
+/// ([patternQuestion]) and the families available as spec v1.4 lists them.
+TierQuestion patternedContentV5(ExerciseType type, Tier tier, Random random) {
   final families = PatternFamily.availableAt(type, tier);
   if (families.isNotEmpty && random.nextInt(5) < patternShareFifths) {
     final family = drawOne(random, families);
-    return (exercise: patternQuestion(family, random), family: family);
+    return (exercise: patternQuestion(family, tier, random), family: family);
   }
   return (exercise: _standardV4(type, tier, random), family: null);
 }

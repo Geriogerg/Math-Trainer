@@ -26,27 +26,35 @@ enum RulesVersion {
 
   /// The Patterns and Method phase (`doc/levels.md` v1.2): v3's level
   /// update; new generation — pattern questions (section 5b) and the
-  /// spec's long addition and subtraction tables (section 5).
-  v4(4);
+  /// spec's long addition and subtraction tables (section 5). Its pattern
+  /// questions had one size for every tier — 2²⁰ at level 15 — and 30 % of
+  /// a game came from the tier below: fixed in [v5].
+  v4(4),
+
+  /// Pattern questions sized by tier (`doc/levels.md` v1.4): each family
+  /// grows with the tier, within the spec's size table and its hard limit;
+  /// no review questions — every question from the player's tier. v3's
+  /// level update. Levels carry over: the same scale, no reset.
+  v5(5);
 
   const RulesVersion(this.number);
 
   final int number;
 
   /// What new sessions are played under.
-  static const current = v4;
+  static const current = v5;
 
   /// The rules a server built from this code replays (validation refuses
   /// the others). The server says so in its `/health` (`rules`), and the
   /// app holds a session back, pending, until the server it talks to knows
   /// its rules — an older server would refuse it for good.
-  static const replayed = [v2, v3, v4];
+  static const replayed = [v2, v3, v4, v5];
 
   /// Played before the Levels phase's transition: its levels are on the
   /// old scale (1–100 from placement), never compared with the others.
   bool get retired => switch (this) {
     v1 => true,
-    v2 || v3 || v4 => false,
+    v2 || v3 || v4 || v5 => false,
   };
 
   /// Throws [ArgumentError] for a number no version has (rule 13).

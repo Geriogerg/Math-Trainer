@@ -1647,3 +1647,52 @@ leaves it uncapped). Tested: the worked example (r′ 1464.06, RD′ 151.52, σ�
 the cap), win/loss/draw symmetry, volatility rising on upsets, invalid input throwing.
 **Reopen when** Phase 7 chooses the rating period (per day? per N duels?) and the provisional
 flag's threshold.
+
+## Rules v5: pattern questions sized by tier, no reviews (`doc/levels.md` v1.4) — provisional readings
+
+Beta report (24 Nov): questions at level 15–20 that felt like level 70. Cause, measured on
+2,000 games per operation and level under v4: `patternQuestionV4` took no tier — every family
+drew its largest size from its first tier (powers of 2 drew 2⁷–2²⁰ from T1, never 2⁶ or less;
+√2²⁰ from T2; 4-digit × 5 and ÷ 2 from T2; ∫₀¹⁹ 2x from T1; 900 000 + 900 000 from T3), and
+30 % of each game came from the tier below. The level itself was read correctly (`Tier.of`
+on the whole part, frozen per game; checked at every hundredth). Spec v1.4 answers with tier
+sizing and no reviews; rules v5 implements it (`patternQuestion(family, tier, r)`,
+`patternedContentV5`, `TieredGameGenerator.withReviews: false`); v4's generator is kept
+verbatim (`patternQuestionV4`, `availableAtV4`, pinned references unchanged).
+
+Readings of the spec, **provisional**:
+
+- **Hard limit, measure**: the significant digits (trailing zeros dropped) of every number the
+  question shows — operands, exponent, percent, bounds — and of its answer.
+- **Hard limit, "tier T + 1"**: the limit at T is the larger of the standard questions of T
+  and T + 1. Taken strictly (T + 1 only), the spec's own √7 225 at T3 would break it (T4's
+  standard roots stop at √900), as would 99 × 11 at T3.
+- **T9** has no tier above: the 10-digit keypad and the size table bound it.
+- **Size-table families follow the table only**: several entries exceed T + 1 on purpose
+  (4-digit × 5 at T6, 6-digit ÷ 2 at T6, 2²⁰ at T9).
+- **Size-table bands**: an entry holds from its tier to the next entry's. A band draws above
+  the band below and up to its own limit ("N-digit" read as "up to N"); the first band starts
+  one step below its limit (2⁵–2⁶ at T1, 2–3-digit ÷ 2 at T2). Powers of 3, 4, 5 at T8: only
+  3 grows (3⁷–3⁸); 4 and 5 keep T6's.
+- **√ of powers of 2, "mirror … two tiers later"**: the even exponents of the powers-of-2
+  band two tiers lower: √64 only at T3–T4, √256 at T5–T6, √1 024 at T7–T8, √4 096–√65 536
+  at T9. One question per band until T9 — faithful, but repetitive; widen if testers notice.
+- **Examples**: "A → B" is A at the family's first tier and B at T9; any other example at some
+  tier from the family's first. Under the hard limit some examples arrive later than their
+  family: 352 × 11 from T5, 103² and √10 201 and 111² from T7, 88 × 125 from T8, 236 × 999
+  at T9 only.
+- **Growth of families outside the table** (my schedule, within the limit): addition and
+  subtraction families use the tier's standard operand size (1, 2, 2, 3, 4, 4, 5, 6, 8, 9
+  digits); the others step up where the limit allows (e.g. × 11: 2-digit to T4, 100–909 at
+  T5–T7, any 3-digit from T8). Squares and roots ending in 5 start at 25 (15² is T1 content).
+- **Method**: four addition families were recognised at v4's sizes only (complements to 100
+  or 1 000, just below a hundred, units 100–10 000, three terms around 100) — a v5 question
+  would have lost its family's Method. Now any size; a v4 round-numbers question whose two
+  terms share a larger unit shows it ((2 + 3) × 100 000 instead of (20 + 30) × 10 000), still
+  true.
+- **Phase 3b window restarted** at the v5 release (migration `20261128000000_rules_v5_window`),
+  as at v4: v4's sessions measured oversized questions and reviews.
+
+Pattern share: 40 % from a family's first tier on (v4: 28 % at the first tier, diluted by
+reviews). The four level targets are unchanged (v5's update is v3's; simulation rerun).
+**Reopen when** Phase 3b measures v5 sessions: per-family accuracy and time by tier.

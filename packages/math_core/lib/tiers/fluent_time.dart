@@ -6,7 +6,8 @@ import 'tier.dart';
 /// The time under which a correct answer earns full credit
 /// (`doc/levels.md`, sections 3 and 5): set by the operation and the tier
 /// of the level the game was played at — the same for every question of
-/// that operation in the game, its review and pattern questions included —
+/// that operation in the game, its review (v2–v4) and pattern questions
+/// included —
 /// under the rules the game was played with. Throws for rules v1, retired.
 int fluentTimeMs(ExerciseType type, Level level, RulesVersion rules) =>
     _fluentSeconds(type, rules)[Tier.of(level).index] * 1000;
@@ -22,7 +23,7 @@ List<int> _fluentSeconds(ExerciseType type, RulesVersion rules) {
       if (type == ExerciseType.addition || type == ExerciseType.subtraction) {
         return const [4, 4, 5, 5, 6, 8, 9, 10, 12, 14];
       }
-    case RulesVersion.v4:
+    case RulesVersion.v4 || RulesVersion.v5:
       break;
   }
   return switch (type) {

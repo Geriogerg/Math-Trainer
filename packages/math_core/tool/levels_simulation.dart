@@ -1,8 +1,9 @@
 // The level system's tuning, simulated (Levels phase commit 8, Levels
-// close-out, Patterns and Method commit 5): for rules v2 and v3 (= v4's
-// update), the plan's targets checked exactly, the stall accuracy by
-// questions per operation, the median games of 10 questions to reach each
-// tier from level 0; and v4's share of pattern questions served per tier.
+// close-out, Patterns and Method commit 5, rules v5): for rules v2 and v3
+// (= v4's and v5's update), the plan's targets checked exactly, the stall
+// accuracy by questions per operation, the median games of 10 questions to
+// reach each tier from level 0; and, under v4 and v5, the share of pattern
+// questions and of lower-tier questions served per tier.
 //
 //   dart run tool/levels_simulation.dart          # v2 against v3
 //   dart run tool/levels_simulation.dart --grid   # + every candidate meeting the targets
@@ -17,7 +18,7 @@ import 'src/levels_simulation.dart';
 void main(List<String> args) {
   for (final (name, rules) in [
     ('v2', LevelRules.v2),
-    ('v3 = v4', LevelRules.of(RulesVersion.v4)),
+    ('v3 = v4 = v5', LevelRules.of(RulesVersion.v5)),
   ]) {
     print('== rules $name: $rules');
     for (final t in targetsFor(rules)) {
@@ -49,18 +50,37 @@ void main(List<String> args) {
       );
     }
   }
-  print(
-    '== rules v4: pattern questions served per tier, % (2,000 games of 10 '
-    'questions, reviews included)',
-  );
-  print(
-    '  operation       ${[for (final t in Tier.values) t.label.padLeft(5)].join()}',
-  );
-  for (final type in ExerciseType.values) {
-    print(
-      '  ${type.name.padRight(16)}'
-      '${[for (final t in Tier.values) (100 * patternShareServed(type, t)).round().toString().padLeft(5)].join()}',
-    );
+  for (final rules in [RulesVersion.v4, RulesVersion.v5]) {
+    final shares = {
+      for (final type in ExerciseType.values)
+        type: [
+          for (final t in Tier.values) sharesServed(type, t, rules: rules),
+        ],
+    };
+    for (final (what, pick) in [
+      (
+        'pattern questions',
+        (({double patterns, double lowerTier}) s) => s.patterns,
+      ),
+      (
+        'questions from a lower tier',
+        (({double patterns, double lowerTier}) s) => s.lowerTier,
+      ),
+    ]) {
+      print(
+        '== rules v${rules.number}: $what served per tier, % (2,000 games '
+        'of 10 questions)',
+      );
+      print(
+        '  operation       ${[for (final t in Tier.values) t.label.padLeft(5)].join()}',
+      );
+      for (final type in ExerciseType.values) {
+        print(
+          '  ${type.name.padRight(16)}'
+          '${[for (final s in shares[type]!) (100 * pick(s)).round().toString().padLeft(5)].join()}',
+        );
+      }
+    }
   }
   if (!args.contains('--grid')) return;
   print('== candidates meeting every target (stall at n = 4/5/10/20)');

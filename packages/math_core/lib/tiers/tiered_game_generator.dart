@@ -9,9 +9,13 @@ import 'tier.dart';
 import 'tier_content.dart';
 
 /// A game's questions under rules v2 and later (`doc/levels.md`, sections
-/// 2, 5 and 5b), each drawn by its rules' [TierContent]:
-/// each operation at the tier of its frozen level, **30 % of its questions
-/// from the tier below** (review; none at T0) and the rest from its own.
+/// 2, 5 and 5b), each drawn by its rules' [TierContent] at the tier of its
+/// operation's frozen level.
+///
+/// [withReviews] (rules v2–v4, spec v1.2): **30 % of an operation's
+/// questions from the tier below** (review; none at T0). Rules v5 (spec
+/// v1.4) has none — every question from the player's tier — and draws
+/// nothing for it.
 ///
 /// The review count is exact per operation ([reviewQuestionCount]: 1 of 4,
 /// 2 of 5, 3 of 10, 6 of 20); which questions are reviews is drawn on the
@@ -24,6 +28,7 @@ class TieredGameGenerator implements ExerciseGenerator {
     required List<ExerciseType> sequence,
     required Map<ExerciseType, Level> levels,
     required this.content,
+    required this.withReviews,
   }) : _sequence = List.unmodifiable(sequence),
        _tiers = {
          for (final type in sequence.toSet())
@@ -43,12 +48,17 @@ class TieredGameGenerator implements ExerciseGenerator {
       _remaining[type] = (_remaining[type] ?? 0) + 1;
     }
     for (final MapEntry(key: type, value: count) in _remaining.entries) {
-      _reviewsLeft[type] = reviewQuestionCount(_tiers[type]!, count);
+      _reviewsLeft[type] = withReviews
+          ? reviewQuestionCount(_tiers[type]!, count)
+          : 0;
     }
   }
 
   /// How one question is drawn: its rules' content.
   final TierContent content;
+
+  /// 30 % review questions from the tier below (rules v2–v4).
+  final bool withReviews;
   final List<ExerciseType> _sequence;
   final Map<ExerciseType, Tier> _tiers;
   final _remaining = <ExerciseType, int>{};

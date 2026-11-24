@@ -1,4 +1,4 @@
-# Levels — specification (v1.2, 23 November 2026: pattern questions and Method added)
+# Levels — specification (v1.4, 24 November 2026: pattern questions sized by tier, no review from lower tiers)
 
 > Owned by the product owner, like `doc/plan.md`. Claude Code implements it and never edits it.
 > It replaces the level formula, the placement test and the operand-bound curves used until the
@@ -18,9 +18,8 @@
 
 - Levels run from **0 to 100**, stored in integer hundredths (0–10000), shown as whole numbers.
 - **Ten tiers** of ten levels: T0 = 0–9, T1 = 10–19, … T9 = 90–100.
-- The level's tier decides the content of the questions (section 5). Within a game, **70 %** of
-  questions come from the player's tier and **30 %** from the tier below (review); T0 has no
-  review. *Tunable.*
+- The level's tier decides the content of the questions (section 5). **Every question of a game
+  comes from the player's current tier** — no review questions from lower tiers.
 - Frozen at the start of a game, as today.
 
 ## 3. How a game moves a level
@@ -235,15 +234,39 @@ chosen so that a shortcut makes them easy, even when they are big (17 × 23, 65 
 missed.
 
 - From the tier where a family first appears, about **40 %** of that tier's questions are pattern
-  questions, drawn among the families available at that tier. *Tunable.*
-- Review questions (30 %) follow the same mix for the tier below.
-- Pattern questions may use more digits than the tier's standard questions: the shortcut is what
-  makes them fit the tier.
+  questions, drawn among the families available at that tier, **at that tier's size**. A family
+  that started lower keeps appearing, but with the current tier's numbers, never a lower tier's.
+  *Tunable.*
+- **Pattern questions are sized by tier, like standard ones.** A family that starts at a low tier
+  starts with small numbers and grows with the tier. **Hard limit:** at tier T, a pattern question
+  never uses more significant digits than the standard questions of tier T + 1 (trailing zeros of
+  round numbers don't count: 250 000 counts as 25). Families that grow exponentially follow the
+  limits in the table below. *Tunable.*
+- A test checks this limit for every family at every tier, on thousands of seeds.
 - Same fluent time as the tier.
 - Generated backwards, like everything else: draw the pattern (base, offset, factor), then the
   numbers, then the answer.
 - **Changing the generation is a new rules version (v4).** Games played under v2 and v3 must still
   regenerate their questions under their own version: keep the older generators.
+
+### Size limits for the fast-growing families
+
+| Family | Size by tier |
+|---|---|
+| × 5, × 50 | T2: 2-digit × 5 · T4: 3-digit · T6: 4-digit |
+| Big numbers ÷ 2 | T2: up to 3 digits · T4: 4 digits · T6: 6 digits |
+| Big numbers ÷ 3, 4, 5 | T5: up to 4 digits · T7: 6 digits |
+| Big numbers ÷ 6, 7, 8, 9 | T7: up to 5 digits · T9: 7 digits |
+| 50 %, 25 % of big numbers | T2: up to 3 digits · T4: 4 digits · T6: 6 digits |
+| Powers of 2 | T1: up to 2⁶ · T3: 2⁸ · T5: 2¹⁰ · T7: 2¹⁶ · T9: 2²⁰ |
+| √ of powers of 2 and 4 | mirror of powers of 2, two tiers later |
+| Powers of 3, 4, 5 | T4: up to 3⁴, 4³, 5³ · T6: 3⁶, 4⁵, 5⁴ · T8: 3⁸ |
+| Squares ending in 5 | T3: up to 95² · T6: up to 205² |
+| ∫₀ᵇ 2x dx | T1: b ≤ 6 · T3: b ≤ 12 · T5: b ≤ 25 |
+| ∫₀ᵇ 3x² dx | T4: b ≤ 4 · T6: b ≤ 8 |
+| ∫₀ᵇ 4x³ dx | T7: b ≤ 4 · T9: b ≤ 6 |
+
+Examples in the family tables below show the **largest** size a family reaches, not its first tier.
 
 ### Addition
 
@@ -270,7 +293,7 @@ missed.
 
 | Family | Example | From |
 |---|---|---|
-| × 5, × 50 (× 10 ÷ 2) | 4 864 × 5 | T2 |
+| × 5, × 50 (× 10 ÷ 2) | 48 × 5 → 4 864 × 5 | T2 |
 | × 11 | 43 × 11, 352 × 11 | T3 |
 | Near a base | 98 × 7, 103 × 8 | T4 |
 | × 25, × 125 (× 100 ÷ 4, × 1000 ÷ 8) | 36 × 25, 88 × 125 | T5 |
@@ -287,7 +310,7 @@ missed.
 
 | Family | Example | From |
 |---|---|---|
-| Big numbers ÷ 2 | 4 862 ÷ 2 | T2 |
+| Big numbers ÷ 2 | 86 ÷ 2 → 486 242 ÷ 2 | T2 |
 | Round numbers | 36 000 ÷ 400 | T4 |
 | Big numbers ÷ 3, 4, 5 | 123 456 ÷ 3, 864 312 ÷ 4 | T5 |
 | ÷ 25, ÷ 125 (× 4 ÷ 100, × 8 ÷ 1000) | 4 875 ÷ 25 | T5 |
@@ -299,7 +322,7 @@ missed.
 
 | Family | Example | From |
 |---|---|---|
-| Powers of 2, up to 2²⁰ | 2¹⁰, 2¹⁶ = 65 536 | T1 |
+| Powers of 2 | 2⁵ → 2²⁰ | T1 |
 | Squares ending in 5 | 35², 105² = 11 025 | T3 |
 | Powers of 3, 4, 5 | 3⁸, 4⁵, 5⁴ | T4 |
 | Squares near 50 and 100 | 48², 103² | T5 |
@@ -310,7 +333,7 @@ missed.
 
 | Family | Example | From |
 |---|---|---|
-| √ of powers of 2 and 4 | √1 024, √65 536 | T2 |
+| √ of powers of 2 and 4 | √64 → √65 536 | T3 |
 | √ of squares ending in 25 | √7 225 | T3 |
 | √ near 100 | √10 201 | T5 |
 | ∛ of repunit cubes and round cubes | ∛1 331, ∛8 000 | T6 |
@@ -320,7 +343,7 @@ missed.
 
 | Family | Example | From |
 |---|---|---|
-| 50 %, 25 % of big numbers | 50 % of 9 876, 25 % of 4 864 | T2 |
+| 50 %, 25 % of big numbers | 25 % of 480 → 25 % of 486 400 | T2 |
 | Swap | 8 % of 25, 12 % of 50 | T3 |
 | Percentages of big round numbers | 15 % of 2 400 000 | T5 |
 | 99 %, 101 %, 125 %, 200 % | 99 % of 300, 125 % of 64 | T7 |
@@ -329,7 +352,7 @@ missed.
 
 | Family | Example | From |
 |---|---|---|
-| ∫₀ᵇ 2x dx = b² | ∫₀⁹ 2x dx | T1 |
+| ∫₀ᵇ 2x dx = b² | ∫₀⁴ 2x dx → ∫₀²⁵ 2x dx | T1 |
 | ∫₀ᵇ 3x² dx = b³ | ∫₀⁵ 3x² dx | T4 |
 | ∫ₐᵇ 2x dx = (b − a)(b + a) | ∫₁₉²¹ 2x dx = 80 | T5 |
 | ∫₀ᵇ 4x³ dx = b⁴ | ∫₀³ 4x³ dx | T7 |

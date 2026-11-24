@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:math_core/generation/game_generator.dart';
 import 'package:math_core/leveling/answer_outcome.dart';
 import 'package:math_core/leveling/level.dart';
 import 'package:math_core/leveling/level_change.dart';
@@ -257,12 +258,14 @@ double _power(double x, int k) {
   return r;
 }
 
-/// The share of pattern questions a game at [tier] actually serves on
-/// [type] (`doc/levels.md` section 5b), reviews included: [games] games of
-/// [questions] questions, drawn by the real v4 generator.
-double patternShareServed(
+/// What a game at [tier] actually serves on [type] under [rules]
+/// (`doc/levels.md` sections 2 and 5b): the share of pattern questions and
+/// the share drawn from a lower tier (reviews, v2–v4 only) — [games] games
+/// of [questions] questions, drawn by the real game generator.
+({double patterns, double lowerTier}) sharesServed(
   ExerciseType type,
   Tier tier, {
+  RulesVersion rules = RulesVersion.current,
   int games = 2000,
   int questions = 10,
   int seed = 2026,
@@ -270,31 +273,45 @@ double patternShareServed(
   final random = Random(seed + 31 * type.index + tier.index);
   final level = Level.whole(10 * tier.index);
   var patterns = 0;
+  var lower = 0;
   for (var g = 0; g < games; g++) {
-    final generator = TieredGameGenerator(
-      sequence: List.filled(questions, type),
-      levels: {type: level},
-      content: patternedContent,
-    );
+    final generator =
+        gameExerciseGenerator(
+              rulesVersion: rules,
+              enabledTypes: {type},
+              levels: {type: level},
+              typeSequence: List.filled(questions, type),
+            )
+            as TieredGameGenerator;
     for (var i = 0; i < questions; i++) {
       generator.next(random);
       if (generator.lastFamily != null) patterns++;
+      if (generator.lastTier != tier) lower++;
     }
   }
-  return patterns / (games * questions);
+  final total = games * questions;
+  return (patterns: patterns / total, lowerTier: lower / total);
 }
 
-/// What the share should be: 2 in 5 of the questions drawn from a tier
-/// with families — the tier's own (all but the reviews) and the one below
-/// (the reviews: 3 of 10).
+/// What the pattern share should be: 2 in 5 of the questions drawn from a
+/// tier with families — under v4 the tier's own (all but the reviews) and
+/// the one below (the reviews: 3 of 10); from v5 the tier's own only.
 double patternShareExpected(
   ExerciseType type,
   Tier tier, {
+  RulesVersion rules = RulesVersion.current,
   int questions = 10,
 }) {
-  final reviews = reviewQuestionCount(tier, questions) / questions;
-  double has(Tier? t) =>
-      t != null && PatternFamily.availableAt(type, t).isNotEmpty ? 1 : 0;
+  final v4 = rules == RulesVersion.v4;
+  final reviews = v4 ? reviewQuestionCount(tier, questions) / questions : 0;
+  double has(Tier? t) => t == null
+      ? 0
+      : (v4
+                ? PatternFamily.availableAtV4(type, t)
+                : PatternFamily.availableAt(type, t))
+            .isNotEmpty
+      ? 1
+      : 0;
   return patternShareFifths /
       5 *
       ((1 - reviews) * has(tier) + reviews * has(tier.below));

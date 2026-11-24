@@ -27,8 +27,14 @@ import 'package:test/test.dart';
 ///   time; each example is a question its tier draws; the digit counts its
 ///   content names are the ones it draws, and the heading's "up to N
 ///   digits" is the most it draws.
-/// - Section 5b: each operation's families in the spec's order, each from
-///   its tier; each example is a question its family draws.
+/// - Section 5b, under rules v5 (spec v1.4): each operation's families in
+///   the spec's order, each from its tier; each example is a question its
+///   family draws (left of "→" at its first tier, right of it at T9, others
+///   at some tier). The size table, row by row: each entry is the largest
+///   size its band draws, and the band never draws a lower band's size. The
+///   hard limit, for every other family at T0–T8: no number shown or
+///   answered with more significant digits than the standard questions of
+///   its tier or the next.
 ///
 /// "A question it draws" is decided by sampling: exact when the sample
 /// holds every question there is (its second half found none new);
@@ -38,7 +44,21 @@ import 'package:test/test.dart';
 void main() {
   final spec = File('../../doc/levels.md').readAsStringSync();
   final tiers = _tables(_section(spec, '## 5. ', '## 5b. '));
-  final families = _tables(_section(spec, '## 5b. ', '## 6. '));
+  final section5b = _section(spec, '## 5b. ', '## 6. ');
+  final families = _tables(section5b);
+  final sizeRows = _sizeTable(section5b);
+
+  final standardSamples = <(ExerciseType, Tier), _Sample>{};
+  _Sample standardSample(ExerciseType type, Tier tier) =>
+      standardSamples[(type, tier)] ??= _Sample.of(
+        (r) => _standardAt(type, tier, r),
+      );
+  final familySamples = <(PatternFamily, Tier), _Sample>{};
+  _Sample familySample(PatternFamily family, Tier tier) =>
+      familySamples[(family, tier)] ??= _Sample.of(
+        (r) => patternQuestion(family, tier, r),
+        draws: 10000,
+      );
 
   test('the spec has a table of ten tiers for every operation, and a '
       'family table for every operation', () {
@@ -52,9 +72,7 @@ void main() {
   for (final type in ExerciseType.values) {
     group('section 5, ${type.name}', () {
       final table = tiers[type]!;
-      final samples = <Tier, _Sample>{};
-      _Sample sampleOf(Tier tier) =>
-          samples[tier] ??= _Sample.of((r) => _standardAt(type, tier, r));
+      _Sample sampleOf(Tier tier) => standardSample(type, tier);
 
       for (final tier in Tier.values) {
         test('${tier.label}: levels, fluent time, examples, digit counts', () {
@@ -124,17 +142,301 @@ void main() {
         test('${family.name}: from its tier, its examples drawn', () {
           final [name, examples, from] = rows[i];
           expect(family.from.label, from, reason: name);
-          final sample = _Sample.of((r) => patternQuestion(family, r));
-          for (final text in _examples(examples)) {
+          for (final (text, where) in _familyExamples(examples)) {
             final example = _parse(type, text);
             expect(example.type, type, reason: text);
-            expect(sample.missing(example), isNull, reason: '$name: $text');
+            final tiers = switch (where) {
+              _At.first => [family.from],
+              _At.last => [Tier.t9],
+              _At.any => Tier.values.skip(family.from.index).toList(),
+            };
+            final why = <String>[];
+            for (final tier in tiers) {
+              final missing = familySample(family, tier).missing(example);
+              if (missing == null) break;
+              why.add('${tier.label}: $missing');
+            }
+            expect(
+              why.length,
+              lessThan(tiers.length),
+              reason: '$name: $text (${where.name}) — ${why.join('; ')}',
+            );
           }
         });
       }
     });
   }
+
+  group('section 5b, size table', () {
+    test('every row names a family the test knows how to measure', () {
+      expect(sizeRows, isNotEmpty);
+      expect(sizeRows.map((r) => r[0]).toSet(), _sizeFamilies.keys.toSet());
+    });
+
+    final powersOf2Row = sizeRows.firstWhere((r) => r[0] == 'Powers of 2');
+    for (final [name, sizes] in sizeRows) {
+      final (family, measure) = _sizeFamilies[name]!;
+      test('$name (${family.name}): $sizes', () {
+        final bands = sizes.startsWith('mirror of powers of 2, two tiers later')
+            ? _mirrorBands(_bands(powersOf2Row[1], _Measure.exponentOf2))
+            : _bands(sizes, measure);
+        expect(family.from, bands.first.from, reason: 'first entry');
+        final limits = <int, int>{};
+        for (final (k, band) in bands.indexed) {
+          final previous = Map.of(limits);
+          limits.addAll(band.limits);
+          final end = k + 1 < bands.length ? bands[k + 1].from.index : 10;
+          for (final tier in Tier.values.sublist(band.from.index, end)) {
+            final seen = <int, (int, int)>{};
+            for (var seed = 0; seed < _seeds; seed++) {
+              final e = patternQuestion(family, tier, Random(seed));
+              final (key, value) = measure.of(e);
+              final (low, high) = seen[key] ?? (value, value);
+              seen[key] = (min(low, value), max(high, value));
+              if (band.mirror) {
+                expect(value.isEven, isTrue, reason: '${tier.label}: $e');
+              }
+              if (band.only5 && e is ArithmeticExercise) {
+                expect(e.operandB, 5, reason: '${tier.label}: $e');
+              }
+            }
+            for (final MapEntry(key: key, value: (low, high)) in seen.entries) {
+              final reason = '${tier.label}, ${measure.name} $key';
+              expect(limits.keys, contains(key), reason: '$reason: no limit');
+              // Reaches its band's limit, never above it.
+              expect(high, limits[key], reason: '$reason: largest');
+              // Never a lower band's size, for what this entry grows.
+              if (band.limits.containsKey(key) && previous[key] != null) {
+                expect(
+                  low,
+                  greaterThan(previous[key]!),
+                  reason: '$reason: smallest',
+                );
+              }
+            }
+          }
+        }
+      });
+    }
+  });
+
+  group('section 5b, hard limit: at T0–T8 a family outside the size table '
+      'never uses more significant digits than the standard questions of '
+      'its tier or the next ($_seeds seeds a tier)', () {
+    final sized = {for (final (f, _) in _sizeFamilies.values) f};
+    for (final family in PatternFamily.values) {
+      if (sized.contains(family)) continue;
+      test(family.name, () {
+        for (final tier in Tier.values.sublist(family.from.index, 9)) {
+          final next = Tier.values[tier.index + 1];
+          final limit = max(
+            _mostSignificant(standardSample(family.type, tier).questions),
+            _mostSignificant(standardSample(family.type, next).questions),
+          );
+          var most = 0;
+          Exercise? largest;
+          for (var seed = 0; seed < _seeds; seed++) {
+            final e = patternQuestion(family, tier, Random(seed));
+            final size = _significantOf(e);
+            if (size > most) (most, largest) = (size, e);
+          }
+          expect(
+            most,
+            lessThanOrEqualTo(limit),
+            reason: '${tier.label}: $largest, limit $limit',
+          );
+        }
+      });
+    }
+  });
 }
+
+/// Seeds per family and tier for the size checks: each question from its
+/// own `Random(seed)`.
+const _seeds = 3000;
+
+// --- Section 5b: examples and sizes -----------------------------------------
+
+/// Where a family's example must be drawn: "A → B" is A at the family's
+/// first tier and B at T9 (the largest size); a plain example at any tier.
+enum _At { first, last, any }
+
+List<(String, _At)> _familyExamples(String cell) => [
+  for (final text in cell.split(', '))
+    if (text.contains(' → '))
+      for (final (i, part) in text.split(' → ').indexed)
+        (_examples(part).single, i == 0 ? _At.first : _At.last)
+    else
+      (_examples(text).single, _At.any),
+];
+
+/// What a size-table row measures on its family's questions: a key (the
+/// base, for powers of 3, 4, 5; 0 otherwise) and a value.
+enum _Measure {
+  /// The digits of the big number: the factor beside 5 or 50, the
+  /// dividend, the base of the percentage.
+  digits,
+
+  /// The exponent of a power of 2 (also the radicand's, for its roots).
+  exponentOf2,
+
+  /// The exponent, per base.
+  exponentPerBase,
+
+  /// The base of a square.
+  squareBase,
+
+  /// The upper bound of an integral from 0.
+  upperBound;
+
+  (int, int) of(Exercise e) => switch ((this, e)) {
+    (digits, ArithmeticExercise(:final operandA)) => (0, _digits(operandA)),
+    (digits, PercentageExercise(:final base)) => (0, _digits(base)),
+    (exponentOf2, PowerExercise(:final base, :final exponent)) when base == 2 =>
+      (0, exponent),
+    (exponentOf2, SquareRootExercise(:final radicand, :final index))
+        when index == 2 =>
+      (0, _log2(radicand)),
+    (exponentPerBase, PowerExercise(:final base, :final exponent)) => (
+      base,
+      exponent,
+    ),
+    (squareBase, PowerExercise(:final base, :final exponent))
+        when exponent == 2 =>
+      (0, base),
+    (upperBound, IntegralExercise(:final lower, :final upper))
+        when lower == 0 =>
+      (0, upper),
+    _ => throw StateError('$name does not measure $e'),
+  };
+
+  /// An entry's limits, per key.
+  Map<int, int> limitsIn(String text) => switch (this) {
+    digits => {0: int.parse(RegExp(r'(\d+)[- ]digit').firstMatch(text)![1]!)},
+    exponentOf2 => {
+      0: _script(
+        RegExp('2([$_superscripts]+)').firstMatch(text)![1]!,
+        _superscripts,
+      ),
+    },
+    exponentPerBase => {
+      for (final m in RegExp('([0-9]+)([$_superscripts]+)').allMatches(text))
+        int.parse(m[1]!): _script(m[2]!, _superscripts),
+    },
+    squareBase => {0: int.parse(RegExp('([0-9]+)²').firstMatch(text)![1]!)},
+    upperBound => {0: int.parse(RegExp(r'b ≤ (\d+)').firstMatch(text)![1]!)},
+  };
+}
+
+/// The size table's rows, by the spec's name, and what each measures.
+final _sizeFamilies = <String, (PatternFamily, _Measure)>{
+  '× 5, × 50': (PatternFamily.times5, _Measure.digits),
+  'Big numbers ÷ 2': (PatternFamily.halveBig, _Measure.digits),
+  'Big numbers ÷ 3, 4, 5': (PatternFamily.bigBy3To5, _Measure.digits),
+  'Big numbers ÷ 6, 7, 8, 9': (PatternFamily.bigBy6To9, _Measure.digits),
+  '50 %, 25 % of big numbers': (
+    PatternFamily.halfAndQuarterOfBig,
+    _Measure.digits,
+  ),
+  'Powers of 2': (PatternFamily.powersOf2, _Measure.exponentOf2),
+  '√ of powers of 2 and 4': (
+    PatternFamily.rootsOfPowersOf2,
+    _Measure.exponentOf2,
+  ),
+  'Powers of 3, 4, 5': (PatternFamily.powersOf3To5, _Measure.exponentPerBase),
+  'Squares ending in 5': (PatternFamily.squaresEndingIn5, _Measure.squareBase),
+  '∫₀ᵇ 2x dx': (PatternFamily.twoXFromZero, _Measure.upperBound),
+  '∫₀ᵇ 3x² dx': (PatternFamily.threeXSquaredFromZero, _Measure.upperBound),
+  '∫₀ᵇ 4x³ dx': (PatternFamily.fourXCubedFromZero, _Measure.upperBound),
+};
+
+/// One entry of a size-table row: from its tier up to the next entry's.
+typedef _Band = ({Tier from, Map<int, int> limits, bool mirror, bool only5});
+
+/// "T2: 2-digit × 5 · T4: 3-digit · T6: 4-digit".
+List<_Band> _bands(String sizes, _Measure measure) => [
+  for (final entry in sizes.split(' · '))
+    () {
+      final m = RegExp(r'^T(\d): (.+)$').firstMatch(entry.trim())!;
+      return (
+        from: Tier.values[int.parse(m[1]!)],
+        limits: measure.limitsIn(m[2]!),
+        mirror: false,
+        only5: m[2]!.contains('× 5'),
+      );
+    }(),
+];
+
+/// The mirror of powers of 2, two tiers later: the even exponents of each
+/// band (a square root of 2ᵉ is whole only for an even e).
+List<_Band> _mirrorBands(List<_Band> powers) => [
+  for (final band in powers)
+    if (band.from.index + 2 <= 9)
+      (
+        from: Tier.values[band.from.index + 2],
+        limits: {0: band.limits[0]! - band.limits[0]! % 2},
+        mirror: true,
+        only5: false,
+      ),
+];
+
+/// The size table: its rows' cells (family, size by tier).
+List<List<String>> _sizeTable(String section) {
+  final part = section
+      .split('\n### ')
+      .firstWhere((p) => p.startsWith('Size limits'));
+  final rows = [
+    for (final line in part.split('\n').skip(1))
+      if (line.startsWith('|')) _cells(line),
+  ];
+  return rows.skip(2).toList();
+}
+
+int _log2(int n) {
+  var e = 0;
+  while (n > 1) {
+    if (n.isOdd) throw StateError('$n is not a power of 2');
+    n ~/= 2;
+    e++;
+  }
+  return e;
+}
+
+/// Significant digits: trailing zeros of a round number don't count
+/// (250 000 counts as 25).
+int _significant(int n) {
+  var m = n.abs();
+  if (m == 0) return 1;
+  while (m % 10 == 0) {
+    m ~/= 10;
+  }
+  return _digits(m);
+}
+
+/// The most significant digits of any number a question shows, or of its
+/// answer.
+int _significantOf(Exercise e) => [
+  ...switch (e) {
+    ArithmeticExercise(:final operandA, :final operandB, :final operandC) => [
+      operandA,
+      operandB,
+      ?operandC,
+    ],
+    PowerExercise(:final base, :final exponent) => [base, exponent],
+    SquareRootExercise(:final radicand) => [radicand],
+    PercentageExercise(:final percent, :final base) => [percent, base],
+    IntegralExercise(:final lower, :final upper, :final coefficients) => [
+      lower,
+      upper,
+      for (final c in coefficients)
+        if (c != 0) c,
+    ],
+  },
+  e.correctAnswer,
+].map(_significant).reduce(max);
+
+int _mostSignificant(List<Exercise> questions) =>
+    questions.map(_significantOf).reduce(max);
 
 // --- Reading the spec -------------------------------------------------------
 
@@ -158,6 +460,8 @@ Map<ExerciseType, _Table> _tables(String section) {
   for (final part in section.split('\n### ').skip(1)) {
     final lines = part.split('\n');
     final heading = lines.first.trim();
+    // Section 5b's size table is read by `_sizeTable`.
+    if (heading.startsWith('Size limits')) continue;
     final type = _typeNamed(heading);
     final rows = [
       for (final line in lines.skip(1))
@@ -328,14 +632,14 @@ const _draws = 40000;
 /// What a tier or a family draws, sampled: every question, whether that is
 /// all there are, and per shape the values each column takes.
 class _Sample {
-  _Sample.of(Exercise? Function(Random) draw) {
+  _Sample.of(Exercise? Function(Random) draw, {int draws = _draws}) {
     final random = Random(20261123);
     var newInSecondHalf = 0;
-    for (var i = 0; i < _draws; i++) {
+    for (var i = 0; i < draws; i++) {
       final e = draw(random);
       if (e == null) continue;
       questions.add(e);
-      if (_seen.add(e) && i >= _draws ~/ 2) newInSecondHalf++;
+      if (_seen.add(e) && i >= draws ~/ 2) newInSecondHalf++;
       final (shape, columns) = _shapeOf(e);
       final sets = _columns.putIfAbsent(shape, () => []);
       for (final (k, value) in columns.indexed) {
@@ -426,9 +730,11 @@ int _digitAt(int n, int column) {
     'root $index',
     [correctAnswer],
   ),
+  // The base digit by digit: a 6-digit base (25 % of 486 400) has too
+  // many values for a sample to hold them all.
   PercentageExercise(:final percent, :final tenths, :final base) => (
-    'percentage .$tenths of ${_digits(base)} digits',
-    [percent, base],
+    'percentage $percent.$tenths of ${_digits(base)} digits',
+    [for (var k = 0; k < _digits(base); k++) _digitAt(base, k)],
   ),
   IntegralExercise(:final lower, :final upper, :final coefficients) => (
     'integral of terms ${[for (final (k, c) in coefficients.indexed)

@@ -100,8 +100,8 @@ final class DuelConfig {
       for (final type in ExerciseType.values)
         if ((quotas[type] ?? 0) > 0) type,
     };
-    // Like a game under its rules: the bracket's tier, with its reviews
-    // (and, from v4, its pattern questions).
+    // Like a game under its rules: the bracket's tier (with its reviews
+    // until v4; from v4, its pattern questions).
     final generator = gameExerciseGenerator(
       rulesVersion: rulesVersion,
       enabledTypes: played,

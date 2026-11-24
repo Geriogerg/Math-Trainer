@@ -75,6 +75,14 @@ int _placeOf(int n) {
 }
 
 /// The round number [n] sits 1 to [maxGap] below (a multiple of [step]).
+bool _isPowerOf10(int n) {
+  if (n < 1) return false;
+  while (n % 10 == 0) {
+    n ~/= 10;
+  }
+  return n == 1;
+}
+
 int? _roundAbove(int n, int step, int maxGap) {
   for (var k = 1; k <= maxGap; k++) {
     if ((n + k) % step == 0) return n + k;
@@ -252,8 +260,10 @@ List<MethodLine>? _arithmeticFamily(
         _then([answer]),
       ];
     case PatternFamily.complements:
+      // 37 + 63 = 100, 418 + 582 = 1 000 … any power of 10 (rules v5
+      // sizes them by tier).
       final unit = answer ~/ 10;
-      if (answer != 100 && answer != 1000) return null;
+      if (answer < 100 || !_isPowerOf10(answer)) return null;
       final ra = a % unit;
       final rb = b % unit;
       return [
@@ -263,12 +273,16 @@ List<MethodLine>? _arithmeticFamily(
       ];
     case PatternFamily.addJustBelowRound:
     case PatternFamily.addJustBelowPowerOf10:
+      // 98 → 100 (v4); 28 → 30 at T2 under v5.
       final step = family == PatternFamily.addJustBelowRound ? 100 : 1000;
-      final round = _roundAbove(b, step, 3);
+      final round = _roundAbove(b, step, 3) ?? _roundAbove(b, 10, 3);
       if (round == null) return null;
       return _addViaRound(a, round, round - b);
     case PatternFamily.roundNumbers:
-      for (final unit in [10000, 1000, 100]) {
+      // 3 500 + 4 500 by hundreds; 350 + 450 by tens (T3) up to
+      // 25 000 000 + 75 000 000 (T9) under v5.
+      // The largest unit both share.
+      for (final unit in [10000000, 1000000, 100000, 10000, 1000, 100, 10]) {
         if (a % unit == 0 && b % unit == 0) {
           return [
             _then([_mul(_group(_add(a ~/ unit, b ~/ unit)), unit)]),
@@ -279,11 +293,12 @@ List<MethodLine>? _arithmeticFamily(
       }
       return null;
     case PatternFamily.threeTerms:
+      // 27 + 46 + 73: a + c = 100; 1 000 and up from T6 under v5.
       final c = e.operandC;
-      if (c == null || a + c != 100) return null;
+      if (c == null || a + c < 100 || !_isPowerOf10(a + c)) return null;
       return [
         _then([_add(_group(_add(a, c)), b)]),
-        _then([_add(100, b)]),
+        _then([_add(a + c, b)]),
         _then([answer]),
       ];
     case PatternFamily.subtractJustBelowRound:

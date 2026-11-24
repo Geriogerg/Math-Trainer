@@ -5,8 +5,10 @@ import 'package:test/test.dart';
 import 'tier_cases.dart';
 import 'tier_references.dart';
 import 'tier_references_v4.dart';
+import 'tier_references_v5.dart';
 
-/// Rules v2's and v4's questions are the same on the VM and in JavaScript
+/// Rules v2's, v4's and v5's questions are the same on the VM and in
+/// JavaScript
 /// (rule 18):
 /// the references were written on the VM (`tool/tier_references.dart`);
 /// CI runs this file under `-p node` too.
@@ -45,6 +47,29 @@ void main() {
         expect(
           gameSequence(seed, RulesVersion.v4),
           gameSequenceV4References[seed],
+        );
+      });
+    }
+  });
+  group('rules v5', () {
+    for (final type in ExerciseType.values) {
+      for (final seed in tierSeeds) {
+        test('${type.name}, every tier, seed $seed', () {
+          expect(
+            patternedSequenceV5(type, seed),
+            patternedSequenceV5References['${type.name} | $seed'],
+          );
+        });
+      }
+    }
+    for (final seed in tierSeeds) {
+      test('every pattern family at every tier, seed $seed', () {
+        expect(familySequenceV5(seed), familySequenceV5References[seed]);
+      });
+      test('a game of every type, seed $seed', () {
+        expect(
+          gameSequence(seed, RulesVersion.v5),
+          gameSequenceV5References[seed],
         );
       });
     }

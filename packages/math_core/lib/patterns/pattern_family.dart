@@ -1,9 +1,11 @@
 import '../models/exercise_type.dart';
 import '../tiers/tier.dart';
 
-/// The pattern families of `doc/levels.md` section 5b, rules v4: numbers
-/// chosen so that a shortcut makes them easy, even when they are big. Each
-/// family belongs to one operation and is drawn from the tier [from] on.
+/// The pattern families of `doc/levels.md` section 5b (rules v4 and v5):
+/// numbers chosen so that a shortcut makes them easy, even when they are
+/// big. Each family belongs to one operation and is drawn from the tier
+/// [from] on — under v5, sized by the tier it is drawn at
+/// (`patternQuestion`).
 ///
 /// Not stored: a game's families are recomputed by replaying it
 /// (`replaySessionPatterns`). The Tips page links each one to its tip.
@@ -45,7 +47,7 @@ enum PatternFamily {
   subtractJustBelowPowerOf10(ExerciseType.subtraction, Tier.t6),
 
   // Multiplication.
-  /// 4 864 × 5 (× 10 ÷ 2), × 50.
+  /// 48 × 5 → 4 864 × 5 (× 10 ÷ 2), × 50.
   times5(ExerciseType.multiplication, Tier.t2),
 
   /// 43 × 11, 352 × 11.
@@ -82,7 +84,7 @@ enum PatternFamily {
   differenceOfSquaresHundreds(ExerciseType.multiplication, Tier.t9),
 
   // Division.
-  /// 4 862 ÷ 2.
+  /// 86 ÷ 2 → 486 242 ÷ 2.
   halveBig(ExerciseType.division, Tier.t2),
 
   /// 36 000 ÷ 400.
@@ -104,7 +106,7 @@ enum PatternFamily {
   bigBy6To9(ExerciseType.division, Tier.t7),
 
   // Powers.
-  /// 2¹⁰, 2¹⁶ = 65 536, up to 2²⁰.
+  /// 2⁵ → 2²⁰.
   powersOf2(ExerciseType.power, Tier.t1),
 
   /// 35², 105² = 11 025.
@@ -123,8 +125,9 @@ enum PatternFamily {
   squaresNear1000(ExerciseType.power, Tier.t9),
 
   // Roots.
-  /// √1 024, √65 536.
-  rootsOfPowersOf2(ExerciseType.squareRoot, Tier.t2),
+  /// √64 → √65 536. From T3 since spec v1.4 (rules v5); v4 drew it from
+  /// T2.
+  rootsOfPowersOf2(ExerciseType.squareRoot, Tier.t3, Tier.t2),
 
   /// √7 225.
   rootsEndingIn25(ExerciseType.squareRoot, Tier.t3),
@@ -139,7 +142,7 @@ enum PatternFamily {
   rootsNear1000(ExerciseType.squareRoot, Tier.t9),
 
   // Percentages.
-  /// 50 % of 9 876, 25 % of 4 864.
+  /// 25 % of 480 → 25 % of 486 400; 50 %.
   halfAndQuarterOfBig(ExerciseType.percentage, Tier.t2),
 
   /// 8 % of 25, 12 % of 50.
@@ -152,7 +155,7 @@ enum PatternFamily {
   nearHundredPercent(ExerciseType.percentage, Tier.t7),
 
   // Integrals.
-  /// ∫₀⁹ 2x dx = 9².
+  /// ∫₀⁴ 2x dx → ∫₀²⁵ 2x dx = 25².
   twoXFromZero(ExerciseType.integral, Tier.t1),
 
   /// ∫₀⁵ 3x² dx = 5³.
@@ -164,18 +167,29 @@ enum PatternFamily {
   /// ∫₀³ 4x³ dx = 3⁴.
   fourXCubedFromZero(ExerciseType.integral, Tier.t7);
 
-  const PatternFamily(this.type, this.from);
+  const PatternFamily(this.type, this.from, [this._v4From]);
 
   /// The operation it belongs to.
   final ExerciseType type;
 
-  /// The tier it is drawn from on (and every tier above).
+  /// The tier it is drawn from on (and every tier above), under the
+  /// current rules (`doc/levels.md` v1.4).
   final Tier from;
 
-  /// The families of [type] drawn at [tier], in declaration order (never a
-  /// `Set`: rule 2).
+  /// Where rules v4 drew it from, when that differs from [from].
+  final Tier? _v4From;
+
+  /// The families of [type] drawn at [tier] under rules v5, in declaration
+  /// order (never a `Set`: rule 2).
   static List<PatternFamily> availableAt(ExerciseType type, Tier tier) => [
     for (final f in values)
       if (f.type == type && f.from.index <= tier.index) f,
+  ];
+
+  /// [availableAt] as rules v4 drew it (`doc/levels.md` v1.2). Frozen: v4
+  /// games replay with it.
+  static List<PatternFamily> availableAtV4(ExerciseType type, Tier tier) => [
+    for (final f in values)
+      if (f.type == type && (f._v4From ?? f.from).index <= tier.index) f,
   ];
 }

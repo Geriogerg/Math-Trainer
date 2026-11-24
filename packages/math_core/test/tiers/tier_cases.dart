@@ -9,6 +9,7 @@ import 'package:math_core/models/exercise.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/patterns/pattern_family.dart';
 import 'package:math_core/patterns/pattern_questions.dart';
+import 'package:math_core/patterns/pattern_questions_v4.dart';
 import 'package:math_core/persistence/exercise_codec.dart';
 import 'package:math_core/tiers/tier.dart';
 import 'package:math_core/tiers/tier_content.dart';
@@ -62,7 +63,7 @@ String familySequence(int seed) {
   final random = Random(seed);
   return [
     for (final family in PatternFamily.values)
-      for (var i = 0; i < 3; i++) describe(patternQuestion(family, random)),
+      for (var i = 0; i < 3; i++) describe(patternQuestionV4(family, random)),
   ].join(' ');
 }
 
@@ -81,4 +82,32 @@ String gameSequence(int seed, [RulesVersion rules = RulesVersion.v2]) {
   );
   final random = Random(seed);
   return [for (final _ in sequence) describe(generator.next(random))].join(' ');
+}
+
+/// Rules v5's pinned cases (`test/tiers/tier_references_v5.dart`): six
+/// questions of every tier of [type] as v5 draws them, with their family.
+String patternedSequenceV5(ExerciseType type, int seed) {
+  final random = Random(seed);
+  return [
+    for (final tier in Tier.values)
+      for (var i = 0; i < 6; i++)
+        () {
+          final q = patternedContentV5(type, tier, random);
+          final family = q.family;
+          return '${describe(q.exercise)}'
+              '${family == null ? '' : '/${family.name}'}';
+        }(),
+  ].join(' ');
+}
+
+/// Two questions of every pattern family at every tier from its first, as
+/// v5 sizes them, from [seed].
+String familySequenceV5(int seed) {
+  final random = Random(seed);
+  return [
+    for (final family in PatternFamily.values)
+      for (final tier in Tier.values.skip(family.from.index))
+        for (var i = 0; i < 2; i++)
+          describe(patternQuestion(family, tier, random)),
+  ].join(' ');
 }
