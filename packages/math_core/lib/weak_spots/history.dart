@@ -36,11 +36,20 @@ int itemFluentMs(
   ),
 };
 
+/// One answer to a tracked item, with what the report needs.
+typedef ItemAnswer = ({Item item, Grade grade, bool isCorrect, int elapsedMs});
+
 /// [game]'s answers to tracked items, graded, in order. An answer whose
 /// question is no item (a long sum, a split factor) is left out. The
 /// pattern families come from replaying the game; a game that cannot be
 /// replayed (retired rules) has standard questions only.
-List<GradedAnswer> gradedAnswersOf(StoredGame game) {
+List<GradedAnswer> gradedAnswersOf(StoredGame game) => [
+  for (final a in itemAnswersOf(game)) (item: a.item, grade: a.grade),
+];
+
+/// [gradedAnswersOf] with each answer's correctness and time (the
+/// dashboard's report, Phase 4 commit 7).
+List<ItemAnswer> itemAnswersOf(StoredGame game) {
   final (:session, :answers) = game;
   final exercises = [
     for (final a in answers)
@@ -67,6 +76,8 @@ List<GradedAnswer> gradedAnswersOf(StoredGame game) {
                     )
               ? Grade.fluent
               : Grade.slow,
+          isCorrect: answer.isCorrect,
+          elapsedMs: answer.elapsedMs,
         ),
   ];
 }

@@ -1310,3 +1310,13 @@ the end: the phone checklist, and `bash tool/dashboard/dashboard.sh weak-spots` 
   and it drills that tip; every one of the 54 tips builds a drill that replays alone at
   levels 0, 25, 55 and 95, its pattern questions all of the tip's families. Core 1 068 (VM) /
   843 (JS), app 416, server 37.
+- **Commit 7** *(A)* — **Dashboard report: does it work?** `bash tool/dashboard/dashboard.sh
+  weak-spots` (local only; needs psql and dart): psql exports every accepted session's payload
+  (`uploaded_sessions`), `packages/math_core/tool/weak_spots_report.dart` replays each player's
+  history through the core's scheduler (`itemAnswersOf`, the path `gradedAnswersOf` now
+  shares) and prints per player and for everyone: games, items scheduled, items out of box 1
+  and mastered, accuracy and median right time on each scheduled item **before** (up to and
+  including the miss that scheduled it) and **after**, and on items never scheduled for
+  comparison — with the regression-to-the-mean caveat printed. Player ids cut to 8
+  characters. Test on a scripted history (VM). Not run here on live data: the owner's.
+  Core 1 069 (VM) / 843 (JS), app 416, server 37.

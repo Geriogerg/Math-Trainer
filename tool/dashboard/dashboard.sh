@@ -12,6 +12,7 @@
 #   bash tool/dashboard/dashboard.sh feedback [count, default 50]
 #   bash tool/dashboard/dashboard.sh data-check          what Phase 3b needs, stored?
 #   bash tool/dashboard/dashboard.sh features            answers by structural feature
+#   bash tool/dashboard/dashboard.sh weak-spots          Phase 4: scheduled items, before/after (needs dart)
 #
 # Connection: the environment variable DASHBOARD_DB_URL, else the first
 # line of tool/dashboard/connection.txt (git-ignored): Supabase → Connect →
@@ -62,6 +63,13 @@ case "$command" in
     # Per operation and feature value: answers, % right, median time of the
     # right ones (Phase 5.1 commit 3). Per answer: owner_dashboard.answer_features.
     echo "select operation, feature, value, answers, correct_pct as \"right %\", median_ms_right as \"median ms (right)\" from owner_dashboard.feature_summary;" | run
+    ;;
+  weak-spots)
+    # Phase 4 commit 7: every accepted session's payload, one per line,
+    # replayed through the core's scheduler by a Dart tool (no new
+    # dependency: psql exports, Dart reads stdin).
+    command -v dart > /dev/null || { echo "dart not found: install the Dart SDK." >&2; exit 2; }
+    echo "select payload::text from public.uploaded_sessions order by player_id, created_at;"       | psql "$url" -X -q -At -v ON_ERROR_STOP=1       | (cd "$here/../../packages/math_core" && dart run tool/weak_spots_report.dart)
     ;;
   new-code)
     need "${2:-}"

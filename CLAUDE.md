@@ -24,7 +24,7 @@ core, no AI, **no change to how Levelling games move levels**.
 | 4 | *(C)* "Weak spots" practice game and Home card | done |
 | 5 | *(C)* Profile "Weak spots" block | done |
 | 6 | *(C)* Drill button on every tip, drill games | done |
-| 7 | *(A)* Dashboard report: accuracy and time on items before and after they were scheduled | |
+| 7 | *(A)* Dashboard report: accuracy and time on items before and after they were scheduled | done |
 
 **Exit:** a missed 7 × 8 comes back within the next games until answered fluently three times;
 Weak spots and Drill games playable on a phone; level targets still met; production lists
@@ -208,7 +208,7 @@ dart run tool/gate_probe.dart <server> <supabase url> <key>  # in server/: direc
 dart format app/lib app/test packages server tool   # what CI checks
 node tool/smoke/preview_smoke.mjs <url> [chrome]   # smoke test; SMOKE_NETWORK=slow4g to time it
 bash tool/sql/test_sql.sh <postgres admin url>     # migrations (twice) + SQL tests, scratch DB
-bash tool/dashboard/dashboard.sh [command]        # owner report and chores (live DB, local only)
+bash tool/dashboard/dashboard.sh [command]        # owner report and chores (live DB, local only); weak-spots: Phase 4 report
 bash tool/ci/server_check.sh <server url>          # server up to date with HEAD (commit, rules)? read-only
 python -P -E tool/fonts/subset_digits.py <Font[wght].ttf> <out.ttf>  # digit face subset (fonttools)
 python -P -E tool/fonts/instance_inter.py <Inter[opsz,wght].ttf> app/assets/fonts/Inter.ttf
