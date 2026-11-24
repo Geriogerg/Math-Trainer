@@ -22,7 +22,7 @@ core, no AI, **no change to how Levelling games move levels**.
 | 2 | *(A)* Five-box scheduler, recomputable from history; tests on scripted histories | done |
 | 3 | *(A)* **Rules v7**: due items in Levelling games (≤ 20 %, **current tier only**), stored with the session, replayed by the server; level targets rechecked by simulation | done |
 | 4 | *(C)* "Weak spots" practice game and Home card | done |
-| 5 | *(C)* Profile "Weak spots" block | |
+| 5 | *(C)* Profile "Weak spots" block | done |
 | 6 | *(C)* Drill button on every tip, drill games | |
 | 7 | *(A)* Dashboard report: accuracy and time on items before and after they were scheduled | |
 

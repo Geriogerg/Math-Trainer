@@ -1292,3 +1292,10 @@ the end: the phone checklist, and `bash tool/dashboard/dashboard.sh weak-spots` 
   (the card). Tests: practice rules, generators, uploads accepted with no level update,
   refusals; the card; a Weak spots game stored and replayed alone, levels untouched. Core
   1 066 (VM) / 841 (JS), app 412, server 37.
+- **Commit 5** *(C)* — **Profile "Weak spots" block.** Core: `worstFacts` (`WeakFact`): facts
+  answered at least twice, most missed first (rate, then count), then the slowest against
+  their own fluent time; never-missed fluent facts left out; five at most. App: the block
+  (after Recent sessions) lists each fact with "2 of 3 missed" or its mean time, and a
+  Practice button — `buildFactsPracticeController`: the facts the player can practise at
+  their tiers, each twice, as a Weak spots game; "None yet" without any. Tests: the ranking,
+  the cap; the block and its button; a new player.

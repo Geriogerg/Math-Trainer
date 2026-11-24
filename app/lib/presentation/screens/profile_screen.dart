@@ -6,6 +6,8 @@ import '../kit/kit.dart';
 
 import '../../composition_root.dart';
 import '../../core/effects/effect_settings.dart';
+import 'package:math_core/weak_spots/worst_facts.dart';
+import 'package:math_core/weak_spots/facts.dart';
 import 'package:math_core/account/account.dart';
 import 'package:math_core/account/player_profile.dart';
 import 'package:math_core/leveling/level.dart';
@@ -24,7 +26,10 @@ import 'package:math_core/challenges/tables.dart';
 import 'package:math_core/leveling/main_level.dart';
 import '../../core/state/account_form_controller.dart';
 import '../../core/state/feedback_controller.dart';
+import '../../core/state/session_controller.dart';
+import '../exercise_prompt.dart';
 import '../theme/app_theme.dart';
+import 'session_flow_screen.dart';
 import 'empty_state.dart';
 import 'feedback_screen.dart';
 import 'privacy_screen.dart';
@@ -132,6 +137,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late Future<Map<Challenge, ChallengeStats>> _challengeStats;
   late Future<TablesStats> _tablesStats;
 
+  /// The five worst facts of the history (Phase 4); a failed read shows
+  /// none.
+  late Future<List<WeakFact>> _worstFacts;
+
   @override
   void initState() {
     super.initState();
@@ -176,6 +185,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _loadProfile();
     _challengeStats = _loadChallengeStats();
     _tablesStats = _loadTablesStats();
+    _worstFacts = _loadWorstFacts();
+  }
+
+  Future<List<WeakFact>> _loadWorstFacts() async {
+    final environment = widget.environment;
+    try {
+      return worstFacts(
+        await environment.repository.storedGames(environment.playerId),
+      );
+    } on Exception catch (_) {
+      return const [];
+    }
+  }
+
+  /// A Weak spots game of the block's facts; nothing when none can be
+  /// practised at the player's tiers.
+  Future<void> _practise(List<WeakFact> records) async {
+    final environment = widget.environment;
+    final SessionController? controller;
+    try {
+      controller = await buildFactsPracticeController(environment, [
+        for (final r in records) r.fact,
+      ]);
+    } on Exception catch (_) {
+      return;
+    }
+    if (controller == null || !mounted) {
+      controller?.dispose();
+      return;
+    }
+    await playSessionFlow(context, environment, controller);
+    if (mounted) setState(_load);
   }
 
   Future<TablesStats> _loadTablesStats() async {
@@ -455,6 +496,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ? data.recentSessions[i + 1]
                       : null,
                 ),
+            const SizedBox(height: 24),
+            FutureBuilder(
+              future: _worstFacts,
+              builder: (context, snapshot) => _WeakSpotsBlock(
+                records: snapshot.data ?? const [],
+                onPractise: _practise,
+              ),
+            ),
             const SizedBox(height: 24),
             FutureBuilder(
               future: _challengeStats,
@@ -1010,6 +1059,62 @@ class _TablesBlock extends StatelessWidget {
               '${(fact.averageMs / 1000).toStringAsFixed(1)} s',
               style: theme.textTheme.bodyLarge?.digits,
             ),
+        ],
+      ],
+    );
+  }
+}
+
+/// Phase 4: the five slowest or most-missed facts, with a Practice button.
+class _WeakSpotsBlock extends StatelessWidget {
+  const _WeakSpotsBlock({required this.records, required this.onPractise});
+
+  final List<WeakFact> records;
+  final ValueChanged<List<WeakFact>> onPractise;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final style = theme.textTheme.bodyLarge;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Weak spots', style: theme.textTheme.titleMedium),
+        const SizedBox(height: 8),
+        if (records.isEmpty)
+          Text('None yet', style: theme.textTheme.bodyMedium)
+        else ...[
+          for (final r in records)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: ExercisePrompt(
+                        exercise: exercisesOf(r.fact).first,
+                        style: style?.digits,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    r.misses > 0
+                        ? '${r.misses} of ${r.answers} missed'
+                        : '${(r.meanCorrectMs! / 1000).toStringAsFixed(1)} s',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          const SizedBox(height: 8),
+          AppButton.secondary(
+            key: const ValueKey('practise-weak-spots'),
+            label: 'Practice',
+            onPressed: () => onPractise(records),
+          ),
         ],
       ],
     );

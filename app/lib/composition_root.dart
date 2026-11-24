@@ -554,6 +554,28 @@ Future<SessionController> buildWeakSpotsController(
   );
 }
 
+/// The Profile block's Practice (Phase 4): [facts] each twice, those the
+/// player can practise at their current levels, as a Weak spots game.
+/// `null` when none can be.
+Future<SessionController?> buildFactsPracticeController(
+  AppEnvironment environment,
+  List<FactItem> facts,
+) async {
+  final current = await environment.repository.currentLevels(
+    environment.playerId,
+  );
+  final practisableFacts = [
+    for (final fact in facts)
+      if (practisable(fact, current[fact.type]?.level ?? Level.zero)) fact,
+  ];
+  if (practisableFacts.isEmpty) return null;
+  final items = [
+    ...practisableFacts,
+    ...practisableFacts,
+  ].take(weakSpotsGameLength).toList();
+  return buildWeakSpotsController(environment, items);
+}
+
 /// The Weak spots game Home offers now: the due items the player can
 /// practise, most urgent first (`chooseWeakSpotsGame`).
 Future<List<Item>> weakSpotsGameItems(AppEnvironment environment) async {
