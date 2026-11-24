@@ -104,6 +104,34 @@ void main() {
     );
   });
 
+  testWidgets('every tip has a Drill button when Drill is offered '
+      '(Phase 4)', (tester) async {
+    await setGoldenSurfaceSize(tester);
+    Tip? drilled;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildLightTheme(),
+        home: Scaffold(
+          body: TipsView(
+            levelOf: (_) => Level.zero,
+            onBack: () {},
+            onDrill: (tip) => drilled = tip,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    for (final tip in tips) {
+      expect(
+        find.byKey(tipDrillKey(tip), skipOffstage: false),
+        findsOneWidget,
+        reason: tip.text,
+      );
+    }
+    await tester.tap(find.byKey(tipDrillKey(tips.first)));
+    expect(drilled, same(tips.first));
+  });
+
   setUpAll(loadInterFontForGoldens);
   for (final (name, theme) in [
     ('light', buildLightTheme()),

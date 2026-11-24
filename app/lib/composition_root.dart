@@ -3,6 +3,9 @@ import 'dart:async' show unawaited;
 import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:math_core/tiers/tip_band.dart';
+import 'package:math_core/tiers/tier.dart';
+import 'package:math_core/patterns/pattern_family.dart';
 import 'package:math_core/replay/session_replay.dart';
 import 'package:math_core/weak_spots/history.dart';
 import 'package:math_core/weak_spots/item.dart';
@@ -551,6 +554,35 @@ Future<SessionController> buildWeakSpotsController(
     items: items,
     levels: levels,
     sequence: sequence,
+  );
+}
+
+/// A Drill (Phase 4): [drillGameLength] questions of one tip's strategy —
+/// its [families], at the player's tier or the families' first; without
+/// families, the operation's standard questions at the player's tier
+/// brought into the tip's [band] (`drillTier`). Practice, stored and
+/// uploaded, never moving a level.
+Future<SessionController> buildDrillController(
+  AppEnvironment environment, {
+  required ExerciseType type,
+  required List<PatternFamily> families,
+  required TipBand band,
+}) async {
+  final current = await environment.repository.currentLevels(
+    environment.playerId,
+  );
+  final tier = drillTier(
+    families: families,
+    playerTier: Tier.of(current[type]?.level ?? Level.zero),
+    bandLow: band.low,
+    bandHigh: band.high,
+  );
+  return _practiceController(
+    environment,
+    kind: SessionKind.drill,
+    items: [for (final f in families) SkillItem(f)],
+    levels: {type: Level.whole(10 * tier.index)},
+    sequence: List.filled(drillGameLength, type),
   );
 }
 

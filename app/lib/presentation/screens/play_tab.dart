@@ -19,6 +19,7 @@ import 'chain_screen.dart';
 import 'count_screen.dart';
 import 'session_flow_screen.dart';
 import 'tips_view.dart';
+import '../tips/tips.dart';
 
 /// Addition and subtraction ticked for a player who never chose: inverse
 /// operations, the lightest start (step 4.1, `doc/decisions.md`).
@@ -145,6 +146,29 @@ class _PlayTabState extends State<PlayTab> {
     } on Exception catch (_) {
       if (mounted) setState(() => _weakSpots = null);
     }
+  }
+
+  /// A Drill of [tip] (Phase 4); Play again deals another of the same tip.
+  Future<void> _startDrill(Tip tip) async {
+    final environment = widget.environment;
+    Future<SessionController> build() => buildDrillController(
+      environment,
+      type: tip.type,
+      families: tip.families,
+      band: tip.band,
+    );
+    final SessionController controller;
+    try {
+      controller = await build();
+    } on Exception catch (_) {
+      return;
+    }
+    if (!mounted) {
+      controller.dispose();
+      return;
+    }
+    await playSessionFlow(context, environment, controller, playAgain: build);
+    if (mounted) await _loadStartupState();
   }
 
   /// A Weak spots game of the items due now; Play again deals the next
@@ -311,6 +335,7 @@ class _PlayTabState extends State<PlayTab> {
         child: TipsView(
           levelOf: (type) => levels[type]?.level ?? Level.zero,
           onBack: _closeSetup,
+          onDrill: _startDrill,
         ),
       );
     }

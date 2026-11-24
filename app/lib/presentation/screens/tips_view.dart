@@ -20,6 +20,9 @@ ValueKey<String> tipBandKey(ExerciseType type, TipBand band) =>
 /// tier on each operation is marked — an outline, a marker icon and the
 /// heavier weight, never the colour alone (rule 14) — and screen readers
 /// hear it as selected.
+/// The Drill button of [tip] (tests, the smoke test).
+ValueKey<String> tipDrillKey(Tip tip) => ValueKey('drill-${tips.indexOf(tip)}');
+
 class TipsView extends StatefulWidget {
   const TipsView({
     super.key,
@@ -27,6 +30,7 @@ class TipsView extends StatefulWidget {
     required this.onBack,
     this.focus,
     this.focusTip,
+    this.onDrill,
   });
 
   /// The player's level on an operation (0 never played).
@@ -39,6 +43,9 @@ class TipsView extends StatefulWidget {
 
   /// Scrolled to and marked: the tip a Method followed.
   final Tip? focusTip;
+
+  /// A Drill of a tip (Phase 4): every tip gets the button when given.
+  final ValueChanged<Tip>? onDrill;
 
   @override
   State<TipsView> createState() => _TipsViewState();
@@ -119,6 +126,7 @@ class _TipsViewState extends State<TipsView> {
                   mine: TipBand.of(Tier.of(levelOf(type))) == band,
                   focusTip: widget.focusTip,
                   focusKey: _tipKey,
+                  onDrill: widget.onDrill,
                 ),
           ],
         ],
@@ -135,8 +143,10 @@ class _BandBlock extends StatelessWidget {
     required this.mine,
     this.focusTip,
     this.focusKey,
+    this.onDrill,
   });
 
+  final ValueChanged<Tip>? onDrill;
   final TipBand band;
   final List<Tip> tips;
   final bool mine;
@@ -197,6 +207,16 @@ class _BandBlock extends StatelessWidget {
                 focused: identical(tip, focusTip),
                 muted: muted,
               ),
+              if (onDrill case final drill?)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: AppButton.secondary(
+                    key: tipDrillKey(tip),
+                    label: 'Drill',
+                    semanticLabel: 'Drill: ${tip.text}',
+                    onPressed: () => drill(tip),
+                  ),
+                ),
             ],
           ],
         ),

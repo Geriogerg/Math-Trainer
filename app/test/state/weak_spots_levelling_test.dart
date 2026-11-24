@@ -1,4 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:math_trainer/presentation/tips/tips.dart';
+import 'package:math_core/persistence/level_cache_entry.dart';
+import 'package:math_core/persistence/in_memory_session_repository.dart';
 import 'package:math_core/leveling/level.dart';
 import 'package:math_core/leveling/rules_version.dart';
 import 'package:math_core/models/exercise.dart';
@@ -167,5 +170,74 @@ void main() {
     expect(stored.weakSpots, items);
     expect(replaySessionQuestions(stored, 1), [q]);
     expect(await repository.currentLevels('player'), isEmpty);
+  });
+
+  test("every tip's Drill: 10 questions of its strategy, replayed alone, "
+      "at any player level", () async {
+    for (final whole in [0, 25, 55, 95]) {
+      final repository = InMemorySessionRepository();
+      final environment = AppEnvironment(
+        repository: repository,
+        playerId: 'player',
+        accountRepository: FakeAccountRepository(),
+        profileRepository: FakeProfileRepository(),
+      );
+      await repository.recordSession(
+        session: PersistedSession(
+          id: 'levels',
+          playerId: 'player',
+          seed: 1,
+          enabledTypes: ExerciseType.values.toSet(),
+          exerciseCount: 0,
+          totalScore: 0,
+          levels: const {},
+          createdAt: DateTime.utc(2026, 11, 1),
+        ),
+        answers: const [],
+        levelUpdates: {
+          for (final type in ExerciseType.values)
+            type: LevelCacheEntry(
+              level: Level.whole(whole),
+              sessionsPlayed: 1,
+              updatedAt: DateTime.utc(2026, 11, 1),
+            ),
+        },
+      );
+      for (final tip in tips) {
+        final controller = await buildDrillController(
+          environment,
+          type: tip.type,
+          families: tip.families,
+          band: tip.band,
+        );
+        final config = controller.config;
+        expect(config.kind, SessionKind.drill);
+        final session = PersistedSession(
+          id: 'd',
+          playerId: 'player',
+          seed: config.seed,
+          enabledTypes: config.enabledTypes,
+          exerciseCount: config.exerciseCount,
+          totalScore: 0,
+          levels: config.levels,
+          createdAt: DateTime.utc(2026, 11, 25),
+          kind: SessionKind.drill,
+          typeSequence: config.typeSequence,
+          rulesVersion: config.rulesVersion,
+          weakSpots: config.weakSpots,
+        );
+        final families = replaySessionPatterns(session, 10);
+        final questions = replaySessionQuestions(session, 10);
+        expect(questions.every((q) => q.type == tip.type), isTrue);
+        if (tip.families.isNotEmpty) {
+          expect(
+            families.every(tip.families.contains),
+            isTrue,
+            reason: tip.text,
+          );
+        }
+        controller.dispose();
+      }
+    }
   });
 }

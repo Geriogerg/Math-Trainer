@@ -1299,3 +1299,14 @@ the end: the phone checklist, and `bash tool/dashboard/dashboard.sh weak-spots` 
   Practice button — `buildFactsPracticeController`: the facts the player can practise at
   their tiers, each twice, as a Weak spots game; "None yet" without any. Tests: the ranking,
   the cap; the block and its button; a new player.
+- **Commit 6** *(C)* — **Drill button on every tip.** Core: `TipBand.low`/`high`; the
+  Drill's pieces (commit 4: `drillTier`, `drillProblem`, `DrillGenerator`). App: `TipsView
+  (onDrill:)` puts a "Drill" button under every tip of the Tips page opened from Home
+  (`tipDrillKey`); `buildDrillController` — 10 questions, the tip's families at the player's
+  tier (or the families' first tier when the player is below it), else the operation's
+  standard questions at the player's tier brought into the tip's band; stored and uploaded
+  as `drill`, never moving a level; Methods on misses as usual; Play again deals another.
+  The Tips page opened from a Method keeps no Drill button. Tests: every tip has its button
+  and it drills that tip; every one of the 54 tips builds a drill that replays alone at
+  levels 0, 25, 55 and 95, its pattern questions all of the tip's families. Core 1 068 (VM) /
+  843 (JS), app 416, server 37.
