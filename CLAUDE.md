@@ -1,4 +1,4 @@
-# Math Trainer
+23# Math Trainer
 
 Competitive mental-arithmetic game in Flutter, for teens and adults. UI, code, docs and commits
 in English.
@@ -338,4 +338,4 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 - Integer arithmetic for perfect squares, never floating-point `sqrt()`.
 - *Android, Phase 8*: use `build apk` + `adb install`, not attached `flutter run`;
   `kotlin.incremental=false` works around a Windows cross-drive Kotlin crash; corrupted Gradle
-  cache → clear `D:\Users\GREgo\.gradle\caches\<version>\transforms`.
+  cache → clear `<user home>\.gradle\caches\<version>\transforms`.
