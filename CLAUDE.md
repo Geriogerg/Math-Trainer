@@ -60,7 +60,8 @@ by a test that reads the file (`test/spec/levels_spec_conformance_test.dart`).
 
 **Rules v5** (24 Nov, beta bug "level-70 questions at level 15"): `doc/levels.md` v1.4 —
 pattern questions sized by tier, no reviews; v4 kept for replay; Phase 3b window restarted
-(`doc/progress.md`, "Rules v5"; readings provisional in `doc/decisions.md`).
+(`doc/progress.md`, "Rules v5"; readings confirmed in `doc/decisions.md`, one spec suggestion
+open for the owner: √ of powers of 2 repeats √64 at T3–T4).
 
 **Staging is live** (24 Nov): with `STAGING=on` the full smoke test plays on staging, production's
 is read-only; all green. **Next: the beta, owner actions** — the phone checklist, tester codes

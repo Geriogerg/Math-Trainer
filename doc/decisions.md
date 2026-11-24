@@ -1648,7 +1648,7 @@ the cap), win/loss/draw symmetry, volatility rising on upsets, invalid input thr
 **Reopen when** Phase 7 chooses the rating period (per day? per N duels?) and the provisional
 flag's threshold.
 
-## Rules v5: pattern questions sized by tier, no reviews (`doc/levels.md` v1.4) — provisional readings
+## Rules v5: pattern questions sized by tier, no reviews (`doc/levels.md` v1.4) — confirmed (one spec suggestion open)
 
 Beta report (24 Nov): questions at level 15–20 that felt like level 70. Cause, measured on
 2,000 games per operation and level under v4: `patternQuestionV4` took no tier — every family
@@ -1660,7 +1660,8 @@ sizing and no reviews; rules v5 implements it (`patternQuestion(family, tier, r)
 `patternedContentV5`, `TieredGameGenerator.withReviews: false`); v4's generator is kept
 verbatim (`patternQuestionV4`, `availableAtV4`, pinned references unchanged).
 
-Readings of the spec, **provisional**:
+Readings of the spec (provisional at the release, **confirmed by the owner on 24 Nov**, who
+left each case to Claude's judgement — see "Outcome" below):
 
 - **Hard limit, measure**: the significant digits (trailing zeros dropped) of every number the
   question shows — operands, exponent, percent, bounds — and of its answer.
@@ -1696,3 +1697,19 @@ Readings of the spec, **provisional**:
 Pattern share: 40 % from a family's first tier on (v4: 28 % at the first tier, diluted by
 reviews). The four level targets are unchanged (v5's update is v3's; simulation rerun).
 **Reopen when** Phase 3b measures v5 sessions: per-family accuracy and time by tier.
+
+**Outcome (24 Nov).** Every reading above is kept as built; no code change, no v6:
+
+- Limit measure with the answer, limit = max(T, T + 1), T9 bounded by the table and the
+  keypad, table families by the table only, the band reading, the growth schedule, the
+  examples arriving later, the window restart: each is the reading that keeps the spec's own
+  examples valid and closes the reported bug; the alternatives either reopen big answers at
+  low tiers or contradict the table.
+- **√ of powers of 2 — kept, with a spec suggestion for the owner.** The strict mirror is the
+  only reading the spec's text allows without lower-tier questions, but it gives one question
+  per band: at T3–T4 the family is half of the root patterns, so about 1 root question in 5 is
+  √64 (√256 at T5–T6, about 1 in 7). Widening it within the spec would only add √4 and √16
+  (T0 content). Suggested spec row for a later version (folded into Phase 3b's retuning, so
+  one new rules version covers both): "√ of powers of 2 and 4 | T3: √64 to √1 024 · T5: up to
+  √65 536" — or start the family at T5. Until the owner edits the spec, v5 stays as is.
+
