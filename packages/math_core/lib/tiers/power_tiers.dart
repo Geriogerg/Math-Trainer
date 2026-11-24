@@ -76,3 +76,42 @@ SquareRootExercise rootAt(Tier tier, Random random) {
   final radicand = family.exponent == 2 ? root * root : root * root * root;
   return SquareRootExercise(radicand: radicand, index: family.exponent);
 }
+
+/// Every power [powerAt] can draw at [tier], in a fixed order: each
+/// family's bases, then the fixed-base form. Read from the same tables, so
+/// it cannot drift from the generator (Phase 4: `factsAt`).
+List<PowerExercise> powerSupport(Tier tier) => [
+  for (final family in _powerFamilies(tier))
+    for (final base in family.bases)
+      PowerExercise(base: base, exponent: family.exponent),
+  ...switch (tier) {
+    Tier.t1 => [
+      for (var e = 1; e <= 6; e++) PowerExercise(base: 2, exponent: e),
+    ],
+    Tier.t4 => [
+      for (var e = 7; e <= 10; e++) PowerExercise(base: 2, exponent: e),
+    ],
+    Tier.t6 => [
+      for (var e = 1; e <= 6; e++) PowerExercise(base: 3, exponent: e),
+    ],
+    Tier.t9 => [
+      for (var b = 5; b <= 7; b++) PowerExercise(base: b, exponent: 4),
+    ],
+    Tier.t0 ||
+    Tier.t2 ||
+    Tier.t3 ||
+    Tier.t5 ||
+    Tier.t7 ||
+    Tier.t8 => const <PowerExercise>[],
+  },
+];
+
+/// Every root [rootAt] can draw at [tier], in a fixed order.
+List<SquareRootExercise> rootSupport(Tier tier) => [
+  for (final family in _powerFamilies(tier))
+    for (final root in family.bases)
+      SquareRootExercise(
+        radicand: family.exponent == 2 ? root * root : root * root * root,
+        index: family.exponent,
+      ),
+];

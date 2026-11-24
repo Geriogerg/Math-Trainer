@@ -1238,3 +1238,16 @@ the end: the phone checklist, and `bash tool/dashboard/dashboard.sh weak-spots` 
   contradicts them. Phase 4 goes first. Decisions recorded (`doc/decisions.md`, "Phase 4"):
   the fact and skill catalogue, an item's tiers ("current tier only"), the scheduler's
   details, rules v7's cap and storage, the practice kinds, the drill of a tip without a family.
+- **Commit 1** *(A)* — **Fact and skill catalogue** (`packages/math_core/lib/weak_spots/`).
+  `Item` (sealed: `FactItem`, `SkillItem`) with a stored key (`fact:multiplication:7,8`,
+  `skill:differenceOfSquares`) and `Item.parse`; `isCanonicalFact` (the plan's list:
+  150 addition, 289 subtraction, 210 multiplication, 400 division, 50 power, 42 root and 249
+  percentage facts); `factOf` (commutative facts merged), `exercisesOf`, `allFacts`;
+  **`factsAt(type, tier)`** — the facts a tier's standard questions draw, from the section 5
+  tables (`standardQuestionV4`, now public; `powerSupport`/`rootSupport` read the generator's
+  own tables), `formsAt`, `homeTier`; `itemOf(exercise, family:)` (pattern question → its
+  family; standard → its fact if some tier draws it, else its strategy's family via
+  `skillFamilyOf`; split factor untracked). Tests: catalogue counts, keys round-trip, merges;
+  `fact_tiers_test.dart` (VM, 600,000 draws per operation and tier): every fact a tier draws
+  is listed and every listed one is drawn, for all 80 operation × tier pairs; the 208 facts no
+  tier draws as a standard question (15 − 3, 130 ÷ 10, 2¹¹…) pinned by count — never keyed.

@@ -59,7 +59,7 @@ TierQuestion patternedContent(ExerciseType type, Tier tier, Random random) {
     final family = drawOne(random, families);
     return (exercise: patternQuestionV4(family, random), family: family);
   }
-  return (exercise: _standardV4(type, tier, random), family: null);
+  return (exercise: standardQuestionV4(type, tier, random), family: null);
 }
 
 /// Rules v5 (`doc/levels.md` v1.4 sections 5 and 5b): v4's mix and
@@ -72,7 +72,7 @@ TierQuestion patternedContentV5(ExerciseType type, Tier tier, Random random) {
     final family = drawOne(random, families);
     return (exercise: patternQuestionV5(family, tier, random), family: family);
   }
-  return (exercise: _standardV4(type, tier, random), family: null);
+  return (exercise: standardQuestionV4(type, tier, random), family: null);
 }
 
 /// Rules v6 (`doc/levels.md` v1.5): v5's, with √ of powers of 2 sized by
@@ -83,10 +83,14 @@ TierQuestion patternedContentV6(ExerciseType type, Tier tier, Random random) {
     final family = drawOne(random, families);
     return (exercise: patternQuestion(family, tier, random), family: family);
   }
-  return (exercise: _standardV4(type, tier, random), family: null);
+  return (exercise: standardQuestionV4(type, tier, random), family: null);
 }
 
-Exercise _standardV4(ExerciseType type, Tier tier, Random random) =>
+/// A standard question (not a pattern question) of [type] at [tier] from
+/// rules v4 on (`doc/levels.md` section 5): addition and subtraction from
+/// the spec's long tables, the other six as under v2. Frozen: v4–v7 games
+/// replay with it. Phase 4's fact tiers (`factsAt`) are its facts.
+Exercise standardQuestionV4(ExerciseType type, Tier tier, Random random) =>
     switch (type) {
       ExerciseType.addition || ExerciseType.subtraction => longArithmeticAt(
         type.operationType!,
