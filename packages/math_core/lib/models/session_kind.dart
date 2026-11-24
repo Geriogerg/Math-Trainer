@@ -23,12 +23,28 @@ enum SessionKind {
   /// A Training game (Redesign phase commit 3): questions like a game, at
   /// the fixed level of its difficulty (`TrainingDifficulty`), frozen in the
   /// session's levels for the replay. Never moves a level, never ranked.
-  training;
+  training,
+
+  /// A Weak spots game (Phase 4): the player's due items, one question
+  /// each, in the session's `weakSpots` order, at the player's levels
+  /// (frozen). Practice: never moves a level, never ranked.
+  weakSpots,
+
+  /// A Drill (Phase 4): 10 questions of one tip's strategy — its families
+  /// stored as the session's `weakSpots` (none: the tier's standard
+  /// questions) — at the tier of its one frozen level. Practice.
+  drill;
 
   bool get isPlacement => switch (this) {
     placementV1 || placementV2 || typePlacementV3 => true,
-    game || training => false,
+    game || training || weakSpots || drill => false,
   };
+
+  /// Only a Levelling game moves levels and counts for the boards.
+  bool get movesLevels => this == game;
+
+  /// Phase 4's practice games: a Weak spots game or a Drill.
+  bool get isPractice => this == weakSpots || this == drill;
 
   /// A placement on the session's own operations, rather than the four
   /// basic ones.

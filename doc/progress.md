@@ -1278,3 +1278,17 @@ the end: the phone checklist, and `bash tool/dashboard/dashboard.sh weak-spots` 
   a VM/JS pin of a v7 game with weak spots; app: a missed 3 × 4 re-asked in the next game,
   stored, replayed. Core 1 056 (VM) / 829 (JS), app 409, server 37. Phase 3b's window not
   restarted.
+- **Commit 4** *(C)* — **Weak spots game and Home card.** Core: `SessionKind.weakSpots` and
+  `drill` (stored names; `movesLevels`, `isPractice`); `weak_spots/practice.dart` —
+  `practisable` (a fact at or below the player's tier, a family started), `chooseWeakSpotsGame`
+  (≤ 10 due items), `weakSpotsGameProblem`, `WeakSpotsGameGenerator` (a fact in a form of its
+  home tier, a skill at the player's tier), and the Drill's pieces for commit 6;
+  `practiceGenerator`; the replay and the server's validation take both kinds (replayed,
+  checked, never a level update — accepted whatever the levels, like Training);
+  `gamePatterns` too (Methods on misses). App: `buildWeakSpotsController`,
+  `weakSpotsGameItems`; Home's new "Practice" section with a "Weak spots" card ("3 due" /
+  "None due", inert when none; `AppCard.detail`); Play again deals the next due items; the
+  result screen shows level changes only for kinds that move levels. Home goldens re-recorded
+  (the card). Tests: practice rules, generators, uploads accepted with no level update,
+  refusals; the card; a Weak spots game stored and replayed alone, levels untouched. Core
+  1 066 (VM) / 841 (JS), app 412, server 37.

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 
 import 'package:math_core/leveling/level.dart';
@@ -30,7 +32,7 @@ Future<void> playSessionFlow(
   AppEnvironment environment,
   SessionController controller, {
   GameSetup? setup,
-  SessionController Function()? playAgain,
+  FutureOr<SessionController> Function()? playAgain,
   void Function(SessionController controller)? onFinished,
   bool showMethods = true,
 }) async {
@@ -83,7 +85,7 @@ class SessionFlowScreen extends StatefulWidget {
   final GameSetup? setup;
 
   /// Builds Play again's controller instead of a game (Tables mode).
-  final SessionController Function()? playAgain;
+  final FutureOr<SessionController> Function()? playAgain;
 
   /// Told each controller played to its last question, once.
   final void Function(SessionController controller)? onFinished;
@@ -209,13 +211,14 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
       // the opposite of what the immediate replay promises.
       await _controller.pendingPersistence;
       final types = _controller.config.enabledTypes;
-      final next =
-          widget.playAgain?.call() ??
-          await buildSessionController(
-            widget.environment,
-            types,
-            setup: widget.setup,
-          );
+      final again = widget.playAgain;
+      final next = again != null
+          ? await again()
+          : await buildSessionController(
+              widget.environment,
+              types,
+              setup: widget.setup,
+            );
       if (!mounted) return;
       next
         ..addListener(_reportFinished)

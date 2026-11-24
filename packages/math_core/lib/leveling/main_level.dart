@@ -69,6 +69,8 @@ Map<String, double> mainLevelsAfter({
       case SessionKind.typePlacementV3:
         session.enabledTypes.forEach(levels.remove);
       case SessionKind.training:
+      case SessionKind.weakSpots:
+      case SessionKind.drill:
         // Never moves a level.
         break;
     }

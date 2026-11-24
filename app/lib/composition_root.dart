@@ -3,9 +3,11 @@ import 'dart:async' show unawaited;
 import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:math_core/replay/session_replay.dart';
 import 'package:math_core/weak_spots/history.dart';
 import 'package:math_core/weak_spots/item.dart';
 import 'package:math_core/weak_spots/levelling.dart';
+import 'package:math_core/weak_spots/practice.dart';
 import 'package:math_core/weak_spots/scheduler.dart';
 import 'package:math_core/account/account.dart';
 import 'package:math_core/account/account_repository.dart';
@@ -515,6 +517,89 @@ SessionController buildTablesController(
     exerciseSource: ListExerciseSource(questions),
     levelCacheOrchestrator: const NoLevelUpdates(),
     repository: InMemorySessionRepository(),
+    playerId: environment.playerId,
+    correctionDelay: SessionController.defaultCorrectionDelay,
+    appVersion: appVersion,
+    questionTimeout: questionTimeoutFor(
+      isDebugBuild: kDebugMode,
+      noTimeoutRequested: _debugNoTimeout,
+    ),
+  );
+}
+
+/// A Weak spots game (Phase 4): [items] in order, one question each, at the
+/// player's current levels (frozen), stored and uploaded like Training,
+/// never moving a level. Throws if the items break `weakSpotsGameProblem`.
+Future<SessionController> buildWeakSpotsController(
+  AppEnvironment environment,
+  List<Item> items,
+) async {
+  final current = await environment.repository.currentLevels(
+    environment.playerId,
+  );
+  final types = {for (final item in items) item.type};
+  final levels = {
+    for (final type in types) type: current[type]?.level ?? Level.zero,
+  };
+  final sequence = [for (final item in items) item.type];
+  if (weakSpotsGameProblem(items, sequence, levels) case final problem?) {
+    throw ArgumentError.value(items, 'items', problem);
+  }
+  return _practiceController(
+    environment,
+    kind: SessionKind.weakSpots,
+    items: items,
+    levels: levels,
+    sequence: sequence,
+  );
+}
+
+/// The Weak spots game Home offers now: the due items the player can
+/// practise, most urgent first (`chooseWeakSpotsGame`).
+Future<List<Item>> weakSpotsGameItems(AppEnvironment environment) async {
+  final schedule = await loadWeakSpotSchedule(environment);
+  final current = await environment.repository.currentLevels(
+    environment.playerId,
+  );
+  return chooseWeakSpotsGame(
+    due: schedule.due,
+    levels: {
+      for (final MapEntry(:key, :value) in current.entries) key: value.level,
+    },
+  );
+}
+
+SessionController _practiceController(
+  AppEnvironment environment, {
+  required SessionKind kind,
+  required List<Item> items,
+  required Map<ExerciseType, Level> levels,
+  required List<ExerciseType> sequence,
+}) {
+  final seed = DateTime.now().millisecondsSinceEpoch;
+  const rulesVersion = RulesVersion.current;
+  return SessionController(
+    config: SessionConfig(
+      seed: seed,
+      enabledTypes: sequence.toSet(),
+      exerciseCount: sequence.length,
+      levels: levels,
+      kind: kind,
+      typeSequence: sequence,
+      rulesVersion: rulesVersion,
+      weakSpots: items,
+    ),
+    exerciseSource: LocalExerciseSource(
+      generator: practiceGenerator(
+        kind: kind,
+        items: items,
+        levels: levels,
+        typeSequence: sequence,
+      ),
+      seed: seed,
+    ),
+    levelCacheOrchestrator: const NoLevelUpdates(),
+    repository: environment.repository,
     playerId: environment.playerId,
     correctionDelay: SessionController.defaultCorrectionDelay,
     appVersion: appVersion,

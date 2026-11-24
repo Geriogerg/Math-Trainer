@@ -4,7 +4,6 @@ import '../kit/kit.dart';
 
 import 'package:math_core/method/method.dart';
 import 'package:math_core/method/method_for.dart';
-import 'package:math_core/models/session_kind.dart';
 import 'package:math_core/leveling/level.dart';
 import 'package:math_core/replay/session_replay.dart';
 import 'package:math_core/models/answer_result.dart';
@@ -96,9 +95,9 @@ class ResultScreen extends StatelessWidget {
                 // No level change for an interrupted session — countsForLevels
                 // stayed false, lastLevelUpdates is never set
                 // (`doc/decisions.md`).
-                // Training moves no level: nothing to show.
+                // Training and practice move no level: nothing to show.
                 if (status == SessionStatus.finished &&
-                    controller.config.kind != SessionKind.training) ...[
+                    controller.config.kind.movesLevels) ...[
                   for (final type in controller.config.enabledTypes)
                     _LevelChangeRow(
                       label: exerciseTypeLabel(type),

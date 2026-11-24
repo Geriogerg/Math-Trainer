@@ -21,7 +21,7 @@ core, no AI, **no change to how Levelling games move levels**.
 | 1 | *(A)* Fact and skill catalogue in the core; item key for any question; tests: every tier's facts covered, commutative facts merge | done |
 | 2 | *(A)* Five-box scheduler, recomputable from history; tests on scripted histories | done |
 | 3 | *(A)* **Rules v7**: due items in Levelling games (≤ 20 %, **current tier only**), stored with the session, replayed by the server; level targets rechecked by simulation | done |
-| 4 | *(C)* "Weak spots" practice game and Home card | |
+| 4 | *(C)* "Weak spots" practice game and Home card | done |
 | 5 | *(C)* Profile "Weak spots" block | |
 | 6 | *(C)* Drill button on every tip, drill games | |
 | 7 | *(A)* Dashboard report: accuracy and time on items before and after they were scheduled | |
@@ -248,6 +248,8 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   an info-level lint fails the build.
 - Never draw at random from a `Set` (insertion order); use a list sorted by enum `index`.
 - `ExerciseType` and `SessionKind` names are stored discriminants; renaming breaks history.
+  Phase 4 added `weakSpots` and `drill` (practice: replayed and checked by the server, never a
+  level update); test `kind.movesLevels`, never `kind != training`.
 - `duel_config_test.dart` pins three duels' questions (re-recorded once, on purpose, when duels
   moved to the tiers; under v3 since `DuelConfig` carries its rules version): a change to
   generation that moves them breaks every stored duel (Phase 7) — never update the pins to make a

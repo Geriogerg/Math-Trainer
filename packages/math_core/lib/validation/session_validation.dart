@@ -244,6 +244,11 @@ ValidationResult validateSessionUpload({
         );
       }
       updates = const {};
+    case SessionKind.weakSpots:
+    case SessionKind.drill:
+      // Practice (Phase 4): replayed and checked above, never a level
+      // update, whatever the levels it was played at.
+      updates = const {};
     case SessionKind.placementV1:
     case SessionKind.placementV2:
     case SessionKind.typePlacementV3:

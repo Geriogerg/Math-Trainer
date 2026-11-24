@@ -9,6 +9,7 @@ import 'package:math_core/models/answer_result.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/models/game_setup.dart';
 import 'package:math_core/persistence/level_cache_entry.dart';
+import 'package:math_core/weak_spots/item.dart';
 import '../../composition_root.dart';
 import '../../core/state/session_controller.dart';
 import '../exercise_type_labels.dart';
@@ -26,6 +27,9 @@ const _defaultSelectedTypes = {ExerciseType.addition, ExerciseType.subtraction};
 /// Stable handles for tests on the Home rows' Play buttons.
 ValueKey<String> playButtonKey(ExerciseFamily family) =>
     ValueKey('play-${family.name}');
+
+/// The Weak spots card on Home (Phase 4).
+const weakSpotsCardKey = ValueKey<String>('weak-spots');
 
 /// The Play tab (Redesign phase, mockups 1 and 2): Home — the main level,
 /// a row per family with its Play button, the challenges — and, after Play,
@@ -73,6 +77,10 @@ class _PlayTabState extends State<PlayTab> {
 
   /// `null` until read, or if the read failed (levels then show as 0).
   Map<ExerciseType, LevelCacheEntry>? _levels;
+
+  /// The Weak spots game Home offers (Phase 4); `null` until read or if
+  /// the read failed (the card then shows no count and stays inert).
+  List<Item>? _weakSpots;
 
   /// Nothing is drawn before the first read resolves: Home would flash the
   /// default selection first.
@@ -130,6 +138,37 @@ class _PlayTabState extends State<PlayTab> {
     } on Exception catch (_) {
       if (mounted) setState(() => _startupResolved = true);
     }
+    // Apart: a history that cannot be read must not hide the levels.
+    try {
+      final items = await weakSpotsGameItems(environment);
+      if (mounted) setState(() => _weakSpots = items);
+    } on Exception catch (_) {
+      if (mounted) setState(() => _weakSpots = null);
+    }
+  }
+
+  /// A Weak spots game of the items due now; Play again deals the next
+  /// ones (the schedule has moved).
+  Future<void> _startWeakSpots() async {
+    final environment = widget.environment;
+    final items = _weakSpots;
+    if (items == null || items.isEmpty) return;
+    final controller = await buildWeakSpotsController(environment, items);
+    if (!mounted) {
+      controller.dispose();
+      return;
+    }
+    await playSessionFlow(
+      context,
+      environment,
+      controller,
+      playAgain: () async {
+        final next = await weakSpotsGameItems(environment);
+        if (next.isEmpty) throw StateError('Nothing due.');
+        return buildWeakSpotsController(environment, next);
+      },
+    );
+    if (mounted) await _loadStartupState();
   }
 
   void _toggle(ExerciseType type) {
@@ -336,6 +375,8 @@ class _PlayTabState extends State<PlayTab> {
       onChainOperations: () => setState(() => _chainSetupOpen = true),
       onTables: () => setState(() => _tablesSetupOpen = true),
       onTips: () => setState(() => _tipsOpen = true),
+      weakSpotsDue: _weakSpots?.length,
+      onWeakSpots: _startWeakSpots,
     );
   }
 }
@@ -352,6 +393,8 @@ class _HomeView extends StatelessWidget {
     required this.onChainOperations,
     required this.onTables,
     required this.onTips,
+    this.weakSpotsDue,
+    this.onWeakSpots,
   });
 
   final int mainLevel;
@@ -363,6 +406,10 @@ class _HomeView extends StatelessWidget {
   final VoidCallback? onChainOperations;
   final VoidCallback? onTables;
   final VoidCallback? onTips;
+
+  /// Weak spots the player can practise now (Phase 4); `null`: unknown.
+  final int? weakSpotsDue;
+  final VoidCallback? onWeakSpots;
 
   @override
   Widget build(BuildContext context) {
@@ -414,6 +461,18 @@ class _HomeView extends StatelessWidget {
                   : () => onPlay(family),
             ),
           ],
+          // Phase 4: the player's own weak spots, practice only.
+          const _SectionLabel('Practice'),
+          AppCard(
+            key: weakSpotsCardKey,
+            label: 'Weak spots',
+            detail: switch (weakSpotsDue) {
+              null => null,
+              0 => 'None due',
+              final n => '$n due',
+            },
+            onTap: (weakSpotsDue ?? 0) > 0 ? onWeakSpots : null,
+          ),
           const _SectionLabel('Challenges'),
           AppCard(label: 'Get the count', onTap: onGetTheCount),
           const SizedBox(height: 8),

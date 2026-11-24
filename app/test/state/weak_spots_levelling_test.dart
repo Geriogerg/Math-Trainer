@@ -5,6 +5,7 @@ import 'package:math_core/models/exercise.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/models/game_setup.dart';
 import 'package:math_core/models/operation_type.dart';
+import 'package:math_core/models/session_kind.dart';
 import 'package:math_core/persistence/exercise_codec.dart';
 import 'package:math_core/persistence/persisted_answer.dart';
 import 'package:math_core/persistence/persisted_session.dart';
@@ -105,4 +106,66 @@ void main() {
       expect(schedule.games, 2);
     },
   );
+
+  test('the Weak spots game: the due items, practice, stored and replayed '
+      'alone', () async {
+    final db = await openMathTrainerDatabase(inMemoryDatabasePath);
+    addTearDown(db.close);
+    final repository = SqfliteSessionRepository(db);
+    final environment = AppEnvironment(
+      repository: repository,
+      playerId: 'player',
+      accountRepository: FakeAccountRepository(),
+      profileRepository: FakeProfileRepository(),
+    );
+    final missed = ArithmeticExercise(
+      operandA: 3,
+      operandB: 4,
+      operationType: OperationType.multiplication,
+    );
+    final d = describeExerciseForStorage(missed);
+    final past = PersistedSession(
+      id: 'past',
+      playerId: 'player',
+      seed: 1,
+      enabledTypes: {ExerciseType.multiplication},
+      exerciseCount: 4,
+      totalScore: 0,
+      levels: {ExerciseType.multiplication: Level.zero},
+      createdAt: DateTime.utc(2026, 11, 24),
+      rulesVersion: RulesVersion.v7,
+    );
+    await repository.recordSession(
+      session: past,
+      answers: [
+        PersistedAnswer(
+          id: 'a',
+          sessionId: 'past',
+          exerciseType: d.exerciseType,
+          operationType: d.operationType,
+          operands: d.operands,
+          submittedValue: 11,
+          isCorrect: false,
+          elapsedMs: 3000,
+          createdAt: past.createdAt,
+        ),
+      ],
+      levelUpdates: const {},
+    );
+    final items = await weakSpotsGameItems(environment);
+    expect(items, [factOf(missed)]);
+    final controller = await buildWeakSpotsController(environment, items);
+    expect(controller.config.kind, SessionKind.weakSpots);
+    controller.start();
+    final q = controller.state.currentExercise!;
+    expect(factOf(q), factOf(missed));
+    controller.submitAnswer(q.correctAnswer);
+    await controller.pendingPersistence;
+    controller.dispose();
+    final stored = (await repository.storedGames('player')).last.session;
+    expect(stored.kind, SessionKind.weakSpots);
+    expect(stored.weakSpots, items);
+    expect(replaySessionQuestions(stored, 1), [q]);
+    expect(await repository.currentLevels('player'), isEmpty);
+  });
 }

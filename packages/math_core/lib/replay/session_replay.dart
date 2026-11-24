@@ -11,7 +11,11 @@ import '../models/session_kind.dart';
 import '../patterns/pattern_family.dart';
 import '../persistence/persisted_session.dart';
 import '../tiers/tier_content.dart';
+import '../leveling/level.dart';
+import '../tiers/tier.dart';
 import '../tiers/tiered_game_generator.dart';
+import '../weak_spots/item.dart';
+import '../weak_spots/practice.dart';
 
 /// A stored session that does not hold everything its replay needs, or
 /// that nothing replays any more.
@@ -64,6 +68,9 @@ List<TierQuestion> _replay(PersistedSession session, int count) {
     case SessionKind.training:
       // Training draws exactly like a game, at its frozen fixed levels.
       break;
+    case SessionKind.weakSpots:
+    case SessionKind.drill:
+      return _replayPractice(session, count);
     case SessionKind.placementV1:
     case SessionKind.placementV2:
     case SessionKind.typePlacementV3:
@@ -107,6 +114,67 @@ List<TierQuestion> _replay(PersistedSession session, int count) {
   ];
 }
 
+/// A Weak spots game or a Drill (Phase 4), from what it stores alone.
+List<TierQuestion> _replayPractice(PersistedSession session, int count) {
+  final sequence = session.typeSequence;
+  if (sequence == null) {
+    throw const SessionNotReplayable('no stored type sequence');
+  }
+  if (session.rulesVersion != RulesVersion.v7) {
+    throw const SessionNotReplayable('practice games are rules v7');
+  }
+  final problem = session.kind == SessionKind.weakSpots
+      ? weakSpotsGameProblem(session.weakSpots, sequence, session.levels)
+      : drillProblem(session.weakSpots, sequence, session.levels);
+  if (problem != null) throw SessionNotReplayable(problem);
+  final generator = practiceGenerator(
+    kind: session.kind,
+    items: session.weakSpots,
+    levels: session.levels,
+    typeSequence: sequence,
+  );
+  final random = Random(session.seed);
+  return [
+    for (var i = 0; i < count; i++)
+      (exercise: generator.next(random), family: _familyOf(generator)),
+  ];
+}
+
+/// The generator of a practice game (Phase 4) — the app's game and the
+/// replay draw with the same one.
+ExerciseGenerator practiceGenerator({
+  required SessionKind kind,
+  required List<Item> items,
+  required Map<ExerciseType, Level> levels,
+  required List<ExerciseType> typeSequence,
+}) => switch (kind) {
+  SessionKind.weakSpots => WeakSpotsGameGenerator(items: items, levels: levels),
+  SessionKind.drill => DrillGenerator(
+    type: typeSequence.first,
+    tier: Tier.of(levels[typeSequence.first]!),
+    families: [
+      for (final item in items)
+        if (item case SkillItem(:final family)) family,
+    ],
+  ),
+  SessionKind.game ||
+  SessionKind.training ||
+  SessionKind.placementV1 ||
+  SessionKind.placementV2 ||
+  SessionKind.typePlacementV3 => throw ArgumentError.value(
+    kind,
+    'kind',
+    'is not a practice game.',
+  ),
+};
+
+PatternFamily? _familyOf(ExerciseGenerator generator) => switch (generator) {
+  TieredGameGenerator() => generator.lastFamily,
+  WeakSpotsGameGenerator() => generator.lastFamily,
+  DrillGenerator() => generator.lastFamily,
+  _ => null,
+};
+
 /// The pattern family of each of [session]'s first [count] questions
 /// (`doc/levels.md` section 5b), by the same replay as
 /// [replaySessionQuestions]: `null` for a standard question, always under
@@ -128,6 +196,22 @@ List<PatternFamily?> gamePatterns(SessionConfig config, int count) {
   final sequence = config.typeSequence;
   if (sequence == null || config.rulesVersion.retired) {
     return List.filled(count, null);
+  }
+  if (config.kind.isPractice) {
+    final generator = practiceGenerator(
+      kind: config.kind,
+      items: config.weakSpots,
+      levels: config.levels,
+      typeSequence: sequence,
+    );
+    final random = Random(config.seed);
+    return [
+      for (var i = 0; i < count && i < sequence.length; i++)
+        () {
+          generator.next(random);
+          return _familyOf(generator);
+        }(),
+    ];
   }
   final generator = gameExerciseGenerator(
     rulesVersion: config.rulesVersion,

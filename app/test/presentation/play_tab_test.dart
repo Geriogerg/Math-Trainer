@@ -387,4 +387,52 @@ void main() {
       expect(find.text('1 / 8'), findsOneWidget);
     });
   });
+
+  group('Weak spots card (Phase 4)', () {
+    testWidgets('a new player: none due, inert', (tester) async {
+      await pumpPlayTab(tester, environmentWith(InMemorySessionRepository()));
+      expect(find.text('Practice'), findsOneWidget);
+      expect(find.text('Weak spots'), findsOneWidget);
+      expect(find.text('None due'), findsOneWidget);
+      final card = tester.widget<AppCard>(find.byKey(weakSpotsCardKey));
+      expect(card.onTap, isNull);
+    });
+
+    testWidgets('a missed fact: one due, the card opens a game', (
+      tester,
+    ) async {
+      final repository = InMemorySessionRepository();
+      final missed = PersistedSession(
+        id: 'missed',
+        playerId: 'test-player',
+        seed: 1,
+        enabledTypes: const {ExerciseType.multiplication},
+        exerciseCount: 4,
+        totalScore: 0,
+        levels: {ExerciseType.multiplication: Level.zero},
+        createdAt: DateTime.utc(2026, 11, 1),
+      );
+      await repository.recordSession(
+        session: missed,
+        answers: [
+          PersistedAnswer(
+            id: 'm-a',
+            sessionId: 'missed',
+            exerciseType: 'arithmetic',
+            operationType: 'multiplication',
+            operands: const {'operandA': 3, 'operandB': 4},
+            submittedValue: 11,
+            isCorrect: false,
+            elapsedMs: 3000,
+            createdAt: DateTime.utc(2026, 11, 1),
+          ),
+        ],
+        levelUpdates: const {},
+      );
+      await pumpPlayTab(tester, environmentWith(repository));
+      expect(find.text('1 due'), findsOneWidget);
+      final card = tester.widget<AppCard>(find.byKey(weakSpotsCardKey));
+      expect(card.onTap, isNotNull);
+    });
+  });
 }
