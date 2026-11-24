@@ -1225,3 +1225,16 @@ questions from the tier below (spec v1.2).
   mirror (one question per band). Current; v5 kept for replay; `/health` lists
   `[2, 3, 4, 5, 6]`; window not restarted. CI's Supabase CLI pinned to 3.3.0 (the staging
   migration job had failed on GitHub's API rate limit, blocking the v5 deploy).
+
+## Phase 4 — Learning layer: weak spots and drills (plan v3.5)
+
+Owner actions: none by hand (CI applies migrations; the deploy hook redeploys the server). At
+the end: the phone checklist, and `bash tool/dashboard/dashboard.sh weak-spots` locally.
+
+- **Commit 0** *(A)* — Plan v3.5 committed. **Phase 3b is now a data check, not a blocker**
+  (owner, 24 Nov): when the dashboard reaches its threshold (~300 sessions from 10+ testers
+  since the rules v5 release, `owner_dashboard.calibration_window`), a report compares the
+  targets of `doc/levels.md` section 3 with real games; constants change only if the data
+  contradicts them. Phase 4 goes first. Decisions recorded (`doc/decisions.md`, "Phase 4"):
+  the fact and skill catalogue, an item's tiers ("current tier only"), the scheduler's
+  details, rules v7's cap and storage, the practice kinds, the drill of a tip without a family.

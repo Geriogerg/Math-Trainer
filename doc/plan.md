@@ -5,7 +5,8 @@
 > from the owner. The day-to-day working rules live in `CLAUDE.md`, which must always stay
 > consistent with this plan (section 11).
 >
-> Version 3.4 — 23 November 2026: Patterns and Method outcome; spec-conformance rule.
+> Version 3.5 — 24 November 2026: Phase 3b becomes a data check, not a blocker; Phase 4 redesigned
+> (weak spots, drills) and next. Version 3.4 — 23 November 2026: Patterns and Method outcome; spec-conformance rule.
 > Version 3.3 — 23 November 2026: Patterns and Method phase added (`doc/levels.md` sections 5b
 > and 9). Version 3.2 — 23 November 2026: Levels outcome; level tuning targets; sections 2, 3, 6 and 10
 > aligned with `doc/levels.md`. Version 3.1 — 23 November 2026: Levels phase added, specified in `doc/levels.md`.
@@ -504,16 +505,56 @@ stored: it is 15 s for every answer until Phase 3b, which stores it when it star
 Owner steps for the invitations: one code per tester, `SMOKE_BETA_CODE`, `BETA_GATE=true`, the
 phone checklist.
 
-### Phase 4 — Learning layer
+### Phase 4 — Learning layer: weak spots and drills (one pass)
 
-1. ~~Strategy detector~~ — done in Phase 5.1 (core only, not shown). Structural features exist
-   too; Phase 4 decides whether generation uses them, from Phase 3b's analysis.
-2. *(C)* Tips after an error or a slow answer.
-3. *(A)* Per-fact tracking and spaced resurfacing.
-4. *(A)* Structural difficulty features.
-5. *(C)* Technique drills.
+**Owner decision (24 November):** the current calibration feels right after rules v5–v6, so
+Phase 3b is no longer a blocker. It becomes a **data check** run once the dashboard reaches its
+threshold: a report comparing the targets with real games, changes only if the data contradicts
+them. Phase 4 goes first.
 
-**Exit:** a report, from beta data, of whether players who saw tips got faster on targeted facts.
+**Goal:** the app trains each player's own weak spots, not just tests them. Pure core, no AI,
+no change to how Levelling games move levels.
+
+**Two kinds of things are tracked per player:**
+- **Facts** — small, repeatable questions worth knowing by heart: addition bonds within 20 and
+  complements to 100, tables up to 20 × 20, squares to 30², cubes to 10³, powers of 2 to 2¹²,
+  friendly percentages (10, 20, 25, 50, 75 % of round numbers), and their roots and divisions.
+  Commutative facts share one entry (7 × 8 = 8 × 7).
+- **Skills** — the pattern families and Method strategies (difference of squares, × 25, near a
+  base…), for questions too big to repeat exactly.
+
+**Scheduling — five boxes, counted in games, never in days** (absence never punished):
+- wrong or timeout → box 1; correct and fluent → one box up; correct but slow → stays;
+- an item in box 1, 2, 3, 4, 5 is due again after 1, 2, 4, 8, 16 of the player's games;
+- history is recomputable from stored answers, like levels.
+
+**Where weak spots appear:**
+- **Levelling games:** up to **20 %** of questions are due facts or skills **from the player's
+  current tier only** (the no-lower-tier rule stands). The chosen items are stored with the session
+  so the server replays it alone.
+- **New "Weak spots" card on Home:** a practice game of the player's due items, any tier up to
+  their own; never moves levels, never ranked.
+- **Profile:** a "Weak spots" block — the five slowest or most-missed facts, with a Practice button.
+
+**Technique drills:**
+- Every tip on the Tips page gets a **Drill** button: 10 questions of that one strategy, at the
+  player's tier size, practice only. Methods shown on misses as usual.
+
+**Commits:**
+0. *(A)* Decisions recorded; Phase 3b turned into a data check in `doc/progress.md`.
+1. *(A)* Fact and skill catalogue in the core; item key for any question; tests that every
+   tier's facts are covered and commutative facts merge.
+2. *(A)* Five-box scheduler, recomputable from history; tests on scripted histories.
+3. *(A)* Due items in Levelling games (≤ 20 %, current tier only), stored with the session,
+   replayed by the server; this is rules v7. Level targets rechecked by simulation.
+4. *(C)* "Weak spots" practice game and Home card.
+5. *(C)* Profile "Weak spots" block.
+6. *(C)* Drill button on every tip, drill games.
+7. *(A)* Dashboard report: for each player, accuracy and time on items before and after they were
+   scheduled — does it work?
+
+**Exit:** a missed 7 × 8 comes back within the next games until answered fluently three times;
+Weak spots and Drill games playable on a phone; level targets still met; production lists rules 7.
 
 ### Phase 5 — Identity
 

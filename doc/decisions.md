@@ -1718,3 +1718,93 @@ reviews). The four level targets are unchanged (v5's update is v3's; simulation 
   (`patternQuestionV5`, `patternedContentV5`; references unchanged). Phase 3b's window **not**
   restarted: v5 was live a few hours and v6 changes one family's draws.
 
+
+## Phase 4: weak spots and drills (plan v3.5) — provisional
+
+**Owner decisions (24 Nov):** Phase 3b is a data check, not a blocker; Phase 4 runs first.
+**Weak-spot questions in Levelling games come only from the player's current tier** in that
+operation — the no-lower-tier rule of `doc/levels.md` section 2 stands. Everything below is
+Claude's reading, provisional until the phase report.
+
+**Items.** Every item belongs to one operation. Keys are stored strings (sessions, uploads):
+never rename a key's parts, `ExerciseType` or `PatternFamily` names.
+- **Facts** (`fact:<type>:<numbers>`), the plan's list made exact: addition bonds `a + b ≤ 20`
+  and complements `a + b = 100` (a, b ≥ 1), one entry per pair (7 + 8 = 8 + 7); tables
+  `a × b`, 1 ≤ a, b ≤ 20, one entry per pair; squares 1²–30², cubes 1³–10³, 2¹–2¹² (one
+  entry per exercise: 2² is a square and a power of 2 alike); 10, 20, 25, 50, 75 % of
+  multiples of 10 from 10 to 1 000 with a whole answer. **"Their roots and divisions"**:
+  √ of the squares and of 2², 2⁴ … 2¹² (√1 024, √4 096), ∛ of the cubes; `(a × b) ÷ b` for the
+  tables — ordered (56 ÷ 8 and 56 ÷ 7 are two facts). **Subtraction**, the inverse of the
+  bonds, is read in: `s − a` with s ≤ 20 and a difference ≥ 1, and `100 − a` — otherwise
+  subtraction's first two tiers would have nothing to track. Not commutative: one entry per
+  ordered pair.
+- **Skills** (`skill:<family>`): the 49 pattern families. A Method strategy counts as the family
+  that teaches it (the Tips page's links): compensation → add just below a round number,
+  subtract via a round number → subtract just below a round number, doubling and halving,
+  difference of squares, square near a base → squares near 50 and 100, swap → swap. Splitting a
+  factor has no family (it is multiplication's general method): not tracked.
+- **The item of a question**: a pattern question is its family's skill (even when fact-sized,
+  like 2⁸ at T3); a standard question is its fact if it is one, else its strategy's skill, else
+  nothing.
+
+**Tiers of an item** — what "current tier only" means in code. A fact belongs to a tier when
+that tier's **standard** questions (`doc/levels.md` section 5, current rules) can draw it:
+`factsAt(type, tier)` lists them, built from the section 5 tables and tested against the
+generator both ways (every fact drawn is listed; every listed fact is drawn). Its **home
+tier** is the lowest. A fact may belong to several tiers (12 × 7 at T2 and T4) and is re-asked
+in one of the forms that tier draws (8 × 7 and 7 × 8 at T1; only 12 × 7 at T4). A skill
+belongs to every tier where its family is available; it is re-asked as a new question of its
+family **at that tier's size** (`patternQuestion`). A Levelling game re-asks an item only at a
+tier it belongs to — the operation's current tier.
+
+**Scheduler** — five boxes, counted in the player's games (every stored session, in order,
+whatever its kind; Tables mode is not stored and does not count):
+- an item enters at box 1 on its first wrong answer or timeout; correct answers to an untracked
+  item leave it untracked;
+- wrong or timeout → box 1; fluent → one box up; slow → stays; **fluent in box 5 → mastered**,
+  out of the schedule until a new miss. So a missed 7 × 8 is due in the next game, then after
+  2, then after 4 games, and leaves the near future after three fluent answers (box 4: 8
+  games) — the exit test's reading;
+- **fluent** for the scheduler: a fact within its home tier's fluent time (7 × 8: T1's 4 s,
+  wherever it was asked); a skill within the fluent time of the tier it was drawn at. The level
+  update keeps its own rule (the game's tier), untouched;
+- due: box b, last answered in game g, due from game g + 1, 2, 4, 8, 16; overdue items stay due
+  (absence never punished). Order when more are due than fit: lowest box, then most overdue,
+  then key.
+
+**Rules v7** = v6 plus weak-spot questions in Levelling games:
+- **Cap**: at most ⌊N / 5⌋ in a game of N questions and at most ⌈n / 5⌉ for an operation of n
+  (1 of 4 or 5, 2 of 10, 4 of 20) — never above 20 % of the game; a one-operation game of 4
+  questions gets none.
+- The app chooses the items (due, eligible at the operation's tier, each once) and stores their
+  keys with the session (`weakSpots`, an upload field of the same name, a new local column). The
+  generator places them on the game's stream, like v2's reviews: the k-th of m remaining
+  questions of an operation is a weak spot with probability (items left) / m. Nothing is drawn
+  for a game without items: **v7 without items is v6, question for question.**
+- Replay checks the stored items (known key, an operation of the game, eligible at its frozen
+  tier, caps, no repeats); a breach is `notReplayable`. The server cannot check that the items
+  were due (it would need the whole history): accepted as is — the items are from the player's
+  tier, so choosing them gains little. Training games under v7 have no weak spots.
+- Phase 3b's window is **not** restarted: at most 20 % of a game, all from its tier.
+
+**Practice games** — two new session kinds, `weakSpots` and `drill`, stored and uploaded like
+Training (replayed and checked by the server, never move a level, never ranked):
+- **Weak spots** (Home card): up to 10 due items, one question each, any tier up to the
+  player's own: a fact whose home tier is at or below the player's tier in its operation (asked
+  in a form of its home tier), a skill whose family has started by the player's tier (drawn at
+  the player's tier). Stored: the items in question order and the player's levels.
+- **Profile Practice**: the block's five facts, each twice (10 questions), as a Weak spots game.
+- **Profile block**: the five worst facts of the history — most missed first (miss rate, then
+  misses), then the slowest against their fluent time; a fact needs two answers to be listed.
+- **Drill** (every tip): 10 questions. A tip with families: a family drawn among them at the
+  player's tier, or at the lowest tier one of them starts at when the player is below it. A tip
+  without a family (13 of 54: "make 10 first", "add the tens, then the units"…): its
+  operation's standard questions at the player's tier, brought into the tip's band (a beginner
+  tip played at T2 at most, an advanced one at T6 at least). Stored: the families and the tier
+  (as its lowest level).
+
+**Dashboard** (`dashboard.sh weak-spots`): the server's accepted sessions replayed through the
+same core scheduler (a Dart tool, no new dependency): per player, accuracy and time on each
+scheduled item before and after it entered the schedule. Caveat printed with it: an item enters
+on a miss, so "before" is biased low (regression to the mean) — compare with items never
+scheduled.

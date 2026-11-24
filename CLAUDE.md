@@ -1,9 +1,9 @@
-23# Math Trainer
+# Math Trainer
 
 Competitive mental-arithmetic game in Flutter, for teens and adults. UI, code, docs and commits
 in English.
 
-**`doc/plan.md` (version 3.4) is the product plan**, and **`doc/levels.md` (v1.5) specifies the
+**`doc/plan.md` (version 3.5) is the product plan**, and **`doc/levels.md` (v1.5) specifies the
 level system**. Both are the owner's: read them at the start of every phase; never edit them.
 This file is the working file: keep it short, update it as the project moves, keep it
 consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/decisions.md`,
@@ -11,31 +11,41 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 
 ## Current phase
 
-**Patterns and Method phase** (`doc/plan.md` v3.3, section 7), run in **one pass**.
-**Specification: `doc/levels.md` v1.2 sections 5b (pattern questions) and 9 (Method)** — binding.
-Goal: questions that reward shortcuts, not only digit count, and a worked method on every
-mistake. The Phase 3b window restarts at this release.
+**Phase 4 — Learning layer: weak spots and drills** (`doc/plan.md` v3.5, section 7), run in
+**one pass**. Goal: the app trains each player's own weak spots, not just tests them. Pure
+core, no AI, **no change to how Levelling games move levels**.
 
 | # | Commit | Note |
 |---|---|---|
-| 0 | Decisions; **rules v4** = v3's level update + new generation; v2 and v3 generators kept (their games replay) | |
-| 1 | Pattern families in the core generator, operation by operation, examples reproduced; ~40 % of a tier's questions where families start; determinism VM/JS; server replays v4 | |
-| 2 | Method generator in the core: steps for every family and detector strategy, a fallback per operation; every line true, last line = the answer, thousands of questions per tier and family | |
-| 3 | *(C)* Method on the result screen: a button on each wrong answer and timeout of Basics and Advanced games, steps in place, "More tips"; goldens in both themes | |
-| 4 | Tips page: each pattern family linked to its tip; tips added where a family has none | |
-| 5 | Simulation under v4: the four level targets still met; share of pattern questions served per tier | |
+| 0 | *(A)* Decisions recorded; Phase 3b turned into a data check in `doc/progress.md` | |
+| 1 | *(A)* Fact and skill catalogue in the core; item key for any question; tests: every tier's facts covered, commutative facts merge | |
+| 2 | *(A)* Five-box scheduler, recomputable from history; tests on scripted histories | |
+| 3 | *(A)* **Rules v7**: due items in Levelling games (≤ 20 %, **current tier only**), stored with the session, replayed by the server; level targets rechecked by simulation | |
+| 4 | *(C)* "Weak spots" practice game and Home card | |
+| 5 | *(C)* Profile "Weak spots" block | |
+| 6 | *(C)* Drill button on every tip, drill games | |
+| 7 | *(A)* Dashboard report: accuracy and time on items before and after they were scheduled | |
 
-**Exit:** every family's examples generated; every Method checked by tests; level targets still
-met; production `/health` lists rules 4; on a phone, a missed 17 × 23 shows (20 − 3)(20 + 3).
+**Exit:** a missed 7 × 8 comes back within the next games until answered fluently three times;
+Weak spots and Drill games playable on a phone; level targets still met; production lists
+rules 7.
 
-Done: 0 (decisions; addition and subtraction of v2/v3 found off the spec's section 5 — fixed
-in v4); 1 (49 families, `patternedContent`, v4 replayed but not played — `current` moves at
-5); 2 (Method generator: `methodFor`, `methodProblems`); 3 (Method on the result screen, goldens);
-4 (every family linked to a tip, 19 new tips); 5 (v4 played, window restarted, duels keep
-their rules; 40 % patterns from a family's second tier, 28 % at its first); exit test (23 Nov).
-Outcome (plan v3.4): every provisional decision kept; new rule — `doc/levels.md` is checked
-by a test that reads the file (`test/spec/levels_spec_conformance_test.dart`).
-**Open: the owner plays the phone checklist.**
+**Phase 4's rules** (plan v3.5):
+- **Facts** (addition bonds within 20, complements to 100, tables to 20 × 20, squares to 30²,
+  cubes to 10³, 2¹–2¹², friendly percentages, their roots and divisions; commutative facts
+  share one entry) and **skills** (pattern families and Method strategies).
+- **Five boxes, counted in games, never days**: wrong or timeout → box 1; fluent → one up;
+  slow → stays; box 1–5 due after 1, 2, 4, 8, 16 of the player's games. Recomputable from
+  stored answers, like levels.
+- **Levelling games: weak-spot questions come only from the player's current tier** in that
+  operation (the no-lower-tier rule stands; owner, 24 Nov). The chosen items are stored with the
+  session; the server replays it alone.
+- Weak spots game and Drill games: practice only — never move levels, never ranked.
+
+Phase 3b is **no longer a blocker** (owner, 24 Nov): it becomes a data check run once the
+dashboard reaches its threshold (~300 sessions from 10+ testers since the rules v5 release,
+`owner_dashboard.calibration_window`) — a report comparing the targets with real games,
+changes only if the data contradicts them.
 
 **The level system** (`doc/levels.md`; constants: `LevelRules.of`)
 - **Levels 0–100**, integer hundredths, shown whole; everyone started at 0 at the transition
@@ -58,22 +68,12 @@ by a test that reads the file (`test/spec/levels_spec_conformance_test.dart`).
   uncounted, questions per operation 4/5/10/20, Training never moves levels (T1 / T4 / T7),
   main level = mean of the four basics.
 
-**Rules v5** (24 Nov, beta bug "level-70 questions at level 15"): `doc/levels.md` v1.4 —
-pattern questions sized by tier, no reviews; v4 kept for replay; Phase 3b window restarted
-(`doc/progress.md`, "Rules v5"; readings confirmed in `doc/decisions.md`). Same day, **rules
-v6** (`doc/levels.md` v1.5, edited at the owner's request): √ of powers of 2 sized by its own
-row; v5 kept for replay.
-
-**Staging is live** (24 Nov): with `STAGING=on` the full smoke test plays on staging, production's
-is read-only; all green. **Next: the beta, owner actions** — the phone checklist, tester codes
-(`dashboard.sh new-code`), then Phase 3b at ~300 sessions (`doc/progress.md`, "Staging live").
-Still parked: the slow-4G measurement past the gate (a CI beta code).
-
-Phase 3b starts at ~300 sessions from 10+ testers, counted from the rules v5 release
-(`owner_dashboard.calibration_window`, restarted by migration);
-Phase 4 comes after 3b. The repository is private since 20 Nov: CI results are visible to the
-owner only — a push is verified by its commit appearing in the live `main.dart.js` (deploy runs
-only after the tests).
+**Rules v5–v6** (24 Nov): pattern questions sized by tier, no reviews (`doc/levels.md` v1.4);
+√ of powers of 2 by its own row (v1.5). v4 and v5 kept for replay. Staging is live: with
+`STAGING=on` the full smoke test plays on staging, production's is read-only. Still parked: the
+slow-4G measurement past the gate (a CI beta code). The repository is private since 20 Nov: CI
+results are visible to the owner only — a push is verified by its commit appearing in the live
+`main.dart.js` (deploy runs only after the tests).
 
 Preview: `https://math-trainer-kjc.pages.dev/` (Cloudflare Pages), deployed on every push to
 `main`. The old `https://geriogerg.github.io/Math-Trainer/` redirect is off since the
