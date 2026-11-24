@@ -751,31 +751,34 @@ void main() {
       }
     });
   });
-  group('rules v5: every family at every tier from its first generates only '
-      'its kind, whole and exact, at most 10 digits (3,000 draws a tier)', () {
-    for (final family in PatternFamily.values) {
-      test(family.name, () {
-        for (final tier in Tier.values.skip(family.from.index)) {
-          final random = Random(100 * family.index + tier.index);
-          final seen = <Exercise>{};
-          for (var i = 0; i < 3000; i++) {
-            final e = patternQuestion(family, tier, random);
-            seen.add(e);
-            final reason = '${tier.label} $e';
-            expect(e.type, family.type, reason: reason);
-            expect(_kind[family]!(e), isTrue, reason: reason);
-            expect(e.correctAnswer, greaterThan(0), reason: reason);
-            expect(e.correctAnswer, lessThan(10000000000), reason: reason);
+  group(
+    'rules v6 (current): every family at every tier from its first generates only '
+    'its kind, whole and exact, at most 10 digits (3,000 draws a tier)',
+    () {
+      for (final family in PatternFamily.values) {
+        test(family.name, () {
+          for (final tier in Tier.values.skip(family.from.index)) {
+            final random = Random(100 * family.index + tier.index);
+            final seen = <Exercise>{};
+            for (var i = 0; i < 3000; i++) {
+              final e = patternQuestion(family, tier, random);
+              seen.add(e);
+              final reason = '${tier.label} $e';
+              expect(e.type, family.type, reason: reason);
+              expect(_kind[family]!(e), isTrue, reason: reason);
+              expect(e.correctAnswer, greaterThan(0), reason: reason);
+              expect(e.correctAnswer, lessThan(10000000000), reason: reason);
+            }
+            // √ of powers of 2 has one question in each of its bands but the
+            // last (√64 at T3–T4, the mirror of 2⁵–2⁶).
+            expect(seen, isNotEmpty);
           }
-          // √ of powers of 2 has one question in each of its bands but the
-          // last (√64 at T3–T4, the mirror of 2⁵–2⁶).
-          expect(seen, isNotEmpty);
-        }
-      });
-    }
-  });
+        });
+      }
+    },
+  );
 
-  test('rules v5: a family drawn below its first tier throws (rule 13)', () {
+  test('rules v6: a family drawn below its first tier throws (rule 13)', () {
     for (final family in PatternFamily.values) {
       for (final tier in Tier.values.take(family.from.index)) {
         expect(
@@ -787,7 +790,7 @@ void main() {
     }
   });
 
-  test('rules v5: a family grows with the tier — the digits of its smallest '
+  test('rules v6: a family grows with the tier — the digits of its smallest '
       'and of its largest question never shrink from one tier to the next '
       '(2,000 draws a tier)', () {
     for (final family in PatternFamily.values) {

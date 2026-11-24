@@ -1648,7 +1648,7 @@ the cap), win/loss/draw symmetry, volatility rising on upsets, invalid input thr
 **Reopen when** Phase 7 chooses the rating period (per day? per N duels?) and the provisional
 flag's threshold.
 
-## Rules v5: pattern questions sized by tier, no reviews (`doc/levels.md` v1.4) — confirmed (one spec suggestion open)
+## Rules v5: pattern questions sized by tier, no reviews (`doc/levels.md` v1.4) — confirmed; v6 for √ of powers of 2
 
 Beta report (24 Nov): questions at level 15–20 that felt like level 70. Cause, measured on
 2,000 games per operation and level under v4: `patternQuestionV4` took no tier — every family
@@ -1709,7 +1709,12 @@ reviews). The four level targets are unchanged (v5's update is v3's; simulation 
   only reading the spec's text allows without lower-tier questions, but it gives one question
   per band: at T3–T4 the family is half of the root patterns, so about 1 root question in 5 is
   √64 (√256 at T5–T6, about 1 in 7). Widening it within the spec would only add √4 and √16
-  (T0 content). Suggested spec row for a later version (folded into Phase 3b's retuning, so
-  one new rules version covers both): "√ of powers of 2 and 4 | T3: √64 to √1 024 · T5: up to
-  √65 536" — or start the family at T5. Until the owner edits the spec, v5 stays as is.
+  (T0 content). Suggested spec row: "√ of powers of 2 and 4 | T3: √64 to √1 024 · T5: up to
+  √65 536".
+- **Rules v6 (24 Nov, the owner's go-ahead: "make the changes now").** The suggested row went
+  into `doc/levels.md` as v1.5 — edited by Claude at the owner's request — and shipped as
+  rules v6: `patternQuestion` = `patternQuestionV5` except √ of powers of 2 (√64, √256,
+  √1 024 at T3–T4; √4 096, √16 384, √65 536 from T5). v5 frozen for replay
+  (`patternQuestionV5`, `patternedContentV5`; references unchanged). Phase 3b's window **not**
+  restarted: v5 was live a few hours and v6 changes one family's draws.
 

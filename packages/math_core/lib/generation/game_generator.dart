@@ -53,5 +53,13 @@ ExerciseGenerator gameExerciseGenerator({
       content: patternedContentV5,
       withReviews: false,
     ),
+    // v5, with √ of powers of 2 sized by its own row (`doc/levels.md`
+    // v1.5).
+    RulesVersion.v6 => TieredGameGenerator(
+      sequence: typeSequence,
+      levels: levels,
+      content: patternedContentV6,
+      withReviews: false,
+    ),
   };
 }

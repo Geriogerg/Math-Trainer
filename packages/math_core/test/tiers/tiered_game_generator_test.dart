@@ -186,8 +186,8 @@ void main() {
       ];
     }
 
-    test('v5 is current and has no reviews', () {
-      expect(RulesVersion.current, RulesVersion.v5);
+    test('v5 and v6 (current) have no reviews', () {
+      expect(RulesVersion.current, RulesVersion.v6);
       final generator =
           gameExerciseGenerator(
                 rulesVersion: RulesVersion.v5,

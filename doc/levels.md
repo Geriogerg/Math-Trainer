@@ -1,4 +1,4 @@
-# Levels — specification (v1.4, 24 November 2026: pattern questions sized by tier, no review from lower tiers)
+# Levels — specification (v1.5, 24 November 2026: pattern questions sized by tier, no review from lower tiers; √ of powers of 2 sized by its own row)
 
 > Owned by the product owner, like `doc/plan.md`. Claude Code implements it and never edits it.
 > It replaces the level formula, the placement test and the operand-bound curves used until the
@@ -246,7 +246,7 @@ missed.
 - Same fluent time as the tier.
 - Generated backwards, like everything else: draw the pattern (base, offset, factor), then the
   numbers, then the answer.
-- **Changing the generation is a new rules version (v4).** Games played under v2 and v3 must still
+- **Changing the generation is a new rules version** (v4, v5 at v1.4, v6 at v1.5). Games played under v2 and v3 must still
   regenerate their questions under their own version: keep the older generators.
 
 ### Size limits for the fast-growing families
@@ -259,7 +259,7 @@ missed.
 | Big numbers ÷ 6, 7, 8, 9 | T7: up to 5 digits · T9: 7 digits |
 | 50 %, 25 % of big numbers | T2: up to 3 digits · T4: 4 digits · T6: 6 digits |
 | Powers of 2 | T1: up to 2⁶ · T3: 2⁸ · T5: 2¹⁰ · T7: 2¹⁶ · T9: 2²⁰ |
-| √ of powers of 2 and 4 | mirror of powers of 2, two tiers later |
+| √ of powers of 2 and 4 | T3: √64 to √1 024 · T5: up to √65 536 |
 | Powers of 3, 4, 5 | T4: up to 3⁴, 4³, 5³ · T6: 3⁶, 4⁵, 5⁴ · T8: 3⁸ |
 | Squares ending in 5 | T3: up to 95² · T6: up to 205² |
 | ∫₀ᵇ 2x dx | T1: b ≤ 6 · T3: b ≤ 12 · T5: b ≤ 25 |

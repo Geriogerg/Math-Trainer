@@ -18,7 +18,7 @@ import 'src/levels_simulation.dart';
 void main(List<String> args) {
   for (final (name, rules) in [
     ('v2', LevelRules.v2),
-    ('v3 = v4 = v5', LevelRules.of(RulesVersion.v5)),
+    ('v3 = v4 = v5 = v6', LevelRules.of(RulesVersion.v6)),
   ]) {
     print('== rules $name: $rules');
     for (final t in targetsFor(rules)) {
@@ -50,7 +50,7 @@ void main(List<String> args) {
       );
     }
   }
-  for (final rules in [RulesVersion.v4, RulesVersion.v5]) {
+  for (final rules in [RulesVersion.v4, RulesVersion.v5, RulesVersion.v6]) {
     final shares = {
       for (final type in ExerciseType.values)
         type: [

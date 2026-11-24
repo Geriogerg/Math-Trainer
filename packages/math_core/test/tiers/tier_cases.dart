@@ -108,6 +108,33 @@ String familySequenceV5(int seed) {
     for (final family in PatternFamily.values)
       for (final tier in Tier.values.skip(family.from.index))
         for (var i = 0; i < 2; i++)
+          describe(patternQuestionV5(family, tier, random)),
+  ].join(' ');
+}
+
+/// Rules v6's pinned cases (`test/tiers/tier_references_v6.dart`).
+String patternedSequenceV6(ExerciseType type, int seed) {
+  final random = Random(seed);
+  return [
+    for (final tier in Tier.values)
+      for (var i = 0; i < 6; i++)
+        () {
+          final q = patternedContentV6(type, tier, random);
+          final family = q.family;
+          return '${describe(q.exercise)}'
+              '${family == null ? '' : '/${family.name}'}';
+        }(),
+  ].join(' ');
+}
+
+/// Two questions of every pattern family at every tier from its first, as
+/// v6 sizes them, from [seed].
+String familySequenceV6(int seed) {
+  final random = Random(seed);
+  return [
+    for (final family in PatternFamily.values)
+      for (final tier in Tier.values.skip(family.from.index))
+        for (var i = 0; i < 2; i++)
           describe(patternQuestion(family, tier, random)),
   ].join(' ');
 }

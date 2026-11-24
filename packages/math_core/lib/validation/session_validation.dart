@@ -145,6 +145,7 @@ ValidationResult validateSessionUpload({
     case RulesVersion.v3:
     case RulesVersion.v4:
     case RulesVersion.v5:
+    case RulesVersion.v6:
       break;
   }
   if (session.createdAt.isAfter(receivedAt.add(maxClockSkew))) {

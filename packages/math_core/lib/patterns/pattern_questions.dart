@@ -6,6 +6,32 @@ import '../tiers/tier.dart';
 import 'pattern_family.dart';
 import 'pattern_parts.dart';
 
+/// One question of [family] drawn at [tier] under **rules v6**
+/// (`doc/levels.md` v1.5 section 5b): [patternQuestionV5], except √ of
+/// powers of 2, which the spec now sizes by its own row — √64 to √1 024 at
+/// T3–T4, √4 096 to √65 536 from T5 — instead of mirroring powers of 2 two
+/// tiers later (one question per band: √64 was 1 root question in 5 at
+/// T3). Throws for a tier below the family's first (rule 13).
+Exercise patternQuestion(PatternFamily family, Tier tier, Random r) {
+  if (family != PatternFamily.rootsOfPowersOf2) {
+    return patternQuestionV5(family, tier, r);
+  }
+  _checkTier(family, tier);
+  // The square root of 2^(2h): its root 2^h first.
+  final half = tier.index < 5 ? drawBetween(r, 3, 5) : drawBetween(r, 6, 8);
+  return squareRootOf(powerOf2(half));
+}
+
+void _checkTier(PatternFamily family, Tier tier) {
+  if (tier.index < family.from.index) {
+    throw ArgumentError.value(
+      tier,
+      'tier',
+      'is below ${family.name}\'s first tier (${family.from.label}).',
+    );
+  }
+}
+
 /// One question of [family] drawn at [tier] under **rules v5**
 /// (`doc/levels.md` v1.4 section 5b), built backwards (rule 10): the pattern
 /// first — its base, offset or factor — then the numbers, then the answer.
@@ -24,15 +50,11 @@ import 'pattern_parts.dart';
 /// Both are checked on thousands of draws per family and tier
 /// (`test/spec/levels_spec_conformance_test.dart`). Throws for a tier below
 /// the family's first (rule 13). Rules v4's one-size version is
-/// `patternQuestionV4`, kept so v4 games replay.
-Exercise patternQuestion(PatternFamily family, Tier tier, Random r) {
-  if (tier.index < family.from.index) {
-    throw ArgumentError.value(
-      tier,
-      'tier',
-      'is below ${family.name}\'s first tier (${family.from.label}).',
-    );
-  }
+/// `patternQuestionV4`, kept so v4 games replay. **Frozen** since v5 was
+/// played: v5 games replay with it, and v6 ([patternQuestion]) draws
+/// every family but one through it.
+Exercise patternQuestionV5(PatternFamily family, Tier tier, Random r) {
+  _checkTier(family, tier);
   final t = tier.index;
   return switch (family) {
     // ── Addition: operands of the tier's standard size D ─────────────────
@@ -312,8 +334,9 @@ Exercise patternQuestion(PatternFamily family, Tier tier, Random r) {
     ),
 
     // ── Roots: the root first ─────────────────────────────────────────────
-    // Size table: the mirror of powers of 2, two tiers later — the even
-    // exponents of that band (√64 at T3 … √65 536 at T9).
+    // v1.4's size table: the mirror of powers of 2, two tiers later — the
+    // even exponents of that band (√64 at T3 … √65 536 at T9). Rules v6
+    // sizes it by its own row instead ([patternQuestion]).
     PatternFamily.rootsOfPowersOf2 => () {
       final (low, high) = _powersOf2Bands[t - 2]!;
       final half = drawBetween(r, (low + 1) ~/ 2, high ~/ 2);

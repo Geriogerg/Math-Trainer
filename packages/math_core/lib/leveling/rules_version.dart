@@ -34,27 +34,34 @@ enum RulesVersion {
   /// Pattern questions sized by tier (`doc/levels.md` v1.4): each family
   /// grows with the tier, within the spec's size table and its hard limit;
   /// no review questions — every question from the player's tier. v3's
-  /// level update. Levels carry over: the same scale, no reset.
-  v5(5);
+  /// level update. Levels carry over: the same scale, no reset. Its √ of
+  /// powers of 2 mirrored powers of 2 two tiers later: one question per
+  /// band (√64 was 1 root question in 5 at T3) — [v6] widened it.
+  v5(5),
+
+  /// `doc/levels.md` v1.5: v5, with √ of powers of 2 sized by its own row
+  /// (√64 to √1 024 at T3–T4, √4 096 to √65 536 from T5). v3's level
+  /// update; levels carry over.
+  v6(6);
 
   const RulesVersion(this.number);
 
   final int number;
 
   /// What new sessions are played under.
-  static const current = v5;
+  static const current = v6;
 
   /// The rules a server built from this code replays (validation refuses
   /// the others). The server says so in its `/health` (`rules`), and the
   /// app holds a session back, pending, until the server it talks to knows
   /// its rules — an older server would refuse it for good.
-  static const replayed = [v2, v3, v4, v5];
+  static const replayed = [v2, v3, v4, v5, v6];
 
   /// Played before the Levels phase's transition: its levels are on the
   /// old scale (1–100 from placement), never compared with the others.
   bool get retired => switch (this) {
     v1 => true,
-    v2 || v3 || v4 || v5 => false,
+    v2 || v3 || v4 || v5 || v6 => false,
   };
 
   /// Throws [ArgumentError] for a number no version has (rule 13).

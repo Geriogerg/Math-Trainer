@@ -6,6 +6,7 @@ import 'tier_cases.dart';
 import 'tier_references.dart';
 import 'tier_references_v4.dart';
 import 'tier_references_v5.dart';
+import 'tier_references_v6.dart';
 
 /// Rules v2's, v4's and v5's questions are the same on the VM and in
 /// JavaScript
@@ -70,6 +71,29 @@ void main() {
         expect(
           gameSequence(seed, RulesVersion.v5),
           gameSequenceV5References[seed],
+        );
+      });
+    }
+  });
+  group('rules v6', () {
+    for (final type in ExerciseType.values) {
+      for (final seed in tierSeeds) {
+        test('${type.name}, every tier, seed $seed', () {
+          expect(
+            patternedSequenceV6(type, seed),
+            patternedSequenceV6References['${type.name} | $seed'],
+          );
+        });
+      }
+    }
+    for (final seed in tierSeeds) {
+      test('every pattern family at every tier, seed $seed', () {
+        expect(familySequenceV6(seed), familySequenceV6References[seed]);
+      });
+      test('a game of every type, seed $seed', () {
+        expect(
+          gameSequence(seed, RulesVersion.v6),
+          gameSequenceV6References[seed],
         );
       });
     }

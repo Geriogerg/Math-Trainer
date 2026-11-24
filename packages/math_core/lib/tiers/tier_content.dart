@@ -63,9 +63,21 @@ TierQuestion patternedContent(ExerciseType type, Tier tier, Random random) {
 }
 
 /// Rules v5 (`doc/levels.md` v1.4 sections 5 and 5b): v4's mix and
-/// standard questions, with pattern questions **sized by the tier**
-/// ([patternQuestion]) and the families available as spec v1.4 lists them.
+/// standard questions, with pattern questions **sized by tier**
+/// ([patternQuestionV5]) and the families available as spec v1.4 lists them.
+/// Frozen: v5 games replay with it.
 TierQuestion patternedContentV5(ExerciseType type, Tier tier, Random random) {
+  final families = PatternFamily.availableAt(type, tier);
+  if (families.isNotEmpty && random.nextInt(5) < patternShareFifths) {
+    final family = drawOne(random, families);
+    return (exercise: patternQuestionV5(family, tier, random), family: family);
+  }
+  return (exercise: _standardV4(type, tier, random), family: null);
+}
+
+/// Rules v6 (`doc/levels.md` v1.5): v5's, with √ of powers of 2 sized by
+/// its own row ([patternQuestion]).
+TierQuestion patternedContentV6(ExerciseType type, Tier tier, Random random) {
   final families = PatternFamily.availableAt(type, tier);
   if (families.isNotEmpty && random.nextInt(5) < patternShareFifths) {
     final family = drawOne(random, families);

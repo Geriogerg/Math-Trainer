@@ -1220,3 +1220,8 @@ questions from the tier below (spec v1.2).
 - **Simulation**: the four targets met (65.3 / 63.8 / 64.0 / 64.2 % stall; +1.56 slow; full
   cap; −3); v5 serves 40 % pattern questions from each family's first tier, 0 % lower-tier.
 - Phase 3b window restarted at the release (migration `20261128000000_rules_v5_window`).
+- **Rules v6** (same day): `doc/levels.md` v1.5 at the owner's request — √ of powers of 2
+  sized by its own row (√64–√1 024 at T3–T4, up to √65 536 from T5) instead of the v1.4
+  mirror (one question per band). Current; v5 kept for replay; `/health` lists
+  `[2, 3, 4, 5, 6]`; window not restarted. CI's Supabase CLI pinned to 3.3.0 (the staging
+  migration job had failed on GitHub's API rate limit, blocking the v5 deploy).

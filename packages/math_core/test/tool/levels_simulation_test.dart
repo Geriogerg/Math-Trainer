@@ -106,7 +106,7 @@ void main() {
     });
   });
 
-  group('rules v5 (pattern questions sized by tier, no reviews)', () {
+  group('rules v5 and v6 (pattern questions sized by tier, no reviews)', () {
     test("v5's level update is v3's: the four targets still met", () {
       final v5 = LevelRules.of(RulesVersion.v5);
       expect(v5, same(LevelRules.v3));

@@ -49,6 +49,7 @@ List<TierQuestion> _replay(PersistedSession session, int count) {
     case RulesVersion.v3:
     case RulesVersion.v4:
     case RulesVersion.v5:
+    case RulesVersion.v6:
       break;
   }
   switch (session.kind) {

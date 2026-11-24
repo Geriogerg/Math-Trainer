@@ -23,7 +23,7 @@ List<int> _fluentSeconds(ExerciseType type, RulesVersion rules) {
       if (type == ExerciseType.addition || type == ExerciseType.subtraction) {
         return const [4, 4, 5, 5, 6, 8, 9, 10, 12, 14];
       }
-    case RulesVersion.v4 || RulesVersion.v5:
+    case RulesVersion.v4 || RulesVersion.v5 || RulesVersion.v6:
       break;
   }
   return switch (type) {

@@ -173,13 +173,10 @@ void main() {
       expect(sizeRows.map((r) => r[0]).toSet(), _sizeFamilies.keys.toSet());
     });
 
-    final powersOf2Row = sizeRows.firstWhere((r) => r[0] == 'Powers of 2');
     for (final [name, sizes] in sizeRows) {
       final (family, measure) = _sizeFamilies[name]!;
       test('$name (${family.name}): $sizes', () {
-        final bands = sizes.startsWith('mirror of powers of 2, two tiers later')
-            ? _mirrorBands(_bands(powersOf2Row[1], _Measure.exponentOf2))
-            : _bands(sizes, measure);
+        final bands = _bands(sizes, measure);
         expect(family.from, bands.first.from, reason: 'first entry');
         final limits = <int, int>{};
         for (final (k, band) in bands.indexed) {
@@ -193,9 +190,6 @@ void main() {
               final (key, value) = measure.of(e);
               final (low, high) = seen[key] ?? (value, value);
               seen[key] = (min(low, value), max(high, value));
-              if (band.mirror) {
-                expect(value.isEven, isTrue, reason: '${tier.label}: $e');
-              }
               if (band.only5 && e is ArithmeticExercise) {
                 expect(e.operandB, 5, reason: '${tier.label}: $e');
               }
@@ -205,6 +199,10 @@ void main() {
               expect(limits.keys, contains(key), reason: '$reason: no limit');
               // Reaches its band's limit, never above it.
               expect(high, limits[key], reason: '$reason: largest');
+              // "√64 to √1 024": the entry's smallest too.
+              if (band.low != null) {
+                expect(low, band.low, reason: '$reason: smallest');
+              }
               // Never a lower band's size, for what this entry grows.
               if (band.limits.containsKey(key) && previous[key] != null) {
                 expect(
@@ -277,8 +275,11 @@ enum _Measure {
   /// dividend, the base of the percentage.
   digits,
 
-  /// The exponent of a power of 2 (also the radicand's, for its roots).
+  /// The exponent of a power of 2.
   exponentOf2,
+
+  /// The radicand of a square root.
+  radicand,
 
   /// The exponent, per base.
   exponentPerBase,
@@ -294,9 +295,9 @@ enum _Measure {
     (digits, PercentageExercise(:final base)) => (0, _digits(base)),
     (exponentOf2, PowerExercise(:final base, :final exponent)) when base == 2 =>
       (0, exponent),
-    (exponentOf2, SquareRootExercise(:final radicand, :final index))
+    (radicand, SquareRootExercise(radicand: final n, :final index))
         when index == 2 =>
-      (0, _log2(radicand)),
+      (0, n),
     (exponentPerBase, PowerExercise(:final base, :final exponent)) => (
       base,
       exponent,
@@ -323,6 +324,7 @@ enum _Measure {
       for (final m in RegExp('([0-9]+)([$_superscripts]+)').allMatches(text))
         int.parse(m[1]!): _script(m[2]!, _superscripts),
     },
+    radicand => {0: _number(_roots(text).last)},
     squareBase => {0: int.parse(RegExp('([0-9]+)²').firstMatch(text)![1]!)},
     upperBound => {0: int.parse(RegExp(r'b ≤ (\d+)').firstMatch(text)![1]!)},
   };
@@ -339,10 +341,7 @@ final _sizeFamilies = <String, (PatternFamily, _Measure)>{
     _Measure.digits,
   ),
   'Powers of 2': (PatternFamily.powersOf2, _Measure.exponentOf2),
-  '√ of powers of 2 and 4': (
-    PatternFamily.rootsOfPowersOf2,
-    _Measure.exponentOf2,
-  ),
+  '√ of powers of 2 and 4': (PatternFamily.rootsOfPowersOf2, _Measure.radicand),
   'Powers of 3, 4, 5': (PatternFamily.powersOf3To5, _Measure.exponentPerBase),
   'Squares ending in 5': (PatternFamily.squaresEndingIn5, _Measure.squareBase),
   '∫₀ᵇ 2x dx': (PatternFamily.twoXFromZero, _Measure.upperBound),
@@ -351,7 +350,9 @@ final _sizeFamilies = <String, (PatternFamily, _Measure)>{
 };
 
 /// One entry of a size-table row: from its tier up to the next entry's.
-typedef _Band = ({Tier from, Map<int, int> limits, bool mirror, bool only5});
+/// [low]: the smallest it draws, when the entry names it ("√64 to
+/// √1 024").
+typedef _Band = ({Tier from, Map<int, int> limits, int? low, bool only5});
 
 /// "T2: 2-digit × 5 · T4: 3-digit · T6: 4-digit".
 List<_Band> _bands(String sizes, _Measure measure) => [
@@ -361,23 +362,17 @@ List<_Band> _bands(String sizes, _Measure measure) => [
       return (
         from: Tier.values[int.parse(m[1]!)],
         limits: measure.limitsIn(m[2]!),
-        mirror: false,
+        low: RegExp('^√[0-9 ]+ to √').hasMatch(m[2]!)
+            ? _number(_roots(m[2]!).first)
+            : null,
         only5: m[2]!.contains('× 5'),
       );
     }(),
 ];
 
-/// The mirror of powers of 2, two tiers later: the even exponents of each
-/// band (a square root of 2ᵉ is whole only for an even e).
-List<_Band> _mirrorBands(List<_Band> powers) => [
-  for (final band in powers)
-    if (band.from.index + 2 <= 9)
-      (
-        from: Tier.values[band.from.index + 2],
-        limits: {0: band.limits[0]! - band.limits[0]! % 2},
-        mirror: true,
-        only5: false,
-      ),
+/// The radicands an entry writes ("√64 to √1 024").
+List<String> _roots(String text) => [
+  for (final m in RegExp(r'√([0-9][0-9 ]*[0-9]|[0-9])').allMatches(text)) m[1]!,
 ];
 
 /// The size table: its rows' cells (family, size by tier).
@@ -390,16 +385,6 @@ List<List<String>> _sizeTable(String section) {
       if (line.startsWith('|')) _cells(line),
   ];
   return rows.skip(2).toList();
-}
-
-int _log2(int n) {
-  var e = 0;
-  while (n > 1) {
-    if (n.isOdd) throw StateError('$n is not a power of 2');
-    n ~/= 2;
-    e++;
-  }
-  return e;
 }
 
 /// Significant digits: trailing zeros of a round number don't count

@@ -3,7 +3,7 @@
 Competitive mental-arithmetic game in Flutter, for teens and adults. UI, code, docs and commits
 in English.
 
-**`doc/plan.md` (version 3.4) is the product plan**, and **`doc/levels.md` (v1.4) specifies the
+**`doc/plan.md` (version 3.4) is the product plan**, and **`doc/levels.md` (v1.5) specifies the
 level system**. Both are the owner's: read them at the start of every phase; never edit them.
 This file is the working file: keep it short, update it as the project moves, keep it
 consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/decisions.md`,
@@ -60,8 +60,9 @@ by a test that reads the file (`test/spec/levels_spec_conformance_test.dart`).
 
 **Rules v5** (24 Nov, beta bug "level-70 questions at level 15"): `doc/levels.md` v1.4 —
 pattern questions sized by tier, no reviews; v4 kept for replay; Phase 3b window restarted
-(`doc/progress.md`, "Rules v5"; readings confirmed in `doc/decisions.md`, one spec suggestion
-open for the owner: √ of powers of 2 repeats √64 at T3–T4).
+(`doc/progress.md`, "Rules v5"; readings confirmed in `doc/decisions.md`). Same day, **rules
+v6** (`doc/levels.md` v1.5, edited at the owner's request): √ of powers of 2 sized by its own
+row; v5 kept for replay.
 
 **Staging is live** (24 Nov): with `STAGING=on` the full smoke test plays on staging, production's
 is read-only; all green. **Next: the beta, owner actions** — the phone checklist, tester codes
@@ -132,7 +133,8 @@ Non-negotiable without explicit discussion.
   questions, the update tuned (Levels close-out, `LevelRules.v3`); v4 = v3's update, pattern
   questions (one size for every tier — 2²⁰ at level 15) and the spec's long addition and
   subtraction; v5 = v4 with pattern questions sized by tier and no reviews (`doc/levels.md`
-  v1.4, current); v1 (all before the transition)
+  v1.4); v6 = v5 with √ of powers of 2 sized by its own row (v1.5, current); v1 (all before
+  the transition)
   is retired — never replayed, refused by the server (`rulesRetired`),
   never sent by the app, kept in history.
 - **Sessions are self-contained**: everything deciding question order is stored with them.
@@ -267,11 +269,13 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   digit counts, levels and fluent time, each family's tier. When it fails after a spec change,
   the code is behind the spec: a new rules version, never an edit of the test to fit the code.
   Hand-copied tables in other tests are no proof of conformance.
-- `packages/math_core/test/tiers/tier_references.dart` (v2), `tier_references_v4.dart` (v4) and
-  `tier_references_v5.dart` (v5) are generated (in `packages/math_core`: `dart run
+- `packages/math_core/test/tiers/tier_references.dart` (v2), `tier_references_v4.dart` (v4),
+  `tier_references_v5.dart` (v5) and `tier_references_v6.dart` (v6) are generated (in `packages/math_core`: `dart run
   tool/tier_references.dart`) only by a change meant to alter a version's questions — never to
-  make a JavaScript failure pass. The tool rewrites all three: an older file that changes is a
-  bug. v5 is `current` and played: its generation is frozen like v2's and v4's — a change is v6.
+  make a JavaScript failure pass. The tool rewrites them all: an older file that changes is a
+  bug. v6 is `current` and played: its generation is frozen like the others' — a change is v7
+  (v6 shows the pattern: `patternQuestion` delegates to the frozen `patternQuestionV5` except
+  where it differs).
 - A pattern family's Method recognises the family from the question's shape
   (`method_for.dart`): a family that grows must keep its shape recognisable at every size —
   the Method test runs every family at every tier.
