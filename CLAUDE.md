@@ -66,7 +66,9 @@ owner only — a push is verified by its commit appearing in the live `main.dart
 only after the tests).
 
 Preview: `https://math-trainer-kjc.pages.dev/` (Cloudflare Pages), deployed on every push to
-`main`; the old `https://geriogerg.github.io/Math-Trainer/` redirects there.
+`main`. The old `https://geriogerg.github.io/Math-Trainer/` redirect is off since the
+repository went private (free GitHub Pages: public repositories only); CI publishes it again
+with the variable `GITHUB_PAGES_REDIRECT=on`.
 
 ## Who you work with
 

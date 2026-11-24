@@ -336,8 +336,12 @@ jobs:
           if-no-files-found: error
       - name: Redirect page for the old address
         # Once the preview lives on Cloudflare, GitHub Pages only forwards
-        # old links (tool/preview_redirect/index.html).
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.PREVIEW_HOST == 'cloudflare'
+        # old links (tool/preview_redirect/index.html) — opt-in since the
+        # repository went private (20 Nov): free GitHub Pages serves public
+        # repositories only, and the deployment fails with a 404. Set the
+        # variable GITHUB_PAGES_REDIRECT=on if Pages works again (public
+        # repository or a paid plan).
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.PREVIEW_HOST == 'cloudflare' && vars.GITHUB_PAGES_REDIRECT == 'on'
         env:
           PREVIEW_URL: ${{ vars.PREVIEW_URL }}
         run: |
@@ -351,7 +355,9 @@ jobs:
           sed "s|__PREVIEW_URL__|$url/|g" tool/preview_redirect/index.html > build/redirect/index.html
           cp build/redirect/index.html build/redirect/404.html
       - name: Upload the site (GitHub Pages)
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        if: >
+          github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+          && (vars.PREVIEW_HOST != 'cloudflare' || vars.GITHUB_PAGES_REDIRECT == 'on')
         uses: actions/upload-pages-artifact@v3
         with:
           path: ${{ vars.PREVIEW_HOST == 'cloudflare' && 'build/redirect' || 'app/build/web' }}
@@ -361,8 +367,10 @@ jobs:
     # does not have yet. After deploy-cloudflare: with PREVIEW_HOST=cloudflare
     # this publishes the redirect, which must never point at an address the
     # Cloudflare project does not own (skipped deploy-cloudflare is fine).
+    # On Cloudflare, only with GITHUB_PAGES_REDIRECT=on (see the web job).
     if: >
       github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+      && (vars.PREVIEW_HOST != 'cloudflare' || vars.GITHUB_PAGES_REDIRECT == 'on')
       && !failure() && !cancelled()
     needs: [core, server, test, web, migrations, deploy-cloudflare]
     runs-on: ubuntu-latest
