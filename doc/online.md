@@ -174,8 +174,13 @@ skipped and production smoke plays the full visit, as before.
 
 Neither Render service deploys by itself (`render.yaml`, `autoDeploy: false`):
 `tool/ci/render_deploy.sh` calls the service's deploy hook with this commit and waits for
-`/health` to report it (a missing hook is a warning, nothing deployed). The staging server
-accepts `https://math-trainer-staging*.pages.dev` (one-label pattern, `originAllowed`).
+`/health` to report it (a missing hook is a warning, nothing deployed). The staging server's
+`ALLOWED_ORIGINS` is exactly `https://math-trainer-staging*.pages.dev` (`render.yaml`): the `*`
+stands for zero or more letters, digits and dashes inside one label (`originAllowed`), so it
+matches the bare `https://math-trainer-staging.pages.dev` and a suffixed
+`https://math-trainer-staging-x7q.pages.dev`, never another domain or a deployment subdomain
+(`server/test/http_app_test.dart`). The bare address alone works too while the project has no
+suffix.
 
 **Owner steps, once** (until step 4, CI behaves as before):
 
