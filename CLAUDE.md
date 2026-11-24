@@ -17,10 +17,10 @@ core, no AI, **no change to how Levelling games move levels**.
 
 | # | Commit | Note |
 |---|---|---|
-| 0 | *(A)* Decisions recorded; Phase 3b turned into a data check in `doc/progress.md` | |
-| 1 | *(A)* Fact and skill catalogue in the core; item key for any question; tests: every tier's facts covered, commutative facts merge | |
-| 2 | *(A)* Five-box scheduler, recomputable from history; tests on scripted histories | |
-| 3 | *(A)* **Rules v7**: due items in Levelling games (≤ 20 %, **current tier only**), stored with the session, replayed by the server; level targets rechecked by simulation | |
+| 0 | *(A)* Decisions recorded; Phase 3b turned into a data check in `doc/progress.md` | done |
+| 1 | *(A)* Fact and skill catalogue in the core; item key for any question; tests: every tier's facts covered, commutative facts merge | done |
+| 2 | *(A)* Five-box scheduler, recomputable from history; tests on scripted histories | done |
+| 3 | *(A)* **Rules v7**: due items in Levelling games (≤ 20 %, **current tier only**), stored with the session, replayed by the server; level targets rechecked by simulation | done |
 | 4 | *(C)* "Weak spots" practice game and Home card | |
 | 5 | *(C)* Profile "Weak spots" block | |
 | 6 | *(C)* Drill button on every tip, drill games | |
@@ -133,7 +133,8 @@ Non-negotiable without explicit discussion.
   questions, the update tuned (Levels close-out, `LevelRules.v3`); v4 = v3's update, pattern
   questions (one size for every tier — 2²⁰ at level 15) and the spec's long addition and
   subtraction; v5 = v4 with pattern questions sized by tier and no reviews (`doc/levels.md`
-  v1.4); v6 = v5 with √ of powers of 2 sized by its own row (v1.5, current); v1 (all before
+  v1.4); v6 = v5 with √ of powers of 2 sized by its own row (v1.5); v7 = v6 plus weak spots
+  in Levelling games (Phase 4, current; without weak spots a v7 game is a v6 game); v1 (all before
   the transition)
   is retired — never replayed, refused by the server (`rulesRetired`),
   never sent by the app, kept in history.
@@ -280,6 +281,12 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   (`method_for.dart`): a family that grows must keep its shape recognisable at every size —
   the Method test runs every family at every tier.
 - Pattern families are never stored: `replaySessionPatterns` recomputes them from the session.
+- **Weak-spot item keys are stored** (`PersistedSession.weakSpots`, schema v13, upload
+  `weakSpots`): `fact:<type>:<numbers>`, `skill:<family>` — never change the format, an
+  `ExerciseType` or a `PatternFamily` name. Weak spots in a Levelling game come only from the
+  operation's current tier (`belongsTo`, checked by the replay); `factsAt` must match what each
+  tier's standard questions draw (`fact_tiers_test.dart`) — a change to section 5's tables
+  changes it. The schedule is never stored: `scheduleFromHistory` rebuilds it.
 - `Random.secure()` throws under `-p node` (dart2js + Node 24); browsers are fine.
 - `web/sqlite3.wasm` and `web/sqflite_sw.js` come from `dart run sqflite_common_ffi_web:setup`;
   rerun with `--force` after upgrades. On GitHub Pages every path respects `/Math-Trainer/`.

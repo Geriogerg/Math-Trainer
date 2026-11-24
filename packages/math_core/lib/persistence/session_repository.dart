@@ -3,6 +3,12 @@ import '../models/exercise_type.dart';
 import 'persisted_answer.dart';
 import 'persisted_session.dart';
 
+/// One stored game and its answers, in the order given.
+typedef StoredGame = ({
+  PersistedSession session,
+  List<PersistedAnswer> answers,
+});
+
 /// The domain never knows the storage implementation (sqflite, memory, ...)
 /// — only this interface. Every method is asynchronous even when a local
 /// implementation is synchronous, so the call chain need not be rewritten
@@ -24,6 +30,11 @@ abstract class SessionRepository {
   });
 
   Future<List<PersistedAnswer>> answersForSession(String sessionId);
+
+  /// Every session of [playerId], oldest first, each with its answers in
+  /// the order given: the history the weak-spot schedule is rebuilt from
+  /// (Phase 4, `scheduleFromHistory`).
+  Future<List<StoredGame>> storedGames(String playerId);
 
   /// Whether [playerId] has at least one session played to its last
   /// question, game or placement. An interrupted session does not count

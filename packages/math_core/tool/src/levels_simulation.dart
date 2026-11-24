@@ -12,6 +12,10 @@ import 'package:math_core/tiers/fluent_time.dart';
 import 'package:math_core/tiers/tier.dart';
 import 'package:math_core/tiers/tier_content.dart';
 import 'package:math_core/tiers/tiered_game_generator.dart';
+import 'package:math_core/weak_spots/history.dart';
+import 'package:math_core/weak_spots/item_of.dart';
+import 'package:math_core/weak_spots/levelling.dart';
+import 'package:math_core/weak_spots/scheduler.dart';
 
 /// A simulated player of one operation: each answer right with probability
 /// [accuracy], a right one fluent with probability [fluent] (else slow,
@@ -315,4 +319,76 @@ double patternShareExpected(
   return patternShareFifths /
       5 *
       ((1 - reviews) * has(tier) + reviews * has(tier.below));
+}
+
+/// Rules v7 (Phase 4) played by one simulated player of [type] at a fixed
+/// level of [tier]: [games] Levelling games of [questions] questions, each
+/// answer right with probability [accuracy] (fluent half the time), the
+/// weak-spot schedule rebuilt from its answers and each game's weak spots
+/// chosen from it, as the app does. Measured: the share of weak-spot
+/// questions served, the largest share in one game, the share of questions
+/// not from [tier] (must be 0), and the level change of a game unchanged
+/// (`levelChangeHundredths` reads answers only, never what was asked).
+({double weakSpots, double maxInGame, double offTier}) weakSpotsServed(
+  ExerciseType type,
+  Tier tier, {
+  double accuracy = 0.7,
+  int games = 300,
+  int questions = 10,
+  int seed = 2026,
+}) {
+  final random = Random(seed + 31 * type.index + tier.index);
+  final level = Level.whole(10 * tier.index + 5);
+  final sequence = List.filled(questions, type);
+  var schedule = WeakSpotSchedule.empty;
+  var weak = 0;
+  var off = 0;
+  var maxInGame = 0;
+  for (var g = 0; g < games; g++) {
+    final items = chooseWeakSpots(
+      due: schedule.due,
+      sequence: sequence,
+      levels: {type: level},
+    );
+    final generator =
+        gameExerciseGenerator(
+              rulesVersion: RulesVersion.v7,
+              enabledTypes: {type},
+              levels: {type: level},
+              typeSequence: sequence,
+              weakSpots: items,
+            )
+            as TieredGameGenerator;
+    final answers = <GradedAnswer>[];
+    var inGame = 0;
+    for (var i = 0; i < questions; i++) {
+      final q = generator.next(random);
+      if (generator.lastWeakSpot != null) inGame++;
+      if (generator.lastTier != tier) off++;
+      final item = itemOf(q, family: generator.lastFamily);
+      if (item == null) continue;
+      final right = random.nextDouble() < accuracy;
+      final fluent = random.nextBool();
+      final ms = fluent
+          ? 1000
+          : itemFluentMs(item, drawnAt: level, rules: RulesVersion.v7) + 1;
+      answers.add((
+        item: item,
+        grade: !right
+            ? Grade.miss
+            : ms <= itemFluentMs(item, drawnAt: level, rules: RulesVersion.v7)
+            ? Grade.fluent
+            : Grade.slow,
+      ));
+    }
+    weak += inGame;
+    if (inGame > maxInGame) maxInGame = inGame;
+    schedule = schedule.afterGame(answers);
+  }
+  final total = games * questions;
+  return (
+    weakSpots: weak / total,
+    maxInGame: maxInGame / questions,
+    offTier: off / total,
+  );
 }

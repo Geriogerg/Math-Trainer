@@ -3,8 +3,8 @@ import '../leveling/rules_version.dart';
 import '../models/exercise.dart';
 import '../patterns/pattern_family.dart';
 import '../persistence/exercise_codec.dart';
-import '../persistence/persisted_answer.dart';
 import '../persistence/persisted_session.dart';
+import '../persistence/session_repository.dart';
 import '../replay/session_replay.dart';
 import '../tiers/fluent_time.dart';
 import '../tiers/tier_content.dart';
@@ -12,12 +12,6 @@ import 'facts.dart';
 import 'item.dart';
 import 'item_of.dart';
 import 'scheduler.dart';
-
-/// One stored game and its answers, in the order given.
-typedef StoredGame = ({
-  PersistedSession session,
-  List<PersistedAnswer> answers,
-});
 
 /// The time under which a correct answer to [item] is fluent for the
 /// scheduler (`doc/decisions.md`, "Phase 4"): a fact's own — its home

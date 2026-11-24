@@ -66,6 +66,35 @@ class SqfliteSessionRepository implements SessionRepository {
   }
 
   @override
+  Future<List<StoredGame>> storedGames(String playerId) async {
+    final sessions = await _database.query(
+      'sessions',
+      where: 'player_id = ?',
+      whereArgs: [playerId],
+      orderBy: 'created_at, id',
+    );
+    // One query for every answer, grouped here: answer i pairs with
+    // question i, in the order given (rowid).
+    final answers = await _database.rawQuery(
+      'SELECT a.* FROM answers a JOIN sessions s ON s.id = a.session_id '
+      'WHERE s.player_id = ? ORDER BY a.rowid',
+      [playerId],
+    );
+    final bySession = <String, List<PersistedAnswer>>{};
+    for (final row in answers) {
+      final answer = _answerFromRow(row);
+      bySession.putIfAbsent(answer.sessionId, () => []).add(answer);
+    }
+    return [
+      for (final row in sessions)
+        (
+          session: sessionFromRow(row),
+          answers: bySession[row['id']] ?? const <PersistedAnswer>[],
+        ),
+    ];
+  }
+
+  @override
   Future<bool> hasCompletedSession(String playerId) async {
     // Interrupted = fewer answers than planned (`exercise_count` keeps the
     // planned count, `SessionController._persistCompletedSession`).
@@ -271,6 +300,9 @@ class SqfliteSessionRepository implements SessionRepository {
       'synced_at': session.syncedAt?.toIso8601String(),
       'app_version': session.appVersion,
       'rules_version': session.rulesVersion.number,
+      'weak_spots': session.weakSpots.isEmpty
+          ? null
+          : jsonEncode([for (final item in session.weakSpots) item.key]),
     };
   }
 

@@ -18,7 +18,7 @@ import 'src/levels_simulation.dart';
 void main(List<String> args) {
   for (final (name, rules) in [
     ('v2', LevelRules.v2),
-    ('v3 = v4 = v5 = v6', LevelRules.of(RulesVersion.v6)),
+    ('v3 = v4 = v5 = v6 = v7', LevelRules.of(RulesVersion.v7)),
   ]) {
     print('== rules $name: $rules');
     for (final t in targetsFor(rules)) {
@@ -81,6 +81,24 @@ void main(List<String> args) {
         );
       }
     }
+  }
+  print(
+    '== rules v7: weak-spot questions served per tier, % (300 games of 10 '
+    'questions, a 70 % player; max in one game; off-tier must be 0)',
+  );
+  print(
+    '  operation       ${[for (final t in Tier.values) t.label.padLeft(9)].join()}',
+  );
+  for (final type in ExerciseType.values) {
+    final cells = [
+      for (final t in Tier.values)
+        () {
+          final w = weakSpotsServed(type, t);
+          return '${(100 * w.weakSpots).round()}/${(100 * w.maxInGame).round()}'
+              '${w.offTier > 0 ? '!' : ''}';
+        }().padLeft(9),
+    ];
+    print('  ${type.name.padRight(16)}${cells.join()}');
   }
   if (!args.contains('--grid')) return;
   print('== candidates meeting every target (stall at n = 4/5/10/20)');

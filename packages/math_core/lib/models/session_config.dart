@@ -1,5 +1,6 @@
 import '../leveling/level.dart';
 import '../leveling/rules_version.dart';
+import '../weak_spots/item.dart';
 import 'exercise_type.dart';
 import 'session_kind.dart';
 
@@ -12,6 +13,7 @@ class SessionConfig {
     this.kind = SessionKind.game,
     this.typeSequence,
     this.rulesVersion = RulesVersion.current,
+    this.weakSpots = const [],
   });
 
   final int seed;
@@ -37,4 +39,8 @@ class SessionConfig {
   /// The rules this session is generated and scored under (`doc/levels.md`,
   /// section 4), stored with it.
   final RulesVersion rulesVersion;
+
+  /// The weak spots this game re-asks (rules v7, Phase 4), in the order
+  /// the generator takes them; stored with the session.
+  final List<Item> weakSpots;
 }

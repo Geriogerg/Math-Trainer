@@ -13,7 +13,7 @@ import 'session_rows.dart';
 
 /// Current schema version. Every change increments this value and adds a
 /// branch in [_onUpgrade] — never destructive, never retroactive.
-const schemaVersion = 12;
+const schemaVersion = 13;
 
 /// The app's database, where each platform expects it. On web: same schema
 /// and same SQL as elsewhere, SQLite compiled to WebAssembly
@@ -69,7 +69,10 @@ Future<Database> openMathTrainerDatabase(String path) {
           -- The build that played it (schema v8): commit or 'dev'.
           app_version TEXT,
           -- `RulesVersion.number` (schema v10); NULL: before, i.e. 1.
-          rules_version INTEGER
+          rules_version INTEGER,
+          -- Weak spots asked (schema v13, rules v7 and the practice kinds):
+          -- JSON list of item keys in the order stored; NULL: none.
+          weak_spots TEXT
         )
       ''');
       await db.execute('''
@@ -185,6 +188,16 @@ Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
       'UPDATE sessions SET upload_refused = NULL '
       'WHERE rules_version = 2 AND upload_refused IS NOT NULL',
     );
+  }
+  if (oldVersion < 13) {
+    // Phase 4 commit 3: the weak spots a session asked (rules v7), stored
+    // so it replays alone. NULL for everything before: none.
+    // Only when missing: a database rewound to an older version (tests)
+    // already has it.
+    final columns = await db.rawQuery('PRAGMA table_info(sessions)');
+    if (!columns.any((c) => c['name'] == 'weak_spots')) {
+      await db.execute('ALTER TABLE sessions ADD COLUMN weak_spots TEXT');
+    }
   }
 }
 

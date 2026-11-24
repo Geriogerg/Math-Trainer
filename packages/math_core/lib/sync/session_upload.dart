@@ -5,6 +5,7 @@ import '../models/input_device.dart';
 import '../models/session_kind.dart';
 import '../persistence/persisted_answer.dart';
 import '../persistence/persisted_session.dart';
+import '../weak_spots/item.dart';
 
 /// One stored session as the app uploads it and the server replays it
 /// (plan, Phase 2 commit 5): the session's stored fields and its answers in
@@ -61,6 +62,9 @@ class SessionUpload {
       'createdAt': session.createdAt.toIso8601String(),
       'appVersion': ?session.appVersion,
       'rulesVersion': session.rulesVersion.number,
+      // Only when there are some (rules v7): older sessions keep their shape.
+      if (session.weakSpots.isNotEmpty)
+        'weakSpots': [for (final item in session.weakSpots) item.key],
     },
     'answers': [
       for (final a in answers)
@@ -115,6 +119,14 @@ class SessionUpload {
         rulesVersion: s['rulesVersion'] == null
             ? RulesVersion.v1
             : RulesVersion.of(_int(s, 'rulesVersion')),
+        weakSpots: s['weakSpots'] == null
+            ? const []
+            : [
+                for (final key in _list(s, 'weakSpots'))
+                  key is String
+                      ? Item.parse(key)
+                      : throw const FormatException('weakSpots: not a key'),
+              ],
       );
       final answers = [
         for (final (i, raw) in _list(root, 'answers').indexed)

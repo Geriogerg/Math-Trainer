@@ -5,6 +5,7 @@ import 'package:math_core/leveling/rules_version.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/models/session_kind.dart';
 import 'package:math_core/persistence/persisted_session.dart';
+import 'package:math_core/weak_spots/item.dart';
 
 /// A `sessions` row as the model — shared by the repository and the
 /// schema migrations that need whole sessions (v9).
@@ -43,6 +44,12 @@ PersistedSession sessionFromRow(Map<String, Object?> row) {
     rulesVersion: switch (row['rules_version']) {
       final int number => RulesVersion.of(number),
       _ => RulesVersion.v1,
+    },
+    weakSpots: switch (row['weak_spots']) {
+      final String json => [
+        for (final key in jsonDecode(json) as List) Item.parse(key as String),
+      ],
+      _ => const [],
     },
   );
 }

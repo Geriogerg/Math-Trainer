@@ -29,6 +29,9 @@ import 'kit_finders.dart';
 /// network/disk that recovers, to test the "Retry" button.
 class _FlakySessionRepository implements SessionRepository {
   @override
+  Future<List<StoredGame>> storedGames(String playerId) async => const [];
+
+  @override
   Future<List<PersistedSession>> pendingUploads(String playerId) async => [];
   @override
   Future<void> markSynced(String sessionId, DateTime syncedAt) async {}

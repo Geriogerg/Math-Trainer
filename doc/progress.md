@@ -1260,3 +1260,21 @@ the end: the phone checklist, and `bash tool/dashboard/dashboard.sh weak-spots` 
   Tests: the exit story (a missed 7 × 8 due in games 1, 3, 7, then out of the near games),
   every box's interval, misses, slow answers, mastery, absence, order, replay = step by step,
   grading of a real v6 game, time order, a retired game. Core 1 033 (VM) / 819 (JS).
+- **Commit 3** *(A)* — **Rules v7: weak spots in Levelling games** (current). Core:
+  `RulesVersion.v7` (replayed: 2–7; v3's update); `weak_spots/levelling.dart` — `belongsTo`
+  (a fact the tier's standard questions draw, a family available there), caps
+  (`weakSpotGameCap` ⌊N/5⌋, `weakSpotOperationCap` ⌈n/5⌉), `weakSpotProblem`,
+  `chooseWeakSpots`; `TieredGameGenerator(weakSpots:)` places them like reviews (nothing drawn
+  without them: **v7 without weak spots = v6**, tested on 200 games), `lastWeakSpot`;
+  `gameExerciseGenerator(weakSpots:)` refuses them outside v7 or against the rules;
+  `PersistedSession`/`SessionConfig.weakSpots`; upload field `weakSpots` (absent when none);
+  the replay refuses weak spots off the tier, over a cap, outside a Levelling game
+  (`notReplayable`); `SessionRepository.storedGames`. App: schema v13 (`weak_spots`, JSON keys),
+  `storedGames` in one query, `loadWeakSpotSchedule`, the due items chosen when a Levelling game
+  starts. Server: `/health` lists `[2, 3, 4, 5, 6, 7]` (no SQL: the payload is jsonb).
+  Simulation (`tool/levels_simulation.dart`): v7's targets met (v3's update); weak spots
+  served per operation and tier for a 70 % player — 0 off-tier everywhere, at most 20 % of a
+  game, 8–20 % on average. Tests: placement, forms, families, refusals, upload round trip,
+  a VM/JS pin of a v7 game with weak spots; app: a missed 3 × 4 re-asked in the next game,
+  stored, replayed. Core 1 056 (VM) / 829 (JS), app 409, server 37. Phase 3b's window not
+  restarted.

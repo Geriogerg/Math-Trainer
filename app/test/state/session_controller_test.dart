@@ -76,6 +76,9 @@ class _TimerSpy {
 /// are stored despite the failed cache read.
 class _LevelReadFailureRepository implements SessionRepository {
   @override
+  Future<List<StoredGame>> storedGames(String playerId) async => const [];
+
+  @override
   Future<void> deletePlayerData(String playerId) => throw UnimplementedError();
   final inner = InMemorySessionRepository();
   @override
@@ -142,6 +145,9 @@ class _LevelReadFailureRepository implements SessionRepository {
 /// an invariant breaking somewhere in the chain — rather than an expected
 /// I/O failure.
 class _BuggyLevelReadRepository implements SessionRepository {
+  @override
+  Future<List<StoredGame>> storedGames(String playerId) async => const [];
+
   @override
   Future<void> deletePlayerData(String playerId) => throw UnimplementedError();
   final inner = InMemorySessionRepository();

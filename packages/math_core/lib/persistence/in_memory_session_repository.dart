@@ -46,6 +46,16 @@ class InMemorySessionRepository implements SessionRepository {
   }
 
   @override
+  Future<List<StoredGame>> storedGames(String playerId) async {
+    final sessions = _sessions.where((s) => s.playerId == playerId).toList()
+      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    return [
+      for (final s in sessions)
+        (session: s, answers: await answersForSession(s.id)),
+    ];
+  }
+
+  @override
   Future<bool> hasCompletedSession(String playerId) async => _sessions.any(
     (s) =>
         s.playerId == playerId &&

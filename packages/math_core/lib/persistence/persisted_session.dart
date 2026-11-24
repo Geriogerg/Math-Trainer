@@ -2,6 +2,7 @@ import '../leveling/level.dart';
 import '../leveling/rules_version.dart';
 import '../models/exercise_type.dart';
 import '../models/session_kind.dart';
+import '../weak_spots/item.dart';
 
 /// See [PersistedAnswer] for why this sentinel exists.
 const _unset = Object();
@@ -23,7 +24,8 @@ class PersistedSession {
     this.uploadRefused,
     this.appVersion,
     this.rulesVersion = RulesVersion.v1,
-  }) {
+    List<Item> weakSpots = const [],
+  }) : weakSpots = List.unmodifiable(weakSpots) {
     final version = appVersion;
     if (version != null &&
         (version.isEmpty || version.length > maxAppVersionLength)) {
@@ -117,6 +119,11 @@ class PersistedSession {
   /// 4). Sessions stored before have none: [RulesVersion.v1].
   final RulesVersion rulesVersion;
 
+  /// The weak spots it re-asked (schema v13, Phase 4): a Levelling game's
+  /// under rules v7, in the order its generator took them. Empty for every
+  /// other session.
+  final List<Item> weakSpots;
+
   PersistedSession copyWith({
     String? playerId,
     Object? syncedAt = _unset,
@@ -142,6 +149,7 @@ class PersistedSession {
           : uploadRefused as String?,
       appVersion: appVersion,
       rulesVersion: rulesVersion,
+      weakSpots: weakSpots,
     );
   }
 
@@ -190,7 +198,16 @@ class PersistedSession {
       other._typeSequenceEqual(typeSequence) &&
       other.uploadRefused == uploadRefused &&
       other.appVersion == appVersion &&
-      other.rulesVersion == rulesVersion;
+      other.rulesVersion == rulesVersion &&
+      _sameItems(other.weakSpots);
+
+  bool _sameItems(List<Item> other) {
+    if (other.length != weakSpots.length) return false;
+    for (var i = 0; i < other.length; i++) {
+      if (other[i] != weakSpots[i]) return false;
+    }
+    return true;
+  }
 
   @override
   int get hashCode => Object.hash(
@@ -213,5 +230,6 @@ class PersistedSession {
     uploadRefused,
     appVersion,
     rulesVersion,
+    Object.hashAll(weakSpots),
   );
 }

@@ -3,6 +3,8 @@ import '../leveling/rules_version.dart';
 import '../models/exercise_type.dart';
 import '../tiers/tier_content.dart';
 import '../tiers/tiered_game_generator.dart';
+import '../weak_spots/item.dart';
+import '../weak_spots/levelling.dart';
 import 'exercise_generator.dart';
 
 /// The generator of a game (Levelling or Training) under its
@@ -10,13 +12,28 @@ import 'exercise_generator.dart';
 /// levels and type sequence. One place, so the app's game, the server's
 /// replay and a duel draw with the same one. Throws for rules v1, retired
 /// (`doc/levels.md`, section 4), and for a type sequence naming an
-/// operation the game does not play (rule 13).
+/// operation the game does not play (rule 13). [weakSpots] (rules v7
+/// only): the items to re-ask, checked by `weakSpotProblem` — any other
+/// rules, or a breach, throws.
 ExerciseGenerator gameExerciseGenerator({
   required RulesVersion rulesVersion,
   required Set<ExerciseType> enabledTypes,
   required Map<ExerciseType, Level> levels,
   required List<ExerciseType> typeSequence,
+  List<Item> weakSpots = const [],
 }) {
+  if (weakSpots.isNotEmpty) {
+    if (rulesVersion != RulesVersion.v7) {
+      throw ArgumentError.value(
+        rulesVersion,
+        'rulesVersion',
+        'has no weak spots (rules v7 only).',
+      );
+    }
+    if (weakSpotProblem(weakSpots, typeSequence, levels) case final p?) {
+      throw ArgumentError.value(weakSpots, 'weakSpots', p);
+    }
+  }
   for (final type in typeSequence) {
     if (!enabledTypes.contains(type)) {
       throw ArgumentError.value(
@@ -60,6 +77,14 @@ ExerciseGenerator gameExerciseGenerator({
       levels: levels,
       content: patternedContentV6,
       withReviews: false,
+    ),
+    // v6, plus the stored weak spots (Phase 4).
+    RulesVersion.v7 => TieredGameGenerator(
+      sequence: typeSequence,
+      levels: levels,
+      content: patternedContentV6,
+      withReviews: false,
+      weakSpots: weakSpots,
     ),
   };
 }

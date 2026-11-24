@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import '../generation/exercise_generator.dart';
 import '../generation/game_generator.dart';
 import '../generation/question_plan.dart';
 import '../leveling/rules_version.dart';
@@ -55,6 +56,7 @@ List<TierQuestion> _replay(PersistedSession session, int count) {
     case RulesVersion.v4:
     case RulesVersion.v5:
     case RulesVersion.v6:
+    case RulesVersion.v7:
       break;
   }
   switch (session.kind) {
@@ -78,12 +80,22 @@ List<TierQuestion> _replay(PersistedSession session, int count) {
     }
   }
   _checkQuestionPlan(session.enabledTypes, sequence);
-  final generator = gameExerciseGenerator(
-    rulesVersion: session.rulesVersion,
-    enabledTypes: session.enabledTypes,
-    levels: session.levels,
-    typeSequence: sequence,
-  );
+  if (session.weakSpots.isNotEmpty && session.kind != SessionKind.game) {
+    throw const SessionNotReplayable('weak spots outside a Levelling game');
+  }
+  final ExerciseGenerator generator;
+  try {
+    generator = gameExerciseGenerator(
+      rulesVersion: session.rulesVersion,
+      enabledTypes: session.enabledTypes,
+      levels: session.levels,
+      typeSequence: sequence,
+      weakSpots: session.weakSpots,
+    );
+  } on ArgumentError catch (e) {
+    // Stored weak spots that break the rules (tier, caps, version).
+    throw SessionNotReplayable('weak spots: ${e.message}');
+  }
   // Same stream as `LocalExerciseSource`: one `Random(seed)`.
   final random = Random(session.seed);
   return [
@@ -122,6 +134,7 @@ List<PatternFamily?> gamePatterns(SessionConfig config, int count) {
     enabledTypes: config.enabledTypes,
     levels: config.levels,
     typeSequence: sequence,
+    weakSpots: config.weakSpots,
   );
   final random = Random(config.seed);
   return [

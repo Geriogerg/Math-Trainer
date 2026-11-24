@@ -22,6 +22,9 @@ import 'golden_test_utils.dart';
 /// day, at any hour, in any time zone from UTC−11 to UTC+11.
 class _FixedLevelsRepository implements SessionRepository {
   @override
+  Future<List<StoredGame>> storedGames(String playerId) async => const [];
+
+  @override
   Future<List<PersistedSession>> pendingUploads(String playerId) async => [];
   @override
   Future<void> markSynced(String sessionId, DateTime syncedAt) async {}

@@ -3,6 +3,10 @@ import 'dart:async' show unawaited;
 import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:math_core/weak_spots/history.dart';
+import 'package:math_core/weak_spots/item.dart';
+import 'package:math_core/weak_spots/levelling.dart';
+import 'package:math_core/weak_spots/scheduler.dart';
 import 'package:math_core/account/account.dart';
 import 'package:math_core/account/account_repository.dart';
 import 'package:math_core/account/beta_access.dart';
@@ -413,7 +417,14 @@ Future<SessionController> buildSessionController(
   final priorLevels = await environment.repository.currentLevels(
     environment.playerId,
   );
+  // Rules v7 (Phase 4): the due weak spots of the current tiers. Optional:
+  // a history that cannot be read just means a game without them.
+  var due = const <Item>[];
+  try {
+    due = (await loadWeakSpotSchedule(environment)).due;
+  } on Exception catch (_) {}
   return _controllerFor(
+    due: due,
     environment,
     enabledTypes,
     plan,
@@ -433,6 +444,7 @@ SessionController _controllerFor(
   required Map<ExerciseType, Level> levels,
   required SessionKind kind,
   required SessionLevelUpdates levelUpdates,
+  List<Item> due = const [],
 }) {
   final seed = DateTime.now().millisecondsSinceEpoch;
   // Decided once here and stored with the session, so the session replays
@@ -443,6 +455,11 @@ SessionController _controllerFor(
     seed: seed,
   );
   const rulesVersion = RulesVersion.current;
+  // Only a Levelling game re-asks weak spots, only from each operation's
+  // current tier (`chooseWeakSpots`).
+  final weakSpots = kind == SessionKind.game
+      ? chooseWeakSpots(due: due, sequence: typeSequence, levels: levels)
+      : const <Item>[];
   return SessionController(
     config: SessionConfig(
       seed: seed,
@@ -452,6 +469,7 @@ SessionController _controllerFor(
       kind: kind,
       typeSequence: typeSequence,
       rulesVersion: rulesVersion,
+      weakSpots: weakSpots,
     ),
     exerciseSource: LocalExerciseSource(
       generator: gameExerciseGenerator(
@@ -459,6 +477,7 @@ SessionController _controllerFor(
         enabledTypes: enabledTypes,
         levels: levels,
         typeSequence: typeSequence,
+        weakSpots: weakSpots,
       ),
       seed: seed,
     ),
@@ -505,6 +524,14 @@ SessionController buildTablesController(
     ),
   );
 }
+
+/// The player's weak-spot schedule, rebuilt from every stored game
+/// (Phase 4: nothing about it is stored).
+Future<WeakSpotSchedule> loadWeakSpotSchedule(
+  AppEnvironment environment,
+) async => scheduleFromHistory(
+  await environment.repository.storedGames(environment.playerId),
+);
 
 /// Debug switch: `flutter run --dart-define=DEBUG_NO_TIMEOUT=true` turns the
 /// per-question timeout off, for slow manual checks and screenshots.

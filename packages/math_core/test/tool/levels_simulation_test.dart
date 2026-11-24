@@ -176,4 +176,31 @@ void main() {
       expect(sixty[1], isNull);
     });
   });
+
+  group('rules v7 (Phase 4: weak spots in Levelling games)', () {
+    test("v7's level update is v3's: the four targets still met", () {
+      final v7 = LevelRules.of(RulesVersion.v7);
+      expect(v7, same(LevelRules.v3));
+      for (final t in targetsFor(v7)) {
+        expect(t.met, isTrue, reason: '${t.target}: ${t.measured}');
+      }
+    });
+
+    test('weak spots served: never above 20 % of a game, never off the '
+        'current tier, and served where the tier has items', () {
+      for (final type in ExerciseType.values) {
+        for (final tier in Tier.values) {
+          final w = weakSpotsServed(type, tier, games: 120);
+          final reason = '${type.name} ${tier.label}';
+          expect(w.offTier, 0, reason: reason);
+          expect(w.maxInGame, lessThanOrEqualTo(0.2), reason: reason);
+        }
+      }
+      // A 70 % player at T1 multiplication: misses come back.
+      expect(
+        weakSpotsServed(ExerciseType.multiplication, Tier.t1).weakSpots,
+        greaterThan(0.1),
+      );
+    });
+  });
 }
