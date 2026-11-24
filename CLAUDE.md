@@ -56,8 +56,10 @@ by a test that reads the file (`test/spec/levels_spec_conformance_test.dart`).
   uncounted, questions per operation 4/5/10/20, Training never moves levels (T1 / T4 / T7),
   main level = mean of the four basics.
 
-Still open from Phase 5.2: the owner's staging setup (`doc/online.md`, "Staging") and the CI
-beta code file for the slow-4G measurement.
+**Staging is live** (24 Nov): with `STAGING=on` the full smoke test plays on staging, production's
+is read-only; all green. **Next: the beta, owner actions** — the phone checklist, tester codes
+(`dashboard.sh new-code`), then Phase 3b at ~300 sessions (`doc/progress.md`, "Staging live").
+Still parked: the slow-4G measurement past the gate (a CI beta code).
 
 Phase 3b starts at ~300 sessions from 10+ testers, counted from the Patterns and Method release
 (rules v4, `owner_dashboard.calibration_window`);

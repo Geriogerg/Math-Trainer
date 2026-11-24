@@ -1160,3 +1160,39 @@ otherwise column by column on the example's shape. Checked by mutation: 8 spec e
 example, a fluent time, digit counts, a family's tier, a family example) and the old 3-digit
 addition T7 each fail it. Stale mentions of v2 as "`doc/levels.md` v1" fixed (code comments,
 `CLAUDE.md`, `doc/decisions.md`): v2's addition and subtraction were an earlier draft's.
+
+
+## Staging live (24 Nov 2026)
+
+Phase 5.2's exit test had its staging half unverified (the owner's setup). Done: with
+`STAGING=on`, CI's full smoke test plays on staging and production's is read-only — all green
+at `aaee7a2` (smoke-staging, migrations, server-production, deploy-cloudflare, smoke).
+
+- **Upload 503 on staging** (`a7d02cf`, `28f8391`): the smoke failed at "no server levels after
+  150 s". Traced with `SMOKE_TRACE=1` (now prints each write's status and error body): every
+  `POST /v1/sessions` answered 503. The server now logs the reason (`503 on POST /v1/sessions:
+  …`); Render's log showed `permission denied for table uploaded_sessions`. Newer Supabase
+  projects (staging) give the API roles no default privileges on new tables, older ones
+  (production) do; no migration granted them. Migration `20261127000000_explicit_table_grants`
+  grants the server's five tables to `service_role` and `profiles` to the app's roles (a no-op
+  on production); the SQL test stub now models the newer kind, so a missing grant fails there.
+  `ServerConfig` also refuses a legacy anon JWT as the secret key (a first guess, kept as a
+  guard).
+- **GitHub Pages** (`aaee7a2`): since the repository went private, `deploy-pages` fails (404,
+  free Pages serves public repositories only). The redirect from
+  `geriogerg.github.io/Math-Trainer/` is opt-in (`GITHUB_PAGES_REDIRECT=on`); old links no
+  longer forward.
+- **Staging `ALLOWED_ORIGINS`** (`ff10dad`): `https://math-trainer-staging*.pages.dev` matches the
+  bare project address (`*` = zero or more characters in one label, tested); doc/online.md
+  gives the exact value.
+- **Spec-conformance test** (plan v3.4): done at `97e41c1`; it passes; the remaining
+  "`doc/levels.md` v1" mentions are historical and correct.
+
+**Next: the beta — owner actions.**
+1. The Patterns and Method phone checklist (below, and in the phase report).
+2. Invite testers: `bash tool/dashboard/dashboard.sh new-code <label> [uses]`, one code per
+   tester; `codes` shows their uses.
+3. Phase 3b starts at ~300 sessions from 10+ testers since the v4 release
+   (`owner_dashboard.calibration_window`; the dashboard's report counts them).
+4. Still parked, optional: the slow-4G first-question measurement past the gate (needs a CI
+   beta code; Phase 5.2 commit 0).
