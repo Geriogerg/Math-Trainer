@@ -51,6 +51,8 @@ void main() {
       'betaGate': true,
       // The rules it replays: the app holds sessions of others back.
       'rules': [2, 3, 4, 5, 6, 7, 8],
+      // The kinds it accepts: the app holds the others back.
+      'kinds': ['game', 'training', 'weakSpots', 'drill'],
     });
   });
 

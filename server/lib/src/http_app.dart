@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:math_core/leveling/rules_version.dart';
+import 'package:math_core/models/session_kind.dart';
 import 'package:shelf/shelf.dart';
 
 import 'config.dart';
@@ -26,6 +27,9 @@ Handler buildHandler(ServerConfig config, {List<Route> routes = const []}) {
         // The rules versions this server replays (Levels phase): the app
         // sends a session only to a server that knows its rules.
         'rules': [for (final v in RulesVersion.replayed) v.number],
+        // The session kinds it accepts (Phase 4 close-out): the app holds a
+        // session of another kind back, as for rules.
+        'kinds': [for (final k in SessionKind.acceptedByServer) k.name],
       }),
     ),
     ...routes,

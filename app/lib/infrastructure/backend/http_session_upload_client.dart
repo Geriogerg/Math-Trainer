@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:math_core/leveling/rules_version.dart';
+import 'package:math_core/models/session_kind.dart';
 import 'package:math_core/sync/session_upload.dart';
 import 'package:math_core/sync/session_upload_client.dart';
 
@@ -17,6 +18,9 @@ import 'package:math_core/sync/session_upload_client.dart';
 /// site, and one that does not know the rules yet would refuse the session
 /// for good. Until it does, the session waits, pending — which also keeps
 /// the app from adopting that server's levels (`syncLevelsBeforeGame`).
+/// Likewise for the session's **kind** (Phase 4 close-out): `/health`
+/// lists the kinds the server accepts; a server that lists none accepts
+/// `SessionKind.acceptedWithoutList` (games and Training).
 class HttpSessionUploadClient implements SessionUploadClient {
   HttpSessionUploadClient({
     required this.serverUrl,
@@ -34,12 +38,17 @@ class HttpSessionUploadClient implements SessionUploadClient {
   /// uploads are background work.
   final Duration timeout;
 
-  /// The rules the server said it replays; asked again until it knows the
-  /// one a session needs (a deploy changes it, never back).
+  /// The rules the server said it replays, and the kinds it accepts;
+  /// asked again until it knows the ones a session needs (a deploy changes
+  /// them, never back).
   Set<int>? _serverRules;
+  Set<String>? _serverKinds;
 
-  Future<void> _requireServerRules(RulesVersion rules) async {
-    if (_serverRules?.contains(rules.number) ?? false) return;
+  Future<void> _requireServer(RulesVersion rules, SessionKind kind) async {
+    if ((_serverRules?.contains(rules.number) ?? false) &&
+        (_serverKinds?.contains(kind.name) ?? false)) {
+      return;
+    }
     final http.Response response;
     try {
       response = await _client
@@ -62,9 +71,21 @@ class HttpSessionUploadClient implements SessionUploadClient {
         for (final v in listed)
           if (v is int) v,
     };
+    final kinds = body is Map ? body['kinds'] : null;
+    _serverKinds = kinds is List
+        ? {
+            for (final k in kinds)
+              if (k is String) k,
+          }
+        : {for (final k in SessionKind.acceptedWithoutList) k.name};
     if (!_serverRules!.contains(rules.number)) {
       throw UploadUnavailable(
         'the server does not replay rules v${rules.number} yet',
+      );
+    }
+    if (!_serverKinds!.contains(kind.name)) {
+      throw UploadUnavailable(
+        'the server does not accept ${kind.name} sessions yet',
       );
     }
   }
@@ -73,7 +94,7 @@ class HttpSessionUploadClient implements SessionUploadClient {
   Future<UploadOutcome> upload(SessionUpload upload) async {
     final token = await accessToken();
     if (token == null) throw const UploadUnavailable('not signed in');
-    await _requireServerRules(upload.session.rulesVersion);
+    await _requireServer(upload.session.rulesVersion, upload.session.kind);
     final http.Response response;
     try {
       response = await _client

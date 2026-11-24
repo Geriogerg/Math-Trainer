@@ -6,7 +6,9 @@ import 'package:http/testing.dart';
 import 'package:math_core/leveling/level.dart';
 import 'package:math_core/leveling/rules_version.dart';
 import 'package:math_core/models/exercise_type.dart';
+import 'package:math_core/models/session_kind.dart';
 import 'package:math_core/persistence/persisted_session.dart';
+import 'package:math_core/weak_spots/item.dart';
 import 'package:math_core/sync/session_upload.dart';
 import 'package:math_core/sync/session_upload_client.dart';
 import 'package:math_trainer/infrastructure/backend/http_session_upload_client.dart';
@@ -85,6 +87,72 @@ void main() {
         throwsA(isA<UploadUnavailable>()),
       );
       expect(posted, 0);
+    });
+  });
+
+  group("a server that does not accept the session's kind yet (Phase 4 "
+      'close-out)', () {
+    SessionUpload practice(SessionKind kind) => SessionUpload(
+      session: PersistedSession(
+        id: 'w1',
+        playerId: 'p1',
+        seed: 1,
+        enabledTypes: const {ExerciseType.multiplication},
+        exerciseCount: 1,
+        totalScore: 0,
+        levels: {ExerciseType.multiplication: Level.whole(15)},
+        createdAt: DateTime.utc(2026, 11, 24),
+        typeSequence: const [ExerciseType.multiplication],
+        rulesVersion: RulesVersion.v8,
+        kind: kind,
+        weakSpots: [Item.parse('fact:multiplication:7,8')],
+      ),
+      answers: const [],
+    );
+
+    HttpSessionUploadClient server(
+      Map<String, Object?> health,
+      void Function() onPost,
+    ) => HttpSessionUploadClient(
+      serverUrl: Uri.parse('https://server.example'),
+      accessToken: () async => 'jwt',
+      client: MockClient((request) async {
+        if (request.url.path == '/health') return json(200, health);
+        onPost();
+        return json(200, {
+          'status': 'accepted',
+          'syncedAt': '2026-11-24T10:00:00Z',
+        });
+      }),
+    );
+
+    test(
+      'a server listing no kinds: a Weak spots game waits, a game goes',
+      () async {
+        var posted = 0;
+        final client = server({
+          'status': 'ok',
+          'rules': [2, 8],
+        }, () => posted++);
+        await expectLater(
+          client.upload(practice(SessionKind.weakSpots)),
+          throwsA(isA<UploadUnavailable>()),
+        );
+        expect(posted, 0);
+        await client.upload(upload);
+        expect(posted, 1);
+      },
+    );
+
+    test('a server listing it: sent', () async {
+      var posted = 0;
+      final client = server({
+        'status': 'ok',
+        'rules': [8],
+        'kinds': ['game', 'training', 'weakSpots', 'drill'],
+      }, () => posted++);
+      await client.upload(practice(SessionKind.drill));
+      expect(posted, 1);
     });
   });
 

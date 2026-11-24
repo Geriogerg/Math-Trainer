@@ -267,6 +267,18 @@ void main() {
     });
   });
 
+  test('the kinds a server accepts: every kind but the placements; without '
+      'a list, games and Training', () {
+    expect(SessionKind.acceptedByServer, [
+      for (final k in SessionKind.values)
+        if (!k.isPlacement) k,
+    ]);
+    expect(SessionKind.acceptedWithoutList, [
+      SessionKind.game,
+      SessionKind.training,
+    ]);
+  });
+
   test('practice kinds never move levels and are not placements', () {
     for (final kind in [SessionKind.weakSpots, SessionKind.drill]) {
       expect(kind.movesLevels, isFalse);

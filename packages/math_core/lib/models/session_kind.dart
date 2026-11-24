@@ -40,6 +40,16 @@ enum SessionKind {
     game || training || weakSpots || drill => false,
   };
 
+  /// The kinds a server built from this code accepts (validates and
+  /// stores): its `/health` lists their names (`kinds`, Phase 4 close-out).
+  /// The placements are history only, refused.
+  static const acceptedByServer = [game, training, weakSpots, drill];
+
+  /// What a server whose `/health` lists no kinds accepts: the servers
+  /// before the Phase 4 close-out — the app holds the practice kinds back
+  /// from them, as it holds a rules version back.
+  static const acceptedWithoutList = [game, training];
+
   /// Only a Levelling game moves levels and counts for the boards.
   bool get movesLevels => this == game;
 

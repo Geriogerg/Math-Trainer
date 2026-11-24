@@ -18,7 +18,7 @@ but one, which commit 1 applies.
 | # | Commit | Note |
 |---|---|---|
 | 1 | *(A)* **Rules v8**: a correct but slow answer on a fact enters the schedule at box 2 (it changes which items are due) | done |
-| 2 | *(A)* `/health` lists the session kinds the server accepts; the app holds an upload until its kind is listed, as for rules versions | |
+| 2 | *(A)* `/health` lists the session kinds the server accepts; the app holds an upload until its kind is listed, as for rules versions | done |
 | 3 | *(A)* Server-side check that a game's weak spots were due, from the player's uploaded history; a failure is still accepted for levels, its weak spots flagged | |
 
 **Phase 4's rules** (plan v3.5–v3.6; detail in `doc/decisions.md`, "Phase 4"):
@@ -332,9 +332,10 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   on this (24 Nov). The SQL test stub models the newer kind, so a missing grant fails there.
 - The beta gate is a build switch (`BETA_GATE=true`): with it on, the smoke test needs the
   `SMOKE_BETA_CODE` secret. Never put a real code in the repository, private or not.
-- The app holds an upload back until the server lists its **rules version** — not its session
-  kind: a new `SessionKind` reaching an older server is a `badRequest`, refused for good.
-  Ship a new kind with the server first (Phase 4's kinds went with rules v7's server).
+- The app holds an upload back until the server's `/health` lists both its **rules version**
+  and its **session kind** (`kinds`; none listed = games and Training). A new `SessionKind`
+  goes in `SessionKind.acceptedByServer` with its validation — never a kind the server would
+  refuse as `badRequest`.
 - `RejectionReason` and `ValidationFlag` names are stored server-side and sent to the app:
   renaming breaks both. Same for `InputDevice` names (answers, uploads).
 - Tests apply every migration twice: a later migration must not change the columns of a view

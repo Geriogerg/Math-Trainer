@@ -1351,3 +1351,11 @@ in a migration CI applies).
   as the answer that scheduled it. Simulation: targets met (v3's update); weak spots never off
   tier, at most 20 % of a game. Tests: the v8 rule, v7 unchanged, a mixed v7/v8 history, v8
   draws v7's questions. `/health` lists rules 2–8.
+- **Commit 2** *(A)* — **`/health` lists the session kinds the server accepts.** Core:
+  `SessionKind.acceptedByServer` (every kind but the placements) and `acceptedWithoutList`
+  (games and Training: what a server listing no kinds accepts — the ones before this commit).
+  Server: `/health` `kinds: [game, training, weakSpots, drill]`. App: `HttpSessionUploadClient`
+  holds an upload, pending, until the server lists its kind as well as its rules (a Weak spots
+  game or a Drill never reaches an older server, which would refuse it for good as
+  `badRequest`). Tests: the client waits for a practice kind on a server listing none, sends a
+  game there, sends a drill to a server listing it; the server's `/health`; the lists.
