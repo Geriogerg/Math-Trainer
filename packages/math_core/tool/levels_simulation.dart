@@ -18,7 +18,7 @@ import 'src/levels_simulation.dart';
 void main(List<String> args) {
   for (final (name, rules) in [
     ('v2', LevelRules.v2),
-    ('v3 = v4 = v5 = v6 = v7', LevelRules.of(RulesVersion.v7)),
+    ('v3 = v4 = v5 = v6 = v7 = v8', LevelRules.of(RulesVersion.v8)),
   ]) {
     print('== rules $name: $rules');
     for (final t in targetsFor(rules)) {
@@ -83,7 +83,7 @@ void main(List<String> args) {
     }
   }
   print(
-    '== rules v7: weak-spot questions served per tier, % (300 games of 10 '
+    '== rules v8: weak-spot questions served per tier, % (300 games of 10 '
     'questions, a 70 % player; max in one game; off-tier must be 0)',
   );
   print(

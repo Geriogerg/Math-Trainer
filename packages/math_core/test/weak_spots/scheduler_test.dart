@@ -11,6 +11,7 @@ import 'package:math_core/patterns/pattern_family.dart';
 import 'package:math_core/persistence/exercise_codec.dart';
 import 'package:math_core/persistence/persisted_answer.dart';
 import 'package:math_core/persistence/persisted_session.dart';
+import 'package:math_core/persistence/session_repository.dart';
 import 'package:math_core/tiers/tiered_game_generator.dart';
 import 'package:math_core/weak_spots/facts.dart';
 import 'package:math_core/weak_spots/history.dart';
@@ -104,6 +105,24 @@ void main() {
       expect(schedule.tracked, isEmpty);
       schedule = schedule.afterGame([_a(_skill, Grade.miss)]);
       expect(schedule.stateOf(_skill), ItemState(1, schedule.games - 1));
+    });
+
+    test('rules v8: a slow fact enters at box 2; a slow skill does not, '
+        'nor anything under v7', () {
+      final v8 = WeakSpotSchedule.empty.afterGame([
+        _a(_sevenEight, Grade.slow),
+        _a(_skill, Grade.slow),
+        _a(_other, Grade.fluent),
+      ], slowFactsEnter: true);
+      expect(v8.stateOf(_sevenEight), const ItemState(2, 0));
+      expect(v8.stateOf(_skill), isNull);
+      expect(v8.stateOf(_other), isNull);
+      expect(v8.isDue(_sevenEight), isFalse);
+      expect(v8.afterGame(const []).isDue(_sevenEight), isTrue);
+      final v7 = WeakSpotSchedule.empty.afterGame([
+        _a(_sevenEight, Grade.slow),
+      ]);
+      expect(v7.tracked, isEmpty);
     });
 
     test('correct answers to an untracked item leave it untracked', () {
@@ -329,6 +348,40 @@ void main() {
       final schedule = scheduleFromHistory([fluent, missed]);
       expect(schedule.games, 2);
       expect(schedule.stateOf(_sevenEight), const ItemState(2, 1));
+    });
+
+    test('each game is scheduled under its own rules: a slow 7 × 8 enters '
+        'from a v8 game, not from a v7 one', () {
+      final seven = ArithmeticExercise(
+        operandA: 7,
+        operandB: 8,
+        operationType: OperationType.multiplication,
+      );
+      StoredGame slowIn(RulesVersion rules, String id, int day) {
+        final s = session(
+          id,
+          seed: day,
+          levels: {ExerciseType.multiplication: Level.whole(15)},
+          at: DateTime.utc(2026, 11, day),
+          rules: rules,
+        );
+        return (
+          session: s,
+          answers: [answer(s, 0, seven, correct: true, ms: 9000)],
+        );
+      }
+
+      expect(
+        scheduleFromHistory([slowIn(RulesVersion.v7, 'a', 1)]).tracked,
+        isEmpty,
+      );
+      expect(
+        scheduleFromHistory([
+          slowIn(RulesVersion.v7, 'a', 1),
+          slowIn(RulesVersion.v8, 'b', 2),
+        ]).stateOf(_sevenEight),
+        const ItemState(2, 1),
+      );
     });
 
     test('a game of retired rules counts, its questions standard', () {

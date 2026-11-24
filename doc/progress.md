@@ -1336,3 +1336,18 @@ the end: the phone checklist, and `bash tool/dashboard/dashboard.sh weak-spots` 
 - **Production lists rules 7**: yes — `/health` `rules: [2, 3, 4, 5, 6, 7]` since commit 3.
 - Not verified here: CI's smoke test (private repository), the phone, the dashboard report on
   live data (owner's machine).
+
+## Phase 4 close-out (plan v3.6)
+
+Plan v3.6: Phase 4's outcome — every provisional decision kept but one (slow facts enter the
+schedule); a three-commit close-out. Owner actions: none by hand (commit 3's SQL function goes
+in a migration CI applies).
+
+- **Commit 1** *(A)* — **Rules v8: slow facts enter the schedule at box 2.**
+  `RulesVersion.v8` (current; replayed 2–8; v7's questions and update), with
+  `slowFactsEnterSchedule` (v8) and `hasWeakSpots` (v7 on); `WeakSpotSchedule.afterGame(
+  slowFactsEnter:)` — an untracked fact answered correctly but slowly enters at box 2, never a
+  skill; `scheduleFromHistory` applies each game's own rules. The report counts a v8 slow fact
+  as the answer that scheduled it. Simulation: targets met (v3's update); weak spots never off
+  tier, at most 20 % of a game. Tests: the v8 rule, v7 unchanged, a mixed v7/v8 history, v8
+  draws v7's questions. `/health` lists rules 2–8.

@@ -49,26 +49,47 @@ enum RulesVersion {
   /// tier only**, stored with the session (`PersistedSession.weakSpots`).
   /// Without weak spots a v7 game is a v6 game, question for question. v3's
   /// level update; levels carry over.
-  v7(7);
+  v7(7),
+
+  /// The Phase 4 close-out (plan v3.6): v7's questions and update; the
+  /// weak-spot schedule also takes in a fact answered **correctly but
+  /// slowly**, at box 2 ([slowFactsEnterSchedule]) — it changes which items
+  /// are due, so which weak spots a game may hold. Each game's answers are
+  /// scheduled under that game's own rules: v7 games keep v7's rule.
+  v8(8);
 
   const RulesVersion(this.number);
 
   final int number;
 
   /// What new sessions are played under.
-  static const current = v7;
+  static const current = v8;
 
   /// The rules a server built from this code replays (validation refuses
   /// the others). The server says so in its `/health` (`rules`), and the
   /// app holds a session back, pending, until the server it talks to knows
   /// its rules — an older server would refuse it for good.
-  static const replayed = [v2, v3, v4, v5, v6, v7];
+  static const replayed = [v2, v3, v4, v5, v6, v7, v8];
 
   /// Played before the Levels phase's transition: its levels are on the
   /// old scale (1–100 from placement), never compared with the others.
   bool get retired => switch (this) {
     v1 => true,
-    v2 || v3 || v4 || v5 || v6 || v7 => false,
+    v2 || v3 || v4 || v5 || v6 || v7 || v8 => false,
+  };
+
+  /// Whether a fact answered correctly but slowly enters the weak-spot
+  /// schedule (at box 2) — from rules v8 (plan v3.6, Phase 4 outcome).
+  bool get slowFactsEnterSchedule => switch (this) {
+    v1 || v2 || v3 || v4 || v5 || v6 || v7 => false,
+    v8 => true,
+  };
+
+  /// Whether a game may hold weak spots (`PersistedSession.weakSpots`) and
+  /// practice kinds exist: rules v7 on.
+  bool get hasWeakSpots => switch (this) {
+    v1 || v2 || v3 || v4 || v5 || v6 => false,
+    v7 || v8 => true,
   };
 
   /// Throws [ArgumentError] for a number no version has (rule 13).

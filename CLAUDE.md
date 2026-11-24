@@ -3,7 +3,7 @@
 Competitive mental-arithmetic game in Flutter, for teens and adults. UI, code, docs and commits
 in English.
 
-**`doc/plan.md` (version 3.5) is the product plan**, and **`doc/levels.md` (v1.5) specifies the
+**`doc/plan.md` (version 3.6) is the product plan**, and **`doc/levels.md` (v1.5) specifies the
 level system**. Both are the owner's: read them at the start of every phase; never edit them.
 This file is the working file: keep it short, update it as the project moves, keep it
 consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/decisions.md`,
@@ -11,45 +11,32 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 
 ## Current phase
 
-**Phase 4 — Learning layer: weak spots and drills** (`doc/plan.md` v3.5, section 7), run in
-**one pass**. Goal: the app trains each player's own weak spots, not just tests them. Pure
-core, no AI, **no change to how Levelling games move levels**.
+**Phase 4 close-out** (`doc/plan.md` v3.6, section 7), run in **one pass**, three commits.
+Phase 4 (weak spots and drills, rules v7) is live; its outcome kept every provisional decision
+but one, which commit 1 applies.
 
 | # | Commit | Note |
 |---|---|---|
-| 0 | *(A)* Decisions recorded; Phase 3b turned into a data check in `doc/progress.md` | done |
-| 1 | *(A)* Fact and skill catalogue in the core; item key for any question; tests: every tier's facts covered, commutative facts merge | done |
-| 2 | *(A)* Five-box scheduler, recomputable from history; tests on scripted histories | done |
-| 3 | *(A)* **Rules v7**: due items in Levelling games (≤ 20 %, **current tier only**), stored with the session, replayed by the server; level targets rechecked by simulation | done |
-| 4 | *(C)* "Weak spots" practice game and Home card | done |
-| 5 | *(C)* Profile "Weak spots" block | done |
-| 6 | *(C)* Drill button on every tip, drill games | done |
-| 7 | *(A)* Dashboard report: accuracy and time on items before and after they were scheduled | done |
+| 1 | *(A)* **Rules v8**: a correct but slow answer on a fact enters the schedule at box 2 (it changes which items are due) | done |
+| 2 | *(A)* `/health` lists the session kinds the server accepts; the app holds an upload until its kind is listed, as for rules versions | |
+| 3 | *(A)* Server-side check that a game's weak spots were due, from the player's uploaded history; a failure is still accepted for levels, its weak spots flagged | |
 
-**Exit:** a missed 7 × 8 comes back within the next games until answered fluently three times;
-Weak spots and Drill games playable on a phone; level targets still met; production lists
-rules 7.
-
-Done: 0–7 and the exit test (24 Nov; `doc/progress.md`). **Open: the owner confirms the
-provisional decisions (`doc/decisions.md`, "Phase 4"), plays the phone checklist and runs
-`dashboard.sh weak-spots`.**
-
-**Phase 4's rules** (plan v3.5):
-- **Facts** (addition bonds within 20, complements to 100, tables to 20 × 20, squares to 30²,
-  cubes to 10³, 2¹–2¹², friendly percentages, their roots and divisions; commutative facts
-  share one entry) and **skills** (pattern families and Method strategies).
+**Phase 4's rules** (plan v3.5–v3.6; detail in `doc/decisions.md`, "Phase 4"):
+- **Facts** (bonds within 20 and complements to 100 with their subtractions, tables to 20 × 20
+  and their divisions, squares to 30², cubes to 10³, 2¹–2¹², friendly percentages, their roots;
+  commutative facts share one entry) and **skills** (pattern families; a Method strategy counts
+  as its family). A pattern question trains its family's skill.
 - **Five boxes, counted in games, never days**: wrong or timeout → box 1; fluent → one up;
-  slow → stays; box 1–5 due after 1, 2, 4, 8, 16 of the player's games. Recomputable from
-  stored answers, like levels.
-- **Levelling games: weak-spot questions come only from the player's current tier** in that
-  operation (the no-lower-tier rule stands; owner, 24 Nov). The chosen items are stored with the
-  session; the server replays it alone.
-- Weak spots game and Drill games: practice only — never move levels, never ranked.
+  slow → stays (from v8 an untracked fact answered slowly enters at box 2); fluent in box 5 →
+  mastered. Due after 1, 2, 4, 8, 16 games. A fact is fluent
+  within its own home tier's time. Rebuilt from stored answers (`scheduleFromHistory`).
+- **Levelling games: weak spots only from the operation's current tier** (`belongsTo`), at
+  most ⌊N/5⌋ per game and ⌈n/5⌉ per operation, stored with the session, replayed by the
+  server. Weak spots and Drill games are practice kinds: uploaded, never move levels, never
+  ranked.
 
-Phase 3b is **no longer a blocker** (owner, 24 Nov): it becomes a data check run once the
-dashboard reaches its threshold (~300 sessions from 10+ testers since the rules v5 release,
-`owner_dashboard.calibration_window`) — a report comparing the targets with real games,
-changes only if the data contradicts them.
+Phase 3b is a data check, not a blocker: a report once the dashboard reaches ~300 sessions from
+10+ testers since the rules v5 release (`owner_dashboard.calibration_window`).
 
 **The level system** (`doc/levels.md`; constants: `LevelRules.of`)
 - **Levels 0–100**, integer hundredths, shown whole; everyone started at 0 at the transition
@@ -138,7 +125,9 @@ Non-negotiable without explicit discussion.
   questions (one size for every tier — 2²⁰ at level 15) and the spec's long addition and
   subtraction; v5 = v4 with pattern questions sized by tier and no reviews (`doc/levels.md`
   v1.4); v6 = v5 with √ of powers of 2 sized by its own row (v1.5); v7 = v6 plus weak spots
-  in Levelling games (Phase 4, current; without weak spots a v7 game is a v6 game); v1 (all before
+  in Levelling games (Phase 4; without weak spots a v7 game is a v6 game); v8 = v7 with slow
+  facts entering the schedule at box 2 (Phase 4 close-out, current; scheduled per game's own
+  rules, `slowFactsEnterSchedule`); v1 (all before
   the transition)
   is retired — never replayed, refused by the server (`rulesRetired`),
   never sent by the app, kept in history.

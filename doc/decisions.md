@@ -1808,3 +1808,13 @@ same core scheduler (a Dart tool, no new dependency): per player, accuracy and t
 scheduled item before and after it entered the schedule. Caveat printed with it: an item enters
 on a miss, so "before" is biased low (regression to the mean) — compare with items never
 scheduled.
+
+**Outcome (plan v3.6, 24 Nov).** Every provisional choice above kept, with one change: **a
+correct but slow answer on a fact enters the schedule at box 2** (slow facts are weak spots
+too; Profile already ranks them). Applied as **rules v8**, because it changes which items are
+due and so which weak spots a game may hold: each game is scheduled under its own rules
+(`RulesVersion.slowFactsEnterSchedule`), so a v7 game's slow answers never enter — the schedule
+of an existing history changes only from the first v8 game on. Skills keep v7's rule (a slow
+skill does not enter). v8's questions and level update are v7's. Known limit (the outcome's):
+the server checks a game's weak spots for tier and caps, not that they were due — the
+close-out's commit 3.

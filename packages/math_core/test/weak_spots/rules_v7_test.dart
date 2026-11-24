@@ -75,10 +75,35 @@ void main() {
   final sixNine = Item.parse('fact:multiplication:6,9');
   final bond = Item.parse('fact:addition:7,8');
 
-  test('rules v7 is current, replayed, v3\'s level update', () {
-    expect(RulesVersion.current, RulesVersion.v7);
-    expect(RulesVersion.replayed.last, RulesVersion.v7);
-    expect(RulesVersion.of(7), RulesVersion.v7);
+  test('rules v7 is replayed; v8 draws the same questions', () {
+    expect(RulesVersion.replayed, contains(RulesVersion.v7));
+    final levels = {_mul: Level.whole(15), _add: Level.whole(12)};
+    final sequence = shuffledTypeSequence(
+      types: levels.keys.toSet(),
+      perOperation: 10,
+      seed: 5,
+    );
+    for (final weak in [
+      <Item>[],
+      [sevenEight, bond],
+    ]) {
+      expect(
+        _game(
+          RulesVersion.v8,
+          seed: 5,
+          levels: levels,
+          sequence: sequence,
+          weakSpots: weak,
+        ),
+        _game(
+          RulesVersion.v7,
+          seed: 5,
+          levels: levels,
+          sequence: sequence,
+          weakSpots: weak,
+        ),
+      );
+    }
   });
 
   test('a v7 game without weak spots is a v6 game, question for question', () {

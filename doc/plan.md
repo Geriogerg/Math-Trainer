@@ -5,6 +5,7 @@
 > from the owner. The day-to-day working rules live in `CLAUDE.md`, which must always stay
 > consistent with this plan (section 11).
 >
+> Version 3.6 — 24 November 2026: Phase 4 outcome and close-out.
 > Version 3.5 — 24 November 2026: Phase 3b becomes a data check, not a blocker; Phase 4 redesigned
 > (weak spots, drills) and next. Version 3.4 — 23 November 2026: Patterns and Method outcome; spec-conformance rule.
 > Version 3.3 — 23 November 2026: Patterns and Method phase added (`doc/levels.md` sections 5b
@@ -476,9 +477,7 @@ report runs on live data; the owner sends the invitations.
 4. *(A)* Feedback triaged into a list for the owner.
 
 **Exit:** constants updated with documented evidence; testers' levels recomputed.
-Only Phase 5 runs during the beta. Phase 4 changes how players answer (tips, spaced repetition,
-new difficulty features) and would mix two versions of the game in the calibration data, so it
-starts after 3b.
+*(Superseded by v3.5: Phase 3b is a data check, and Phase 4 ran before it.)*
 
 ### Phase 3a outcome (19 November)
 
@@ -555,6 +554,29 @@ no change to how Levelling games move levels.
 
 **Exit:** a missed 7 × 8 comes back within the next games until answered fluently three times;
 Weak spots and Drill games playable on a phone; level targets still met; production lists rules 7.
+
+### Phase 4 outcome (24 November)
+
+All eight commits live as rules v7. Owner decisions on the provisional choices — kept, with one
+change: subtraction facts include their inverses (15 − 7, 100 − 37); a pattern question trains its
+family's skill; fluent time of the fact's own tier for scheduling; cap N/5 per game, N/5 per
+operation; two practice session kinds, never ranked; drills for tips without a family use the
+operation's standard questions; the 208 never-asked facts stay pinned in the catalogue; the Phase 3b
+window is not restarted. **Changed:** a correct but slow answer on a fact also enters the schedule
+(box 2) — slow facts are weak spots too, and Profile already ranks them.
+
+**Known limit:** the server checks the tier and cap of a game's weak spots, not that they were
+actually due. Closing it means rebuilding each player's schedule server-side from uploaded
+history — worth doing before Phase 7 ranks duels on it.
+
+### Phase 4 close-out (one pass)
+
+1. *(A)* Slow correct answers on facts enter the schedule at box 2 (rules v8 — it changes which
+   items are due).
+2. *(A)* `/health` lists the session kinds the server accepts; the app holds an upload until its
+   kind is listed, as it already does for rules versions.
+3. *(A)* Server-side check that a game's weak spots were due, from the player's uploaded history;
+   a game that fails it is still accepted for levels but its weak spots are flagged.
 
 ### Phase 5 — Identity
 

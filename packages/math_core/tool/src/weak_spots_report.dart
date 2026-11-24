@@ -57,11 +57,16 @@ List<PlayerWeakSpots> weakSpotsReport(
   for (final MapEntry(key: player, value: games) in gamesByPlayer.entries) {
     final report = PlayerWeakSpots(player);
     final perGame = [for (final g in games) itemAnswersOf(g)];
-    // First pass: which items ever entered the schedule.
+    // First pass: which items ever entered the schedule — a miss, or
+    // from rules v8 a slow fact.
     final enteredAt = <Item, (int, int)>{}; // game, answer index
     for (final (g, answers) in perGame.indexed) {
+      final slowEnters = games[g].session.rulesVersion.slowFactsEnterSchedule;
       for (final (i, a) in answers.indexed) {
-        if (a.grade == Grade.miss) enteredAt.putIfAbsent(a.item, () => (g, i));
+        final enters =
+            a.grade == Grade.miss ||
+            (slowEnters && a.grade == Grade.slow && a.item is FactItem);
+        if (enters) enteredAt.putIfAbsent(a.item, () => (g, i));
       }
     }
     report.scheduled.addAll(enteredAt.keys);
@@ -78,10 +83,12 @@ List<PlayerWeakSpots> weakSpotsReport(
       }
     }
     report.games = games.length;
-    final schedule = WeakSpotSchedule.replay([
-      for (final answers in perGame)
-        [for (final a in answers) (item: a.item, grade: a.grade)],
-    ]);
+    var schedule = WeakSpotSchedule.empty;
+    for (final (g, answers) in perGame.indexed) {
+      schedule = schedule.afterGame([
+        for (final a in answers) (item: a.item, grade: a.grade),
+      ], slowFactsEnter: games[g].session.rulesVersion.slowFactsEnterSchedule);
+    }
     for (final item in report.scheduled) {
       final state = schedule.stateOf(item);
       if (state == null) {
@@ -127,7 +134,7 @@ String formatWeakSpotsReport(List<PlayerWeakSpots> reports) {
       'after it entered the schedule.',
     )
     ..writeln(
-      '"before" includes the miss that scheduled it, so it is biased '
+      '"before" includes the answer that scheduled it (a miss; from v8 also a slow fact), so it is biased '
       'low (regression to the mean):',
     )
     ..writeln('compare "after" with "never scheduled" too.')

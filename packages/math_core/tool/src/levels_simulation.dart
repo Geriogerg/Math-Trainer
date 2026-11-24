@@ -321,7 +321,7 @@ double patternShareExpected(
       ((1 - reviews) * has(tier) + reviews * has(tier.below));
 }
 
-/// Rules v7 (Phase 4) played by one simulated player of [type] at a fixed
+/// Rules v7 and later (Phase 4; current: v8) played by one simulated player of [type] at a fixed
 /// level of [tier]: [games] Levelling games of [questions] questions, each
 /// answer right with probability [accuracy] (fluent half the time), the
 /// weak-spot schedule rebuilt from its answers and each game's weak spots
@@ -352,7 +352,7 @@ double patternShareExpected(
     );
     final generator =
         gameExerciseGenerator(
-              rulesVersion: RulesVersion.v7,
+              rulesVersion: RulesVersion.current,
               enabledTypes: {type},
               levels: {type: level},
               typeSequence: sequence,
@@ -371,19 +371,27 @@ double patternShareExpected(
       final fluent = random.nextBool();
       final ms = fluent
           ? 1000
-          : itemFluentMs(item, drawnAt: level, rules: RulesVersion.v7) + 1;
+          : itemFluentMs(item, drawnAt: level, rules: RulesVersion.current) + 1;
       answers.add((
         item: item,
         grade: !right
             ? Grade.miss
-            : ms <= itemFluentMs(item, drawnAt: level, rules: RulesVersion.v7)
+            : ms <=
+                  itemFluentMs(
+                    item,
+                    drawnAt: level,
+                    rules: RulesVersion.current,
+                  )
             ? Grade.fluent
             : Grade.slow,
       ));
     }
     weak += inGame;
     if (inGame > maxInGame) maxInGame = inGame;
-    schedule = schedule.afterGame(answers);
+    schedule = schedule.afterGame(
+      answers,
+      slowFactsEnter: RulesVersion.current.slowFactsEnterSchedule,
+    );
   }
   final total = games * questions;
   return (

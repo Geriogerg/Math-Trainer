@@ -36,7 +36,8 @@ const boxIntervals = [1, 2, 4, 8, 16];
 /// replay]), like levels — nothing about it is stored.
 ///
 /// `doc/decisions.md`, "Phase 4": an item enters at box 1 on its first
-/// miss (a correct answer leaves an untracked item untracked); a miss sends
+/// miss — from rules v8 also a fact, at box 2, on a correct but slow
+/// answer (a fluent one leaves an untracked item untracked); a miss sends
 /// it back to box 1, a fluent answer one box up, a slow one keeps its box;
 /// fluent in box 5, it is mastered and leaves the schedule until it is
 /// missed again.
@@ -67,7 +68,12 @@ final class WeakSpotSchedule {
   ItemState? stateOf(Item item) => _states[item];
 
   /// The schedule once one more game, with [answers] in order, is played.
-  WeakSpotSchedule afterGame(Iterable<GradedAnswer> answers) {
+  /// [slowFactsEnter] (the game's rules, `slowFactsEnterSchedule`, from
+  /// v8): a fact answered correctly but slowly enters at box 2.
+  WeakSpotSchedule afterGame(
+    Iterable<GradedAnswer> answers, {
+    bool slowFactsEnter = false,
+  }) {
     final states = {..._states};
     for (final (:item, :grade) in answers) {
       final state = states[item];
@@ -75,7 +81,11 @@ final class WeakSpotSchedule {
         case Grade.miss:
           states[item] = ItemState(1, games);
         case Grade.slow:
-          if (state != null) states[item] = ItemState(state.box, games);
+          if (state != null) {
+            states[item] = ItemState(state.box, games);
+          } else if (slowFactsEnter && item is FactItem) {
+            states[item] = ItemState(2, games);
+          }
         case Grade.fluent:
           if (state == null) break;
           if (state.box == boxIntervals.length) {

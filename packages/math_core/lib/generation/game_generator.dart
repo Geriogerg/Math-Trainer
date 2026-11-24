@@ -23,11 +23,11 @@ ExerciseGenerator gameExerciseGenerator({
   List<Item> weakSpots = const [],
 }) {
   if (weakSpots.isNotEmpty) {
-    if (rulesVersion != RulesVersion.v7) {
+    if (!rulesVersion.hasWeakSpots) {
       throw ArgumentError.value(
         rulesVersion,
         'rulesVersion',
-        'has no weak spots (rules v7 only).',
+        'has no weak spots (rules v7 on).',
       );
     }
     if (weakSpotProblem(weakSpots, typeSequence, levels) case final p?) {
@@ -79,7 +79,8 @@ ExerciseGenerator gameExerciseGenerator({
       withReviews: false,
     ),
     // v6, plus the stored weak spots (Phase 4).
-    RulesVersion.v7 => TieredGameGenerator(
+    // v8 changed only the schedule, not the questions.
+    RulesVersion.v7 || RulesVersion.v8 => TieredGameGenerator(
       sequence: typeSequence,
       levels: levels,
       content: patternedContentV6,

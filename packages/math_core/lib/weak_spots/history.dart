@@ -90,7 +90,14 @@ WeakSpotSchedule scheduleFromHistory(Iterable<StoredGame> games) {
       final byTime = a.session.createdAt.compareTo(b.session.createdAt);
       return byTime != 0 ? byTime : a.session.id.compareTo(b.session.id);
     });
-  return WeakSpotSchedule.replay(ordered.map(gradedAnswersOf));
+  var schedule = WeakSpotSchedule.empty;
+  for (final game in ordered) {
+    schedule = schedule.afterGame(
+      gradedAnswersOf(game),
+      slowFactsEnter: game.session.rulesVersion.slowFactsEnterSchedule,
+    );
+  }
+  return schedule;
 }
 
 /// Each answered question's family, from the replay — trusted only where

@@ -61,6 +61,7 @@ List<TierQuestion> _replay(PersistedSession session, int count) {
     case RulesVersion.v5:
     case RulesVersion.v6:
     case RulesVersion.v7:
+    case RulesVersion.v8:
       break;
   }
   switch (session.kind) {
@@ -120,8 +121,8 @@ List<TierQuestion> _replayPractice(PersistedSession session, int count) {
   if (sequence == null) {
     throw const SessionNotReplayable('no stored type sequence');
   }
-  if (session.rulesVersion != RulesVersion.v7) {
-    throw const SessionNotReplayable('practice games are rules v7');
+  if (!session.rulesVersion.hasWeakSpots) {
+    throw const SessionNotReplayable('practice games are rules v7 on');
   }
   final problem = session.kind == SessionKind.weakSpots
       ? weakSpotsGameProblem(session.weakSpots, sequence, session.levels)
