@@ -1251,3 +1251,12 @@ the end: the phone checklist, and `bash tool/dashboard/dashboard.sh weak-spots` 
   `fact_tiers_test.dart` (VM, 600,000 draws per operation and tier): every fact a tier draws
   is listed and every listed one is drawn, for all 80 operation × tier pairs; the 208 facts no
   tier draws as a standard question (15 − 3, 130 ÷ 10, 2¹¹…) pinned by count — never keyed.
+- **Commit 2** *(A)* — **Five-box scheduler** (`weak_spots/scheduler.dart`, `history.dart`).
+  `WeakSpotSchedule` (immutable, counted in games: `afterGame`, `replay`, `isDue`, `due` most
+  urgent first), `Grade` (miss / slow / fluent), `itemFluentMs` (a fact: its home tier's time;
+  a skill: the game's tier's), `gradedAnswersOf` and `scheduleFromHistory` (stored sessions in
+  time order; families by replay, trusted only where the replay asks the stored question).
+  Core: `exerciseFromStorage` (the codec's inverse), `replaySession` (questions with families).
+  Tests: the exit story (a missed 7 × 8 due in games 1, 3, 7, then out of the near games),
+  every box's interval, misses, slow answers, mastery, absence, order, replay = step by step,
+  grading of a real v6 game, time order, a retired game. Core 1 033 (VM) / 819 (JS).

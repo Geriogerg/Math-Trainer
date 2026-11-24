@@ -1,5 +1,6 @@
 import '../models/exercise.dart';
 import '../models/exercise_type.dart';
+import '../models/operation_type.dart';
 
 /// Generic representation of an [Exercise] for storage: the schema needs
 /// no migration when a new family appears, only this mapping changes.
@@ -71,4 +72,67 @@ ExerciseStorageDescription describeExerciseForStorage(Exercise exercise) {
       },
     ),
   };
+}
+
+/// The inverse of [describeExerciseForStorage]: the exercise a stored or
+/// uploaded answer asked. Throws [FormatException] for a description no
+/// exercise has, and the model's own errors for invalid operands (rule 13).
+Exercise exerciseFromStorage({
+  required String exerciseType,
+  required String operationType,
+  required Map<String, Object?> operands,
+}) {
+  int value(String key) => switch (operands[key]) {
+    final int v => v,
+    _ => throw FormatException('operand $key missing or not an int'),
+  };
+  int? optional(String key) => switch (operands[key]) {
+    null => null,
+    final int v => v,
+    _ => throw FormatException('operand $key is not an int'),
+  };
+  if (exerciseType == 'arithmetic') {
+    for (final op in OperationType.values) {
+      if (op.name == operationType) {
+        return ArithmeticExercise(
+          operandA: value('operandA'),
+          operandB: value('operandB'),
+          operandC: optional('operandC'),
+          operationType: op,
+        );
+      }
+    }
+    throw FormatException('unknown operation $operationType');
+  }
+  if (exerciseType != operationType) {
+    throw FormatException('$exerciseType stored as $operationType');
+  }
+  if (exerciseType == ExerciseType.power.name) {
+    return PowerExercise(base: value('base'), exponent: value('exponent'));
+  }
+  if (exerciseType == ExerciseType.squareRoot.name) {
+    return SquareRootExercise(
+      radicand: value('radicand'),
+      index: optional('index') ?? 2,
+    );
+  }
+  if (exerciseType == ExerciseType.percentage.name) {
+    return PercentageExercise(
+      percent: value('percent'),
+      base: value('base'),
+      tenths: optional('tenths') ?? 0,
+    );
+  }
+  if (exerciseType == ExerciseType.integral.name) {
+    return IntegralExercise(
+      lower: value('lower'),
+      upper: value('upper'),
+      c0: value('c0'),
+      c1: value('c1'),
+      c2: value('c2'),
+      c3: value('c3'),
+      c4: optional('c4') ?? 0,
+    );
+  }
+  throw FormatException('unknown exercise type $exerciseType');
 }

@@ -36,6 +36,11 @@ List<Exercise> replaySessionQuestions(PersistedSession session, int count) => [
   for (final q in _replay(session, count)) q.exercise,
 ];
 
+/// [replaySessionQuestions] and [replaySessionPatterns] in one replay: each
+/// question with its pattern family. Throws as they do.
+List<TierQuestion> replaySession(PersistedSession session, int count) =>
+    _replay(session, count);
+
 List<TierQuestion> _replay(PersistedSession session, int count) {
   if (count > session.exerciseCount) {
     throw SessionNotReplayable(
