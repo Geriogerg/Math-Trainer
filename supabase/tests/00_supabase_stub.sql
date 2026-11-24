@@ -52,13 +52,12 @@ $$;
 grant usage on schema auth to anon, authenticated, service_role;
 grant execute on function auth.uid() to anon, authenticated, service_role;
 
--- Supabase grants the API roles everything on `public` by default; row-level
--- security and explicit revokes are what restrict them.
+-- Projects created before late 2026 grant the API roles everything on new
+-- tables in `public` by default; newer ones (staging) grant nothing. The
+-- stub models the newer kind: a migration grants each table it needs
+-- explicitly, which works on both (staging, 24 Nov 2026: the server's
+-- functions denied on `uploaded_sessions`). Functions keep the default.
 grant usage on schema public to anon, authenticated, service_role;
-alter default privileges in schema public
-  grant all on tables to anon, authenticated, service_role;
-alter default privileges in schema public
-  grant all on sequences to anon, authenticated, service_role;
 alter default privileges in schema public
   grant execute on functions to anon, authenticated, service_role;
 
