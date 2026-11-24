@@ -297,8 +297,9 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 - `*.pages.dev` names are global: `math-trainer.pages.dev` is someone else's site, ours has a
   suffix. Never hard-code the Cloudflare address; CI reads it from the project and checks
   `PREVIEW_URL` before publishing the redirect.
-- `supabase db push` needs `--remote`: newer CLIs (CI installs the latest) target a local stack
-  by default and fail on `127.0.0.1:54322`.
+- `supabase db push` needs `--remote`: newer CLIs target a local stack by default and fail on
+  `127.0.0.1:54322`. CI pins the CLI (`.github/actions/supabase-migrate`, v3.3.0): `version:
+  latest` hits GitHub's anonymous API rate limit and fails the migration job (24 Nov).
 - SQL tests run on plain Postgres with `supabase/tests/00_supabase_stub.sql` standing in for
   Supabase: a migration using anything else of Supabase's must add it to the stub. Every
   migration must be idempotent (CI applies them twice).

@@ -31,9 +31,14 @@ runs:
           echo "::error title=$LABEL migrations::the access token, database password or project URL is missing (doc/online.md)."
           exit 1
         fi
+    # A fixed version: `latest` asks GitHub's API for the newest release, and
+    # that unauthenticated quota, shared by every job on the runner's IP, ran
+    # out (24 Nov: "rate limit exceeded", migrations never ran, nothing
+    # deployed). v3.3.0 = the latest stable then. Bump on purpose, and keep
+    # `db push --remote` below working.
     - uses: supabase/setup-cli@v1
       with:
-        version: latest
+        version: 3.3.0
     - name: Apply pending migrations
       shell: bash
       # The project ref is the subdomain of the project URL. On failure the
