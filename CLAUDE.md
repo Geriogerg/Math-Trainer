@@ -61,7 +61,10 @@ run is never served.
   pool and its duel does not count; implausible timing keeps a run out of the pool until
   reviewed; friend requests limited (~20 a day).
 
-Done: nothing yet. Before: the Phase 4 close-out (rules v8, `/health` kinds, weak spots checked
+Done: 0–8 and the exit test (25 Nov; `doc/progress.md`, "Phase 7"); a fix commit made the
+duel SQL tests actually run (see Pitfalls). **Open: the owner plays the checklist with two
+linked accounts and confirms the provisional decisions (`doc/decisions.md`, "Phase 7").**
+Before: the Phase 4 close-out (rules v8, `/health` kinds, weak spots checked
 against history) — done and live 24 Nov; **open: the owner confirms its commit 3 provisional
 decision** (`doc/decisions.md`). Phase 3b is a data check, not a blocker (~300 sessions from
 10+ testers since the rules v5 release, `owner_dashboard.calibration_window`).
@@ -168,6 +171,10 @@ Non-negotiable without explicit discussion.
 - **Sessions are self-contained**: everything deciding question order is stored with them.
 - **Session kinds**: game or training (fixed levels frozen in the session, no level update —
   `NoLevelUpdates`; uploaded and validated, never ranked). The placement kinds are history only.
+- **Duels and friends** (Phase 7) live on the server only (Supabase tables, closed to the API;
+  the app reads through `security definer` functions, writes through the Dart server). On the
+  device: only runs waiting to be sent (`DuelRunQueue`, `shared_preferences`) and an invite
+  code waiting for the player to be linked. A duel never touches levels or session history.
 - **Anonymous-first**: anonymous user created on first launch; linking keeps the same user id;
   email already used → sign in after a "guest progress replaced" warning, no merge; no sign-out
   for anonymous players; deletion via a `security definer` SQL function on `auth.uid()` only.
@@ -310,6 +317,16 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   (`method_for.dart`): a family that grows must keep its shape recognisable at every size —
   the Method test runs every family at every tier.
 - Pattern families are never stored: `replaySessionPatterns` recomputes them from the session.
+- **Duel names are stored or sent**: `DuelMode`, `DuelKind`, `DuelRunProblem`,
+  `FriendRequestOutcome`, `DuelRulesVersion.number` — never rename one. A duel's content,
+  its practice lane and its count rounds are pinned (VM and JavaScript): a change that moves
+  them is a new `DuelRulesVersion`. Never a bitwise operation on a seed (JavaScript cuts it
+  to 32 bits: `practiceLane` uses `seed + 1`).
+- `SessionScreen` and `CountScreen` take a `header` (a duel's lanes): games pass none — the
+  game screen's geometry is pinned. A duel's `SessionController` uses a throwaway repository
+  and `NoLevelUpdates` (`buildDuelController`).
+- The server checks a duel run's turn **before** replaying it: a refused replay voids the duel,
+  so a run sent out of turn must never reach it.
 - **Weak-spot item keys are stored** (`PersistedSession.weakSpots`, schema v13, upload
   `weakSpots`): `fact:<type>:<numbers>`, `skill:<family>` — never change the format, an
   `ExerciseType` or a `PatternFamily` name. Weak spots in a Levelling game come only from the

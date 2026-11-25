@@ -1501,3 +1501,25 @@ close-out is live (server on `7b0d7e2`, rules 2–8, kinds listed). Owner action
   `dashboard.sh duels` prints them; `dashboard.sh review-run <id> ok|reject`; the main report
   gains a 7-day duel summary. Both commands run in the SQL test runner. SQL test `99e`.
   `doc/online.md` describes Phase 7 as built.
+
+### Phase 7 exit test (25 Nov 2026)
+
+The plan's exit, piece by piece:
+- *Two linked players race each other's runs in all three modes; ratings move on the server
+  only* — `server/test/phase7_exit_test.dart`: in Basics, Advanced and Get the count, the
+  first player meets a practice opponent (unrated), the second races that run (rated: both
+  ratings move, the run's owner's too), then the other way round. The app never computes a
+  rating: it shows the server's (`DuelVerdict`) or the start from levels, "?".
+- *A friend added by link and one by code challenge each other and see their history* — SQL
+  `99d_friends_test` (codes, requests both ways, head-to-head, history) and the app's
+  `friends_screen_test` (Add code, an invite link sent once linked, Challenge → the
+  challenger plays first, history); the challenge's second run in `matchmaking_test`.
+- *A practice opponent appears when the pool is empty* — `matchmaking_test`, exit test.
+- *A forged or implausible run is never served* — a forged Get the count run refused
+  (`badDerivation`, nothing stored, its duel void); a run answering multi-digit questions in
+  120 ms flagged and kept out of the pool (exit test; SQL `99a` for the pool rules, reviewed
+  runs back in, rejected ones out).
+
+Not verified here: the live run on a phone with two accounts (the owner's checklist);
+staging's CI smoke test (private repository). Production ran commit 6's server and site at
+the time of writing; commits 7–8 deploy with the next CI run.
