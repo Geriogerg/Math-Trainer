@@ -115,7 +115,7 @@ begin
   assert jsonb_array_length(friends) = 2, 'Inès and Tom: ' || friends;
   assert friends -> 0 ->> 'name' = 'Inès', 'by name';
   tom := friends -> 1;
-  assert (tom ->> 'wins', tom ->> 'losses', tom ->> 'draws') = ('1', '1', '1'),
+  assert (tom ->> 'wins', tom ->> 'losses', tom ->> 'draws') = ('1'::text, '1'::text, '1'::text),
     'head-to-head: ' || tom;
   history := public.friend_history('00000000-0000-0000-0000-0000000003a2');
   assert jsonb_array_length(history) = 3, 'no practice';
@@ -132,7 +132,7 @@ do $$
 declare
   lea jsonb := public.friend_list() -> 0;
 begin
-  assert (lea ->> 'wins', lea ->> 'losses') = ('1', '1');
+  assert (lea ->> 'wins', lea ->> 'losses') = ('1'::text, '1'::text);
 end;
 $$;
 

@@ -27,7 +27,7 @@ declare
   ctx jsonb;
   outcome text;
   run uuid;
-  i integer;
+  served integer;
 begin
   -- Practice: c1 races a simulated lane; c1's run is stored, its rating
   -- created at the start values, no rating change.
@@ -88,22 +88,26 @@ begin
   assert (select version from public.duel_ratings where player_id = c1) = 1;
   assert (select (state, result, rated, first_rating_before, second_rating_after)
           from public.duels where id = '00000000-0000-0000-0000-00000000d002')
-    = ('done', 1::double precision, true, 1500::double precision, 1620::double precision);
+    = ('done'::text, 1::double precision, true, 1500::double precision, 1620::double precision);
   select a.outcome into outcome from public.apply_duel_run(
     '00000000-0000-0000-0000-00000000d002', c1, '{}', lane, score, '{}', start, 1, false, null) a;
   assert outcome = 'notOpen', 'not the first player''s turn';
 
-  -- Pool limits: 5 serves; a flagged run until reviewed ok; 10 latest per
-  -- owner; never an anonymous owner's.
-  update public.duel_runs set serves = 5 where id = run;
+  -- c2's run is in the pool too (the same questions as c1's): c3 could
+  -- race either. Pool limits on both: 5 serves; a flagged run until
+  -- reviewed ok; 10 latest per owner; never an anonymous owner's.
+  assert (select count(*) from public.duel_runs where mode = 'basics') = 2;
+  update public.duel_runs set serves = 5 where mode = 'basics';
   assert public.duel_take_run(c3, 'basics', 1500, null, null,
     '00000000-0000-0000-0000-00000000d003') is null, 'served 5 times: out';
-  update public.duel_runs set serves = 0, flags = '{implausiblyFast}' where id = run;
+  update public.duel_runs set serves = 0, flags = '{implausiblyFast}' where mode = 'basics';
   assert public.duel_take_run(c3, 'basics', 1500, null, null,
     '00000000-0000-0000-0000-00000000d003') is null, 'flagged: out';
+  update public.duel_runs set review = 'rejected' where mode = 'basics' and player_id = c2;
   update public.duel_runs set review = 'ok' where id = run;
-  assert public.duel_take_run(c3, 'basics', 1500, null, null,
-    '00000000-0000-0000-0000-00000000d003') is not null, 'reviewed ok: in';
+  offer := public.duel_take_run(c3, 'basics', 1500, null, null,
+    '00000000-0000-0000-0000-00000000d003');
+  assert offer -> 'opponent' ->> 'id' = c1::text, 'reviewed ok: in; rejected: out';
 
   -- c1 plays 11 practice duels in Advanced, each on its own config.
   for i in 1..11 loop
@@ -116,13 +120,15 @@ begin
     update public.duel_runs set created_at = now() - make_interval(mins => 20 - i)
     where duel_id = ('00000000-0000-0000-0000-0000000e' || lpad(i::text, 4, '0'))::uuid;
   end loop;
+  served := 0;
   for i in 1..11 loop
     offer := public.duel_take_run(c3, 'advanced', 1500, null, null,
       ('00000000-0000-0000-0000-0000000f' || lpad(i::text, 4, '0'))::uuid);
     exit when offer is null;
+    served := served + 1;
     assert (offer -> 'config' ->> 'seed')::integer > 1, 'the oldest run is out of the pool';
   end loop;
-  assert i = 11, '10 runs served, then none: ' || i;
+  assert served = 10, '10 runs served, then none: ' || served;
 
   -- An anonymous owner's run is never served.
   perform public.duel_insert('00000000-0000-0000-0000-00000000d009', 'count', 'practice',
@@ -134,7 +140,6 @@ begin
 
   -- A rematch: only that opponent's runs, the closest tier first.
   update public.duel_runs set serves = 0;
-  delete from public.duels where second_player = c2 and kind = 'pool' and mode = 'advanced';
   update public.duel_runs set config = jsonb_set(config, '{difficulty}', '7')
   where mode = 'advanced' and (config ->> 'seed')::integer = 11;
   offer := public.duel_take_run(c2, 'advanced', 1500, c1, 7,
@@ -157,7 +162,7 @@ begin
   assert outcome = 'applied';
   assert (select (state, first_lane) from public.duels
           where id = '00000000-0000-0000-0000-00000000d010')
-    = ('awaitingSecond', '{"answers":[1]}'::jsonb), 'open to the friend, with the lane';
+    = ('awaitingSecond'::text, '{"answers":[1]}'::jsonb), 'open to the friend, with the lane';
   select a.outcome into outcome from public.apply_duel_run('00000000-0000-0000-0000-00000000d010',
     c2, '{}', lane, score, '{}', start, 0, true,
     jsonb_build_object(c1, '{"rating":1490,"deviation":290,"volatility":0.06,"expectedVersion":1}'::jsonb,

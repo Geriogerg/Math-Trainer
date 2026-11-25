@@ -341,6 +341,10 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 - `supabase db push` needs `--remote`: newer CLIs target a local stack by default and fail on
   `127.0.0.1:54322`. CI pins the CLI (`.github/actions/supabase-migrate`, v3.3.0): `version:
   latest` hits GitHub's anonymous API rate limit and fails the migration job (24 Nov).
+- `tool/sql/test_sql.sh` runs only `supabase/tests/[1-9]*_test.sql`: a test named otherwise
+  (`a1_…`) is silently skipped and "SQL tests passed" still prints (Phase 7: four duel tests
+  went unrun for five commits). Name new ones `99x_…` or with a leading digit, and check the
+  runner's list shows them.
 - SQL tests run on plain Postgres with `supabase/tests/00_supabase_stub.sql` standing in for
   Supabase: a migration using anything else of Supabase's must add it to the stub. Every
   migration must be idempotent (CI applies them twice).

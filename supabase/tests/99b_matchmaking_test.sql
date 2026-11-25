@@ -52,7 +52,7 @@ begin
     e1, e2) = 'created';
   assert (select (kind, state, first_player, second_player) from public.duels
           where id = '00000000-0000-0000-0000-00000000f002')
-    = ('challenge', 'awaitingFirst', e1, e2), 'the challenger plays first';
+    = ('challenge'::text, 'awaitingFirst'::text, e1, e2), 'the challenger plays first';
   assert (select expires_at from public.duels where id = '00000000-0000-0000-0000-00000000f002')
     between now() + interval '7 days' - interval '1 minute' and now() + interval '7 days',
     '7 days';

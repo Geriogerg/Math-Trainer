@@ -1487,3 +1487,9 @@ close-out is live (server on `7b0d7e2`, rules 2–8, kinds listed). Owner action
   `FriendHistoryScreen` (date, mode, both scores, result; Remove friend). Challenges expire
   after 7 days (commit 4's SQL). Privacy notice names friends data. Tests: SQL `a4`, core,
   widgets with goldens (both themes), the invite link, the pill.
+- **Fix** *(A)* — **The duel SQL tests now run.** They were named `a1_…`–`a4_…`, outside the
+  runner's `[1-9]*_test.sql`: commits 2, 4, 6 and 7 said "SQL tests passed" without them.
+  Renamed `99a_…`–`99d_…` and run: the migrations needed no change; the tests themselves had
+  four mistakes (untyped literals in row comparisons, a pool-limit block that forgot the
+  second run on the same questions, a loop variable read outside its loop, a delete the
+  service role may not do). Pitfall added to CLAUDE.md.
