@@ -143,5 +143,24 @@ void main() {
       board = board.combine(0, CountOperator.multiply, 3)!;
       expect(board.closest, 600);
     });
+
+    test('each tile carries the operations that made it (Phase 7)', () {
+      var board = CountBoard.start(puzzle); // 75 6 3 8 100 2 → 637
+      expect(board.tiles.every((t) => t.steps.isEmpty), isTrue);
+      board = board.combine(2, CountOperator.multiply, 3)!; // 3 × 8 = 24
+      final made24 = board.tiles.firstWhere((t) => t.value == 24);
+      board = board.combine(made24.id, CountOperator.add, 0)!; // 24 + 75
+      final made99 = board.tiles.firstWhere((t) => t.value == 99);
+      expect(made99.steps, const [
+        CountStep(3, CountOperator.multiply, 8, 24),
+        CountStep(24, CountOperator.add, 75, 99),
+      ]);
+      // The used tile keeps its own steps; undo restores the earlier ones.
+      expect(board.undo().tiles.any((t) => t.value == 99), isFalse);
+      expect(
+        board.undo().tiles.firstWhere((t) => t.value == 24).steps.length,
+        1,
+      );
+    });
   });
 }

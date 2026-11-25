@@ -3,6 +3,8 @@ import 'dart:async' show unawaited;
 import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:math_core/duel/duel_client.dart';
+import 'package:math_core/duel/duel_run_queue.dart';
 import 'package:math_core/tiers/tip_band.dart';
 import 'package:math_core/tiers/tier.dart';
 import 'package:math_core/patterns/pattern_family.dart';
@@ -42,7 +44,10 @@ import 'package:math_core/sync/session_upload_queue.dart';
 import 'package:math_core/persistence/session_repository.dart';
 import 'package:math_core/persistence/theme_mode_store.dart';
 import 'package:math_core/persistence/type_selection_store.dart';
+import 'core/state/duel_controller.dart';
 import 'core/state/session_controller.dart';
+import 'infrastructure/backend/http_duel_client.dart';
+import 'infrastructure/persistence/shared_preferences_duel_run_store.dart';
 import 'infrastructure/backend/http_session_upload_client.dart';
 import 'infrastructure/backend/supabase_beta_code_repository.dart';
 import 'infrastructure/backend/supabase_feedback_repository.dart';
@@ -97,6 +102,9 @@ class AppEnvironment {
     this.feedbackRepository,
     this.sessionEffects = const NoSessionEffects(),
     this.effectSettings,
+    this.duelClient,
+    this.duelRunStore = const SharedPreferencesDuelRunStore(),
+    this.duelQueue,
   });
 
   final SessionRepository repository;
@@ -189,6 +197,17 @@ class AppEnvironment {
   /// Profile then shows none.
   final EffectSettings? effectSettings;
 
+  /// The server's duel endpoints (Phase 7); `null` without `SERVER_URL` —
+  /// the Online tab then says duels are not available.
+  final DuelClient? duelClient;
+
+  /// Where runs wait for the server, per player.
+  final DuelRunStore duelRunStore;
+
+  /// This player's duel runs on their way (`forPlayer`); `null` without
+  /// [duelClient].
+  final DuelRunQueue? duelQueue;
+
   AppEnvironment forPlayer(String playerId) => AppEnvironment(
     repository: repository,
     playerId: playerId,
@@ -209,6 +228,16 @@ class AppEnvironment {
     feedbackRepository: feedbackRepository,
     sessionEffects: sessionEffects,
     effectSettings: effectSettings,
+    duelClient: duelClient,
+    duelRunStore: duelRunStore,
+    duelQueue: switch (duelClient) {
+      final client? => DuelRunQueue(
+        store: duelRunStore,
+        client: client,
+        playerId: playerId,
+      ),
+      null => null,
+    },
     serverLevelsAhead: switch (serverLevelsSource) {
       final source? => PrefetchedServerLevels(
         source: source,
@@ -374,6 +403,12 @@ Future<AppEnvironment> buildAppEnvironment() async {
     betaCodes: _betaGate
         ? SupabaseBetaCodeRepository(Supabase.instance.client)
         : null,
+    duelClient: _serverUrl.isEmpty
+        ? null
+        : HttpDuelClient(
+            serverUrl: Uri.parse(_serverUrl),
+            accessToken: accountRepository.accessToken,
+          ),
     feedbackRepository: SupabaseFeedbackRepository(Supabase.instance.client),
   );
 }
@@ -529,6 +564,44 @@ SessionController buildTablesController(
     ),
   );
 }
+
+/// A duel's controller (Phase 7): Basics and Advanced on the game's own
+/// [SessionController] with the duel's questions — practice-like, a
+/// throwaway repository and no level update (a duel never touches levels or
+/// history; its run goes to the server through [AppEnvironment.duelQueue]).
+DuelController buildDuelController(
+  AppEnvironment environment,
+  DuelOffer offer, {
+  DateTime Function() clock = DateTime.now,
+}) => DuelController(
+  offer: offer,
+  queue: environment.duelQueue!,
+  clock: clock,
+  quizController: (config) {
+    final questions = config.questions();
+    final types = {for (final q in questions) q.type};
+    return SessionController(
+      config: SessionConfig(
+        seed: config.seed,
+        enabledTypes: types,
+        exerciseCount: questions.length,
+        levels: {for (final t in types) t: Level.whole(10 * config.difficulty)},
+        kind: SessionKind.training,
+      ),
+      exerciseSource: ListExerciseSource(questions),
+      levelCacheOrchestrator: const NoLevelUpdates(),
+      repository: InMemorySessionRepository(),
+      playerId: environment.playerId,
+      clock: clock,
+      correctionDelay: SessionController.defaultCorrectionDelay,
+      appVersion: appVersion,
+      questionTimeout: questionTimeoutFor(
+        isDebugBuild: kDebugMode,
+        noTimeoutRequested: _debugNoTimeout,
+      ),
+    );
+  },
+);
 
 /// A Weak spots game (Phase 4): [items] in order, one question each, at the
 /// player's current levels (frozen), stored and uploaded like Training,

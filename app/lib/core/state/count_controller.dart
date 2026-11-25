@@ -4,35 +4,80 @@ import 'package:flutter/foundation.dart';
 
 import 'package:math_core/challenges/challenge_stats.dart';
 import 'package:math_core/challenges/count.dart';
+import 'package:math_core/duel/duel_run.dart';
+import 'package:math_core/duel/duel_validation.dart';
 
 /// One round of Get the count (Redesign phase commit 8): 45 seconds, tap a
 /// tile, an operator, another tile; undo, reset. Ends when a tile equals
 /// the target, or when time runs out. Timers are injected (tests never
 /// wait); the round is recorded in the device's stats when it ends.
+///
+/// A duel's round ([CountController.round], Phase 7): a given puzzle, 30 s,
+/// no solo stats, and every [improvements] of the closest value kept with
+/// the operations that made it — the run the server replays.
 class CountController extends ChangeNotifier {
-  CountController({
+  factory CountController({
     required int seed,
-    required this.statsStore,
-    this.clock = DateTime.now,
-    this.createTimer = Timer.new,
+    required ChallengeStatsStore statsStore,
+    DateTime Function() clock = DateTime.now,
+    Timer Function(Duration duration, void Function() callback) createTimer =
+        Timer.new,
   }) {
     final (puzzle, solution) = generateCountPuzzleWithSolution(seed);
-    this.puzzle = puzzle;
-    this.solution = List.unmodifiable(solution);
-    _board = CountBoard.start(puzzle);
+    return CountController.round(
+      puzzle: puzzle,
+      solution: solution,
+      statsStore: statsStore,
+      clock: clock,
+      createTimer: createTimer,
+    );
   }
 
-  final ChallengeStatsStore statsStore;
+  CountController.round({
+    required this.puzzle,
+    required List<CountStep> solution,
+    this.statsStore,
+    this.roundSeconds = countRoundSeconds,
+    this.clock = DateTime.now,
+    this.createTimer = Timer.new,
+  }) : solution = List.unmodifiable(solution),
+       _board = CountBoard.start(puzzle),
+       _remaining = roundSeconds,
+       _bestDistance = baseCountDistance(puzzle);
+
+  /// `null`: a duel's round, kept out of the solo stats.
+  final ChallengeStatsStore? statsStore;
+  final int roundSeconds;
   final DateTime Function() clock;
   final Timer Function(Duration duration, void Function() callback) createTimer;
 
-  late final CountPuzzle puzzle;
+  final CountPuzzle puzzle;
 
   /// The shortest solution (the correction), computed with the puzzle.
-  late final List<CountStep> solution;
+  final List<CountStep> solution;
 
-  late CountBoard _board;
+  CountBoard _board;
   CountBoard get board => _board;
+
+  int _bestDistance;
+
+  /// The closest distance to the target reached so far (the six numbers'
+  /// at the start).
+  int get bestDistance => _bestDistance;
+
+  final _improvements = <CountImprovement>[];
+
+  /// Every time the closest value improved: when, the value, and how it
+  /// was made from the six numbers.
+  List<CountImprovement> get improvements => List.unmodifiable(_improvements);
+
+  /// Milliseconds since [start], at most the round's length.
+  int get roundElapsedMs {
+    final started = _startedAt;
+    if (started == null) return 0;
+    final ms = clock().difference(started).inMilliseconds;
+    return ms > roundSeconds * 1000 ? roundSeconds * 1000 : ms;
+  }
 
   int? _first;
 
@@ -42,7 +87,7 @@ class CountController extends ChangeNotifier {
   CountOperator? _operator;
   CountOperator? get operator => _operator;
 
-  int _remaining = countRoundSeconds;
+  int _remaining;
   int get remainingSeconds => _remaining;
 
   bool _ended = false;
@@ -94,6 +139,23 @@ class CountController extends ChangeNotifier {
         _board = next;
         _first = null;
         _operator = null;
+        // The new tile takes the next id: the board's largest.
+        final made = next.tiles.reduce((a, b) => a.id > b.id ? a : b);
+        final distance = (made.value - puzzle.target).abs();
+        if (distance < _bestDistance) {
+          _bestDistance = distance;
+          // Strictly later than the last (the server's replay requires it):
+          // two moves within the same millisecond still count.
+          final last = _improvements.lastOrNull?.atMs ?? -1;
+          final at = roundElapsedMs;
+          _improvements.add(
+            CountImprovement(
+              atMs: at > last ? at : last + 1,
+              value: made.value,
+              steps: made.steps,
+            ),
+          );
+        }
         if (_board.solved) {
           _elapsedMs = clock().difference(_startedAt!).inMilliseconds;
           _end();
@@ -137,13 +199,15 @@ class CountController extends ChangeNotifier {
   }
 
   Future<void> _record() async {
+    final statsStore = this.statsStore;
+    if (statsStore == null) return;
     try {
       final before = await statsStore.load(Challenge.getTheCount);
       await statsStore.save(
         Challenge.getTheCount,
         before.record(
           solved: solved,
-          elapsedMs: _elapsedMs ?? countRoundSeconds * 1000,
+          elapsedMs: _elapsedMs ?? roundSeconds * 1000,
         ),
       );
     } on Exception catch (_) {

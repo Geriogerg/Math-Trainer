@@ -103,12 +103,20 @@ class CountScreen extends StatelessWidget {
     required this.onQuit,
     required this.onPlayAgain,
     required this.onHome,
+    this.header,
+    this.progressLabel,
   });
 
   final CountController controller;
   final VoidCallback onQuit;
   final VoidCallback onPlayAgain;
   final VoidCallback onHome;
+
+  /// Above the timer bar: a duel's lanes (Phase 7).
+  final Widget? header;
+
+  /// Top right instead of the clock: a duel's round ("2 / 3").
+  final String? progressLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -139,18 +147,19 @@ class CountScreen extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                clock,
+                progressLabel ?? clock,
                 style: theme.textTheme.bodyLarge?.digits.copyWith(
                   color: scheme.onSurfaceVariant,
                 ),
               ),
             ],
           ),
+          if (header case final header?) ...[const SizedBox(height: 4), header],
           const SizedBox(height: 8),
           ClipRRect(
             borderRadius: BorderRadius.circular(3),
             child: LinearProgressIndicator(
-              value: left / countRoundSeconds,
+              value: left / controller.roundSeconds,
               minHeight: 5,
               backgroundColor: scheme.outline,
             ),

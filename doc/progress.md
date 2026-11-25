@@ -1437,3 +1437,22 @@ close-out is live (server on `7b0d7e2`, rules 2–8, kinds listed). Owner action
   challenger first. `POST /v1/duels/open` — the friend opens a waiting challenge (its lane).
   Tests: practice and resume, the pool (never one's own, never flagged), Get the count, rematch
   both ways, challenges (open before and after, someone else's), refusals; SQL `a2`.
+- **Commit 5** *(C)* — **Duel screens and result** (mockups 2 and 3). Core: `DuelClient`
+  (offers, verdicts, `DuelRefused` / `DuelUnavailable` / `DuelAccountRequired`),
+  `DuelRunQueue` + `DuelRunStore` (a run saved after every answer and round, sent when it
+  ends or at the next flush; held until the server lists its mode and duel rules; a run left
+  unfinished is sent with the rest as timeouts / empty rounds); `CountTile.steps` (each tile
+  carries the operations that made it). App: `HttpDuelClient`,
+  `SharedPreferencesDuelRunStore`; `DuelController` — Basics and Advanced on the game's own
+  `SessionController` (timer, timeouts, correction pause, keyboard, effects), Get the count on
+  three `CountController.round`s of 30 s (improvements kept, strictly later); lanes (mine by
+  answers, theirs at the run's own pace, a miss pausing it 1 s as the correction does); quit
+  sends what was played; the device's own reckoning shown at once, the server's verdict (rating
+  before → after) when it answers, "Send again" while pending. `SessionScreen` and
+  `CountScreen` take an optional lanes header between the counter and the timer bar (null for
+  games: the pinned geometry is unchanged). `DuelFlowScreen` (finding, playing, result,
+  Rematch in place), `DuelResultView` (Won / Lost / Draw, "Basics · 1 542 → 1 560", the two
+  score tiles, mistakes with Method, Get the count's solutions, Online and Rematch). Tests:
+  controller (quiz, lanes, quit, offline, refusal, three count rounds), flow with goldens in
+  both themes (duel, result, Get the count after Rematch), guests told to save progress.
+  The screens are reached from the Online tab in commit 6.

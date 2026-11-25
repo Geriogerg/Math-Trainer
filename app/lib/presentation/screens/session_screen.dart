@@ -33,9 +33,15 @@ class SessionScreen extends StatefulWidget {
     required this.controller,
     this.effects = const NoSessionEffects(),
     this.onQuit,
+    this.header,
   });
 
   final SessionController controller;
+
+  /// Between the counter and the timer bar: a duel's lanes (Phase 7).
+  /// `null` for a game — its geometry is pinned
+  /// (`session_layout_pin_test.dart`).
+  final Widget? header;
 
   /// The ✕ top left (Redesign phase): asks before quitting
   /// (`SessionFlowScreen`). `null`: no ✕ (tests that do not care).
@@ -244,6 +250,7 @@ class _SessionScreenState extends State<SessionScreen>
               totalQuestions: widget.controller.config.exerciseCount,
               chrono: _chronoController,
               barColor: timerBarColor(theme, streakTier(state.currentStreak)),
+              header: widget.header,
             ),
           ),
           Expanded(
@@ -371,7 +378,12 @@ class _TopBar extends StatelessWidget {
     required this.totalQuestions,
     required this.chrono,
     required this.barColor,
+    this.header,
   });
+
+  /// Between the counter and the timer bar (a duel's lanes, as in
+  /// `doc/mockups/online.html`).
+  final Widget? header;
 
   final VoidCallback? onQuit;
   final int questionIndex;
@@ -409,6 +421,7 @@ class _TopBar extends StatelessWidget {
             ),
           ],
         ),
+        if (header case final header?) ...[const SizedBox(height: 4), header],
         const SizedBox(height: 8),
         ClipRRect(
           borderRadius: BorderRadius.circular(3),

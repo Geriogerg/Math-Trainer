@@ -321,13 +321,23 @@ class _CountSolver {
 
 /// A tile on the board: one of the six numbers or a result.
 final class CountTile {
-  const CountTile({required this.id, required this.value, this.used = false});
+  const CountTile({
+    required this.id,
+    required this.value,
+    this.used = false,
+    this.steps = const [],
+  });
 
   final int id;
   final int value;
 
   /// Consumed by an operation: shown faded, no longer playable.
   final bool used;
+
+  /// The operations that made this tile from the six numbers, in order;
+  /// empty for one of them. A duel sends them with each improvement, so the
+  /// server can check the value was reachable (Phase 7).
+  final List<CountStep> steps;
 }
 
 /// The board as the player moves it (pure; the app holds the current one).
@@ -374,9 +384,17 @@ final class CountBoard {
       [
         for (final t in tiles)
           if (t.id == firstId)
-            CountTile(id: t.id, value: t.value, used: true)
+            CountTile(id: t.id, value: t.value, used: true, steps: t.steps)
           else if (t.id == secondId)
-            CountTile(id: nextId, value: result)
+            CountTile(
+              id: nextId,
+              value: result,
+              steps: [
+                ...first.steps,
+                ...second.steps,
+                CountStep(first.value, op, second.value, result),
+              ],
+            )
           else
             t,
       ],

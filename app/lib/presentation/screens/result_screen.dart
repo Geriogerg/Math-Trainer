@@ -190,7 +190,7 @@ class ResultScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   for (final (i, mistake) in mistakes.indexed)
-                    _MistakeRow(
+                    MistakeRow(
                       key: ValueKey('mistake-$i'),
                       outcome: mistake.outcome,
                       method: showMethods
@@ -285,8 +285,8 @@ class ResultScreen extends StatelessWidget {
 /// hourglass for a timeout: as the game's own correction (no words). A
 /// Wrap: a 9-digit sum and its answer do not fit one phone line. With a
 /// [method], a "Method" button under it opens the steps in place.
-class _MistakeRow extends StatefulWidget {
-  const _MistakeRow({
+class MistakeRow extends StatefulWidget {
+  const MistakeRow({
     super.key,
     required this.outcome,
     this.method,
@@ -298,10 +298,10 @@ class _MistakeRow extends StatefulWidget {
   final void Function(ExerciseType type, Tip? tip)? onMoreTips;
 
   @override
-  State<_MistakeRow> createState() => _MistakeRowState();
+  State<MistakeRow> createState() => _MistakeRowState();
 }
 
-class _MistakeRowState extends State<_MistakeRow> {
+class _MistakeRowState extends State<MistakeRow> {
   bool _open = false;
 
   @override
