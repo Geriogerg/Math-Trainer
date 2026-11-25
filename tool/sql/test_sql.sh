@@ -60,7 +60,26 @@ for file in "$root"/supabase/migrations/*.sql; do run "$file"; done
 # Twice: every migration must be safe to re-apply (the first ones were run
 # by hand before migrations existed).
 for file in "$root"/supabase/migrations/*.sql; do run "$file"; done
-for file in "$root"/supabase/tests/[1-9]*_test.sql; do run "$file"; done
+# Every test file runs, and enough of them (plan v3.8): a file the pattern
+# below leaves out would otherwise be skipped while this prints "passed"
+# (Phase 7: the duel tests, named a1_…, for six commits). Raise the minimum
+# when adding test files; never lower it to pass.
+min_sql_tests=20
+ran=0
+for file in "$root"/supabase/tests/[1-9]*_test.sql; do run "$file"; ran=$((ran + 1)); done
+for file in "$root"/supabase/tests/*_test.sql; do
+  case "${file##*/}" in
+    [1-9]*) ;;
+    *) fail skipped "${file##*/} is not run: test files start with a digit 1-9" ;;
+  esac
+done
+if [ "$ran" -lt "$min_sql_tests" ]; then
+  fail count "$ran SQL test files ran, fewer than the pinned minimum $min_sql_tests"
+fi
+echo "$ran SQL test files ran (minimum $min_sql_tests)"
+if [ -n "${GITHUB_ACTIONS:-}" ]; then
+  echo "::notice title=SQL tests::$ran test files ran (minimum $min_sql_tests)"
+fi
 
 # The owner's dashboard script runs on what the tests left (Phase 3a commit
 # 6): every command must work against the migrated schema.

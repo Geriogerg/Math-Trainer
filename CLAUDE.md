@@ -20,7 +20,7 @@ provisional decision but one — an abandoned duel now counts — which commit 1
 | 1 | *(A)* **An abandoned duel is a loss**: a duel started but not submitted within 24 hours is recorded as a loss with the answers the server received so far; clearing the browser or switching device no longer escapes it | done |
 | 2 | *(A)* **Method in duels** uses the pattern-specific strategy, like solo games | done |
 | 3 | *(A)* **Share link** opens the phone's share sheet (Web Share API) where the browser has one, clipboard otherwise | done |
-| 4 | *(A)* **Minimum test counts** in CI for every suite (core VM, core JavaScript, app, server, SQL) | |
+| 4 | *(A)* **Minimum test counts** in CI for every suite (core VM, core JavaScript, app, server, SQL) | done |
 
 **New rule (plan v3.8):** every test suite in CI states how many tests it ran and fails below a
 pinned minimum — a suite that silently runs nothing turns red. **Known limit:** the free Render
@@ -214,7 +214,7 @@ rewrite working code; list files touched; no abstraction for a single use case.
 - On-screen keypad is the primary input; the native keyboard never appears during a game.
 
 **Before every commit**: core tests on VM and JS, `flutter test`, `flutter analyze` clean, CI
-green. Until Phase 8, the weekly "Android build" workflow (`.github/workflows/android.yml`,
+green; a commit adding tests raises its suite's pin (`.github/workflows/ci.yml`). Until Phase 8, the weekly "Android build" workflow (`.github/workflows/android.yml`,
 compile-only, also on demand) is the only Android check — say so when it matters.
 
 ## Commands
@@ -351,10 +351,12 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 - `supabase db push` needs `--remote`: newer CLIs target a local stack by default and fail on
   `127.0.0.1:54322`. CI pins the CLI (`.github/actions/supabase-migrate`, v3.3.0): `version:
   latest` hits GitHub's anonymous API rate limit and fails the migration job (24 Nov).
-- `tool/sql/test_sql.sh` runs only `supabase/tests/[1-9]*_test.sql`: a test named otherwise
-  (`a1_…`) is silently skipped and "SQL tests passed" still prints (Phase 7: four duel tests
-  went unrun for five commits). Name new ones `99x_…` or with a leading digit, and check the
-  runner's list shows them.
+- **Every CI test suite has a pinned minimum** (plan v3.8): `tool/ci/test_count.sh <suite>
+  <min> -- <command>` (core VM, core JavaScript, tooling, server, app; pins in
+  `.github/workflows/ci.yml`) and `min_sql_tests` in `tool/sql/test_sql.sh`, which also fails
+  on a `*_test.sql` its `[1-9]*` pattern would skip (Phase 7: the duel tests, named `a1_…`,
+  went unrun for six commits). Raise a pin when a commit adds tests; never lower one to make
+  CI pass — find what stopped running.
 - SQL tests run on plain Postgres with `supabase/tests/00_supabase_stub.sql` standing in for
   Supabase: a migration using anything else of Supabase's must add it to the stub. Every
   migration must be idempotent (CI applies them twice).

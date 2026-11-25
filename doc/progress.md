@@ -1559,3 +1559,9 @@ hand (the migration goes through CI).
   Phase 8; the Friends page tries the sheet, else copies the link ("Link copied"). Tests: the
   sheet takes the invite link and nothing is copied; no sheet → copied. The web build compiles
   with it (checked locally); a real sheet is for the phone checklist.
+- **Commit 4** *(A)* — **Minimum test counts in CI.** `tool/ci/test_count.sh`: runs a suite,
+  reads the passed count from the runner's last line, prints it (an annotation), fails if the
+  suite failed, if no count is found, or below the pin. Pinned in CI: core VM 1116, core
+  JavaScript 890, tooling 10, server 68, app 447. `tool/sql/test_sql.sh` counts its test files
+  (pin 20) and fails on any `*_test.sql` its pattern would skip. Checked locally: an empty run
+  (`-n` matching nothing) fails, a run below its pin fails, a stray `zz_…_test.sql` fails.

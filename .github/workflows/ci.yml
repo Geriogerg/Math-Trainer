@@ -46,16 +46,18 @@ jobs:
         run: dart pub get && dart analyze --fatal-infos
       - name: Core — tests on the VM
         working-directory: packages/math_core
-        run: dart test
+        # Every suite states its count and fails below a pinned minimum (plan
+        # v3.8): raise a pin when adding tests, never lower one to pass.
+        run: bash ../../tool/ci/test_count.sh "Core VM" 1116 -- dart test
       - name: Core — tests compiled to JavaScript
         # Players generate on the web, the server replays on the VM: the
         # pinned sequences of test/determinism must match on both
         # (architecture rule 18).
         working-directory: packages/math_core
-        run: dart test -p node
+        run: bash ../../tool/ci/test_count.sh "Core JavaScript" 890 -- dart test -p node
       - name: Tooling — analyzer and tests (Claude Code hook rules)
         working-directory: tool
-        run: dart pub get && dart analyze --fatal-infos && dart test
+        run: dart pub get && dart analyze --fatal-infos && bash ci/test_count.sh "Tooling" 10 -- dart test
 
   server:
     # The Dart server: analyzer, tests, and its container image builds and
@@ -72,7 +74,7 @@ jobs:
           cache: true
       - name: Analyzer and tests
         working-directory: server
-        run: dart pub get && dart analyze --fatal-infos && dart test
+        run: dart pub get && dart analyze --fatal-infos && bash ../tool/ci/test_count.sh "Server" 68 -- dart test
       - name: Container image builds and starts
         run: |
           docker build -f server/Dockerfile -t math-trainer-server .
@@ -103,7 +105,7 @@ jobs:
           cache: true
       - run: flutter pub get
       - name: All app tests
-        run: flutter test
+        run: bash ../tool/ci/test_count.sh "App" 447 -- flutter test
       - name: Analyzer
         # Infos are fatal too: the tree has zero notices since the
         # material_ui migration (Phase 1 commit 0).
