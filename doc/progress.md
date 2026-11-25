@@ -1493,3 +1493,11 @@ close-out is live (server on `7b0d7e2`, rules 2–8, kinds listed). Owner action
   four mistakes (untyped literals in row comparisons, a pool-limit block that forgot the
   second run on the same questions, a loop variable read outside its loop, a delete the
   service role may not do). Pitfall added to CLAUDE.md.
+- **Commit 8** *(A)* — **Dashboard section.** Migration `20261130040000_duel_dashboard`:
+  `owner_dashboard.duels_per_day` (per UTC day, mode and kind: decided, rated, void, open,
+  unanswered — opened over an hour ago with no run), `duel_rating_distribution` (bands of 100,
+  provisional apart, mean RD), `flagged_runs` with `review_run(id, ok|rejected)` (a flagged
+  run stays out of the pool until reviewed ok), `unanswered_duels` per player, `friend_counts`.
+  `dashboard.sh duels` prints them; `dashboard.sh review-run <id> ok|reject`; the main report
+  gains a 7-day duel summary. Both commands run in the SQL test runner. SQL test `99e`.
+  `doc/online.md` describes Phase 7 as built.

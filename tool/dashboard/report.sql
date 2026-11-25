@@ -65,6 +65,16 @@ select flag, sessions, players, to_char(last_at, 'YYYY-MM-DD HH24:MI') as last
 from owner_dashboard.flags;
 
 \echo
+\echo '== Duels, last 7 days (details: bash tool/dashboard/dashboard.sh duels)'
+select mode, sum(decided) as decided, sum(rated) as rated, sum(void) as void,
+  sum(unanswered) as unanswered,
+  (select count(*) from owner_dashboard.flagged_runs f
+   where f.review = 'awaiting review' and f.mode = d.mode) as flagged_to_review
+from owner_dashboard.duels_per_day d
+where day > (now() at time zone 'utc')::date - 7
+group by mode order by mode;
+
+\echo
 \echo '== Names reported, awaiting review'
 \echo '   approve: bash tool/dashboard/dashboard.sh approve-name <player_id>'
 \echo '   remove:  bash tool/dashboard/dashboard.sh clear-name <player_id>'

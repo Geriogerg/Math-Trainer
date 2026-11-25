@@ -14,7 +14,7 @@ detail and the state of the code. Where the two disagree, the plan wins.
 | Phase 1 | Anonymous-first (commit 4, done), linking and account screens, account deletion | in progress |
 | Phase 6 | Email confirmation with a real SMTP sender, CAPTCHA | planned |
 | Phase 2 | Monorepo, Dart server, session upload, replay validation, leaderboard | planned |
-| Phase 7 | Ghost duels, Glicko-2, friend challenges; live duels on owner decision | planned |
+| Phase 7 | Asynchronous duels in three rated modes, friends, challenges (plan v3.7) | built (Phase 7) |
 
 The old "slice 3" (leaderboard, sync, validation service) is Phase 2 of the plan.
 
@@ -511,24 +511,58 @@ the reason in words, with the games still missing. Reloads every time the tab is
 Settled in Phase 2 commits 6–7: the tables (above) and the eligibility thresholds
 (provisional).
 
-## Online play (Phase 7)
+## Online play (Phase 7, plan v3.7)
 
-- **v1 — ghost duels**: race a real player's recorded run, replayed live at its original pace.
-  Needs nobody else online; the interface says so plainly.
-- **Duel configuration differs from solo**: fixed quotas per type, difficulty from the rating
-  bracket, never from either player's levels; 10 questions, 3–4 types. Same seed and duel
-  configuration give identical questions on both sides (architecture rule 2).
-- **Rating: Glicko-2**, server-side only, provisional for the first ~10 duels. Rating and level are
-  two numbers on two screens.
-- **v2 — friend challenges**: a link, same seed, 48 hours to answer.
-- **v3 — live duels**, only when the owner decides that concurrency allows queues under ~20 s. Each
-  client times its questions locally and reports results — no shared live clock, so the network
-  never touches per-question timing. A player who drops is replaced by their recorded progress,
-  then their ghost.
-- Duel results and ratings are computed by the server only.
+Asynchronous duels only: a player races another's recorded run, replayed at its own pace as
+a second lane. Linked accounts only. Decisions and their reasons: `doc/decisions.md`,
+"Phase 7".
 
-Nothing in this section is built before Phase 7; it exists so that Phase 1 and 2 choices do not
-have to be undone.
+**Content** (`math_core/duel/`): a `DuelConfig` (mode, seed, difficulty, game rules, duel
+rules) is stored with every duel and run; both players play exactly its content. Basics and
+Advanced: two of each of four operations at the tier of the rating (150 points a tier from
+900), through the game's own generator. Get the count: three puzzles whose target's shortest
+solution length is in the rating's band, 30 s a round. `practiceLane` simulates an opponent
+from the config alone.
+
+**Runs**: what was typed and when (quiz answers; per round, every improvement with the
+operations that made it). `validateDuelRun` replays a run — the server's check and the app's
+own reckoning. An opponent receives a *lane* (times and right/wrong, or times and
+distances), never the values typed. The app keeps a run on the device after every answer and
+round (`DuelRunQueue`, `shared_preferences`) and sends it when it ends, when the player
+quits, or at the next start; it waits until `/health` lists its mode and duel rules.
+
+**Server** (`server/lib/src/duel_endpoint.dart`, linked accounts only — a guest gets 403
+`account_required`):
+- `POST /v1/duels {mode}` — the caller's unanswered duel of the hour, else the pool's run of
+  the closest-rated player (`duel_take_run`), else practice. `{mode, rematchOf}`: another run
+  of that opponent, else a challenge to them. `{mode, challenge: id}`: a challenge at the
+  mean of both ratings, the challenger first.
+- `POST /v1/duels/open {duelId}` — the friend opens a challenge (its lane).
+- `POST /v1/duels/run {duelId, run}` — replayed, applied once; the second run decides the
+  duel and, when rated, both ratings (`rateDuel`, Glicko-2, each duel one period). Refused
+  runs void their duel.
+
+**Database** (migrations `20261130000000_duels` … `20261130040000_duel_dashboard`; tables
+closed to the API, cascading with the account): `duel_ratings`, `duels`, `duel_runs`,
+`duel_run_rejections`, `friend_codes`, `friend_requests`, `friendships`,
+`friend_request_attempts`. The server's functions (service role): `duel_take_run`,
+`duel_insert`, `duel_context`, `apply_duel_run` (optimistic rating versions; challenges rated
+once a day per pair and mode), `record_duel_run_refused`, `duel_player`, `duel_open_offer`,
+`duel_create_challenge`. The app's (on `auth.uid()`): `duel_overview`, `duel_board_top`,
+`duel_board_around_me`, `my_friend_code`, `friend_request` (20 a day, failed lookups
+included), `friend_requests_incoming`, `friend_respond`, `friend_remove`, `friend_list`,
+`friend_history`. Owner: `owner_dashboard.duels_per_day`, `duel_rating_distribution`,
+`flagged_runs` (+ `review_run`), `unanswered_duels`, `friend_counts` — `dashboard.sh duels`,
+`dashboard.sh review-run <id> ok|reject`.
+
+**App**: the Online tab (`OnlineScreen`: modes and ratings, Waiting for you, Recent, the
+Friends pill; a badge on the tab), `DuelFlowScreen` (lanes on the game screen or Get the
+count's, the result with Rematch), `FriendsScreen` and `FriendHistoryScreen`, three duel
+boards on Ranks. An invite link (`?friend=MATH-7K2P`) is kept on the device and sent as a
+request once the player is linked.
+
+Later (Phase 7b): live duels when the dashboard shows enough players online together;
+tournaments after that.
 
 ## Settled decisions
 
@@ -538,4 +572,4 @@ have to be undone.
 - Dart server for validation, never Supabase Edge Functions; monorepo layout above.
 - Anonymous-first replaces mandatory sign-in (plan, section 6.3) — design to be approved by the
   owner before Phase 1 commit 1.
-- Glicko-2 rather than Elo; ghost duels before live duels (plan, section 6.5).
+- Glicko-2 rather than Elo; asynchronous duels only, live duels later (plan v3.7, Phase 7b).

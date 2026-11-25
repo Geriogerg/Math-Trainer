@@ -13,6 +13,8 @@
 #   bash tool/dashboard/dashboard.sh data-check          what Phase 3b needs, stored?
 #   bash tool/dashboard/dashboard.sh features            answers by structural feature
 #   bash tool/dashboard/dashboard.sh weak-spots          Phase 4: scheduled items, before/after (needs dart)
+#   bash tool/dashboard/dashboard.sh duels               Phase 7: duels, ratings, flagged runs, friends
+#   bash tool/dashboard/dashboard.sh review-run <run id> ok|reject   a flagged duel run: back in the pool, or out
 #
 # Connection: the environment variable DASHBOARD_DB_URL, else the first
 # line of tool/dashboard/connection.txt (git-ignored): Supabase → Connect →
@@ -70,6 +72,19 @@ case "$command" in
     # dependency: psql exports, Dart reads stdin).
     command -v dart > /dev/null || { echo "dart not found: install the Dart SDK." >&2; exit 2; }
     echo "select payload::text from public.uploaded_sessions order by player_id, created_at;"       | psql "$url" -X -q -At -v ON_ERROR_STOP=1       | (cd "$here/../../packages/math_core" && dart run tool/weak_spots_report.dart)
+    ;;
+  duels)
+    run < "$here/duels.sql"
+    ;;
+  review-run)
+    need "${2:-}"
+    [[ "$2" =~ ^[0-9a-fA-F-]{36}$ ]] || { echo "not a run id: $2" >&2; exit 2; }
+    case "${3:-}" in
+      ok) verdict=ok ;;
+      reject) verdict=rejected ;;
+      *) echo "verdict: ok or reject" >&2; exit 2 ;;
+    esac
+    echo "select owner_dashboard.review_run('$2', '$verdict') as found;" | run
     ;;
   new-code)
     need "${2:-}"
