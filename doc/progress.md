@@ -1388,3 +1388,13 @@ close-out is live (server on `7b0d7e2`, rules 2–8, kinds listed). Owner action
 - **Commit 0** *(A)* — Decisions recorded (`doc/decisions.md`, "Phase 7"), all provisional.
   Core: `DuelMode` (basics, advanced, count — stored names) and `DuelRulesVersion` (v1).
   Server: `/health` lists `duelModes` and `duelRules`. CLAUDE.md's Current phase is Phase 7.
+- **Commit 1** *(A)* — **Duel content in the core.** `DuelConfig` rewritten per mode (mode,
+  seed, difficulty, game rules, duel rules; strict JSON): Basics and Advanced draw two of each
+  of their four types, shuffled by the seed, through `gameExerciseGenerator` at the tier's
+  lowest level (`duelTierFor`: 150 points a tier from 900); Get the count draws three puzzles
+  (`drawCountPuzzleInBand`: the solo draw of six numbers, then a target whose shortest solution
+  length is in the band — `countBandFor`, `countBandOperations` — or the nearest length, shorter
+  first). `startingDuelRating` (900 + 15 × main level; advanced mean; 1300) and the provisional
+  threshold (10 rated duels). Pins re-recorded on purpose (4 question duels, 3 count duels):
+  identical on the VM and in JavaScript. Over 540 count rounds the band fallback is under 5 %.
+  Server: a stored config regenerates the pinned content (`duel_content_test.dart`).

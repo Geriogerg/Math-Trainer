@@ -1,9 +1,12 @@
+import 'dart:math';
+
+import 'package:math_core/challenges/count.dart';
 import 'package:math_core/duel/duel_config.dart';
-import 'package:math_core/leveling/level.dart';
+import 'package:math_core/duel/duel_mode.dart';
 import 'package:math_core/leveling/rules_version.dart';
-import 'package:math_core/models/exercise.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/persistence/exercise_codec.dart';
+import 'package:math_core/tiers/tier.dart';
 import 'package:test/test.dart';
 
 /// One line per question, as pinned below.
@@ -16,252 +19,288 @@ List<String> _lines(DuelConfig config) => [
     }(),
 ];
 
-/// Rules v3: the pins below were recorded under it.
-DuelConfig _standard(int seed, int bracket) => DuelConfig(
+/// One line per Get the count round.
+List<String> _rounds(DuelConfig config) => [
+  for (final (puzzle, solution) in config.rounds())
+    '${puzzle.numbers.join(' ')} → ${puzzle.target} in ${solution.length}',
+];
+
+/// Rules v8: the pins below were recorded under it.
+DuelConfig _duel(DuelMode mode, int seed, int difficulty) => DuelConfig(
+  mode: mode,
   seed: seed,
-  quotas: standardDuelQuotas,
-  bracket: bracket,
-  rulesVersion: RulesVersion.v3,
+  difficulty: difficulty,
+  rulesVersion: RulesVersion.v8,
 );
 
-/// Phase 5.2 commit 2 (Phase 7 commit 1): a duel's questions depend on
-/// (seed, config) only — pinned here, and this file runs on the VM and
-/// compiled to JavaScript like every core test, so both players' browsers
-/// and the server draw the same questions.
+/// Phase 7 commit 1: a duel's content depends on its config only — pinned
+/// here, and this file runs on the VM and compiled to JavaScript like every
+/// core test, so both players' browsers and the server draw the same.
 void main() {
-  // Recorded on the VM — first when the duel configuration was written,
-  // again on purpose at the Levels phase's commit 4, when duels moved to
-  // the tiers of `doc/levels.md` (no duel was stored yet). Never regenerate
-  // to make a JavaScript failure pass: a difference is a bug.
-  const pinned = {
-    (1, 7): [
-      'addition 16 68 = 84',
+  // Recorded on the VM at Phase 7 commit 1, when duels moved from Phase
+  // 5.2's rating brackets to the plan's modes (no duel was stored before).
+  // Never regenerate to make a JavaScript failure pass: a difference is a
+  // bug — and every stored duel would change.
+  const pinnedQuestions = {
+    (DuelMode.basics, 1, 4): [
+      'addition 7216 681 = 7897',
+      'subtraction 4263 933 = 3330',
+      'addition 3151 798 = 3949',
       'division 518 2 = 259',
-      'squareRoot 529 = 23',
-      'percentage 5 180 = 9',
-      'multiplication 24 7 = 168',
-      'subtraction 70 18 = 52',
-      'division 84 4 = 21',
+      'division 882 6 = 147',
+      'multiplication 18 6 = 108',
+      'subtraction 8178 221 = 7957',
+      'multiplication 341 50 = 17050',
+    ],
+    (DuelMode.basics, 20261125, 0): [
+      'division 3 3 = 1',
+      'addition 3 5 = 8',
+      'multiplication 7 4 = 28',
+      'addition 7 3 = 10',
+      'subtraction 5 4 = 1',
+      'multiplication 6 5 = 30',
+      'division 3 3 = 1',
+      'subtraction 4 1 = 3',
+    ],
+    (DuelMode.advanced, 987654321, 9): [
+      'percentage 26 400 = 104',
+      'integral 1 3 0 -2 0 0 5 = 234',
+      'percentage 25 32000000 = 8000000',
+      'power 195 2 = 38025',
+      'integral 239 241 0 2 0 0 = 960',
+      'squareRoot 30976 = 176',
+      'squareRoot 1018081 = 1009',
+      'power 135 2 = 18225',
+    ],
+    (DuelMode.advanced, 7, 4): [
       'power 2 7 = 128',
-      'subtraction 51 20 = 31',
-      'percentage 30 300 = 90',
-      'multiplication 78 2 = 156',
-      'addition 50 60 = 110',
+      'power 25 2 = 625',
+      'squareRoot 441 = 21',
+      'percentage 25 3148 = 787',
+      'integral 0 5 0 0 3 0 = 125',
+      'squareRoot 2025 = 45',
+      'integral 0 2 0 0 3 0 = 8',
+      'percentage 24 25 = 6',
     ],
-    (20261120, 0): [
-      'power 6 2 = 36',
-      'division 16 4 = 4',
-      'percentage 50 30 = 15',
-      'squareRoot 16 = 4',
-      'addition 2 6 = 8',
-      'subtraction 5 3 = 2',
-      'addition 6 3 = 9',
-      'subtraction 3 2 = 1',
-      'multiplication 1 4 = 4',
-      'percentage 10 50 = 5',
-      'multiplication 5 5 = 25',
-      'division 4 4 = 1',
+  };
+  const pinnedRounds = {
+    (1, 0): [
+      '100 9 6 2 8 2 → 620 in 3',
+      '50 7 9 8 3 6 → 987 in 3',
+      '25 100 75 9 4 1 → 476 in 3',
     ],
-    (987654321, 14): [
-      'addition 568 832 = 1400',
-      'subtraction 904 577 = 327',
-      'addition 609 329 = 938',
-      'division 855 15 = 57',
-      'percentage 91 400 = 364',
-      'percentage 12 64 5 = 8',
-      'division 3950 2 = 1975',
-      'multiplication 269 5 = 1345',
-      'subtraction 503 303 = 200',
-      'squareRoot 5625 = 75',
-      'multiplication 20 41 = 820',
-      'power 83 2 = 6889',
+    (20261125, 1): [
+      '50 3 2 8 1 4 → 205 in 3',
+      '50 8 9 3 9 1 → 491 in 3',
+      '100 6 4 5 8 2 → 573 in 4',
+    ],
+    (987654321, 2): [
+      '100 25 50 4 7 1 → 442 in 4',
+      '75 100 6 7 1 2 → 847 in 4',
+      '75 100 7 4 4 2 → 205 in 4',
     ],
   };
 
-  test('same (seed, config): the pinned questions, VM and JavaScript', () {
-    for (final MapEntry(key: (seed, bracket), value: expected)
-        in pinned.entries) {
-      expect(_lines(_standard(seed, bracket)), expected, reason: '$seed');
+  test('same config: the pinned questions and rounds, VM and JavaScript', () {
+    for (final MapEntry(key: (mode, seed, tier), value: expected)
+        in pinnedQuestions.entries) {
+      expect(_lines(_duel(mode, seed, tier)), expected, reason: '$seed');
+    }
+    for (final MapEntry(key: (seed, band), value: expected)
+        in pinnedRounds.entries) {
+      expect(_rounds(_duel(DuelMode.count, seed, band)), expected);
     }
   });
 
-  test('asked twice, the same questions; another seed, others', () {
-    expect(_lines(_standard(42, 7)), _lines(_standard(42, 7)));
-    expect(_lines(_standard(43, 7)), isNot(_lines(_standard(42, 7))));
-  });
-
-  test('fixed quotas: exactly that many of each type', () {
-    final config = _standard(7, 7);
-    final sequence = config.typeSequence();
-    expect(sequence.length, 12);
-    for (final type in ExerciseType.values) {
-      expect(
-        sequence.where((t) => t == type).length,
-        standardDuelQuotas[type] ?? 0,
-        reason: type.name,
-      );
-    }
-    // The questions follow the sequence.
-    expect([for (final q in config.questions()) q.type], sequence);
-    // A type at 0 or absent is never asked.
-    final sums = DuelConfig(
-      seed: 7,
-      quotas: {ExerciseType.addition: 3, ExerciseType.division: 0},
-      bracket: 7,
+  test('asked twice, the same content; another seed, another', () {
+    expect(
+      _lines(_duel(DuelMode.basics, 42, 3)),
+      _lines(_duel(DuelMode.basics, 42, 3)),
     );
-    expect(sums.questions().map((q) => q.type).toSet(), {
-      ExerciseType.addition,
-    });
+    expect(
+      _lines(_duel(DuelMode.basics, 43, 3)),
+      isNot(_lines(_duel(DuelMode.basics, 42, 3))),
+    );
+    expect(
+      _rounds(_duel(DuelMode.count, 42, 1)),
+      _rounds(_duel(DuelMode.count, 42, 1)),
+    );
   });
 
-  test('the shuffle mixes the types (not grouped by type)', () {
-    final sequences = {
-      for (var seed = 0; seed < 20; seed++)
-        _standard(seed, 7).typeSequence().join(','),
-    };
-    expect(sequences.length, greaterThan(15));
+  test('two of each of the mode\'s four types, mixed by the seed', () {
+    for (final mode in [DuelMode.basics, DuelMode.advanced]) {
+      final orders = <String>{};
+      for (var seed = 0; seed < 20; seed++) {
+        final config = _duel(mode, seed, 5);
+        final sequence = config.typeSequence();
+        expect(sequence.length, duelQuestionCount);
+        for (final type in mode.types) {
+          expect(sequence.where((t) => t == type).length, 2);
+        }
+        expect([for (final q in config.questions()) q.type], sequence);
+        orders.add(sequence.join(','));
+      }
+      expect(orders.length, greaterThan(10), reason: mode.name);
+    }
   });
 
-  test('difficulty comes from the bracket alone', () {
-    // No level of any player goes in: the config has none to take.
-    expect(_standard(1, 0).level, Level.whole(5));
-    expect(_standard(1, 7).level, Level.whole(40));
-    expect(_standard(1, 14).level, Level.whole(75));
-    int largestSum(int bracket) {
-      var largest = 0;
-      for (var seed = 0; seed < 30; seed++) {
-        for (final q in DuelConfig(
-          seed: seed,
-          quotas: {ExerciseType.addition: 5},
-          bracket: bracket,
-        ).questions()) {
-          final a = q as ArithmeticExercise;
-          final top = a.operandA > a.operandB ? a.operandA : a.operandB;
-          if (top > largest) largest = top;
+  test('drawn exactly as a game at the tier draws them', () {
+    // Every question of a duel at tier t is one the tier's game can draw:
+    // its level-band digits stay those of the tier (spot check on the
+    // operands' size across tiers).
+    int largest(DuelConfig c) => c
+        .questions()
+        .where((q) => q.type == ExerciseType.addition)
+        .map((q) => q.correctAnswer)
+        .reduce(max);
+    var low = 0;
+    var high = 0;
+    for (var seed = 0; seed < 30; seed++) {
+      low = max(low, largest(_duel(DuelMode.basics, seed, 0)));
+      high = max(high, largest(_duel(DuelMode.basics, seed, 9)));
+    }
+    expect(low, lessThanOrEqualTo(20));
+    expect(high, greaterThan(1000));
+  });
+
+  test('rating → tier: 150 points a tier from 900', () {
+    expect(duelTierFor(0), Tier.t0);
+    expect(duelTierFor(899), Tier.t0);
+    expect(duelTierFor(900), Tier.t0);
+    expect(duelTierFor(1049), Tier.t0);
+    expect(duelTierFor(1050), Tier.t1);
+    expect(duelTierFor(1500), Tier.t4);
+    expect(duelTierFor(2249), Tier.t8);
+    expect(duelTierFor(2250), Tier.t9);
+    expect(duelTierFor(3000), Tier.t9);
+    expect(
+      DuelConfig.forRating(mode: DuelMode.advanced, seed: 1, rating: 1500),
+      _duel(DuelMode.advanced, 1, 4),
+    );
+  });
+
+  test('rating → count band: below 1300, 1300–1700, above 1700', () {
+    expect(countBandFor(1299), 0);
+    expect(countBandFor(1300), 1);
+    expect(countBandFor(1700), 1);
+    expect(countBandFor(1701), 2);
+    expect(countBandOperations(0), (2, 3));
+    expect(countBandOperations(1), (3, 4));
+    expect(countBandOperations(2), (4, 5));
+    expect(() => countBandOperations(3), throwsArgumentError);
+    expect(
+      DuelConfig.forRating(mode: DuelMode.count, seed: 1, rating: 1300),
+      _duel(DuelMode.count, 1, 1),
+    );
+  });
+
+  test('count rounds: targets in their band, solutions exact', () {
+    var offBand = 0;
+    var rounds = 0;
+    for (var band = 0; band < countBands; band++) {
+      final (minOps, maxOps) = countBandOperations(band);
+      for (var seed = 0; seed < 60; seed++) {
+        for (final (puzzle, solution) in _duel(
+          DuelMode.count,
+          seed,
+          band,
+        ).rounds()) {
+          rounds++;
+          expect(solution.last.result, puzzle.target);
+          // The solution is the shortest: its length is the target's.
+          expect(
+            shortestCountLength(puzzle.numbers, puzzle.target),
+            solution.length,
+          );
+          if (solution.length < minOps || solution.length > maxOps) {
+            offBand++;
+          }
         }
       }
-      return largest;
     }
-
-    expect(largestSum(14), greaterThan(largestSum(0)));
+    // The fallback (no target of the band in range) is rare.
+    expect(offBand, lessThan(rounds ~/ 20), reason: '$offBand of $rounds');
   });
 
-  test('rating brackets: 100 points wide, 1500 in bracket 7', () {
-    expect(duelBracketFor(-50), 0);
-    expect(duelBracketFor(899), 0);
-    expect(duelBracketFor(900), 1);
-    expect(duelBracketFor(1499), 6);
-    expect(duelBracketFor(1500), 7);
-    expect(duelBracketFor(2199), 13);
-    expect(duelBracketFor(2200), 14);
-    expect(duelBracketFor(3000), 14);
-  });
-
-  group('invalid configurations throw', () {
-    test('a negative quota', () {
-      expect(
-        () => DuelConfig(
-          seed: 1,
-          quotas: {ExerciseType.addition: 3, ExerciseType.power: -1},
-          bracket: 7,
-        ),
-        throwsArgumentError,
-      );
-    });
-    test('no question, or too many', () {
-      expect(
-        () => DuelConfig(seed: 1, quotas: const {}, bracket: 7),
-        throwsArgumentError,
-      );
-      expect(
-        () => DuelConfig(
-          seed: 1,
-          quotas: {ExerciseType.addition: maxDuelQuestions + 1},
-          bracket: 7,
-        ),
-        throwsArgumentError,
-      );
-    });
-    test('a bracket out of range', () {
-      for (final bracket in [-1, duelBracketCount]) {
-        expect(
-          () =>
-              DuelConfig(seed: 1, quotas: standardDuelQuotas, bracket: bracket),
-          throwsArgumentError,
-        );
-        expect(() => duelBracketLevel(bracket), throwsArgumentError);
-      }
-    });
-  });
-
-  test('a duel keeps its rules: its questions never move when new games '
-      'change rules; JSON carries them (absent: v3); v1 throws', () {
-    final v4 = DuelConfig(
-      seed: 1,
-      quotas: standardDuelQuotas,
-      bracket: 7,
-      rulesVersion: RulesVersion.v4,
+  test('the band fallback: the nearest length, shorter first', () {
+    // A draw with a band of 1 operation only finds 1-operation targets if
+    // the numbers make some in range; whatever it returns is reachable.
+    final random = Random(3);
+    final (puzzle, solution) = drawCountPuzzleInBand(
+      random,
+      minOps: 5,
+      maxOps: 5,
     );
-    expect(_lines(v4), isNot(_lines(_standard(1, 7))));
-    expect(DuelConfig.fromJson(v4.toJson()), v4);
-    expect(v4.toJson()['rules'], 4);
-    final old = Map<String, Object?>.of(_standard(1, 7).toJson())
-      ..remove('rules');
-    expect(DuelConfig.fromJson(old), _standard(1, 7));
+    expect(solution.last.result, puzzle.target);
+    expect(
+      () => drawCountPuzzleInBand(Random(1), minOps: 0, maxOps: 2),
+      throwsArgumentError,
+    );
+  });
+
+  test('a mode asks only for its own content', () {
+    expect(() => _duel(DuelMode.count, 1, 0).questions(), throwsStateError);
+    expect(() => _duel(DuelMode.basics, 1, 0).rounds(), throwsStateError);
+    expect(() => _duel(DuelMode.count, 1, 0).tier, throwsStateError);
+    expect(_duel(DuelMode.count, 1, 0).length, 3);
+    expect(_duel(DuelMode.basics, 1, 0).length, 8);
+  });
+
+  test('invariants by throw: difficulty range, retired rules', () {
+    expect(() => _duel(DuelMode.basics, 1, 10), throwsArgumentError);
+    expect(() => _duel(DuelMode.basics, 1, -1), throwsArgumentError);
+    expect(() => _duel(DuelMode.count, 1, 3), throwsArgumentError);
     expect(
       () => DuelConfig(
+        mode: DuelMode.basics,
         seed: 1,
-        quotas: standardDuelQuotas,
-        bracket: 7,
+        difficulty: 0,
         rulesVersion: RulesVersion.v1,
       ),
       throwsArgumentError,
     );
   });
 
-  test('JSON: round trip, the same for any quota order, strict', () {
-    final config = _standard(99, 3);
-    final back = DuelConfig.fromJson(config.toJson());
-    expect(back, config);
-    expect(back.hashCode, config.hashCode);
-    expect(_lines(back), _lines(config));
-    final reordered = DuelConfig(
-      seed: 99,
-      quotas: Map.fromEntries(standardDuelQuotas.entries.toList().reversed),
-      bracket: 3,
-      rulesVersion: RulesVersion.v3,
-    );
-    expect(reordered, config);
-    expect(reordered.toJson(), config.toJson());
+  test('a duel keeps its rules: v6 and v8 draw the same questions', () {
+    // v8 changed only the weak-spot schedule; duels never hold weak spots.
+    for (var seed = 0; seed < 10; seed++) {
+      final v6 = DuelConfig(
+        mode: DuelMode.basics,
+        seed: seed,
+        difficulty: 6,
+        rulesVersion: RulesVersion.v6,
+      );
+      expect(_lines(v6), _lines(_duel(DuelMode.basics, seed, 6)));
+    }
+  });
+
+  test('JSON: round trip, strict', () {
+    for (final config in [
+      _duel(DuelMode.basics, 1, 4),
+      _duel(DuelMode.count, -5, 2),
+    ]) {
+      expect(DuelConfig.fromJson(config.toJson()), config);
+    }
+    expect(_duel(DuelMode.count, 3, 1).toJson(), {
+      'mode': 'count',
+      'seed': 3,
+      'difficulty': 1,
+      'rules': 8,
+      'duelRules': 1,
+    });
+    final good = _duel(DuelMode.basics, 1, 4).toJson();
     for (final bad in [
       null,
-      {'seed': 1, 'bracket': 3},
-      {
-        'seed': '1',
-        'bracket': 3,
-        'quotas': {'addition': 1},
-      },
-      {
-        'seed': 1,
-        'bracket': 3,
-        'quotas': {'addtion': 1},
-      },
-      {
-        'seed': 1,
-        'bracket': 3,
-        'quotas': {'addition': 1.5},
-      },
-      {
-        'seed': 1,
-        'bracket': 99,
-        'quotas': {'addition': 1},
-      },
+      'x',
+      {...good, 'mode': 'chain'},
+      {...good, 'seed': '1'},
+      {...good, 'difficulty': 10},
+      {...good, 'rules': 1},
+      {...good, 'rules': 99},
+      {...good, 'duelRules': 2},
+      {...good}..remove('duelRules'),
     ]) {
-      expect(
-        () => DuelConfig.fromJson(bad),
-        throwsFormatException,
-        reason: '$bad',
-      );
+      expect(() => DuelConfig.fromJson(bad), throwsFormatException);
     }
   });
 }

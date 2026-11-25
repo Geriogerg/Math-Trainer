@@ -1611,6 +1611,10 @@ still write `auth.users` in the testers' project). **Reopen when** Phase 6 adds 
 
 ## Duel configuration: quotas, a bracket's level, one stream (Phase 5.2, commit 2) — provisional
 
+**Superseded at Phase 7 commit 1** (plan v3.7): duels are per mode, a tier per 150 rating
+points, two of each of four types ("Phase 7" below). Kept for the record; no duel was stored
+under it.
+
 `math_core/duel/duel_config.dart`: `DuelConfig(seed, quotas, bracket)` → `questions()`. Both
 players get the same questions; the server can regenerate them (Phase 7 commit 2). Choices,
 **provisional** (Phase 7 tunes them on play):

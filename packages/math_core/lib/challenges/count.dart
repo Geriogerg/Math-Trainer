@@ -99,17 +99,7 @@ CountPuzzle generateCountPuzzle(int seed) => _generate(seed).$1;
 
 (CountPuzzle, _CountSolver) _generate(int seed) {
   final random = Random(seed);
-  final bigCount = 1 + random.nextInt(3);
-  final bigs = [...countBigNumbers];
-  final smallsPool = [
-    for (var n = 1; n <= 9; n++) ...[n, n],
-  ];
-  final numbers = <int>[
-    for (var i = 0; i < bigCount; i++)
-      bigs.removeAt(random.nextInt(bigs.length)),
-    for (var i = 0; i < 6 - bigCount; i++)
-      smallsPool.removeAt(random.nextInt(smallsPool.length)),
-  ];
+  final numbers = _drawNumbers(random);
   final solver = _CountSolver(numbers);
   final reachable = <int>{};
   for (final values in solver.valuesByMask) {
@@ -130,6 +120,70 @@ CountPuzzle generateCountPuzzle(int seed) => _generate(seed).$1;
     solver,
   );
 }
+
+/// The six numbers: 1 to 3 distinct bigs, then the smalls drawn from two
+/// of each 1–9 — one draw per number, from [random].
+List<int> _drawNumbers(Random random) {
+  final bigCount = 1 + random.nextInt(3);
+  final bigs = [...countBigNumbers];
+  final smallsPool = [
+    for (var n = 1; n <= 9; n++) ...[n, n],
+  ];
+  return <int>[
+    for (var i = 0; i < bigCount; i++)
+      bigs.removeAt(random.nextInt(bigs.length)),
+    for (var i = 0; i < 6 - bigCount; i++)
+      smallsPool.removeAt(random.nextInt(smallsPool.length)),
+  ];
+}
+
+/// A duel's round of Get the count (Phase 7): the six numbers drawn from
+/// [random] as in solo, then the target drawn among the values in
+/// [101, 999] whose **shortest solution takes [minOps] to [maxOps]
+/// operations** — the difficulty band of the players' rating. Built
+/// backwards like solo (rule 10): every candidate is reachable.
+///
+/// When the numbers make no value of that length in range (rare), the
+/// nearest length they do make, the shorter first — the round stays
+/// playable, a little off its band. Returns the puzzle and its shortest
+/// solution.
+(CountPuzzle, List<CountStep>) drawCountPuzzleInBand(
+  Random random, {
+  required int minOps,
+  required int maxOps,
+}) {
+  if (minOps < 1 || maxOps < minOps || maxOps > 5) {
+    throw ArgumentError('operations band $minOps–$maxOps: 1 ≤ min ≤ max ≤ 5');
+  }
+  final numbers = _drawNumbers(random);
+  final solver = _CountSolver(numbers);
+  final lengths = solver.shortestLengths();
+  List<int> withLengths(bool Function(int ops) keep) => [
+    for (final MapEntry(key: value, value: ops) in lengths.entries)
+      if (value >= countTargetMin && value <= countTargetMax && keep(ops))
+        value,
+  ]..sort();
+  var targets = withLengths((ops) => ops >= minOps && ops <= maxOps);
+  for (var d = 1; targets.isEmpty && d <= 5; d++) {
+    targets = withLengths((ops) => ops == minOps - d);
+    if (targets.isEmpty) targets = withLengths((ops) => ops == maxOps + d);
+  }
+  if (targets.isEmpty) {
+    // Impossible: some value in range is always reachable (see
+    // generateCountPuzzle), and every length 1–5 is tried above.
+    throw StateError('no target reachable from $numbers');
+  }
+  final target = targets[random.nextInt(targets.length)];
+  return (
+    CountPuzzle(numbers: numbers, target: target),
+    solver.shortest(target)!,
+  );
+}
+
+/// The number of operations of the shortest way to [target] from
+/// [numbers], or `null` if none.
+int? shortestCountLength(List<int> numbers, int target) =>
+    _CountSolver(numbers).shortestLengths()[target];
 
 /// The shortest way to [target] from [numbers] (fewest operations, i.e. the
 /// fewest numbers used), or `null` if none: the round's correction.
@@ -228,6 +282,20 @@ class _CountSolver {
       i++;
     }
     return i;
+  }
+
+  /// Every value the numbers make, with the fewest operations it takes
+  /// (a subset of k numbers takes k − 1).
+  Map<int, int> shortestLengths() {
+    final lengths = <int, int>{};
+    for (var mask = 1; mask < valuesByMask.length; mask++) {
+      final ops = _bits(mask) - 1;
+      for (final value in valuesByMask[mask].keys) {
+        final known = lengths[value];
+        if (known == null || ops < known) lengths[value] = ops;
+      }
+    }
+    return lengths;
   }
 
   List<CountStep>? shortest(int target) {

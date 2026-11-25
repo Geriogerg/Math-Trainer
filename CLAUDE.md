@@ -277,11 +277,11 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 - `ExerciseType` and `SessionKind` names are stored discriminants; renaming breaks history.
   Phase 4 added `weakSpots` and `drill` (practice: replayed and checked by the server, never a
   level update); test `kind.movesLevels`, never `kind != training`.
-- `duel_config_test.dart` pins three duels' questions (re-recorded once, on purpose, when duels
-  moved to the tiers; under v3 since `DuelConfig` carries its rules version): a change to
-  generation that moves them breaks every stored duel (Phase 7) — never update the pins to make a
-  test pass.
-  `Strategy` names will be too (Phase 4 tips).
+- `duel_config_test.dart` pins duels' questions and Get the count rounds (re-recorded once, on
+  purpose, at Phase 7 commit 1, when duels moved from rating brackets to modes; no duel was
+  stored before): a change to generation that moves them breaks every stored duel — never
+  update the pins to make a test pass. Duels store their game rules and `DuelRulesVersion`.
+  `Strategy` names are stored too (Phase 4 tips).
 - Changing what a tier draws changes every stored v2 session's replay: a new rules version
   instead (`RulesVersion`, `doc/levels.md` section 4), the old one kept replayable.
 - A new rules version goes in `RulesVersion` (`current`, `replayed`), `LevelRules.of` and
