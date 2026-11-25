@@ -10,6 +10,7 @@ import 'package:math_core/friends/friends.dart';
 import 'package:math_core/leveling/rules_version.dart';
 import 'package:math_core/persistence/in_memory_session_repository.dart';
 import 'package:math_trainer/composition_root.dart';
+import 'package:math_trainer/core/sharing/link_sharer.dart';
 import 'package:math_trainer/presentation/screens/app_shell.dart';
 import 'package:math_trainer/presentation/screens/friends_screen.dart';
 import 'package:math_trainer/presentation/theme/app_theme.dart';
@@ -69,6 +70,19 @@ class FakeFriendsRepository implements FriendsRepository {
   ];
 }
 
+class FakeSharer implements LinkSharer {
+  FakeSharer({required this.available});
+
+  final bool available;
+  final shared = <Uri>[];
+
+  @override
+  Future<bool> share({required String title, required Uri link}) async {
+    if (available) shared.add(link);
+    return available;
+  }
+}
+
 class MemoryInviteStore implements PendingInviteStore {
   String? code;
 
@@ -86,25 +100,31 @@ void main() {
   late FakeDuelClient client;
   late MemoryInviteStore invites;
 
-  AppEnvironment environment({OnlineRepository? online}) => AppEnvironment(
-    repository: InMemorySessionRepository(),
-    playerId: 'device',
-    accountRepository: FakeAccountRepository(),
-    profileRepository: FakeProfileRepository(),
-    friendsRepository: friends,
-    onlineRepository: online,
-    pendingInviteStore: invites,
-    duelClient: client,
-    duelRunStore: MemoryDuelRunStore(),
-    siteUrl: Uri.parse('https://math-trainer-kjc.pages.dev/'),
-  ).forPlayer('me');
+  AppEnvironment environment({OnlineRepository? online, LinkSharer? sharer}) =>
+      AppEnvironment(
+        linkSharer: sharer,
+        repository: InMemorySessionRepository(),
+        playerId: 'device',
+        accountRepository: FakeAccountRepository(),
+        profileRepository: FakeProfileRepository(),
+        friendsRepository: friends,
+        onlineRepository: online,
+        pendingInviteStore: invites,
+        duelClient: client,
+        duelRunStore: MemoryDuelRunStore(),
+        siteUrl: Uri.parse('https://math-trainer-kjc.pages.dev/'),
+      ).forPlayer('me');
 
-  Future<void> pumpFriends(WidgetTester tester, ThemeData theme) async {
+  Future<void> pumpFriends(
+    WidgetTester tester,
+    ThemeData theme, {
+    LinkSharer? sharer,
+  }) async {
     await setGoldenSurfaceSize(tester);
     await tester.pumpWidget(
       MaterialApp(
         theme: theme,
-        home: FriendsScreen(environment: environment()),
+        home: FriendsScreen(environment: environment(sharer: sharer)),
       ),
     );
     await tester.pumpAndSettle();
@@ -181,6 +201,51 @@ void main() {
       },
     );
     await pumpFriends(tester, buildLightTheme());
+    await tester.tap(find.text('Share link'));
+    await tester.pumpAndSettle();
+    expect(copied, 'https://math-trainer-kjc.pages.dev/?friend=MATH-7K2P');
+    expect(find.text('Link copied'), findsOneWidget);
+  });
+
+  testWidgets('Share link: the share sheet where there is one', (tester) async {
+    var copied = false;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.setData') copied = true;
+        return null;
+      },
+    );
+    final sheet = FakeSharer(available: true);
+    await pumpFriends(tester, buildLightTheme(), sharer: sheet);
+    await tester.tap(find.text('Share link'));
+    await tester.pumpAndSettle();
+    expect(
+      sheet.shared.single.toString(),
+      'https://math-trainer-kjc.pages.dev/?friend=MATH-7K2P',
+    );
+    expect(copied, isFalse);
+    expect(find.text('Link copied'), findsNothing);
+  });
+
+  testWidgets('no share sheet (a desktop browser): copied instead', (
+    tester,
+  ) async {
+    String? copied;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.setData') {
+          copied = (call.arguments as Map)['text'] as String;
+        }
+        return null;
+      },
+    );
+    await pumpFriends(
+      tester,
+      buildLightTheme(),
+      sharer: FakeSharer(available: false),
+    );
     await tester.tap(find.text('Share link'));
     await tester.pumpAndSettle();
     expect(copied, 'https://math-trainer-kjc.pages.dev/?friend=MATH-7K2P');

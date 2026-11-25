@@ -46,12 +46,14 @@ import 'package:math_core/sync/session_upload_queue.dart';
 import 'package:math_core/persistence/session_repository.dart';
 import 'package:math_core/persistence/theme_mode_store.dart';
 import 'package:math_core/persistence/type_selection_store.dart';
+import 'core/sharing/link_sharer.dart';
 import 'core/state/duel_controller.dart';
 import 'core/state/session_controller.dart';
 import 'infrastructure/backend/http_duel_client.dart';
 import 'infrastructure/backend/supabase_friends_repository.dart';
 import 'infrastructure/backend/supabase_online_repository.dart';
 import 'infrastructure/persistence/shared_preferences_pending_invite_store.dart';
+import 'infrastructure/sharing/link_sharer_factory.dart';
 import 'infrastructure/persistence/shared_preferences_duel_run_store.dart';
 import 'infrastructure/backend/http_session_upload_client.dart';
 import 'infrastructure/backend/supabase_beta_code_repository.dart';
@@ -114,6 +116,7 @@ class AppEnvironment {
     this.friendsRepository,
     this.pendingInviteStore = const SharedPreferencesPendingInviteStore(),
     this.siteUrl,
+    this.linkSharer,
   });
 
   final SessionRepository repository;
@@ -230,6 +233,10 @@ class AppEnvironment {
   /// The site's own address, for invite links; `null` off the web.
   final Uri? siteUrl;
 
+  /// The share sheet for invite links (plan v3.8); `null`: the link is
+  /// copied.
+  final LinkSharer? linkSharer;
+
   AppEnvironment forPlayer(String playerId) => AppEnvironment(
     repository: repository,
     playerId: playerId,
@@ -256,6 +263,7 @@ class AppEnvironment {
     friendsRepository: friendsRepository,
     pendingInviteStore: pendingInviteStore,
     siteUrl: siteUrl,
+    linkSharer: linkSharer,
     duelQueue: switch (duelClient) {
       final client? => DuelRunQueue(
         store: duelRunStore,
@@ -447,6 +455,7 @@ Future<AppEnvironment> buildAppEnvironment() async {
     friendsRepository: SupabaseFriendsRepository(Supabase.instance.client),
     pendingInviteStore: invites,
     siteUrl: kIsWeb ? Uri.base : null,
+    linkSharer: createLinkSharer(),
     duelClient: _serverUrl.isEmpty
         ? null
         : HttpDuelClient(

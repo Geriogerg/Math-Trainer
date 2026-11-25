@@ -1553,3 +1553,9 @@ hand (the migration goes through CI).
   questions do not move). App: `DuelController.families`, passed to `methodFor` on the result.
   Tests: families match their questions' types over 40 duels (VM and JavaScript); a missed
   pattern question in a duel shows its family's Method.
+- **Commit 3** *(A)* — **Share link opens the share sheet.** `LinkSharer` (app core) and, by
+  conditional import, the Web Share API in a browser (`navigator.share`, feature-detected,
+  `canShare` checked; the player closing the sheet counts as shared) or none elsewhere until
+  Phase 8; the Friends page tries the sheet, else copies the link ("Link copied"). Tests: the
+  sheet takes the invite link and nothing is copied; no sheet → copied. The web build compiles
+  with it (checked locally); a real sheet is for the phone checklist.

@@ -50,8 +50,15 @@ class _FriendsScreenState extends State<FriendsScreen> {
   void _say(String text) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
 
+  /// The phone's share sheet where the browser has one (plan v3.8), the
+  /// clipboard otherwise.
   Future<void> _share(String code) async {
     final site = widget.environment.siteUrl;
+    final sharer = widget.environment.linkSharer;
+    if (site != null && sharer != null) {
+      final link = inviteLink(site, code);
+      if (await sharer.share(title: 'Math Trainer', link: link)) return;
+    }
     final text = site == null ? code : '${inviteLink(site, code)}';
     await Clipboard.setData(ClipboardData(text: text));
     if (mounted) _say('Link copied');
