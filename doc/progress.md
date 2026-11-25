@@ -1423,3 +1423,17 @@ close-out is live (server on `7b0d7e2`, rules 2–8, kinds listed). Owner action
   the provisional flag (< 10 rated duels). Tests on scripted histories: a ten-duel winning
   streak (both sides counted, "?" lifted at the tenth), practice, the daily challenge limit, a
   concurrent update, draws, upsets, the cap.
+- **Commit 4** *(A)* — **Matchmaking, practice opponents, rematch.** Core: `practiceLane` (a
+  simulated player of the duel's tier from the config alone: 70 % right in 60–140 % of the
+  fluent time; count rounds exact half the time, else 1–9 away, in 8–28 s; pinned VM and
+  JavaScript). Migration `20261130010000_matchmaking`: `duel_player` (linked, name, rating,
+  levels), `duel_open_offer` (the caller's unanswered pool or practice duel of the hour —
+  handed back instead of a new one, so asking again never burns runs or shops for an easier
+  opponent), `duel_create_challenge` (self, guests refused; one open challenge per pair and
+  mode, either way round, serialised; 7 days). Server: `POST /v1/duels` — the open duel, else
+  the pool (`duel_take_run`), else practice at the caller's rating (start from levels when
+  unrated); `rematchOf` — another run of the same opponent nearest the caller's tier, else a
+  challenge to them (after practice: a new search); `challenge` — at the mean of both ratings,
+  challenger first. `POST /v1/duels/open` — the friend opens a waiting challenge (its lane).
+  Tests: practice and resume, the pool (never one's own, never flagged), Get the count, rematch
+  both ways, challenges (open before and after, someone else's), refusals; SQL `a2`.

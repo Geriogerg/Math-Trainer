@@ -86,6 +86,70 @@ class FakeDuelGateway implements SupabaseGateway {
         return [_apply(p)];
       case 'duel_take_run':
         return _take(p);
+      case 'duel_player':
+        final id = p['p_player_id'] as String;
+        final user = users.values.where((u) => u.id == id).firstOrNull;
+        if (user == null) return null;
+        final row = ratings[(id, p['p_mode'])];
+        return {
+          'id': id,
+          'linked': !user.isAnonymous,
+          'name': names[id],
+          'rating': row == null ? null : {...row},
+          'levels': levels[id] ?? const {},
+        };
+      case 'duel_open_offer':
+        final open = duels.values
+            .where(
+              (d) =>
+                  d['secondPlayer'] == p['p_player_id'] &&
+                  d['mode'] == p['p_mode'] &&
+                  (d['kind'] == 'pool' || d['kind'] == 'practice') &&
+                  d['state'] == 'awaitingSecond' &&
+                  d['stale'] != true,
+            )
+            .lastOrNull;
+        if (open == null) return null;
+        final first = open['firstPlayer'];
+        return {
+          'duelId': open['id'],
+          'kind': open['kind'],
+          'config': open['config'],
+          'lane': open['firstLane'],
+          'opponent': first == null
+              ? null
+              : {'id': first, 'name': names[first]},
+        };
+      case 'duel_create_challenge':
+        final me = p['p_challenger'] as String;
+        final target = p['p_target'] as String;
+        if (me == target) return 'self';
+        if (!users.values.any((u) => u.id == target && !u.isAnonymous)) {
+          return 'notLinked';
+        }
+        final pair = {me, target};
+        if (duels.values.any(
+          (d) =>
+              d['kind'] == 'challenge' &&
+              d['mode'] == p['p_mode'] &&
+              (d['state'] == 'awaitingFirst' ||
+                  d['state'] == 'awaitingSecond') &&
+              d['expired'] != true &&
+              pair.containsAll([d['firstPlayer'], d['secondPlayer']]),
+        )) {
+          return 'exists';
+        }
+        await rpc('duel_insert', {
+          'p_duel_id': p['p_duel_id'],
+          'p_mode': p['p_mode'],
+          'p_kind': 'challenge',
+          'p_config': p['p_config'],
+          'p_first_player': me,
+          'p_second_player': target,
+          'p_first_lane': null,
+          'p_expires_at': '2099-01-01T00:00:00Z',
+        });
+        return 'created';
     }
     throw StateError('unexpected rpc $name');
   }

@@ -1,12 +1,15 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:math_core/duel/duel_config.dart';
 import 'package:math_core/duel/duel_mode.dart';
 import 'package:math_core/duel/duel_rating.dart';
 import 'package:math_core/duel/duel_run.dart';
 import 'package:math_core/duel/duel_validation.dart';
+import 'package:math_core/duel/practice_lane.dart';
 import 'package:math_core/leveling/level.dart';
 import 'package:math_core/models/exercise_type.dart';
+import 'package:math_core/persistence/uuid.dart';
 import 'package:shelf/shelf.dart';
 
 import 'http_app.dart';
@@ -34,14 +37,227 @@ const maxDuelBytes = 64 * 1024;
 ///   never resends;
 /// - 401, 403, 413, 503 (Supabase unavailable, or ratings kept moving): the
 ///   app retries later.
+///
+/// `POST /v1/duels` `{mode}` — **matchmaking** (commit 4): the caller's
+/// unanswered duel of the mode opened within the hour if any, else the
+/// pool's run whose owner's rating is closest (`duel_take_run`), else a
+/// **practice** duel at the caller's rating against a simulated lane
+/// (`practiceLane`). `{mode, rematchOf}`: another pool run of that duel's
+/// opponent, the closest tier first; none → a challenge sent to them (after
+/// a practice duel: a new search). `{mode, challenge: playerId}`: a
+/// challenge at the mean of both ratings, the caller playing first. Answers
+/// an offer `{duelId, kind, config, lane, opponent}` (`lane` null for a
+/// challenge the caller opens; `opponent` null for practice), or 409
+/// `{status: refused, reason}`: `self`, `notLinked`, `exists`,
+/// `notYourDuel`, `unknownDuel`.
+///
+/// `POST /v1/duels/open` `{duelId}` — the friend opens a challenge waiting
+/// for them: the offer with the challenger's lane; 409 `notOpen` or
+/// `expired` otherwise.
 class DuelEndpoint {
-  DuelEndpoint(this.gateway);
+  DuelEndpoint(this.gateway, {Random? seeds, String Function()? newId})
+    : _seeds = seeds ?? Random.secure(),
+      _newId = newId ?? generateUuidV4;
 
   final SupabaseGateway gateway;
+  final Random _seeds;
+  final String Function() _newId;
 
   List<Route> get routes => [
+    (method: 'POST', path: '/v1/duels', handler: handleFind),
+    (method: 'POST', path: '/v1/duels/open', handler: handleOpen),
     (method: 'POST', path: '/v1/duels/run', handler: handleRun),
   ];
+
+  /// A duel's seed: positive and under 2³¹, the same on every platform
+  /// that will draw from it.
+  int _seed() => _seeds.nextInt(1 << 31);
+
+  Future<Response> handleFind(Request request) =>
+      _guarded(request, (user, body) async {
+        final DuelMode mode;
+        try {
+          mode = DuelMode.parse(body['mode']);
+        } on FormatException catch (e) {
+          return refused(400, 'badRequest', detail: e.message);
+        }
+        final me = await _player(user.id, mode);
+        if (me == null) return refused(409, 'notLinked');
+        final rating = me.rating;
+
+        if (body['challenge'] case final String target) {
+          return _challenge(user.id, target, mode, rating);
+        }
+        if (body['rematchOf'] case final String previous) {
+          final context = await gateway.rpc('duel_context', {
+            'p_duel_id': previous,
+            'p_player_id': user.id,
+          });
+          if (context is! Map) return refused(404, 'unknownDuel');
+          final duel = _map(context['duel']);
+          final first = duel['firstPlayer'];
+          final second = duel['secondPlayer'];
+          final String? opponent;
+          if (second == user.id) {
+            opponent = first as String?;
+          } else if (first == user.id) {
+            opponent = second as String?;
+          } else {
+            return refused(409, 'notYourDuel');
+          }
+          if (opponent != null) {
+            final offer = await gateway.rpc('duel_take_run', {
+              'p_player_id': user.id,
+              'p_mode': mode.name,
+              'p_rating': rating,
+              'p_opponent': opponent,
+              'p_difficulty': _difficultyFor(mode, rating),
+              'p_duel_id': _newId(),
+            });
+            if (offer is Map) return jsonResponse(200, offer);
+            return _challenge(user.id, opponent, mode, rating);
+          }
+          // After a practice duel: a new search.
+        }
+
+        final open = await gateway.rpc('duel_open_offer', {
+          'p_player_id': user.id,
+          'p_mode': mode.name,
+        });
+        if (open is Map) return jsonResponse(200, open);
+        final pooled = await gateway.rpc('duel_take_run', {
+          'p_player_id': user.id,
+          'p_mode': mode.name,
+          'p_rating': rating,
+          'p_opponent': null,
+          'p_difficulty': null,
+          'p_duel_id': _newId(),
+        });
+        if (pooled is Map) return jsonResponse(200, pooled);
+
+        final config = DuelConfig.forRating(
+          mode: mode,
+          seed: _seed(),
+          rating: ratingPoints(rating),
+        );
+        final lane = practiceLane(config).toJson();
+        final duelId = _newId();
+        await gateway.rpc('duel_insert', {
+          'p_duel_id': duelId,
+          'p_mode': mode.name,
+          'p_kind': 'practice',
+          'p_config': config.toJson(),
+          'p_first_player': null,
+          'p_second_player': user.id,
+          'p_first_lane': lane,
+          'p_expires_at': null,
+        });
+        return jsonResponse(200, {
+          'duelId': duelId,
+          'kind': 'practice',
+          'config': config.toJson(),
+          'lane': lane,
+          'opponent': null,
+        });
+      });
+
+  Future<Response> handleOpen(Request request) => _guarded(request, (
+    user,
+    body,
+  ) async {
+    final duelId = body['duelId'];
+    if (duelId is! String) return refused(400, 'badRequest', detail: 'duelId');
+    final context = await gateway.rpc('duel_context', {
+      'p_duel_id': duelId,
+      'p_player_id': user.id,
+    });
+    if (context is! Map) return refused(404, 'unknownDuel');
+    final duel = _map(context['duel']);
+    if (duel['secondPlayer'] != user.id) return refused(409, 'notYourDuel');
+    if (duel['state'] != 'awaitingSecond' || context['run'] is Map) {
+      return refused(409, 'notOpen');
+    }
+    final expires = DateTime.tryParse('${duel['expiresAt']}');
+    if (expires != null && DateTime.now().toUtc().isAfter(expires)) {
+      return refused(409, 'expired');
+    }
+    final first = duel['firstPlayer'];
+    final theirs = _map(context['ratings'])[first];
+    return jsonResponse(200, {
+      'duelId': duelId,
+      'kind': duel['kind'],
+      'config': duel['config'],
+      'lane': duel['firstLane'],
+      'opponent': first == null
+          ? null
+          : {
+              'id': first,
+              'name': duel['opponentName'],
+              'rating': theirs is Map ? theirs['rating'] : null,
+              'ratedDuels': theirs is Map ? theirs['ratedDuels'] : null,
+            },
+    });
+  });
+
+  /// A challenge from [me] to [target] at the mean of both ratings; the
+  /// challenger plays first, so the offer has no lane.
+  Future<Response> _challenge(
+    String me,
+    String target,
+    DuelMode mode,
+    double myRating,
+  ) async {
+    if (target == me) return refused(409, 'self');
+    final them = await _player(target, mode);
+    if (them == null) return refused(409, 'notLinked');
+    final config = DuelConfig.forRating(
+      mode: mode,
+      seed: _seed(),
+      rating: ratingPoints((myRating + them.rating) / 2),
+    );
+    final duelId = _newId();
+    final outcome = await gateway.rpc('duel_create_challenge', {
+      'p_duel_id': duelId,
+      'p_mode': mode.name,
+      'p_config': config.toJson(),
+      'p_challenger': me,
+      'p_target': target,
+    });
+    if (outcome != 'created') return refused(409, '$outcome');
+    return jsonResponse(200, {
+      'duelId': duelId,
+      'kind': 'challenge',
+      'config': config.toJson(),
+      'lane': null,
+      'opponent': {
+        'id': target,
+        'name': them.name,
+        'rating': them.rating,
+        'ratedDuels': them.ratedDuels,
+      },
+    });
+  }
+
+  /// A linked player's rating in [mode] (their row, or the start from their
+  /// levels); `null` for a guest or nobody.
+  Future<({double rating, int ratedDuels, String? name})?> _player(
+    String id,
+    DuelMode mode,
+  ) async {
+    final json = await gateway.rpc('duel_player', {
+      'p_player_id': id,
+      'p_mode': mode.name,
+    });
+    if (json is! Map || json['linked'] != true) return null;
+    final row = json['rating'];
+    return (
+      rating: row is Map
+          ? (row['rating'] as num).toDouble()
+          : _startRating(mode, json['levels']).rating,
+      ratedDuels: row is Map ? row['ratedDuels'] as int : 0,
+      name: json['name'] as String?,
+    );
+  }
 
   /// Times the server re-reads and recomputes when a rating moved under it.
   static const maxAttempts = 3;
@@ -244,6 +460,14 @@ Glicko2Rating _rating(Map<Object?, Object?> row) => Glicko2Rating(
   deviation: (row['deviation'] as num).toDouble(),
   volatility: (row['volatility'] as num).toDouble(),
 );
+
+/// The difficulty a new duel at [rating] gets (a tier or a count band): a
+/// rematch looks for the opponent's run closest to it.
+int _difficultyFor(DuelMode mode, double rating) => DuelConfig.forRating(
+  mode: mode,
+  seed: 0,
+  rating: ratingPoints(rating),
+).difficulty;
 
 /// The starting rating from the player's server levels (`duel_context`'s
 /// `levels`, hundredths by type), at Glicko-2's new-player deviation and
