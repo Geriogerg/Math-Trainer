@@ -31,6 +31,12 @@ say() {
 # The last "+N" of the run: the passed count. Carriage returns: compact
 # reporters redraw one line.
 count="$(tr '\r' '\n' < "$log" | grep -oE '(^|[[:space:]])\+[0-9]+' | tail -n 1 | tr -dc '0-9')"
+# The GitHub reporter (dart test's default on Actions) prints no "+N"; it
+# ends with "68 tests passed." CI passes --reporter expanded; this is the
+# fallback.
+if [ -z "$count" ]; then
+  count="$(grep -oE '[0-9]+ tests? passed' "$log" | tail -n 1 | tr -dc '0-9')"
+fi
 if [ -z "$count" ]; then
   say error "no test count in the output (did the suite run at all?)"
   exit 3
