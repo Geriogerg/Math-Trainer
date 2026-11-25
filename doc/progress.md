@@ -1565,3 +1565,12 @@ hand (the migration goes through CI).
   JavaScript 890, tooling 10, server 68, app 447. `tool/sql/test_sql.sh` counts its test files
   (pin 20) and fails on any `*_test.sql` its pattern would skip. Checked locally: an empty run
   (`-n` matching nothing) fails, a run below its pin fails, a stray `zz_…_test.sql` fails.
+
+### Phase 7 close-out exit (25 Nov 2026)
+
+All four commits pushed (and a follow-up: `dart test` uses its GitHub reporter on Actions,
+which prints no count, so CI passes `--reporter expanded`). Counts at the close: core VM 1116,
+core JavaScript 890, tooling 10, server 68, app 447, SQL 20 files. Live: the site on `ad533ae` (CI's deploy runs only after every counted suite
+passed — the new counts work on Actions), the server on `a3882c6` (the last server and core
+change; `server_check.sh`: up to date). Not verified here: a real share sheet (needs a phone),
+an abandoned duel recorded live (needs 24 hours).

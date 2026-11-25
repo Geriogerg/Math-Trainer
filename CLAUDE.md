@@ -57,8 +57,9 @@ decision before Phase 6.
   started but not submitted within 24 hours, recorded from the progress the app sends during
   play (`/v1/duels/progress`), by the next duel request (`sweepAbandoned`).
 
-Done: nothing yet. Phase 7 (commits 0–8, exit test) is live since 25 Nov; its provisional
-decisions are settled (plan v3.8), and so are Phase 4's.
+Done: 0–4 (25 Nov; `doc/progress.md`, "Phase 7 close-out"). **Open: the owner confirms the
+commit 1 provisional choices (`doc/decisions.md`) and tries Share link on a phone.** Phase 7
+and Phase 4 decisions are settled (plan v3.8).
 Phase 3b is a data check, not a blocker (confirmed in v3.8): a report at ~300 sessions from
 10+ testers since the rules v5 release (`owner_dashboard.calibration_window`).
 
