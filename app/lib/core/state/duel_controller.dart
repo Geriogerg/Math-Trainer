@@ -9,6 +9,7 @@ import 'package:math_core/duel/duel_run.dart';
 import 'package:math_core/duel/duel_run_queue.dart';
 import 'package:math_core/duel/duel_validation.dart';
 import 'package:math_core/models/answer_result.dart';
+import 'package:math_core/patterns/pattern_family.dart';
 
 import 'count_controller.dart';
 import 'session_controller.dart';
@@ -51,7 +52,9 @@ class DuelController extends ChangeNotifier {
   }) : _ticker = ticker ?? Timer.periodic {
     if (offer.config.mode.isQuiz) {
       _quiz = quizController(offer.config)..addListener(_onQuizChanged);
+      families = offer.config.questionFamilies();
     } else {
+      families = const [];
       _rounds = offer.config.rounds();
     }
   }
@@ -106,6 +109,10 @@ class DuelController extends ChangeNotifier {
   /// Played but not yet decided by the server (offline, asleep).
   bool get pending =>
       _phase == DuelPhase.done && _verdict == null && _refusal == null;
+
+  /// Each question's pattern family (`null`: a standard question), for
+  /// the result's Method — the pattern's own strategy, as in games.
+  late final List<PatternFamily?> families;
 
   /// The quiz's answers, for the result's mistakes.
   List<AnswerResult> get outcomes => _quiz?.state.outcomes ?? const [];

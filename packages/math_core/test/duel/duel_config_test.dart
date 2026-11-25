@@ -303,4 +303,26 @@ void main() {
       expect(() => DuelConfig.fromJson(bad), throwsFormatException);
     }
   });
+
+  test('the pattern family of each question, as the game reports it', () {
+    var patterned = 0;
+    for (var seed = 0; seed < 40; seed++) {
+      final config = _duel(DuelMode.basics, seed, 5);
+      final families = config.questionFamilies();
+      expect(families.length, duelQuestionCount);
+      // Drawing the families never moves the questions.
+      expect(_lines(config), _lines(_duel(DuelMode.basics, seed, 5)));
+      for (final (i, q) in config.questions().indexed) {
+        final family = families[i];
+        if (family == null) continue;
+        patterned++;
+        expect(family.type, q.type, reason: '$seed/$i');
+      }
+    }
+    expect(patterned, greaterThan(40), reason: 'T5 draws pattern questions');
+    expect(
+      () => _duel(DuelMode.count, 1, 0).questionFamilies(),
+      throwsStateError,
+    );
+  });
 }

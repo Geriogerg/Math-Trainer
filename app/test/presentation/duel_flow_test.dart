@@ -5,8 +5,10 @@ import 'package:math_core/duel/duel_config.dart';
 import 'package:math_core/duel/duel_mode.dart';
 import 'package:math_core/duel/duel_run.dart';
 import 'package:math_core/leveling/rules_version.dart';
+import 'package:math_core/method/method_for.dart';
 import 'package:math_core/persistence/in_memory_session_repository.dart';
 import 'package:math_trainer/composition_root.dart';
+import 'package:math_trainer/presentation/method_labels.dart';
 import 'package:math_trainer/presentation/duel/duel_flow_screen.dart';
 import 'package:math_trainer/presentation/screens/session_screen.dart';
 import 'package:math_trainer/presentation/theme/app_theme.dart';
@@ -151,6 +153,37 @@ void main() {
       );
     });
   }
+
+  testWidgets('a missed pattern question: its own Method, as in games', (
+    tester,
+  ) async {
+    final offer = basicsOffer();
+    final families = offer.config.questionFamilies();
+    final missed = families.indexWhere((f) => f != null);
+    expect(missed, isNot(-1), reason: 'the pinned duel has a pattern question');
+    final question = offer.config.questions()[missed];
+    await pumpDuel(tester, buildLightTheme());
+    await tester.pump();
+    for (final (i, value) in answers.indexed) {
+      await type(tester, i == missed ? value + 1 : value);
+      if (i == missed) await tester.pump(const Duration(seconds: 1));
+    }
+    await tester.pump();
+    await tester.pump();
+    final row = find.byKey(ValueKey('duel-mistake-$missed'));
+    await tester.ensureVisible(row);
+    await tester.tap(find.descendant(of: row, matching: find.text('Method')));
+    await tester.pump();
+    final method = methodFor(question, family: families[missed]);
+    expect(method.family, families[missed]);
+    expect(
+      find.descendant(
+        of: row,
+        matching: find.text(methodName(method, question.type)),
+      ),
+      findsOneWidget,
+    );
+  });
 
   testWidgets('✕ asks, then sends the run as it stands', (tester) async {
     await pumpDuel(tester, buildLightTheme());

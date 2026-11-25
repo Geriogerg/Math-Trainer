@@ -18,7 +18,7 @@ provisional decision but one — an abandoned duel now counts — which commit 1
 | # | Commit | Note |
 |---|---|---|
 | 1 | *(A)* **An abandoned duel is a loss**: a duel started but not submitted within 24 hours is recorded as a loss with the answers the server received so far; clearing the browser or switching device no longer escapes it | done |
-| 2 | *(A)* **Method in duels** uses the pattern-specific strategy, like solo games | |
+| 2 | *(A)* **Method in duels** uses the pattern-specific strategy, like solo games | done |
 | 3 | *(A)* **Share link** opens the phone's share sheet (Web Share API) where the browser has one, clipboard otherwise | |
 | 4 | *(A)* **Minimum test counts** in CI for every suite (core VM, core JavaScript, app, server, SQL) | |
 

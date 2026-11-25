@@ -6,7 +6,9 @@ import '../leveling/level.dart';
 import '../leveling/rules_version.dart';
 import '../models/exercise.dart';
 import '../models/exercise_type.dart';
+import '../patterns/pattern_family.dart';
 import '../tiers/tier.dart';
+import '../tiers/tiered_game_generator.dart';
 import 'duel_mode.dart';
 
 /// A duel's content (plan v3.7, Phase 7): both players get exactly the same
@@ -100,7 +102,14 @@ final class DuelConfig {
   /// A question mode's 8 questions, in order: one `Random(seed)`, the
   /// shuffle first, then every value through the game's own generator at
   /// the tier's lowest level. Throws for Get the count.
-  List<Exercise> questions() {
+  List<Exercise> questions() => [for (final (q, _) in _draw()) q];
+
+  /// The pattern family of each question (`null` for a standard one), as
+  /// [questions] draws them — what the result's Method needs to show the
+  /// pattern's own strategy, as a game's does (`gamePatterns`).
+  List<PatternFamily?> questionFamilies() => [for (final (_, f) in _draw()) f];
+
+  List<(Exercise, PatternFamily?)> _draw() {
     if (!mode.isQuiz) throw StateError('Get the count has rounds.');
     final random = Random(seed);
     final sequence = _typeSequence(random);
@@ -112,7 +121,13 @@ final class DuelConfig {
       levels: {for (final type in played) type: level},
       typeSequence: sequence,
     );
-    return [for (var i = 0; i < sequence.length; i++) generator.next(random)];
+    return [
+      for (var i = 0; i < sequence.length; i++)
+        (
+          generator.next(random),
+          generator is TieredGameGenerator ? generator.lastFamily : null,
+        ),
+    ];
   }
 
   /// Get the count's 3 rounds with their shortest solutions, from one

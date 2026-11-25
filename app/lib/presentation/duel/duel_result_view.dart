@@ -100,7 +100,10 @@ class DuelResultView extends StatelessWidget {
                 MistakeRow(
                   key: ValueKey('duel-mistake-$i'),
                   outcome: outcome,
-                  method: methodFor(outcome.exercise),
+                  method: methodFor(
+                    outcome.exercise,
+                    family: controller.families.elementAtOrNull(i),
+                  ),
                 ),
           if (!offer.mode.isQuiz)
             for (final (i, round) in controller.playedRounds.indexed)

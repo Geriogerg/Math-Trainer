@@ -1547,3 +1547,9 @@ hand (the migration goes through CI).
   loss with those 5, rated, out of the pool, a late run gets the verdict; no progress;
   malformed progress; practice unrated; unplayed challenge void; opening marks the start), SQL
   `99f`, the queue and the app send progress.
+- **Commit 2** *(A)* — **Method in duels uses the pattern's own strategy.** Core:
+  `DuelConfig.questionFamilies()` — each question's pattern family from the same draw as
+  `questions()` (the generator's `lastFamily`, as `gamePatterns` does for games; the pinned
+  questions do not move). App: `DuelController.families`, passed to `methodFor` on the result.
+  Tests: families match their questions' types over 40 duels (VM and JavaScript); a missed
+  pattern question in a duel shows its family's Method.
