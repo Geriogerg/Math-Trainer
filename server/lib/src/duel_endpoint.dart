@@ -10,6 +10,7 @@ import 'package:math_core/models/exercise_type.dart';
 import 'package:shelf/shelf.dart';
 
 import 'http_app.dart';
+import 'rating/duel_rating_update.dart';
 import 'rating/glicko2.dart';
 import 'session_endpoint.dart' show refused;
 import 'supabase_gateway.dart';
@@ -101,9 +102,11 @@ class DuelEndpoint {
         case DuelRunValid(:final score, :final lane, :final flags):
           final start = _startRating(config.mode, context['levels']);
           double? result;
+          Map<String, Object?>? ratings;
           if (role == 'second') {
             final theirs = DuelLane.fromJson(duel['firstLane'], config.mode);
             result = duelResult(score, theirs.score);
+            ratings = _ratingUpdates(context, user.id, start, result);
           }
           final rows = _rows(
             await gateway.rpc('apply_duel_run', {
@@ -119,8 +122,8 @@ class DuelEndpoint {
                 'volatility': start.volatility,
               },
               'p_result': result,
-              'p_rated': false,
-              'p_ratings': null,
+              'p_rated': ratings != null,
+              'p_ratings': ratings,
             }),
           );
           final outcome = rows.isEmpty ? null : rows.first['outcome'];
@@ -189,6 +192,59 @@ class DuelEndpoint {
   }
 }
 
+/// The rating rows `apply_duel_run` writes for a rated duel — both
+/// players' new Glicko-2 ratings with the versions they were computed from
+/// — or `null` when the duel is not rated (plan v3.7): practice never; a
+/// challenge only if no other challenge between the pair was rated today in
+/// this mode; a pool duel always. The second player ([me]) without a rating
+/// yet starts at [start] (`apply_duel_run` creates it at version 0).
+Map<String, Object?>? _ratingUpdates(
+  Map<Object?, Object?> context,
+  String me,
+  Glicko2Rating start,
+  double result,
+) {
+  final duel = _map(context['duel']);
+  final rated = switch (duel['kind']) {
+    'pool' => true,
+    'challenge' => context['pairRatedToday'] != true,
+    _ => false,
+  };
+  if (!rated) return null;
+  final rows = _map(context['ratings']);
+  final first = duel['firstPlayer'];
+  final firstRow = rows[first];
+  // A run's owner has a rating since that run was accepted; none would be
+  // a broken invariant — the duel then stays unrated rather than guessed.
+  if (firstRow is! Map || first is! String) return null;
+  final secondRow = rows[me];
+  final before = (
+    first: _rating(firstRow),
+    second: secondRow is Map ? _rating(secondRow) : start,
+  );
+  final after = rateDuel(
+    first: before.first,
+    second: before.second,
+    secondScore: result,
+  );
+  Map<String, Object?> row(Glicko2Rating r, Object? version) => {
+    'rating': r.rating,
+    'deviation': r.deviation,
+    'volatility': r.volatility,
+    'expectedVersion': version ?? 0,
+  };
+  return {
+    first: row(after.first, firstRow['version']),
+    me: row(after.second, secondRow is Map ? secondRow['version'] : 0),
+  };
+}
+
+Glicko2Rating _rating(Map<Object?, Object?> row) => Glicko2Rating(
+  rating: (row['rating'] as num).toDouble(),
+  deviation: (row['deviation'] as num).toDouble(),
+  volatility: (row['volatility'] as num).toDouble(),
+);
+
 /// The starting rating from the player's server levels (`duel_context`'s
 /// `levels`, hundredths by type), at Glicko-2's new-player deviation and
 /// volatility.
@@ -251,6 +307,10 @@ Response _decided(
       'after': duel[role == 'first' ? 'firstRatingAfter' : 'secondRatingAfter'],
       'current': myRatings is Map ? myRatings['rating'] : null,
       'ratedDuels': myRatings is Map ? myRatings['ratedDuels'] : null,
+      // "?" for the first 10 rated duels of the mode.
+      'provisional': isProvisionalRating(
+        myRatings is Map ? (myRatings['ratedDuels'] as int? ?? 0) : 0,
+      ),
     },
   });
   return jsonResponse(200, body);

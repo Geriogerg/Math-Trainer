@@ -11,6 +11,7 @@ import 'src/supabase_gateway.dart';
 
 export 'src/config.dart';
 export 'src/duel_endpoint.dart';
+export 'src/rating/duel_rating_update.dart';
 export 'src/rating/glicko2.dart';
 export 'src/http_app.dart'
     show buildHandler, jsonResponse, originAllowed, Route;

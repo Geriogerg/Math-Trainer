@@ -1414,3 +1414,12 @@ close-out is live (server on `7b0d7e2`, rules 2–8, kinds listed). Owner action
   duel void). Server: `POST /v1/duels/run` (linked accounts only; turn checked before the
   replay; idempotent; unrated until commit 3). Privacy notice names duel data. Tests: core
   (VM and JavaScript), SQL (`a1_duels_test`), server (in-memory model of the SQL).
+- **Commit 3** *(A)* — **Glicko-2 per mode wired to results.** Server: `rateDuel` — each
+  rated duel is one rating period for both players, each against the other's pre-duel rating
+  (τ 0.5, RD ≤ 350); the run endpoint decides `rated` (pool always, practice never, a challenge
+  unless the pair already had a rated challenge in that mode today), starts a missing rating
+  from the player's server levels (`startingDuelRating`), applies both updates under the rows'
+  versions (stale → re-read, recompute, 3 tries), and answers the rating before and after with
+  the provisional flag (< 10 rated duels). Tests on scripted histories: a ten-duel winning
+  streak (both sides counted, "?" lifted at the tenth), practice, the daily challenge limit, a
+  concurrent update, draws, upsets, the cap.

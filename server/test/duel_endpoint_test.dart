@@ -266,4 +266,153 @@ void main() {
       expect((await post('/v1/duels/run', {'duelId': 'd'})).$1, 503);
     });
   });
+
+  group('ratings (commit 3)', () {
+    /// B races A's runs: a pool duel per run, A's rating row in place.
+    Future<Map<String, Object?>> race(
+      String id, {
+      required int mine,
+      required int theirs,
+      String kind = 'pool',
+      String first = 'player-b',
+      String token = 'tok-a',
+    }) async {
+      insertDuel(
+        id,
+        config: basicsConfig,
+        kind: kind == 'challenge' ? 'pool' : kind,
+        first: kind == 'practice' ? null : first,
+        lane: quizLane(theirs),
+      );
+      gateway.duels[id]!['kind'] = kind;
+      final (status, body) = await post('/v1/duels/run', {
+        'duelId': id,
+        'run': quizRun(mine),
+      }, token: token);
+      expect(status, 200, reason: '$body');
+      return body;
+    }
+
+    void seedRating(String player, double rating, {int ratedDuels = 0}) {
+      gateway.ratings[(player, 'basics')] = {
+        'rating': rating,
+        'deviation': 350.0,
+        'volatility': 0.06,
+        'ratedDuels': ratedDuels,
+        'version': 0,
+      };
+    }
+
+    test('a winning streak: the winner rises, the run owner falls, both '
+        'counted; "?" until 10 rated duels', () async {
+      seedRating('player-b', 1500);
+      var previous = 1500.0;
+      for (var i = 0; i < 10; i++) {
+        final body = await race('w$i', mine: 7, theirs: 4);
+        expect(body['rated'], isTrue);
+        final rating = body['rating'] as Map;
+        expect(rating['before'], i == 0 ? 1500 : previous);
+        expect(rating['after'] as double, greaterThan(rating['before'] as num));
+        expect(rating['provisional'], i < 9, reason: 'duel ${i + 1}');
+        previous = rating['after'] as double;
+      }
+      final a = gateway.ratings[('player-a', 'basics')]!;
+      final b = gateway.ratings[('player-b', 'basics')]!;
+      expect(a['ratedDuels'], 10);
+      expect(b['ratedDuels'], 10, reason: 'the run owner is rated too');
+      expect(a['rating'] as double, greaterThan(1600));
+      expect(b['rating'] as double, lessThan(1400));
+      // Each grows surer (against an opponent as unsure: ~200 after ten).
+      expect(a['deviation'] as double, lessThan(250));
+      expect(gateway.duels['w9']!['firstRatingAfter'], b['rating']);
+    });
+
+    test(
+      'practice moves nothing; the first rating starts from levels',
+      () async {
+        final body = await race('p1', mine: 8, theirs: 0, kind: 'practice');
+        expect(body['rated'], isFalse);
+        expect(gateway.ratings[('player-a', 'basics')], {
+          'rating': 1500,
+          'deviation': 350,
+          'volatility': 0.06,
+          'ratedDuels': 0,
+          'version': 0,
+        });
+        expect((body['rating'] as Map)['provisional'], isTrue);
+      },
+    );
+
+    test('challenges: rated once a day per pair and mode', () async {
+      seedRating('player-b', 1500);
+      var ratedToday = false;
+      gateway.pairRatedToday = (_) => ratedToday;
+      final first = await race('c1', mine: 6, theirs: 5, kind: 'challenge');
+      expect(first['rated'], isTrue);
+      ratedToday = true;
+      final second = await race('c2', mine: 6, theirs: 5, kind: 'challenge');
+      expect(second['rated'], isFalse, reason: 'played and recorded');
+      expect(gateway.duels['c2']!['state'], 'done');
+      expect(gateway.ratings[('player-a', 'basics')]!['ratedDuels'], 1);
+      // A pool duel the same day is rated as usual.
+      expect((await race('c3', mine: 6, theirs: 5))['rated'], isTrue);
+    });
+
+    test(
+      'a rating moved meanwhile: read again, computed again, applied',
+      () async {
+        seedRating('player-b', 1500);
+        gateway.concurrentDuelFor.add('player-b');
+        final body = await race('s1', mine: 8, theirs: 2);
+        expect(body['rated'], isTrue);
+        expect(
+          gateway.calls.where((c) => c == 'apply_duel_run').length,
+          2,
+          reason: 'stale once, then applied',
+        );
+        expect(gateway.ratings[('player-b', 'basics')]!['version'], 2);
+      },
+    );
+
+    test('a draw between equals moves no rating', () {
+      const even = Glicko2Rating(
+        rating: 1500,
+        deviation: 200,
+        volatility: 0.06,
+      );
+      final drawn = rateDuel(first: even, second: even, secondScore: 0.5);
+      expect(drawn.first.rating, closeTo(1500, 1e-9));
+      expect(drawn.second.rating, closeTo(1500, 1e-9));
+      expect(drawn.first.deviation, lessThan(200));
+    });
+
+    test('rateDuel: symmetric between equals; an upset moves more', () {
+      const even = Glicko2Rating(
+        rating: 1500,
+        deviation: 100,
+        volatility: 0.06,
+      );
+      final won = rateDuel(first: even, second: even, secondScore: 1);
+      expect(won.second.rating - 1500, closeTo(1500 - won.first.rating, 1e-9));
+      const strong = Glicko2Rating(
+        rating: 1800,
+        deviation: 100,
+        volatility: 0.06,
+      );
+      final upset = rateDuel(first: strong, second: even, secondScore: 1);
+      final expected = rateDuel(first: strong, second: even, secondScore: 0);
+      expect(
+        upset.second.rating - 1500,
+        greaterThan(1500 - expected.second.rating),
+      );
+      // Never above the cap, even from a new player's deviation.
+      const fresh = Glicko2Rating(
+        rating: 1500,
+        deviation: 350,
+        volatility: 0.06,
+      );
+      final r = rateDuel(first: fresh, second: fresh, secondScore: 0.5);
+      expect(r.first.deviation, lessThanOrEqualTo(duelMaxDeviation));
+    });
+  });
 }

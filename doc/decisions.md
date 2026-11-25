@@ -1652,6 +1652,10 @@ the cap), win/loss/draw symmetry, volatility rising on upsets, invalid input thr
 **Reopen when** Phase 7 chooses the rating period (per day? per N duels?) and the provisional
 flag's threshold.
 
+**Settled by plan v3.7** (owner, 25 Nov): τ = 0.5 and the cap of 350 kept; each duel is its
+own rating period; provisional for the first 10 rated duels of a mode. Wired in Phase 7
+commit 3 (`rateDuel`).
+
 ## Rules v5: pattern questions sized by tier, no reviews (`doc/levels.md` v1.4) — confirmed; v6 for √ of powers of 2
 
 Beta report (24 Nov): questions at level 15–20 that felt like level 70. Cause, measured on
