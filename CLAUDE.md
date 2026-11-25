@@ -3,7 +3,7 @@
 Competitive mental-arithmetic game in Flutter, for teens and adults. UI, code, docs and commits
 in English.
 
-**`doc/plan.md` (version 3.6) is the product plan**, and **`doc/levels.md` (v1.5) specifies the
+**`doc/plan.md` (version 3.7) is the product plan**, and **`doc/levels.md` (v1.5) specifies the
 level system**. Both are the owner's: read them at the start of every phase; never edit them.
 This file is the working file: keep it short, update it as the project moves, keep it
 consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/decisions.md`,
@@ -11,35 +11,66 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 
 ## Current phase
 
-**Phase 4 close-out** (`doc/plan.md` v3.6, section 7), run in **one pass**, three commits.
-Phase 4 (weak spots and drills, rules v7) is live; its outcome kept every provisional decision
-but one, which commit 1 applies.
+**Phase 7 — Online play: asynchronous duels and friends** (`doc/plan.md` v3.7, section 7), run
+in **one pass**. Goal: players compete against each other and their friends, even when few are
+online at once. **Reference screens: `doc/mockups/online.html`** (binding layout, minimal
+text). Runs during the beta, before the public launch.
 
 | # | Commit | Note |
 |---|---|---|
-| 1 | *(A)* **Rules v8**: a correct but slow answer on a fact enters the schedule at box 2 (it changes which items are due) | done |
-| 2 | *(A)* `/health` lists the session kinds the server accepts; the app holds an upload until its kind is listed, as for rules versions | done |
-| 3 | *(A)* Server-side check that a game's weak spots were due, from the player's uploaded history; a failure is still accepted for levels, its weak spots flagged | done |
+| 0 | *(A)* Decisions recorded; duel session kinds and duel rules version listed in `/health` | |
+| 1 | *(A)* Duel content in the core: the three modes, difficulty from rating, Get the count target bands; determinism on VM and JavaScript; server replay | |
+| 2 | *(A)* Duel runs stored and validated; run pool (5 serves, 10 latest per mode); fair-play flags | |
+| 3 | *(A)* Glicko-2 per mode wired to results: starting ratings from levels, provisional flag, both sides updated, friend-duel daily limit; tests on scripted duel histories | |
+| 4 | *(A)* Matchmaking endpoint, practice opponents (deterministic simulated runs), rematch logic | |
+| 5 | *(C)* Duel screens for Basics, Advanced and Get the count, with the opponent's lane, and the result screen with Rematch, per the mockups | |
+| 6 | *(C)* Online tab: three modes with their ratings, "Waiting for you", Recent, badge; the three boards on Ranks; account required (guests invited to save progress) | |
+| 7 | *(C)* Friends: codes, invite links, requests, list with head-to-head, game history per friend, challenges with 7-day expiry | |
+| 8 | *(A)* Dashboard section: duels per day and mode, rating distributions, flagged runs, friend counts | |
 
-**Phase 4's rules** (plan v3.5–v3.6; detail in `doc/decisions.md`, "Phase 4"):
-- **Facts** (bonds within 20 and complements to 100 with their subtractions, tables to 20 × 20
-  and their divisions, squares to 30², cubes to 10³, 2¹–2¹², friendly percentages, their roots;
-  commutative facts share one entry) and **skills** (pattern families; a Method strategy counts
-  as its family). A pattern question trains its family's skill.
-- **Five boxes, counted in games, never days**: wrong or timeout → box 1; fluent → one up;
-  slow → stays (from v8 an untracked fact answered slowly enters at box 2); fluent in box 5 →
-  mastered. Due after 1, 2, 4, 8, 16 games. A fact is fluent
-  within its own home tier's time. Rebuilt from stored answers (`scheduleFromHistory`).
-- **Levelling games: weak spots only from the operation's current tier** (`belongsTo`), at
-  most ⌊N/5⌋ per game and ⌈n/5⌉ per operation, stored with the session, replayed by the
-  server. Weak spots and Drill games are practice kinds: uploaded, never move levels, never
-  ranked.
+**Exit:** two linked test players race each other's runs in all three modes and their ratings
+move on the server only; a friend added by link and one by code can challenge each other and
+see their history; a practice opponent appears when the pool is empty; a forged or implausible
+run is never served.
 
-Done: 1–3 (24 Nov; `doc/progress.md`, "Phase 4 close-out"). **Open: the owner confirms the
-commit 3 provisional decision (`doc/decisions.md`).**
+**Phase 7's rules** (plan v3.7, owner decisions of 25 Nov):
+- **No live matches**: every duel is asynchronous — a player races another's recorded run,
+  replayed at its original pace as a second lane. **Linked accounts only** (guests are invited
+  to save their progress). Chain operations stays solo. Tournaments: later.
+- **Three modes, each with its own rating and board**: **Basics** (8 questions, 2 each of
+  + − × ÷) and **Advanced** (2 each of x², √, %, ∫) — more correct wins, then less total
+  time; 30 s per question, Method on misses. **Get the count**: 3 rounds of **30 s**, same
+  numbers and targets for both — smaller total distance wins, then less total time (a round's
+  time = when the closest value was reached; reaching the target ends it).
+- **Difficulty from the rating**: Basics/Advanced — every 150 points is a tier (900 → T0,
+  1500 → T4, ≥ 2250 → T9), drawn exactly as a game at that tier with the duel's own seed and
+  rules version. Get the count — shortest-solution length 2–3 / 3–4 / 4–5 operations below
+  1300 / 1300–1700 / above 1700 (tunable). Both players always get the same questions.
+- **Glicko-2, server only**, one rating per mode, each duel its own period, RD capped at 350,
+  τ = 0.5. Start: Basics 900 + 15 × main level, Advanced 900 + 15 × mean of the four advanced
+  levels, Get the count 1300; "?" for the first 10 duels of a mode. **Both sides move** (a
+  run's owner learns it later). Friend duels rated **once a day per pair and mode**.
+- **Matchmaking**: the run of the player with the closest rating — never one's own, never a
+  run already raced; a run served at most **5 times**, only a player's **10 latest runs** per
+  mode in the pool. Empty pool → **Practice** opponent (simulated, no rating change).
+  **Rematch** races another run of the same opponent, else sends them a challenge.
+- **Friends**: a friend code (`MATH-7K2P`) and an invite link; requests, accept, remove; list
+  with head-to-head, history per friend; **challenges** (challenger plays first, the friend
+  plays the same questions from "Waiting for you"; **7-day expiry**). In-app badges only.
+- **Fair play**: every run replayed and validated by the server; a failed run never enters the
+  pool and its duel does not count; implausible timing keeps a run out of the pool until
+  reviewed; friend requests limited (~20 a day).
 
-Phase 3b is a data check, not a blocker: a report once the dashboard reaches ~300 sessions from
-10+ testers since the rules v5 release (`owner_dashboard.calibration_window`).
+Done: nothing yet. Before: the Phase 4 close-out (rules v8, `/health` kinds, weak spots checked
+against history) — done and live 24 Nov; **open: the owner confirms its commit 3 provisional
+decision** (`doc/decisions.md`). Phase 3b is a data check, not a blocker (~300 sessions from
+10+ testers since the rules v5 release, `owner_dashboard.calibration_window`).
+
+**Weak spots** (Phase 4, rules v7–v8; detail in `doc/decisions.md`, "Phase 4"): facts and
+skills, five boxes counted in games (due after 1, 2, 4, 8, 16), rebuilt from stored answers
+(`scheduleFromHistory`); Levelling games re-ask at most ⌊N/5⌋ due items, **only from the
+operation's current tier**; Weak spots and Drill games are practice kinds (uploaded, never move
+levels, never ranked).
 
 **The level system** (`doc/levels.md`; constants: `LevelRules.of`)
 - **Levels 0–100**, integer hundredths, shown whole; everyone started at 0 at the transition

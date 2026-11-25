@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:math_core/duel/duel_mode.dart';
 import 'package:math_core/leveling/rules_version.dart';
 import 'package:math_core/models/session_kind.dart';
 import 'package:shelf/shelf.dart';
@@ -30,6 +31,10 @@ Handler buildHandler(ServerConfig config, {List<Route> routes = const []}) {
         // The session kinds it accepts (Phase 4 close-out): the app holds a
         // session of another kind back, as for rules.
         'kinds': [for (final k in SessionKind.acceptedByServer) k.name],
+        // Phase 7: the duel modes it plays and the duel rules it replays —
+        // the app offers a mode and sends a run only when both are listed.
+        'duelModes': [for (final m in DuelMode.acceptedByServer) m.name],
+        'duelRules': [for (final v in DuelRulesVersion.replayed) v.number],
       }),
     ),
     ...routes,

@@ -1377,3 +1377,14 @@ All three commits live (see below for the deploy check). Not verified here: CI's
 (private repository). Remaining differences between the app's schedule and the server's, each
 giving a flag at most: a game played on another device (the server has it, this device does
 not), and a session refused after a later game chose its weak spots.
+
+## Phase 7 — Online play: asynchronous duels and friends (plan v3.7)
+
+Plan v3.7 (owner, 25 Nov): asynchronous duels in three modes with their own ratings, friends,
+challenges; mockups in `doc/mockups/online.html` (binding). Entry checked: the Phase 4
+close-out is live (server on `7b0d7e2`, rules 2–8, kinds listed). Owner actions: none by hand
+(migrations and deploys by CI); at the end, two linked test accounts for the checklist.
+
+- **Commit 0** *(A)* — Decisions recorded (`doc/decisions.md`, "Phase 7"), all provisional.
+  Core: `DuelMode` (basics, advanced, count — stored names) and `DuelRulesVersion` (v1).
+  Server: `/health` lists `duelModes` and `duelRules`. CLAUDE.md's Current phase is Phase 7.

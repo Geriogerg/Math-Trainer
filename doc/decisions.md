@@ -1827,3 +1827,108 @@ provisional. The server rebuilds the player's schedule from every session it acc
 leaves refused sessions out of its own schedule so both sides rebuild from the same games;
 what can still differ (another device's games, a refusal arriving after a later game was
 built) only raises the flag. Weak spots games and Drills are not checked: never ranked.
+
+## Phase 7: asynchronous duels and friends (plan v3.7) — provisional
+
+**Owner decisions (25 Nov):** no live matches — every duel races a recorded run; online play
+needs a linked account; three modes (Basics, Advanced, Get the count), each with its own
+rating and board; friend duels are rated (once a day per pair and mode); difficulty from the
+rating (150 points a tier; Get the count by shortest-solution length); Glicko-2 on the server,
+τ 0.5, RD capped at 350, starting ratings from levels, "?" for 10 duels; a run served at most 5
+times, a player's 10 latest runs per mode in the pool; practice opponents; rematch; friend
+codes, invite links, challenges expiring after 7 days; in-app badges only. Everything below is
+Claude's reading, provisional until the phase report.
+
+**Content** (`math_core/duel/`, commit 1).
+- A duel is a **`DuelConfig`** — mode, seed, difficulty, the game rules its questions are drawn
+  under, the duel rules (`DuelRulesVersion` v1) — stored with every duel and run; both players
+  play exactly its questions. It replaces Phase 5.2's bracket-based config (fifteen brackets of
+  100 points, levels 5–75, twelve mixed questions), which no duel ever stored: its pins are
+  re-recorded once, on purpose.
+- **Basics / Advanced**: difficulty = a tier, ⌊(rating − 900) / 150⌋ clamped to T0–T9, the
+  rating rounded to the point. The 8 types (two of each of the mode's four, by `.index`) are
+  shuffled by the seed, then drawn with the **game's own generator** at the tier's lowest level
+  (T4 → level 40), from the same random stream, under the config's game rules (new duels: the
+  current rules, without weak spots — a v8 duel draws v6's questions).
+- **Get the count**: difficulty = a band — below 1300 → targets whose shortest solution takes
+  2–3 operations; 1300–1700 → 3–4; above 1700 → 4–5. Three puzzles from the seed's stream: the
+  six numbers as in solo, then the target among the values in [101, 999] whose shortest
+  solution length is in the band (built backwards, never rejection sampling). If none is (a
+  rare draw of six numbers), the nearest length the numbers allow, lower first — the round
+  stays playable, slightly off band. 30 s a round (solo keeps 45 s).
+- **Winner**: Basics/Advanced — more correct, then less total time (the sum of the eight
+  response times; a timeout counts 30 s), else a draw. Get the count — smaller total distance,
+  then less total time (each round's time = when its closest value was reached; the six
+  numbers count from 0 s; a round never improved counts 0 s), else a draw.
+
+**Runs and validation** (commit 2).
+- A **quiz run** holds the 8 answers (value, time; a timeout is −1 at 30 s). A **count run**
+  holds, per round, every improvement of the closest value: its time, its value and the
+  operations that made it from the six numbers. The server replays both: the questions from
+  the config, correctness recomputed (the client's word is never taken), times in range;
+  every improvement a legal derivation, strictly closer, strictly later, none after the target.
+- **Quitting counts**: the app stores the run after every answer and round; ✕ sends it with the
+  remaining questions as timeouts (unplayed rounds as never improved), and a run left by a
+  closed tab is sent at the next start. Escape remains possible by clearing the browser or
+  switching device — the dashboard counts duels never answered (commit 8).
+- **Flags** (kept out of the pool until the owner reviews them; the duel still counts):
+  quiz — the solo game's rules (`implausiblyFast`, `flatTimes`); count — `implausiblyFast`
+  when two rounds reach a target of 3+ operations in under 3 s each.
+- A refused run never enters the pool and its duel does not count (no rating change); the
+  reason is recorded once and the same answer is returned on a resend.
+- **What an opponent receives**: a *lane* — per question its time and whether it was right
+  (per round, each improvement's time and distance) — never the values typed.
+
+**Ratings** (commit 3).
+- One `duel_ratings` row per player and mode, created at the player's first accepted run of
+  that mode at the **starting rating** (900 + 15 × main level; 900 + 15 × mean of the four
+  advanced levels, unplayed at 0; Get the count 1300 — `startingDuelRating`, in the core so the
+  app shows the same "?" value before any duel), RD 350, σ 0.06.
+- Each rated duel is **one rating period for both players**: each is updated against the
+  other's rating as it stood before the duel; 1 a win, ½ a draw, 0 a loss. No inactivity
+  growth between duels (a period is a duel), so the RD cap of 350 only matters for new rows.
+- "?" while a mode has fewer than 10 **rated** duels (practice and unrated friend duels don't
+  count). Boards: non-provisional linked players with a rated duel in the last 30 days.
+- **Rated**: a pool duel always; a practice duel never; a challenge (friend or rematch) only if
+  no other challenge between the same pair in the same mode was rated that UTC day — the limit
+  applies to every challenge, not only between friends, since a rematch can also send one.
+- Concurrency: each rating row carries a version; the server applies a result only if both
+  versions are unchanged, else re-reads and recomputes (3 tries, then 503 — the app retries).
+
+**Matchmaking** (commit 4) — a **Dart server endpoint**, not a SQL function: the tier, the
+count band, the current rules and the practice run come from the core, one implementation (rule
+17). Cost: a sleeping free server delays the first duel (~30–60 s); the Online tab wakes it
+(`/health`) when it opens, and the duel screen says "Finding an opponent…".
+- Candidates: accepted, unflagged (or reviewed) runs of the mode, served fewer than 5 times,
+  among their owner's 10 latest, never the caller's own, never on a config the caller has
+  already played (racing a second run of the same questions would be a replay). Ordered by
+  |owner's rating − caller's rating|, then newest. A serve is counted when the run is handed
+  out (locked, so two callers cannot take its fifth serve).
+- **Practice**: no candidate → a new config at the caller's rating, raced against a simulated
+  run drawn from the seed (core `practiceRun`): per question right 70 % of the time, in 60–140 %
+  of the tier's fluent time; per round exact half the time, else 1–9 away, in 8–28 s. No rating
+  change; the caller's run then enters the pool, which is how an empty pool fills.
+- **Rematch** (result screen): another pool run of the same opponent not yet raced, the closest
+  tier to the caller's first; else a challenge sent to them (the caller plays first). After a
+  practice duel: a new search.
+- **Challenge difficulty**: from the mean of the two players' ratings.
+
+**Friends** (commit 7).
+- **Code** `MATH-` + 4 characters from the beta codes' 32 unambiguous ones (no I, O, 0, 1):
+  about a million codes. Guessing is bounded by the request limit — **20 friend requests a day,
+  failed lookups included** — and a hit only sends a request the stranger must accept.
+  Created on first use, never changes. **Invite link**: the site with `?friend=MATH-7K2P`; the
+  app keeps the code and sends the request once the player is linked.
+- A request to someone who already asked you makes you friends at once. Removing a friend
+  removes the friendship, never the history. Head-to-head: wins each over every duel between
+  the two (pool and challenges), draws left out. History: date, mode, both scores, result.
+- **Challenges** go to any linked player (friends from the Friends page, the last opponent
+  from Rematch): one open challenge per pair and mode at a time; 7 days, then expired. A
+  challenge is offered to the friend only once the challenger's run is accepted.
+
+**Badges**: the Online tab shows a dot when a challenge waits or a friend request arrives;
+the Friends button the same for requests. Read when the tab opens and after each duel.
+
+**Reopen when** the dashboard (commit 8) shows: practice duels dominating (the pool too thin to
+match), ratings piling at the tier edges, Get the count bands off target (rounds unsolved or
+trivially solved), or abandoned duels by the same players.
