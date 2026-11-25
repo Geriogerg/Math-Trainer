@@ -1,39 +1,51 @@
+import '../duel/duel_mode.dart';
 import '../leveling/level.dart';
 import '../models/exercise_type.dart';
 
 /// A board: the main board (`type == null`, ranked on the main level —
-/// the four basics, plan v2.9) or one operation (plan 6.4).
+/// the four basics, plan v2.9), one operation (plan 6.4), or a duel mode's
+/// (plan v3.7, Phase 7: ranked on the mode's rating).
 class LeaderboardBoard {
-  const LeaderboardBoard.main() : type = null;
-  const LeaderboardBoard.of(ExerciseType this.type);
+  const LeaderboardBoard.main() : type = null, duel = null;
+  const LeaderboardBoard.of(ExerciseType this.type) : duel = null;
+  const LeaderboardBoard.duel(DuelMode this.duel) : type = null;
 
   final ExerciseType? type;
+  final DuelMode? duel;
 
-  /// The name the server functions take (`leaderboard_top(board)`). The
-  /// main board keeps the key `overall` it had before the main level
-  /// existed: builds still cached by players ask for it by that name.
-  String get key => type?.name ?? 'overall';
+  /// Ranked on a rating rather than a level.
+  bool get isDuel => duel != null;
 
-  /// The main board first, then the operations in their usual order.
+  /// The name the server functions take (`leaderboard_top(board)`,
+  /// `duel_board_top(mode)`). The main board keeps the key `overall` it had
+  /// before the main level existed: builds still cached by players ask for
+  /// it by that name.
+  String get key => duel?.name ?? type?.name ?? 'overall';
+
+  /// The main board first, the three duel boards, then the operations in
+  /// their usual order.
   static List<LeaderboardBoard> get all => [
     const LeaderboardBoard.main(),
+    for (final mode in DuelMode.values) LeaderboardBoard.duel(mode),
     for (final t in ExerciseType.values) LeaderboardBoard.of(t),
   ];
 
   @override
   bool operator ==(Object other) =>
-      other is LeaderboardBoard && other.type == type;
+      other is LeaderboardBoard && other.type == type && other.duel == duel;
 
   @override
-  int get hashCode => type.hashCode;
+  int get hashCode => Object.hash(type, duel);
 }
 
-/// One row: what the server shows of a player — rank, name, level.
+/// One row: what the server shows of a player — rank, name, and the level
+/// (level boards) or the rating (duel boards).
 class LeaderboardEntry {
   const LeaderboardEntry({
     required this.rank,
     required this.name,
-    required this.level,
+    this.level,
+    this.rating,
     required this.isMe,
     this.playerId,
   });
@@ -45,7 +57,12 @@ class LeaderboardEntry {
 
   /// `null`: the player chose no name.
   final String? name;
-  final Level level;
+
+  /// A level board's value; `null` on a duel board.
+  final Level? level;
+
+  /// A duel board's value, in whole points; `null` on a level board.
+  final int? rating;
   final bool isMe;
 }
 
@@ -58,6 +75,12 @@ enum NotRankedReason {
 
   /// Only linked players appear (plan 6.3; Phase 2 commit 10).
   notLinked,
+
+  /// A duel board: no rated duel in the mode yet.
+  noDuels,
+
+  /// A duel board: fewer than 10 rated duels (`sessionsNeeded` more).
+  provisional,
 
   /// A reason this build does not know (a newer server).
   other,
@@ -73,7 +96,8 @@ final class Ranked extends Standing {
     required this.rank,
     required this.total,
     required this.topPercent,
-    required this.level,
+    this.level,
+    this.rating,
     required this.neighbours,
   });
 
@@ -82,7 +106,10 @@ final class Ranked extends Standing {
 
   /// "Top N %": the share of the board at or above this rank.
   final int topPercent;
-  final Level level;
+
+  /// The caller's level (level boards) or rating (duel boards).
+  final Level? level;
+  final int? rating;
 
   /// Five above, the caller, five below (fewer at the ends).
   final List<LeaderboardEntry> neighbours;
@@ -122,7 +149,8 @@ Standing standingFromJson(Object? json) {
       rank: _int(json, 'rank'),
       total: _int(json, 'total'),
       topPercent: _int(json, 'topPercent'),
-      level: _level(json['level']),
+      level: json['level'] == null ? null : _level(json['level']),
+      rating: json['rating'] == null ? null : _int(json, 'rating'),
       neighbours: leaderboardEntriesFromJson(json['neighbours'] ?? const []),
     );
   }
@@ -144,7 +172,8 @@ LeaderboardEntry _entry(Object? e) {
     playerId: playerId is String ? playerId : null,
     rank: _int(e, 'rank'),
     name: name is String && name.trim().isNotEmpty ? name : null,
-    level: _level(e['level']),
+    level: e['level'] == null ? null : _level(e['level']),
+    rating: e['rating'] == null ? null : _int(e, 'rating'),
     isMe: e['isMe'] == true,
   );
 }

@@ -11,11 +11,18 @@ class SupabaseLeaderboardRepository implements LeaderboardRepository {
 
   @override
   Future<List<LeaderboardEntry>> top(LeaderboardBoard board) async =>
-      leaderboardEntriesFromJson(await _call('leaderboard_top', board));
+      leaderboardEntriesFromJson(
+        board.isDuel
+            ? await _call('duel_board_top', board, param: 'p_mode')
+            : await _call('leaderboard_top', board),
+      );
 
   @override
-  Future<Standing> aroundMe(LeaderboardBoard board) async =>
-      standingFromJson(await _call('leaderboard_around_me', board));
+  Future<Standing> aroundMe(LeaderboardBoard board) async => standingFromJson(
+    board.isDuel
+        ? await _call('duel_board_around_me', board, param: 'p_mode')
+        : await _call('leaderboard_around_me', board),
+  );
 
   @override
   Future<void> reportName(String playerId) async {
@@ -29,9 +36,15 @@ class SupabaseLeaderboardRepository implements LeaderboardRepository {
     }
   }
 
-  Future<Object?> _call(String function, LeaderboardBoard board) async {
+  /// Duel boards (Phase 7) are read by `duel_board_top(p_mode)` and
+  /// `duel_board_around_me(p_mode)`, in the same shapes with a rating.
+  Future<Object?> _call(
+    String function,
+    LeaderboardBoard board, {
+    String param = 'p_board',
+  }) async {
     try {
-      return await _client.rpc(function, params: {'p_board': board.key});
+      return await _client.rpc(function, params: {param: board.key});
     } on PostgrestException catch (e) {
       throw Exception(e.message);
     }

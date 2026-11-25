@@ -3,6 +3,9 @@ import 'package:material_ui/material_ui.dart';
 import '../kit/kit.dart';
 import 'package:math_core/leaderboard/leaderboard.dart';
 
+import '../duel/duel_texts.dart';
+import '../number_format.dart';
+
 import '../../composition_root.dart';
 import '../../core/state/account_form_controller.dart';
 import '../../core/state/leaderboard_controller.dart';
@@ -200,8 +203,15 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   }
 }
 
-String boardLabel(LeaderboardBoard board) =>
-    board.type == null ? 'Main' : exerciseTypeLabel(board.type!);
+String boardLabel(LeaderboardBoard board) => switch ((board.type, board.duel)) {
+  (final type?, _) => exerciseTypeLabel(type),
+  (_, final mode?) => duelModeLabel(mode),
+  _ => 'Main',
+};
+
+/// A duel board's chip mark: the Online tab's icon, so "Basics" the duel
+/// board never reads as the main board (rule 14: an icon and a word).
+const duelBoardIcon = Icons.bolt;
 
 class _BoardChips extends StatelessWidget {
   const _BoardChips({required this.selected, required this.onSelected});
@@ -221,9 +231,10 @@ class _BoardChips extends StatelessWidget {
           for (final (i, board) in LeaderboardBoard.all.indexed) ...[
             if (i > 0) const SizedBox(width: 8),
             TypeChip(
-              leading: switch (board.type) {
-                final type? => OperatorIcon(type),
-                null => null,
+              leading: switch ((board.type, board.duel)) {
+                (final type?, _) => OperatorIcon(type),
+                (_, _?) => const Icon(duelBoardIcon, size: 18),
+                _ => null,
               },
               label: boardLabel(board),
               selected: board == selected,
@@ -252,7 +263,11 @@ class _RankedView extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           'Rank ${standing.rank} of ${standing.total} · '
-          'level ${standing.level.whole}',
+          '${switch ((standing.level, standing.rating)) {
+            (final level?, _) => 'level ${level.whole}',
+            (_, final rating?) => 'rating ${groupedNumber(rating)}',
+            _ => '',
+          }}',
           style: theme.textTheme.bodyMedium,
         ),
         const SizedBox(height: 16),
@@ -289,9 +304,17 @@ class _NotRankedView extends StatelessWidget {
             ? 'Finish $games to join the main board.'
             : '$games with ${boardLabel(board).toLowerCase()} to join this '
                   'board.',
+      NotRankedReason.inactive when board.isDuel =>
+        'Play a rated duel to appear again: the board shows players active '
+            'in the last 30 days.',
       NotRankedReason.inactive =>
         'Play a game to appear again: the board shows players active in the '
             'last 30 days. Your level never drops while you are away.',
+      NotRankedReason.noDuels => 'Play a duel in this mode to join its board.',
+      NotRankedReason.provisional =>
+        n == 1
+            ? '1 more rated duel to join this board.'
+            : '$n more rated duels to join this board.',
       NotRankedReason.notLinked =>
         'The leaderboard shows players who saved their progress. Save '
             'yours — an email and a player name — to take your place.',
@@ -361,7 +384,14 @@ class _EntryRow extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          LevelBadge(level: entry.level.whole),
+          switch ((entry.level, entry.rating)) {
+            (final level?, _) => LevelBadge(level: level.whole),
+            (_, final rating?) => Text(
+              groupedNumber(rating),
+              style: style?.digits,
+            ),
+            _ => const SizedBox.shrink(),
+          },
           // Another player's chosen name can be reported; a nameless row
           // ("Player") or one's own cannot.
           SizedBox(

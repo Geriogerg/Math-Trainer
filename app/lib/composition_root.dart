@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:math_core/duel/duel_client.dart';
 import 'package:math_core/duel/duel_run_queue.dart';
+import 'package:math_core/duel/online_overview.dart';
 import 'package:math_core/tiers/tip_band.dart';
 import 'package:math_core/tiers/tier.dart';
 import 'package:math_core/patterns/pattern_family.dart';
@@ -47,6 +48,7 @@ import 'package:math_core/persistence/type_selection_store.dart';
 import 'core/state/duel_controller.dart';
 import 'core/state/session_controller.dart';
 import 'infrastructure/backend/http_duel_client.dart';
+import 'infrastructure/backend/supabase_online_repository.dart';
 import 'infrastructure/persistence/shared_preferences_duel_run_store.dart';
 import 'infrastructure/backend/http_session_upload_client.dart';
 import 'infrastructure/backend/supabase_beta_code_repository.dart';
@@ -105,6 +107,7 @@ class AppEnvironment {
     this.duelClient,
     this.duelRunStore = const SharedPreferencesDuelRunStore(),
     this.duelQueue,
+    this.onlineRepository,
   });
 
   final SessionRepository repository;
@@ -208,6 +211,9 @@ class AppEnvironment {
   /// [duelClient].
   final DuelRunQueue? duelQueue;
 
+  /// The Online tab's reads (Supabase); `null` in tests that do not care.
+  final OnlineRepository? onlineRepository;
+
   AppEnvironment forPlayer(String playerId) => AppEnvironment(
     repository: repository,
     playerId: playerId,
@@ -230,6 +236,7 @@ class AppEnvironment {
     effectSettings: effectSettings,
     duelClient: duelClient,
     duelRunStore: duelRunStore,
+    onlineRepository: onlineRepository,
     duelQueue: switch (duelClient) {
       final client? => DuelRunQueue(
         store: duelRunStore,
@@ -403,6 +410,7 @@ Future<AppEnvironment> buildAppEnvironment() async {
     betaCodes: _betaGate
         ? SupabaseBetaCodeRepository(Supabase.instance.client)
         : null,
+    onlineRepository: SupabaseOnlineRepository(Supabase.instance.client),
     duelClient: _serverUrl.isEmpty
         ? null
         : HttpDuelClient(

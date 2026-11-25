@@ -1,9 +1,10 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../../composition_root.dart';
+import '../../core/state/online_controller.dart';
 import '../theme/app_theme.dart';
-import 'coming_soon_screen.dart';
 import 'leaderboard_screen.dart';
+import 'online_screen.dart';
 import 'play_tab.dart';
 import 'profile_screen.dart';
 
@@ -37,6 +38,43 @@ class _AppShellState extends State<AppShell>
   int _index = 0;
   final _visited = {0};
 
+  /// The Online tab's state, held here for the tab's badge (plan v3.7:
+  /// in-app badges): loaded at start — which also sends the duel runs
+  /// still on the device — and again whenever the tab is shown.
+  OnlineController? _online;
+
+  @override
+  void initState() {
+    super.initState();
+    _online = _buildOnline(widget.environment);
+  }
+
+  @override
+  void didUpdateWidget(covariant AppShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.environment.playerId != widget.environment.playerId) {
+      _online?.dispose();
+      _online = _buildOnline(widget.environment);
+    }
+  }
+
+  static OnlineController? _buildOnline(AppEnvironment environment) {
+    final repository = environment.onlineRepository;
+    if (repository == null) return null;
+    return OnlineController(
+      repository: repository,
+      client: environment.duelClient,
+      queue: environment.duelQueue,
+      levels: () async => {
+        for (final MapEntry(:key, :value)
+            in (await environment.repository.currentLevels(
+              environment.playerId,
+            )).entries)
+          key: value.level,
+      },
+    )..load().ignore();
+  }
+
   /// Tab change fade (`AppMotion.tabChange`) — animates an `Opacity` over
   /// the `IndexedStack`, which stays intact: replacing it with a widget
   /// rebuilt at each switch would lose each tab's state (the current type
@@ -49,6 +87,7 @@ class _AppShellState extends State<AppShell>
   );
 
   void _selectTab(int index) {
+    if (index == 1 && _index != 1) _online?.load().ignore();
     setState(() {
       _index = index;
       _visited.add(index);
@@ -65,6 +104,7 @@ class _AppShellState extends State<AppShell>
 
   @override
   void dispose() {
+    _online?.dispose();
     _tabTransitionController.dispose();
     super.dispose();
   }
@@ -73,7 +113,7 @@ class _AppShellState extends State<AppShell>
   Widget build(BuildContext context) {
     final tabs = [
       PlayTab(environment: widget.environment, isActive: _index == 0),
-      const ComingSoonScreen(label: 'Online'),
+      OnlineScreen(environment: widget.environment, controller: _online),
       ProfileScreen(
         environment: widget.environment,
         isActive: _index == 2,
@@ -97,28 +137,39 @@ class _AppShellState extends State<AppShell>
           ),
         ),
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: _selectTab,
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.sports_esports_outlined),
-            label: 'Play',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.wifi_outlined),
-            label: 'Online',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            label: 'Profile',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.leaderboard_outlined),
-            // The mockups' word (doc/decisions.md, Redesign phase).
-            label: 'Ranks',
-          ),
-        ],
+      bottomNavigationBar: ListenableBuilder(
+        listenable: _online ?? const AlwaysStoppedAnimation(0),
+        builder: (context, _) => NavigationBar(
+          selectedIndex: _index,
+          onDestinationSelected: _selectTab,
+          destinations: [
+            const NavigationDestination(
+              icon: Icon(Icons.sports_esports_outlined),
+              label: 'Play',
+            ),
+            NavigationDestination(
+              // A challenge or a friend request waiting: a dot, and the
+              // tab's name says so to screen readers (rule 14).
+              icon: Badge(
+                isLabelVisible: _online?.needsAttention ?? false,
+                child: const Icon(Icons.wifi_outlined),
+              ),
+              label: 'Online',
+              tooltip: (_online?.needsAttention ?? false)
+                  ? 'Online, something waits for you'
+                  : null,
+            ),
+            const NavigationDestination(
+              icon: Icon(Icons.person_outline),
+              label: 'Profile',
+            ),
+            const NavigationDestination(
+              icon: Icon(Icons.leaderboard_outlined),
+              // The mockups' word (doc/decisions.md, Redesign phase).
+              label: 'Ranks',
+            ),
+          ],
+        ),
       ),
     );
   }

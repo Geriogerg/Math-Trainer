@@ -4,10 +4,17 @@ import 'package:math_core/models/exercise_type.dart';
 import 'package:test/test.dart';
 
 void main() {
-  test('boards: overall first, then the seven, with the server keys', () {
+  test('boards: overall first, the three duel boards (Phase 7), then the '
+      'operations, with the server keys', () {
     expect(
       [for (final b in LeaderboardBoard.all) b.key],
-      ['overall', for (final t in ExerciseType.values) t.name],
+      [
+        'overall',
+        'basics',
+        'advanced',
+        'count',
+        for (final t in ExerciseType.values) t.name,
+      ],
     );
     expect(
       const LeaderboardBoard.of(ExerciseType.power),

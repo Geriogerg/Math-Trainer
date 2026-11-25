@@ -1456,3 +1456,18 @@ close-out is live (server on `7b0d7e2`, rules 2–8, kinds listed). Owner action
   controller (quiz, lanes, quit, offline, refusal, three count rounds), flow with goldens in
   both themes (duel, result, Get the count after Rematch), guests told to save progress.
   The screens are reached from the Online tab in commit 6.
+- **Commit 6** *(C)* — **Online tab, badge, the three duel boards** (mockup 1). Migration
+  `20261130020000_online_reads`: `duel_overview()` (players only, own duels: linked or not,
+  ratings, challenges waiting — not expired —, the 20 latest duels with the result from the
+  caller's side, "raced" when their run was the recorded one), `duel_board_top(mode)` and
+  `duel_board_around_me(mode)` (linked, ≥ 10 rated duels, rated within 30 days; reasons
+  `noDuels`, `provisional` with the duels missing). Core: `OnlineOverview` +
+  `OnlineRepository`; `LeaderboardBoard.duel(mode)` (after Main), entries and standings carry a
+  rating instead of a level. App: `SupabaseOnlineRepository`, `OnlineController` (each load also
+  flushes pending runs and wakes the server; a mode without a rating shows the start from the
+  device's levels, "?"), `OnlineScreen` (Duels with ratings, Waiting for you with Play, Recent:
+  "Tom raced your run · won", "Practice · Advanced · lost", "waiting", "not counted"; a guest is
+  invited to save their progress), the tab's badge (`Badge`, a tooltip in words), duel chips
+  on Ranks (a bolt icon and the mode's name) with ratings in place of level badges. The Coming
+  soon placeholder is gone. Tests: SQL `a3`, core, Online tab with goldens (both themes), the
+  badge, start ratings, Play on a challenge, guests; Ranks goldens re-recorded (new chips).
