@@ -1471,3 +1471,19 @@ close-out is live (server on `7b0d7e2`, rules 2–8, kinds listed). Owner action
   on Ranks (a bolt icon and the mode's name) with ratings in place of level badges. The Coming
   soon placeholder is gone. Tests: SQL `a3`, core, Online tab with goldens (both themes), the
   badge, start ratings, Play on a challenge, guests; Ranks goldens re-recorded (new chips).
+- **Commit 7** *(C)* — **Friends** (mockup 4). Migration `20261130030000_friends`:
+  `friend_codes` (`MATH-` + 4 of the 32 easy characters, created on first use, never changes),
+  `friend_requests`, `friendships` (one row per pair), `friend_request_attempts` (20 a day,
+  failed lookups included); `my_friend_code`, `friend_request` (sent / friends when mutual /
+  already / pending / unknown / self / tooMany), `friend_requests_incoming`, `friend_respond`,
+  `friend_remove` (the duels stay), `friend_list` (head-to-head over every decided duel between
+  the two, practice excluded), `friend_history`; `duel_overview` counts the requests waiting.
+  Linked players only; everything cascades with the account. Core: `normalizeFriendCode`,
+  `inviteLink`, models, `FriendsRepository`, `PendingInviteStore`. App: an invite link's code
+  (`?friend=`) is kept on the device at start and sent as a request once the player is linked
+  (the Online tab says what happened); the Friends pill (a dot and words when requests wait);
+  `FriendsScreen` (code, Share link → clipboard, Add code, requests with Accept / Decline,
+  friends with head-to-head and Challenge → mode → the challenger plays first),
+  `FriendHistoryScreen` (date, mode, both scores, result; Remove friend). Challenges expire
+  after 7 days (commit 4's SQL). Privacy notice names friends data. Tests: SQL `a4`, core,
+  widgets with goldens (both themes), the invite link, the pill.

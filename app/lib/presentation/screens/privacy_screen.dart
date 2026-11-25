@@ -22,6 +22,8 @@ class PrivacyScreen extends StatelessWidget {
         'Name reports you make, so a reported name can be reviewed.',
         'Online duels: each run you play (answers and times), its result '
             'and your duel ratings.',
+        'Friends: your friend code, the requests you send and receive, and '
+            'your friends.',
       ],
     ),
     (
@@ -49,7 +51,8 @@ class PrivacyScreen extends StatelessWidget {
         'Other players see your player name and level on the leaderboard, '
             'only if you saved your progress. Never your email or your games.',
         'Players who race your duel runs see your player name, your duel '
-            'rating and how fast you answered — never what you typed.',
+            'rating and how fast you answered — never what you typed. Your '
+            'friends see your name and the duels you played together.',
         'The game’s author can read the stored data to run the beta.',
       ],
     ),

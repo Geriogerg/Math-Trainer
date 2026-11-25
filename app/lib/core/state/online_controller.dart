@@ -5,6 +5,7 @@ import 'package:math_core/duel/duel_mode.dart';
 import 'package:math_core/duel/duel_rating.dart';
 import 'package:math_core/duel/duel_run_queue.dart';
 import 'package:math_core/duel/online_overview.dart';
+import 'package:math_core/friends/friends.dart';
 import 'package:math_core/leveling/level.dart';
 import 'package:math_core/models/exercise_type.dart';
 
@@ -20,6 +21,8 @@ class OnlineController extends ChangeNotifier {
     required this.levels,
     this.client,
     this.queue,
+    this.friends,
+    this.invites,
   });
 
   final OnlineRepository repository;
@@ -28,6 +31,20 @@ class OnlineController extends ChangeNotifier {
   final Future<Map<ExerciseType, Level>> Function() levels;
   final DuelClient? client;
   final DuelRunQueue? queue;
+
+  /// An invite link's code is sent as a friend request once the player is
+  /// linked (commit 7).
+  final FriendsRepository? friends;
+  final PendingInviteStore? invites;
+
+  FriendRequestOutcome? _inviteOutcome;
+
+  /// What the invite link's request did, once: the tab says so.
+  FriendRequestOutcome? takeInviteOutcome() {
+    final outcome = _inviteOutcome;
+    _inviteOutcome = null;
+    return outcome;
+  }
 
   OnlineOverview? _overview;
   OnlineOverview? get overview => _overview;
@@ -71,12 +88,28 @@ class OnlineController extends ChangeNotifier {
       if (request != _request) return;
       _overview = overview;
       _levels = levels;
+      if (overview.linked) await _sendInvite();
     } on Exception catch (_) {
       if (request != _request) return;
       _failed = true;
     }
     _loading = false;
     _notify();
+  }
+
+  Future<void> _sendInvite() async {
+    final friends = this.friends;
+    final invites = this.invites;
+    if (friends == null || invites == null) return;
+    try {
+      final code = await invites.load();
+      if (code == null) return;
+      final outcome = await friends.request(code);
+      await invites.save(null);
+      _inviteOutcome = outcome;
+    } on Exception catch (_) {
+      // Kept: tried again at the next load.
+    }
   }
 
   void _notify() {

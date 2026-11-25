@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:math_core/duel/duel_client.dart';
 import 'package:math_core/duel/duel_run_queue.dart';
 import 'package:math_core/duel/online_overview.dart';
+import 'package:math_core/friends/friends.dart';
 import 'package:math_core/tiers/tip_band.dart';
 import 'package:math_core/tiers/tier.dart';
 import 'package:math_core/patterns/pattern_family.dart';
@@ -48,7 +49,9 @@ import 'package:math_core/persistence/type_selection_store.dart';
 import 'core/state/duel_controller.dart';
 import 'core/state/session_controller.dart';
 import 'infrastructure/backend/http_duel_client.dart';
+import 'infrastructure/backend/supabase_friends_repository.dart';
 import 'infrastructure/backend/supabase_online_repository.dart';
+import 'infrastructure/persistence/shared_preferences_pending_invite_store.dart';
 import 'infrastructure/persistence/shared_preferences_duel_run_store.dart';
 import 'infrastructure/backend/http_session_upload_client.dart';
 import 'infrastructure/backend/supabase_beta_code_repository.dart';
@@ -108,6 +111,9 @@ class AppEnvironment {
     this.duelRunStore = const SharedPreferencesDuelRunStore(),
     this.duelQueue,
     this.onlineRepository,
+    this.friendsRepository,
+    this.pendingInviteStore = const SharedPreferencesPendingInviteStore(),
+    this.siteUrl,
   });
 
   final SessionRepository repository;
@@ -214,6 +220,16 @@ class AppEnvironment {
   /// The Online tab's reads (Supabase); `null` in tests that do not care.
   final OnlineRepository? onlineRepository;
 
+  /// Friends (Supabase); `null` in tests that do not care — the Online tab
+  /// then has no Friends button.
+  final FriendsRepository? friendsRepository;
+
+  /// An invite link's code waiting for the player to be linked.
+  final PendingInviteStore pendingInviteStore;
+
+  /// The site's own address, for invite links; `null` off the web.
+  final Uri? siteUrl;
+
   AppEnvironment forPlayer(String playerId) => AppEnvironment(
     repository: repository,
     playerId: playerId,
@@ -237,6 +253,9 @@ class AppEnvironment {
     duelClient: duelClient,
     duelRunStore: duelRunStore,
     onlineRepository: onlineRepository,
+    friendsRepository: friendsRepository,
+    pendingInviteStore: pendingInviteStore,
+    siteUrl: siteUrl,
     duelQueue: switch (duelClient) {
       final client? => DuelRunQueue(
         store: duelRunStore,
@@ -379,6 +398,20 @@ Future<AppEnvironment> buildAppEnvironment() async {
   );
 
   final accountRepository = SupabaseAccountRepository(Supabase.instance.client);
+  // An invite link (`?friend=MATH-7K2P`, Phase 7): its code waits on the
+  // device until the player is linked, then becomes a friend request.
+  const invites = SharedPreferencesPendingInviteStore();
+  if (kIsWeb) {
+    final invited = Uri.base.queryParameters[inviteLinkParameter];
+    final code = invited == null ? null : normalizeFriendCode(invited);
+    if (code != null) {
+      try {
+        await invites.save(code);
+      } on Exception catch (_) {
+        // The link is lost; the code can still be typed.
+      }
+    }
+  }
   final haptics = createGameHaptics();
   final effectSettings = await EffectSettings.load(
     const SharedPreferencesEffectSettingsStore(),
@@ -411,6 +444,9 @@ Future<AppEnvironment> buildAppEnvironment() async {
         ? SupabaseBetaCodeRepository(Supabase.instance.client)
         : null,
     onlineRepository: SupabaseOnlineRepository(Supabase.instance.client),
+    friendsRepository: SupabaseFriendsRepository(Supabase.instance.client),
+    pendingInviteStore: invites,
+    siteUrl: kIsWeb ? Uri.base : null,
     duelClient: _serverUrl.isEmpty
         ? null
         : HttpDuelClient(

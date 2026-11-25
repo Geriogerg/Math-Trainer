@@ -11,18 +11,18 @@ import '../duel/duel_flow_screen.dart';
 import '../duel/duel_texts.dart';
 import '../kit/kit.dart';
 import '../theme/app_theme.dart';
+import 'friends_screen.dart';
 import 'save_progress_screen.dart';
 
 /// The Online tab (`doc/mockups/online.html`, screen 1; plan v3.7): the
 /// three duel modes with the player's rating in each, the challenges
-/// "Waiting for you", and "Recent" duels. Online play needs a linked
-/// account: a guest is invited to save their progress.
-class OnlineScreen extends StatelessWidget {
+/// "Waiting for you", and "Recent" duels; Friends top right. Online play
+/// needs a linked account: a guest is invited to save their progress.
+class OnlineScreen extends StatefulWidget {
   const OnlineScreen({
     super.key,
     required this.environment,
     required this.controller,
-    this.friendsButton,
   });
 
   final AppEnvironment environment;
@@ -31,37 +31,101 @@ class OnlineScreen extends StatelessWidget {
   /// online play is not available.
   final OnlineController? controller;
 
-  /// Top right: the Friends pill (commit 7).
-  final Widget? friendsButton;
+  @override
+  State<OnlineScreen> createState() => _OnlineScreenState();
+}
+
+class _OnlineScreenState extends State<OnlineScreen> {
+  @override
+  void initState() {
+    super.initState();
+    widget.controller?.addListener(_onChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant OnlineScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller?.removeListener(_onChanged);
+      widget.controller?.addListener(_onChanged);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller?.removeListener(_onChanged);
+    super.dispose();
+  }
+
+  /// An invite link's request was sent: said once.
+  void _onChanged() {
+    final outcome = widget.controller?.takeInviteOutcome();
+    if (outcome == null || !mounted) return;
+    ScaffoldMessenger.maybeOf(
+      context,
+    )?.showSnackBar(SnackBar(content: Text(friendRequestText(outcome))));
+  }
+
+  AppEnvironment get environment => widget.environment;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final metrics = theme.extension<AppMetrics>()!;
-    final controller = this.controller;
-    return Padding(
-      padding: metrics.rootPadding,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
+    final controller = widget.controller;
+    if (controller == null || environment.duelClient == null) {
+      return Padding(
+        padding: metrics.rootPadding,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Online', style: theme.textTheme.titleMedium),
+            const Expanded(
+              child: _Message('Online play is not available in this build.'),
+            ),
+          ],
+        ),
+      );
+    }
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (context, _) {
+        final overview = controller.overview;
+        return Padding(
+          padding: metrics.rootPadding,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Online', style: theme.textTheme.titleMedium),
-              const Spacer(),
-              ?friendsButton,
+              Row(
+                children: [
+                  Text('Online', style: theme.textTheme.titleMedium),
+                  const Spacer(),
+                  if (environment.friendsRepository != null &&
+                      (overview?.linked ?? false))
+                    _FriendsPill(
+                      requests: overview!.friendRequests,
+                      onTap: () => _openFriends(context, controller),
+                    ),
+                ],
+              ),
+              Expanded(child: _content(context, controller)),
             ],
           ),
-          Expanded(
-            child: controller == null || environment.duelClient == null
-                ? const _Message('Online play is not available in this build.')
-                : ListenableBuilder(
-                    listenable: controller,
-                    builder: (context, _) => _content(context, controller),
-                  ),
-          ),
-        ],
+        );
+      },
+    );
+  }
+
+  Future<void> _openFriends(
+    BuildContext context,
+    OnlineController controller,
+  ) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => FriendsScreen(environment: environment),
       ),
     );
+    controller.load().ignore();
   }
 
   Widget _content(BuildContext context, OnlineController controller) {
@@ -176,6 +240,62 @@ class OnlineScreen extends StatelessWidget {
 
 /// Won / lost / draw in words (rule 14), the win in the accent; "waiting"
 /// for a challenge sent, "not counted" for a void duel.
+/// The mockup's Friends pill, with a dot when requests wait — and the
+/// count in its words for screen readers (rule 14).
+class _FriendsPill extends StatelessWidget {
+  const _FriendsPill({required this.requests, required this.onTap});
+
+  final int requests;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Semantics(
+      button: true,
+      label: requests == 0
+          ? 'Friends'
+          : 'Friends, $requests request${requests == 1 ? '' : 's'}',
+      excludeSemantics: true,
+      child: InkWell(
+        key: const ValueKey('friends-pill'),
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 32),
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: theme.colorScheme.outline),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Friends',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              if (requests > 0) ...[
+                const SizedBox(width: 6),
+                Container(
+                  width: 7,
+                  height: 7,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _RecentOutcome extends StatelessWidget {
   const _RecentOutcome({required this.duel});
 

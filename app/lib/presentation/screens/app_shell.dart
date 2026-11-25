@@ -65,6 +65,8 @@ class _AppShellState extends State<AppShell>
       repository: repository,
       client: environment.duelClient,
       queue: environment.duelQueue,
+      friends: environment.friendsRepository,
+      invites: environment.pendingInviteStore,
       levels: () async => {
         for (final MapEntry(:key, :value)
             in (await environment.repository.currentLevels(
