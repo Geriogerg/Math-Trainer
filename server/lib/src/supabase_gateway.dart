@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:shelf/shelf.dart' show Request;
 
 import 'config.dart';
 
@@ -28,6 +29,18 @@ abstract interface class SupabaseGateway {
   /// row-level security; the functions are granted to `service_role` only).
   /// Returns its decoded JSON result.
   Future<Object?> rpc(String name, Map<String, Object?> params);
+}
+
+/// The caller of [request], from its `Authorization: Bearer` token checked
+/// by Supabase Auth; `null` without a token or with an invalid one (the
+/// endpoints answer 401). Throws [GatewayUnavailable] like the gateway.
+Future<AuthenticatedUser?> bearerUser(
+  SupabaseGateway gateway,
+  Request request,
+) async {
+  final authorization = request.headers['authorization'] ?? '';
+  if (!authorization.startsWith('Bearer ')) return null;
+  return gateway.userForToken(authorization.substring(7));
 }
 
 class HttpSupabaseGateway implements SupabaseGateway {

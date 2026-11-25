@@ -54,7 +54,7 @@ class SessionEndpoint {
 
     final AuthenticatedUser? user;
     try {
-      user = await gateway.userForToken(authorization.substring(7));
+      user = await bearerUser(gateway, request);
     } on GatewayUnavailable catch (e) {
       return _unavailable(e);
     }

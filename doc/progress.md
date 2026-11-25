@@ -1398,3 +1398,19 @@ close-out is live (server on `7b0d7e2`, rules 2–8, kinds listed). Owner action
   threshold (10 rated duels). Pins re-recorded on purpose (4 question duels, 3 count duels):
   identical on the VM and in JavaScript. Over 540 count rounds the band fallback is under 5 %.
   Server: a stored config regenerates the pinned content (`duel_content_test.dart`).
+- **Commit 2** *(A)* — **Duel runs stored and validated; the pool; fair-play flags.** Core:
+  `DuelRun` (quiz answers; Get the count improvements with their operations), `DuelLane` (what
+  an opponent sees: times and right/wrong, or times and distances — never values),
+  `DuelScore`, `duelResult` (1 / ½ / 0); `validateDuelRun` replays a run against its config —
+  questions regenerated and correctness recomputed, every improvement re-derived from its
+  round's numbers (`derives`), strictly closer and later, none after the target — refusing
+  with a stored `DuelRunProblem`, flagging timing (`implausiblyFast`, `flatTimes`). Migration
+  `20261130000000_duels`: `duel_ratings`, `duels`, `duel_runs`, `duel_run_rejections` (service
+  role only, cascade from the account) and `duel_take_run` (the pool: accepted, unflagged or
+  reviewed ok, < 5 serves, the owner's 10 latest, never one's own or a guest's, never a config
+  already played; closest rating, a rematch by closest tier; locked, served once more),
+  `duel_insert`, `duel_context`, `apply_duel_run` (optimistic rating versions, the
+  challenge's daily limit, expiry with an hour's grace) and `record_duel_run_refused` (the
+  duel void). Server: `POST /v1/duels/run` (linked accounts only; turn checked before the
+  replay; idempotent; unrated until commit 3). Privacy notice names duel data. Tests: core
+  (VM and JavaScript), SQL (`a1_duels_test`), server (in-memory model of the SQL).
