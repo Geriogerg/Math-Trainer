@@ -3,7 +3,7 @@
 Competitive mental-arithmetic game in Flutter, for teens and adults. UI, code, docs and commits
 in English.
 
-**`doc/plan.md` (version 3.7) is the product plan**, and **`doc/levels.md` (v1.5) specifies the
+**`doc/plan.md` (version 3.8) is the product plan**, and **`doc/levels.md` (v1.5) specifies the
 level system**. Both are the owner's: read them at the start of every phase; never edit them.
 This file is the working file: keep it short, update it as the project moves, keep it
 consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/decisions.md`,
@@ -11,29 +11,23 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 
 ## Current phase
 
-**Phase 7 — Online play: asynchronous duels and friends** (`doc/plan.md` v3.7, section 7), run
-in **one pass**. Goal: players compete against each other and their friends, even when few are
-online at once. **Reference screens: `doc/mockups/online.html`** (binding layout, minimal
-text). Runs during the beta, before the public launch.
+**Phase 7 close-out** (`doc/plan.md` v3.8, section 7), run in **one pass**, four commits.
+Phase 7 (asynchronous duels in three rated modes, friends) is live; its outcome kept every
+provisional decision but one — an abandoned duel now counts — which commit 1 applies.
 
 | # | Commit | Note |
 |---|---|---|
-| 0 | *(A)* Decisions recorded; duel session kinds and duel rules version listed in `/health` | |
-| 1 | *(A)* Duel content in the core: the three modes, difficulty from rating, Get the count target bands; determinism on VM and JavaScript; server replay | |
-| 2 | *(A)* Duel runs stored and validated; run pool (5 serves, 10 latest per mode); fair-play flags | |
-| 3 | *(A)* Glicko-2 per mode wired to results: starting ratings from levels, provisional flag, both sides updated, friend-duel daily limit; tests on scripted duel histories | |
-| 4 | *(A)* Matchmaking endpoint, practice opponents (deterministic simulated runs), rematch logic | |
-| 5 | *(C)* Duel screens for Basics, Advanced and Get the count, with the opponent's lane, and the result screen with Rematch, per the mockups | |
-| 6 | *(C)* Online tab: three modes with their ratings, "Waiting for you", Recent, badge; the three boards on Ranks; account required (guests invited to save progress) | |
-| 7 | *(C)* Friends: codes, invite links, requests, list with head-to-head, game history per friend, challenges with 7-day expiry | |
-| 8 | *(A)* Dashboard section: duels per day and mode, rating distributions, flagged runs, friend counts | |
+| 1 | *(A)* **An abandoned duel is a loss**: a duel started but not submitted within 24 hours is recorded as a loss with the answers the server received so far; clearing the browser or switching device no longer escapes it | |
+| 2 | *(A)* **Method in duels** uses the pattern-specific strategy, like solo games | |
+| 3 | *(A)* **Share link** opens the phone's share sheet (Web Share API) where the browser has one, clipboard otherwise | |
+| 4 | *(A)* **Minimum test counts** in CI for every suite (core VM, core JavaScript, app, server, SQL) | |
 
-**Exit:** two linked test players race each other's runs in all three modes and their ratings
-move on the server only; a friend added by link and one by code can challenge each other and
-see their history; a practice opponent appears when the pool is empty; a forged or implausible
-run is never served.
+**New rule (plan v3.8):** every test suite in CI states how many tests it ran and fails below a
+pinned minimum — a suite that silently runs nothing turns red. **Known limit:** the free Render
+server sleeps (30–60 s before the first duel after a quiet period); a paid plan is an owner
+decision before Phase 6.
 
-**Phase 7's rules** (plan v3.7, owner decisions of 25 Nov):
+**Phase 7's rules** (plan v3.7–v3.8; detail in `doc/decisions.md`, "Phase 7"):
 - **No live matches**: every duel is asynchronous — a player races another's recorded run,
   replayed at its original pace as a second lane. **Linked accounts only** (guests are invited
   to save their progress). Chain operations stays solo. Tournaments: later.
@@ -61,13 +55,10 @@ run is never served.
   pool and its duel does not count; implausible timing keeps a run out of the pool until
   reviewed; friend requests limited (~20 a day).
 
-Done: 0–8 and the exit test (25 Nov; `doc/progress.md`, "Phase 7"); a fix commit made the
-duel SQL tests actually run (see Pitfalls). **Open: the owner plays the checklist with two
-linked accounts and confirms the provisional decisions (`doc/decisions.md`, "Phase 7").**
-Before: the Phase 4 close-out (rules v8, `/health` kinds, weak spots checked
-against history) — done and live 24 Nov; **open: the owner confirms its commit 3 provisional
-decision** (`doc/decisions.md`). Phase 3b is a data check, not a blocker (~300 sessions from
-10+ testers since the rules v5 release, `owner_dashboard.calibration_window`).
+Done: nothing yet. Phase 7 (commits 0–8, exit test) is live since 25 Nov; its provisional
+decisions are settled (plan v3.8), and so are Phase 4's.
+Phase 3b is a data check, not a blocker (confirmed in v3.8): a report at ~300 sessions from
+10+ testers since the rules v5 release (`owner_dashboard.calibration_window`).
 
 **Weak spots** (Phase 4, rules v7–v8; detail in `doc/decisions.md`, "Phase 4"): facts and
 skills, five boxes counted in games (due after 1, 2, 4, 8, 16), rebuilt from stored answers

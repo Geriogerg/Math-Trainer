@@ -1523,3 +1523,13 @@ The plan's exit, piece by piece:
 Not verified here: the live run on a phone with two accounts (the owner's checklist);
 staging's CI smoke test (private repository). Production ran commit 6's server and site at
 the time of writing; commits 7–8 deploy with the next CI run.
+
+## Phase 7 close-out (plan v3.8)
+
+Plan v3.8: Phase 7's outcome — every provisional decision kept but one (an abandoned duel
+counts); a four-commit close-out; a new CI rule (minimum test counts). Owner actions: none by
+hand (the migration goes through CI).
+
+- **Commit 0** — Plan v3.8; Phase 4's pending decisions confirmed (Phase 3b a data check; the
+  close-out's commit 3 kept) and Phase 7's outcome recorded in `doc/decisions.md`; CLAUDE.md's
+  Current phase is the close-out.

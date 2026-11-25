@@ -1727,9 +1727,12 @@ reviews). The four level targets are unchanged (v5's update is v3's; simulation 
   restarted: v5 was live a few hours and v6 changes one family's draws.
 
 
-## Phase 4: weak spots and drills (plan v3.5) — provisional
+## Phase 4: weak spots and drills (plan v3.5) — confirmed (plan v3.6, v3.8)
 
 **Owner decisions (24 Nov):** Phase 3b is a data check, not a blocker; Phase 4 runs first.
+**Confirmed again (plan v3.8, 25 Nov):** Phase 3b stays a data check (decided in v3.5): a
+report once the dashboard reaches its threshold, changes only if the data contradicts the
+targets.
 **Weak-spot questions in Levelling games come only from the player's current tier** in that
 operation — the no-lower-tier rule of `doc/levels.md` section 2 stands. Everything below is
 Claude's reading, provisional until the phase report.
@@ -1828,7 +1831,7 @@ the server checks a game's weak spots for tier and caps, not that they were due 
 close-out's commit 3.
 
 **Close-out, commit 3 (plan v3.6): the weak spots checked against the accepted history** —
-provisional. The server rebuilds the player's schedule from every session it accepted
+**confirmed, kept as built (owner, plan v3.8, 25 Nov).** The server rebuilds the player's schedule from every session it accepted
 (`player_upload_history`) and flags a Levelling game whose weak spots are not all due
 (`weakSpotsNotDue`); the game still counts for levels. Read only for a game holding weak spots
 (its cost grows with the history: fine at beta scale, to revisit before Phase 7). The app
@@ -1836,7 +1839,7 @@ leaves refused sessions out of its own schedule so both sides rebuild from the s
 what can still differ (another device's games, a refusal arriving after a later game was
 built) only raises the flag. Weak spots games and Drills are not checked: never ranked.
 
-## Phase 7: asynchronous duels and friends (plan v3.7) — provisional
+## Phase 7: asynchronous duels and friends (plan v3.7) — confirmed but one (plan v3.8)
 
 **Owner decisions (25 Nov):** no live matches — every duel races a recorded run; online play
 needs a linked account; three modes (Basics, Advanced, Get the count), each with its own
@@ -1940,3 +1943,13 @@ the Friends button the same for requests. Read when the tab opens and after each
 **Reopen when** the dashboard (commit 8) shows: practice duels dominating (the pool too thin to
 match), ratings piling at the tier edges, Get the count bands off target (rounds unsolved or
 trivially solved), or abandoned duels by the same players.
+
+**Phase 7 outcome (plan v3.8, owner, 25 Nov).** Kept: matchmaking on the server (the Online
+tab wakes it); the same unplayed duel handed back within an hour; the once-a-day rating limit
+on every challenge, rematches included; challenges at the mean of both ratings; the practice
+opponent (70 %, 60–140 % of the fluent time); 4-character friend codes with the 20-a-day cap.
+**Changed:** quitting by closing the browser no longer escapes — an abandoned duel is a loss
+(close-out commit 1, below). New rule: every CI test suite states how many tests it ran and
+fails below a pinned minimum (close-out commit 4). Known limit: the free Render server sleeps
+(30–60 s before the first duel after a quiet period); a paid plan is an owner decision before
+Phase 6.
