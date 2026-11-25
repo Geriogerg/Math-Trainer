@@ -26,6 +26,11 @@ class FakeClient implements DuelClient {
   DuelServerSupport supported = (modes: {...DuelMode.values}, rules: {1});
   Object? failure;
   final sent = <(String, DuelRun)>[];
+  final progressed = <(String, DuelRun)>[];
+
+  @override
+  Future<void> progress(String duelId, DuelRun run) async =>
+      progressed.add((duelId, run));
 
   @override
   Future<DuelServerSupport> support() async => supported;
@@ -132,6 +137,11 @@ void main() {
     await queue.saveProgress(_offer('d1'), _answers(2));
     final kept = (await store.load('p')).single.run as QuizRun;
     expect(kept.answers.length, 2);
+    // Each step also told the server (plan v3.8: abandoned duels).
+    expect(
+      [for (final (_, r) in client.progressed) (r as QuizRun).answers.length],
+      [1, 2],
+    );
   });
 
   test('offers and verdicts read the server\'s shapes', () {

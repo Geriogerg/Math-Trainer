@@ -1533,3 +1533,17 @@ hand (the migration goes through CI).
 - **Commit 0** — Plan v3.8; Phase 4's pending decisions confirmed (Phase 3b a data check; the
   close-out's commit 3 kept) and Phase 7's outcome recorded in `doc/decisions.md`; CLAUDE.md's
   Current phase is the close-out.
+- **Commit 1** *(A)* — **An abandoned duel is a loss.** Migration
+  `20261201000000_abandoned_duels`: `duels.progress` and `opened_at`; `duel_save_progress` (the
+  second player's open duel only), `duel_mark_opened`, `duel_abandoned(limit)` (pool and
+  practice 24 h after they were handed out, challenges 24 h after the friend opened them;
+  unplayed challenges void on the way); `duel_context` carries the progress; the owner's
+  `flagged_runs` leaves forfeits out, `abandoned_duels` counts them. Core:
+  `ValidationFlag.abandoned`, `DuelClient.progress`; the queue tells the server at every
+  saved step. Server: `POST /v1/duels/progress`; `/open` marks the challenge opened; every
+  duel request first records up to 3 abandoned duels as losses (`sweepAbandoned`, replayed
+  from the progress completed with timeouts, rated like their kind, flagged `abandoned`); the
+  replay and apply shared with `/run` (`_applyRun`). Tests: server (left after 5 answers → a
+  loss with those 5, rated, out of the pool, a late run gets the verdict; no progress;
+  malformed progress; practice unrated; unplayed challenge void; opening marks the start), SQL
+  `99f`, the queue and the app send progress.

@@ -124,6 +124,9 @@ void main() {
     final saved = (await store.load('me')).single;
     expect((saved.run as QuizRun).answers.length, 7);
     expect(saved.complete, isFalse);
+    // And told the server, step by step (plan v3.8: abandoned duels).
+    expect(client.progressed.length, 7);
+    expect((client.progressed.last.$2 as QuizRun).answers.length, 7);
     answer(d, right: false);
     await pumpEventQueue();
     expect(d.phase, DuelPhase.done);

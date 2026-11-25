@@ -77,9 +77,13 @@ class DuelRunQueue {
 
   Future<void>? _flushing;
 
-  /// Saves [run] of [offer] as it stands (after each answer or round).
-  Future<void> saveProgress(DuelOffer offer, DuelRun run) =>
-      _put(_pending(offer, run, complete: false));
+  /// Saves [run] of [offer] as it stands (after each answer or round), and
+  /// tells the server — never awaited, never failing: what the server has
+  /// is what an abandoned duel is recorded from (plan v3.8).
+  Future<void> saveProgress(DuelOffer offer, DuelRun run) {
+    client.progress(offer.duelId, run).ignore();
+    return _put(_pending(offer, run, complete: false));
+  }
 
   PendingDuelRun _pending(
     DuelOffer offer,

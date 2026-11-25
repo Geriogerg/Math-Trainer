@@ -11,6 +11,11 @@ class FakeDuelClient implements DuelClient {
 
   final List<DuelOffer> offers;
   final submitted = <(String, DuelRun)>[];
+  final progressed = <(String, DuelRun)>[];
+
+  @override
+  Future<void> progress(String duelId, DuelRun run) async =>
+      progressed.add((duelId, run));
   final finds = <({DuelMode mode, String? rematchOf, String? challenge})>[];
 
   /// Thrown by the next calls (offline, a refusal…) while set.

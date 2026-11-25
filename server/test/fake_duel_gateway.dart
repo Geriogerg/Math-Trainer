@@ -86,6 +86,33 @@ class FakeDuelGateway implements SupabaseGateway {
         return [_apply(p)];
       case 'duel_take_run':
         return _take(p);
+      case 'duel_save_progress':
+        final duel = duels[p['p_duel_id']];
+        if (duel == null ||
+            duel['secondPlayer'] != p['p_player_id'] ||
+            duel['state'] != 'awaitingSecond') {
+          return 'notOpen';
+        }
+        duel['progress'] = p['p_payload'];
+        return 'saved';
+      case 'duel_mark_opened':
+        final duel = duels[p['p_duel_id']];
+        if (duel != null && duel['secondPlayer'] == p['p_player_id']) {
+          duel['openedAt'] ??= 'now';
+        }
+        return null;
+      case 'duel_abandoned':
+        // Tests mark a duel `pastDeadline` (started over 24 hours ago).
+        for (final d in duels.values) {
+          if (d['pastDeadline'] == true && d['state'] == 'awaitingFirst') {
+            d['state'] = 'void';
+          }
+        }
+        return [
+          for (final d in duels.values)
+            if (d['pastDeadline'] == true && d['state'] == 'awaitingSecond')
+              {'duelId': d['id'], 'player': d['secondPlayer']},
+        ].take(p['p_limit'] as int).toList();
       case 'duel_player':
         final id = p['p_player_id'] as String;
         final user = users.values.where((u) => u.id == id).firstOrNull;

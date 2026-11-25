@@ -56,6 +56,19 @@ class HttpDuelClient implements DuelClient {
   }
 
   @override
+  Future<void> progress(String duelId, DuelRun run) async {
+    // Best effort: an older server (404), offline — nothing to do.
+    try {
+      await _post('/v1/duels/progress', {
+        'duelId': duelId,
+        'run': run.toJson(),
+      });
+    } on DuelUnavailable {
+      return;
+    }
+  }
+
+  @override
   Future<DuelServerSupport> support() async {
     final http.Response response;
     try {

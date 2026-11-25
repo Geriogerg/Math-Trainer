@@ -1953,3 +1953,15 @@ opponent (70 %, 60–140 % of the fluent time); 4-character friend codes with th
 fails below a pinned minimum (close-out commit 4). Known limit: the free Render server sleeps
 (30–60 s before the first duel after a quiet period); a paid plan is an owner decision before
 Phase 6.
+
+**Close-out, commit 1 (plan v3.8): an abandoned duel is a loss** — provisional. The app sends
+its run as it stands after every answer and round (`POST /v1/duels/progress`, stored as sent,
+replayed only at the end); the server records a duel started but not submitted within 24 hours
+— a pool or practice duel from when it was handed out, a challenge from when the friend opened
+it — as a loss (result 0, whatever the answers), from that progress completed with timeouts
+(empty rounds); rated like any duel of its kind (practice never). The run is flagged
+`abandoned`: never in the pool, not in the owner's review list (`owner_dashboard.abandoned_duels`
+counts them). A progress that no longer replays voids the duel instead. The free server has no
+clock: every duel request (find, open, run) first records up to 3 abandoned duels — a player who
+comes back late finds the loss already there; a run sent after it gets the recorded verdict. A
+challenge whose challenger never played within 24 hours is void (no run to lose against).

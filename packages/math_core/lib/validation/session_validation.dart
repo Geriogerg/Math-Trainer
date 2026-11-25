@@ -92,6 +92,12 @@ enum ValidationFlag {
   /// levels — its weak spots are from the player's tier either way — but
   /// worth a look before duels are ranked on it (plan v3.6).
   weakSpotsNotDue,
+
+  /// A duel run the player never sent (Phase 7 close-out): recorded as a
+  /// loss 24 hours after the duel started, from the answers the server had
+  /// received. Kept out of the duel pool (never a run to race), never
+  /// reviewed.
+  abandoned,
 }
 
 sealed class ValidationResult {

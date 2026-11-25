@@ -165,6 +165,11 @@ abstract interface class DuelClient {
   /// The player's run of [duelId].
   Future<DuelVerdict> submit(String duelId, DuelMode mode, DuelRun run);
 
+  /// The run as it stands, during the duel (plan v3.8): an abandoned duel
+  /// is recorded as a loss from it after 24 hours. Best effort: a failure
+  /// changes nothing on the device.
+  Future<void> progress(String duelId, DuelRun run);
+
   /// The duel modes and duel rules the server lists (`/health`).
   Future<DuelServerSupport> support();
 }

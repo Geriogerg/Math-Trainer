@@ -17,7 +17,7 @@ provisional decision but one — an abandoned duel now counts — which commit 1
 
 | # | Commit | Note |
 |---|---|---|
-| 1 | *(A)* **An abandoned duel is a loss**: a duel started but not submitted within 24 hours is recorded as a loss with the answers the server received so far; clearing the browser or switching device no longer escapes it | |
+| 1 | *(A)* **An abandoned duel is a loss**: a duel started but not submitted within 24 hours is recorded as a loss with the answers the server received so far; clearing the browser or switching device no longer escapes it | done |
 | 2 | *(A)* **Method in duels** uses the pattern-specific strategy, like solo games | |
 | 3 | *(A)* **Share link** opens the phone's share sheet (Web Share API) where the browser has one, clipboard otherwise | |
 | 4 | *(A)* **Minimum test counts** in CI for every suite (core VM, core JavaScript, app, server, SQL) | |
@@ -53,7 +53,9 @@ decision before Phase 6.
   plays the same questions from "Waiting for you"; **7-day expiry**). In-app badges only.
 - **Fair play**: every run replayed and validated by the server; a failed run never enters the
   pool and its duel does not count; implausible timing keeps a run out of the pool until
-  reviewed; friend requests limited (~20 a day).
+  reviewed; friend requests limited (~20 a day). **An abandoned duel is a loss** (v3.8): a duel
+  started but not submitted within 24 hours, recorded from the progress the app sends during
+  play (`/v1/duels/progress`), by the next duel request (`sweepAbandoned`).
 
 Done: nothing yet. Phase 7 (commits 0–8, exit test) is live since 25 Nov; its provisional
 decisions are settled (plan v3.8), and so are Phase 4's.
@@ -385,6 +387,9 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 - The server flags a Levelling game whose weak spots were not due in the schedule it rebuilds
   from the accepted history (`weakSpotsNotDue`); the app's schedule must leave out the
   sessions the server refused (`loadWeakSpotSchedule`), or honest games get flagged.
+- `ValidationFlag.abandoned` marks a forfeited duel run (never in the pool, never reviewed):
+  the dashboard's `flagged_runs` leaves it out — a new flag that is not a review matter must be
+  left out there too.
 - `RejectionReason` and `ValidationFlag` names are stored server-side and sent to the app:
   renaming breaks both. Same for `InputDevice` names (answers, uploads).
 - Tests apply every migration twice: a later migration must not change the columns of a view

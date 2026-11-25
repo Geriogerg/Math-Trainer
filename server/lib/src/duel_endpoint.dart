@@ -67,7 +67,164 @@ class DuelEndpoint {
     (method: 'POST', path: '/v1/duels', handler: handleFind),
     (method: 'POST', path: '/v1/duels/open', handler: handleOpen),
     (method: 'POST', path: '/v1/duels/run', handler: handleRun),
+    (method: 'POST', path: '/v1/duels/progress', handler: handleProgress),
   ];
+
+  /// `POST /v1/duels/progress {duelId, run}` (close-out commit 1): the run
+  /// as it stands, after every answer or round — what an abandoned duel is
+  /// recorded from. Stored as sent, replayed only with the abandonment.
+  /// 200 `{status: saved}`; 409 `notOpen` (not this player's open duel).
+  Future<Response> handleProgress(Request request) =>
+      _guarded(request, sweep: false, (user, body) async {
+        final duelId = body['duelId'];
+        final run = body['run'];
+        if (duelId is! String || run is! Map) {
+          return refused(400, 'badRequest', detail: 'duelId, run');
+        }
+        final outcome = await gateway.rpc('duel_save_progress', {
+          'p_duel_id': duelId,
+          'p_player_id': user.id,
+          'p_payload': run,
+        });
+        return outcome == 'saved'
+            ? jsonResponse(200, {'status': 'saved'})
+            : refused(409, 'notOpen');
+      });
+
+  /// How many abandoned duels one request records at most.
+  static const abandonedPerRequest = 3;
+
+  /// Records the duels abandoned for 24 hours (plan v3.8, `duel_abandoned`)
+  /// as losses, from the progress the server received: the run completed
+  /// with timeouts (empty rounds), replayed, applied with result 0 — rated
+  /// like any duel of its kind — and flagged `abandoned` (never in the
+  /// pool). A progress that no longer replays voids the duel. Runs on every
+  /// duel request (the free server has no clock of its own); a failure here
+  /// never fails the request.
+  Future<void> sweepAbandoned() async {
+    final List<Object?> abandoned;
+    try {
+      final listed = await gateway.rpc('duel_abandoned', {
+        'p_limit': abandonedPerRequest,
+      });
+      abandoned = listed is List ? listed : const [];
+    } on GatewayUnavailable {
+      return;
+    }
+    for (final entry in abandoned) {
+      if (entry is! Map) continue;
+      try {
+        await _recordAbandoned('${entry['duelId']}', '${entry['player']}');
+      } on Object catch (error) {
+        // ignore: avoid_print
+        print('abandoned duel ${entry['duelId']}: $error');
+      }
+    }
+  }
+
+  Future<void> _recordAbandoned(String duelId, String player) async {
+    for (var attempt = 0; attempt < maxAttempts; attempt++) {
+      final context = await gateway.rpc('duel_context', {
+        'p_duel_id': duelId,
+        'p_player_id': player,
+      });
+      if (context is! Map) return;
+      final duel = _map(context['duel']);
+      if (duel['state'] != 'awaitingSecond' || context['run'] is Map) return;
+      final config = DuelConfig.fromJson(duel['config']);
+      DuelRun played;
+      try {
+        played = DuelRun.fromJson(duel['progress'], config.mode);
+      } on FormatException {
+        played = config.mode.isQuiz ? QuizRun(const []) : CountRun(const []);
+      }
+      final run = switch (played) {
+        final QuizRun q => q.completedWithTimeouts(),
+        final CountRun c => c.completedWithEmptyRounds(),
+      };
+      final outcome = await _applyRun(
+        duelId: duelId,
+        player: player,
+        role: 'second',
+        context: context,
+        config: config,
+        run: run,
+        forcedResult: 0,
+        extraFlags: const ['abandoned'],
+      );
+      if (outcome != 'stale') {
+        if (outcome == 'expired') {
+          await gateway.rpc('record_duel_run_refused', {
+            'p_duel_id': duelId,
+            'p_player_id': player,
+            'p_reason': 'expired',
+            'p_detail': 'abandoned after its expiry',
+            'p_payload': run.toJson(),
+          });
+        }
+        return;
+      }
+    }
+  }
+
+  /// Replays [run] of [player] in [duelId] and applies it (one try):
+  /// `apply_duel_run`'s outcome, or the `DuelRunProblem` name when the run
+  /// does not replay (recorded, the duel void). [forcedResult]: an
+  /// abandoned duel is a loss whatever its answers.
+  Future<String> _applyRun({
+    required String duelId,
+    required String player,
+    required String role,
+    required Map<Object?, Object?> context,
+    required DuelConfig config,
+    required DuelRun run,
+    double? forcedResult,
+    List<String> extraFlags = const [],
+  }) async {
+    final duel = _map(context['duel']);
+    final verdict = validateDuelRun(config, run);
+    switch (verdict) {
+      case DuelRunInvalid(:final problem, :final detail):
+        await gateway.rpc('record_duel_run_refused', {
+          'p_duel_id': duelId,
+          'p_player_id': player,
+          'p_reason': problem.name,
+          'p_detail': detail,
+          'p_payload': run.toJson(),
+        });
+        return problem.name;
+      case DuelRunValid(:final score, :final lane, :final flags):
+        final start = _startRating(config.mode, context['levels']);
+        double? result;
+        Map<String, Object?>? ratings;
+        if (role == 'second') {
+          final theirs = DuelLane.fromJson(duel['firstLane'], config.mode);
+          result = forcedResult ?? duelResult(score, theirs.score);
+          ratings = _ratingUpdates(context, player, start, result);
+        }
+        final rows = _rows(
+          await gateway.rpc('apply_duel_run', {
+            'p_duel_id': duelId,
+            'p_player_id': player,
+            'p_payload': run.toJson(),
+            'p_lane': lane.toJson(),
+            'p_score': score.toJson(),
+            'p_flags': [for (final f in flags) f.name, ...extraFlags],
+            'p_start_rating': {
+              'rating': start.rating,
+              'deviation': start.deviation,
+              'volatility': start.volatility,
+            },
+            'p_result': result,
+            'p_rated': ratings != null,
+            'p_ratings': ratings,
+          }),
+        );
+        final outcome = rows.isEmpty ? null : rows.first['outcome'];
+        if (outcome is! String) throw StateError('apply_duel_run: $outcome');
+        return outcome;
+    }
+  }
 
   /// A duel's seed: positive and under 2³¹, the same on every platform
   /// that will draw from it.
@@ -181,6 +338,11 @@ class DuelEndpoint {
     if (expires != null && DateTime.now().toUtc().isAfter(expires)) {
       return refused(409, 'expired');
     }
+    // A challenge's 24 hours start when the friend opens it.
+    await gateway.rpc('duel_mark_opened', {
+      'p_duel_id': duelId,
+      'p_player_id': user.id,
+    });
     final first = duel['firstPlayer'];
     final theirs = _map(context['ratings'])[first];
     return jsonResponse(200, {
@@ -262,87 +424,54 @@ class DuelEndpoint {
   /// Times the server re-reads and recomputes when a rating moved under it.
   static const maxAttempts = 3;
 
-  Future<Response> handleRun(Request request) => _guarded(request, (
-    user,
-    body,
-  ) async {
-    final duelId = body['duelId'];
-    if (duelId is! String || duelId.isEmpty) {
-      return refused(400, 'badRequest', detail: 'duelId');
-    }
-    for (var attempt = 0; attempt < maxAttempts; attempt++) {
-      final context = await gateway.rpc('duel_context', {
-        'p_duel_id': duelId,
-        'p_player_id': user.id,
-      });
-      if (context is! Map) return refused(404, 'unknownDuel');
-      final duel = _map(context['duel']);
-      final String role;
-      if (duel['secondPlayer'] == user.id) {
-        role = 'second';
-      } else if (duel['firstPlayer'] == user.id) {
-        role = 'first';
-      } else {
-        return refused(409, 'notYourDuel');
-      }
-      if (context['rejection'] case final Map<Object?, Object?> rejection) {
-        return refused(409, '${rejection['reason']}');
-      }
-      if (context['run'] is Map) {
-        return _decided(context, role: role, duplicate: true);
-      }
-      // Not this player's turn (a friend before the challenger, a decided
-      // or void duel): refused before the replay, which would record a
-      // refusal and void the duel for someone else's mistake.
-      final turn = role == 'first' ? 'awaitingFirst' : 'awaitingSecond';
-      if (duel['state'] != turn) return refused(409, 'notOpen');
-
-      final config = DuelConfig.fromJson(duel['config']);
-      final DuelRun run;
-      try {
-        run = DuelRun.fromJson(body['run'], config.mode);
-      } on FormatException catch (e) {
-        return refused(400, 'badRequest', detail: e.message);
-      }
-      final verdict = validateDuelRun(config, run);
-      switch (verdict) {
-        case DuelRunInvalid(:final problem, :final detail):
-          await gateway.rpc('record_duel_run_refused', {
+  Future<Response> handleRun(Request request) =>
+      _guarded(request, (user, body) async {
+        final duelId = body['duelId'];
+        if (duelId is! String || duelId.isEmpty) {
+          return refused(400, 'badRequest', detail: 'duelId');
+        }
+        for (var attempt = 0; attempt < maxAttempts; attempt++) {
+          final context = await gateway.rpc('duel_context', {
             'p_duel_id': duelId,
             'p_player_id': user.id,
-            'p_reason': problem.name,
-            'p_detail': detail,
-            'p_payload': run.toJson(),
           });
-          return refused(409, problem.name);
-        case DuelRunValid(:final score, :final lane, :final flags):
-          final start = _startRating(config.mode, context['levels']);
-          double? result;
-          Map<String, Object?>? ratings;
-          if (role == 'second') {
-            final theirs = DuelLane.fromJson(duel['firstLane'], config.mode);
-            result = duelResult(score, theirs.score);
-            ratings = _ratingUpdates(context, user.id, start, result);
+          if (context is! Map) return refused(404, 'unknownDuel');
+          final duel = _map(context['duel']);
+          final String role;
+          if (duel['secondPlayer'] == user.id) {
+            role = 'second';
+          } else if (duel['firstPlayer'] == user.id) {
+            role = 'first';
+          } else {
+            return refused(409, 'notYourDuel');
           }
-          final rows = _rows(
-            await gateway.rpc('apply_duel_run', {
-              'p_duel_id': duelId,
-              'p_player_id': user.id,
-              'p_payload': run.toJson(),
-              'p_lane': lane.toJson(),
-              'p_score': score.toJson(),
-              'p_flags': [for (final f in flags) f.name],
-              'p_start_rating': {
-                'rating': start.rating,
-                'deviation': start.deviation,
-                'volatility': start.volatility,
-              },
-              'p_result': result,
-              'p_rated': ratings != null,
-              'p_ratings': ratings,
-            }),
+          if (context['rejection'] case final Map<Object?, Object?> rejection) {
+            return refused(409, '${rejection['reason']}');
+          }
+          if (context['run'] is Map) {
+            return _decided(context, role: role, duplicate: true);
+          }
+          // Not this player's turn (a friend before the challenger, a decided
+          // or void duel): refused before the replay, which would record a
+          // refusal and void the duel for someone else's mistake.
+          final turn = role == 'first' ? 'awaitingFirst' : 'awaitingSecond';
+          if (duel['state'] != turn) return refused(409, 'notOpen');
+
+          final config = DuelConfig.fromJson(duel['config']);
+          final DuelRun run;
+          try {
+            run = DuelRun.fromJson(body['run'], config.mode);
+          } on FormatException catch (e) {
+            return refused(400, 'badRequest', detail: e.message);
+          }
+          final outcome = await _applyRun(
+            duelId: duelId,
+            player: user.id,
+            role: role,
+            context: context,
+            config: config,
+            run: run,
           );
-          final outcome = rows.isEmpty ? null : rows.first['outcome'];
           switch (outcome) {
             case 'applied':
             case 'duplicate':
@@ -357,25 +486,24 @@ class DuelEndpoint {
                 role: role,
                 duplicate: outcome == 'duplicate',
               );
-            case 'notOpen':
-            case 'expired':
-              return refused(409, '$outcome');
             case 'stale':
               continue;
+            default:
+              // notOpen, expired, or the run's DuelRunProblem.
+              return refused(409, outcome);
           }
-          throw StateError('apply_duel_run: $outcome');
-      }
-    }
-    return jsonResponse(503, {'error': 'busy'});
-  });
+        }
+        return jsonResponse(503, {'error': 'busy'});
+      });
 
   /// Authentication, linked account, body size and JSON object; then
   /// [handle]. Supabase failing anywhere is a 503 (logged).
   Future<Response> _guarded(
     Request request,
     Future<Response> Function(AuthenticatedUser user, Map<String, Object?> body)
-    handle,
-  ) async {
+    handle, {
+    bool sweep = true,
+  }) async {
     final path = '/${request.url.path}';
     try {
       final user = await bearerUser(gateway, request);
@@ -399,6 +527,7 @@ class DuelEndpoint {
         return refused(400, 'badRequest', detail: 'not JSON');
       }
       if (body is! Map) return refused(400, 'badRequest', detail: 'body');
+      if (sweep) await sweepAbandoned();
       return await handle(user, body.cast<String, Object?>());
     } on GatewayUnavailable catch (e) {
       // ignore: avoid_print
