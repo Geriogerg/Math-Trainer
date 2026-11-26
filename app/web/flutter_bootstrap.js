@@ -20,7 +20,8 @@
   // missing from this list simply does not move the bar.
   var files = [
     { match: /canvaskit\.wasm$/, weight: 1515 },
-    { match: /main\.dart\.js$/, weight: 690 },
+    // main.<hash>.dart.js since Phase 6a (tool/web/hash_assets.mjs).
+    { match: /main(\.[0-9a-f]+)?\.dart\.js$/, weight: 690 },
     { match: /Inter\.ttf$/, weight: 175 },
     { match: /canvaskit\.js$/, weight: 24 },
   ];

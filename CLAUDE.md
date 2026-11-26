@@ -26,7 +26,7 @@ and CI only: **no visible change to the game, no change to rules or generation**
 | 2 | *(A)* **Abuse floor**: bodies counted while read; token buckets per player and per IP; malformed tokens refused before Supabase; refusals stored as hash + truncated payload, capped per player per day; daily cap on accepted sessions | B4 | done |
 | 3 | *(A)* **Solo integrity and moderation**: impossible cadence flagged or refused; a moderation table read by boards, pool and friend search; dashboard hide / unhide / ban; "Account under review" on Profile | M5 | done |
 | 4 | *(A)* **Names and privacy**: reports from linked accounts only, rate-limited; reported name hidden until reviewed; look-alikes folded, folded names unique; `profiles` readable by its owner only; a deleted player's duels kept as "Deleted player" | M6, m8 | done |
-| 5 | *(A)* **Capacity**: per-player game counts; boards computed once and cached ~1 min; maintained run pool, config hash; weak-spot check bounded; stored sessions slimmed (rows migrated); static files content-hashed, cached a year, the Function on HTML only; dashboard alert at 50 % of the database; measurements re-run | M7, M8, M9 | |
+| 5 | *(A)* **Capacity**: per-player game counts; boards computed once and cached ~1 min; maintained run pool, config hash; weak-spot check bounded; stored sessions slimmed (rows migrated); static files content-hashed, cached a year, the Function on HTML only; dashboard alert at 50 % of the database; measurements re-run | M7, M8, M9 | done (sessions not slimmed: measured, it would grow them — `doc/decisions.md`) |
 | 6 | *(A)* **Correctness and security details**: times clamped to 30 s on a monotonic clock; poisoned session set aside, PostgREST 4xx → 400; security headers; advisory locks; 8-character friend codes, "New code", invite link asks first; sweep from `pg_cron`; exact staging origin; `search_path` everywhere, non-root container, dashboard password off the command line | m1, m2, m6, m7, m10, n2, n3 | |
 | 7 | *(A)* **Tests and CI**: integration job (real server + scratch Postgres: an upload and a duel per mode), a duel in the staging smoke test; no cancellation on `main`, actions pinned by commit, `permissions: contents: read`; catalogue test, SQL pin on assertions, chunked-body and non-UUID tests; dead dependencies out, `PREVIEW_BUILD` an input; stale comments and the reviewer's rule list | M12, M13, m15, m16, n4, n5 | |
 
@@ -124,7 +124,8 @@ levels, never ranked).
 `STAGING=on` the full smoke test plays on staging, production's is read-only. Still parked: the
 slow-4G measurement past the gate (a CI beta code). The repository is private since 20 Nov: CI
 results are visible to the owner only — a push is verified by its commit appearing in the live
-`main.dart.js` (deploy runs only after the tests).
+app code (deploy runs only after the tests). Since 6a the code is `main.<hash>.dart.js`: read its
+name from the live `flutter_bootstrap.js` (`"mainJsPath"`), then fetch it.
 
 Preview: `https://math-trainer-kjc.pages.dev/` (Cloudflare Pages), deployed on every push to
 `main`. The old `https://geriogerg.github.io/Math-Trainer/` redirect is off since the
@@ -378,6 +379,20 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   (`server_players.last_session_ends_at`); one created before the previous one ended is
   flagged `overlapsPrevious` (accepted), one that ends after it was received is refused
   `futureTimestamp`.
+- **Boards are cached a minute** (6a commit 5): `leaderboard_top`, `leaderboard_around_me`,
+  `duel_board_top`, `duel_board_around_me` read `board_rows`, refreshed by `board_refresh` when
+  older than `board_cache_age()` — so they are **VOLATILE** (called with POST, as the app does).
+  The SQL tests' database sets `mt.board_cache_seconds = 0` (`00_supabase_stub.sql`); a test of
+  the cache sets it back. The main board counts `server_players.completed_games`, kept by
+  `apply_validated_session`: a test inserting sessions by hand must set it too.
+- **The duel pool is a column** (`duel_runs.in_pool`), kept by triggers on insert and on
+  `serves`, `flags`, `review`: never set it by hand; a new rule for the pool goes in
+  `duel_run_poolable` (or the trigger). Matchmaking compares configs by `config_hash`.
+- **Web builds are content-hashed** (`tool/web/hash_assets.mjs`, CI's web build, after
+  `boot_config.mjs`): `main.<hash>.dart.js` and `canvaskit/<hash>/`, served `immutable` for a
+  year by the Pages Function; fonts a day; `sqlite3.wasm` revalidated (it must match the
+  unhashed `sqflite_sw.js`). `precompress.mjs` routes the hashed name it finds. A new large file
+  loaded by name needs a decision: hashed (and its reference rewritten) or revalidated.
 - `HttpSupabaseGateway.userForToken` refuses what cannot be a Supabase token
   (`looksLikeAccessToken`) without calling Supabase; fakes take any string, so endpoint tests
   keep their short tokens.

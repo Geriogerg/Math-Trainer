@@ -64,3 +64,13 @@ alter default privileges in schema public
 -- What the CLI keeps its migration history in (`supabase db push`): a
 -- migration must not depend on it, but it exists in the real project.
 create schema if not exists supabase_migrations;
+
+-- The boards are cached for a minute in production (Phase 6a commit 5);
+-- here every read recomputes, so each test step sees its own data. The
+-- cache itself is tested with the setting back to 60 s
+-- (99k_capacity_test.sql).
+do $$
+begin
+  execute format('alter database %I set mt.board_cache_seconds = %L', current_database(), '0');
+end;
+$$;

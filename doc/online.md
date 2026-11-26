@@ -566,6 +566,13 @@ quits, or at the next start; it waits until `/health` lists its mode and duel ru
   (`dashboard.sh approve-name | clear-name`), whatever they rename it to. `profiles` is read
   by its owner only. A deleted player's duels stay in their opponents' history as "Deleted
   player"; their open duels are voided by the next sweep.
+- **Capacity (Phase 6a commit 5).** Boards are computed at most once a minute into
+  `board_rows` and read from there; the main board counts each player's completed games as
+  they are accepted; the duel pool is a maintained column and matchmaking searches widening
+  rating windows (50, 150, 400 points, then anyone); the weak-spot check reads the latest 200
+  sessions. The site's code and CanvasKit have content-hashed names, cached for a year. The
+  owner's report opens with the database against the free plan's 500 MB (ALERT from 50 %;
+  `dashboard.sh usage`).
 - **Results hold (Phase 6a).** For the second player a run that does not replay — or that
   claims more answering time than has passed since the duel was handed out — is a loss: the
   reason is recorded (`record_duel_run_forfeit`) and a `forfeited` run applied in its place.

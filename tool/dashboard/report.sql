@@ -6,6 +6,16 @@
 \pset null '—'
 
 \echo
+\echo '== Database: the free plan holds 500 MB; an ALERT from 50 % (plan v3.9, Phase 6a)'
+select
+  case when alert then 'ALERT: ' else '' end || percent || ' % of 500 MB' as used,
+  pg_size_pretty(bytes) as database,
+  pg_size_pretty(session_bytes) as "stored games",
+  sessions as games,
+  case when sessions > 0 then pg_size_pretty(session_bytes / sessions) end as "per game"
+from owner_dashboard.database_usage;
+
+\echo
 \echo '== Calibration progress: Phase 3b starts at ~300 completed games from 10+ testers,'
 \echo '   counted since the last change of questions, rules v4 (owner_dashboard.calibration_window)'
 select

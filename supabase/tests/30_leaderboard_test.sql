@@ -14,8 +14,11 @@ begin
     id := ('00000000-0000-0000-0000-0000000001' || lpad(k::text, 2, '0'))::uuid;
     insert into auth.users (id, is_anonymous) values (id, false);
     insert into public.profiles (id, display_name) values (id, 'Player ' || k);
-    insert into public.server_players (player_id, version, last_session_at, has_completed_session)
-    values (id, 3, case when k = 12 then now() - interval '40 days' else now() end, true);
+    -- completed_games: what apply_validated_session counts (Phase 6a),
+    -- set by hand like the sessions below.
+    insert into public.server_players
+      (player_id, version, last_session_at, has_completed_session, completed_games)
+    values (id, 3, case when k = 12 then now() - interval '40 days' else now() end, true, 3);
     insert into public.server_levels values
       (id, 'addition', 800 * k, case when k = 11 then 2 else 3 end, now());
     for g in 1..3 loop
@@ -197,8 +200,9 @@ declare
 begin
   insert into auth.users (id, is_anonymous) values (id, false);
   insert into public.profiles (id, display_name) values (id, 'Player 14');
-  insert into public.server_players (player_id, version, last_session_at, has_completed_session)
-  values (id, 7, now(), true);
+  insert into public.server_players
+    (player_id, version, last_session_at, has_completed_session, completed_games)
+  values (id, 7, now(), true, 2);
   insert into public.server_levels values (id, 'addition', 1500, 2, now());
   for g in 1..2 loop
     insert into public.uploaded_sessions (id, player_id, created_at, kind, payload, completed)
@@ -233,8 +237,9 @@ declare
 begin
   insert into auth.users (id, is_anonymous) values (id, false);
   insert into public.profiles (id, display_name) values (id, 'Player 15');
-  insert into public.server_players (player_id, version, last_session_at, has_completed_session)
-  values (id, 7, now(), true);
+  insert into public.server_players
+    (player_id, version, last_session_at, has_completed_session, completed_games)
+  values (id, 7, now(), true, 2);
   -- Level 0 is a level (an operation played down to it).
   insert into public.server_levels values (id, 'addition', 0, 2, now());
   for g in 1..5 loop

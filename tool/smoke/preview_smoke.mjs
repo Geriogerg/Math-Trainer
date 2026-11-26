@@ -354,7 +354,9 @@ async function readOnlyEnd(gate) {
   if (want) {
     // As the string literal the compiler wrote ("f40ece0"): bare, seven hex
     // characters can occur anywhere in 3 MB of code.
-    const has = await evaluate(`fetch('main.dart.js', { cache: 'no-store' }).then((r) => r.text()).then((t) => t.includes(${JSON.stringify(JSON.stringify(want))}))`);
+    // The app's code is main.<hash>.dart.js (Phase 6a): its name is in
+    // flutter_bootstrap.js.
+    const has = await evaluate(`fetch('flutter_bootstrap.js', { cache: 'no-store' }).then((r) => r.text()).then((b) => (b.match(/"mainJsPath":"([^"]+)"/) || [])[1] || 'main.dart.js').then((main) => fetch(main, { cache: 'no-store' })).then((r) => r.text()).then((t) => t.includes(${JSON.stringify(JSON.stringify(want))}))`);
     if (!has) await fail(`the site does not serve build ${want}`);
     console.log(`  build ${want}: served`);
   }

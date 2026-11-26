@@ -15,9 +15,10 @@ import { join, relative, sep } from 'node:path';
 import { brotliCompressSync, constants } from 'node:zlib';
 
 /// The paths the Function handles (Cloudflare `_routes.json` syntax), and
-/// so the only ones pre-compressed. Everything else stays static.
+/// so the only ones pre-compressed. Everything else stays static. The
+/// app's code is `main.<hash>.dart.js` since Phase 6a
+/// (tool/web/hash_assets.mjs): its exact name is added below.
 export const routes = [
-  '/main.dart.js',
   '/sqlite3.wasm',
   '/canvaskit/*',
   '/assets/assets/fonts/*',
@@ -32,6 +33,13 @@ const site = process.argv[2];
 if (!site) {
   console.error('usage: node precompress.mjs <site dir>');
   process.exit(2);
+}
+for (const name of readdirSync(site)) {
+  if (/^main(\.[0-9a-f]+)?\.dart\.js$/.test(name)) routes.unshift('/' + name);
+}
+if (!routes[0].startsWith('/main')) {
+  console.error('no main.dart.js (hashed or not) in the site');
+  process.exit(1);
 }
 
 const matches = (path) =>

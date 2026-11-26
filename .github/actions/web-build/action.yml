@@ -60,3 +60,9 @@ runs:
       shell: bash
       working-directory: app
       run: node ../tool/web/boot_config.mjs build/web dart_defines.json
+    - name: Content-hashed names
+      # main.<hash>.dart.js and canvaskit/<hash>/ (Phase 6a commit 5): cached
+      # for a year by the Pages Function, never stale.
+      shell: bash
+      working-directory: app
+      run: node ../tool/web/hash_assets.mjs build/web

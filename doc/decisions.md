@@ -2133,3 +2133,36 @@ above no longer holds for Render; it would again on a host without Cloudflare in
   question, never the values typed) and the opponent's rating change; the deleted player's
   name, runs, ratings, friends and everything else go. Open duels left with nobody to play
   them are voided. The in-app notice says so; the published policy (6c) must too.
+
+**Commit 5 — capacity (M7, M8, M9).**
+
+- **Stored sessions are not slimmed** (deviation from the plan, to confirm). Measured on 20,000
+  rows each, indexes included: a 20-answer game takes 1,519 bytes as stored today, because
+  Postgres compresses the uploaded JSON (5.9 KB of text) — and 1,791 bytes slimmed to "seed,
+  config, answers and times", which is too small to be compressed. Only 80-answer games shrink
+  (3,378 → 1,790). Slimming would also break the owner's SQL views that read each answer's
+  numbers (the Phase 3b data check, features, structural features): questions can only be
+  regenerated in Dart. What the database really holds: about 1.5 KB per game. At 1,000 daily
+  players × 10 games that is 15 MB a day — the 50 % alert in about 17 days, the free 500 MB in
+  about a month. Slimming does not change that order of magnitude; **retention** does (keep
+  each answer's detail for N months, then only the session row), or Supabase Pro (8 GB). Both
+  are owner decisions; the alert is in place to make one in time.
+- **`board_rows` is unlogged and has no foreign key**: a cache rebuilt every minute; a crash
+  empties it and the next call refills it. Without the key a deleted player's rows would stay
+  up to a minute, so `delete_my_account` deletes them first (other deletions — guests, the
+  owner's — never concern ranked players or are rare; their rows go within the minute).
+- **Boards cached 60 s.** A player's own place can lag a game by up to a minute; a hidden or
+  deleted player leaves the cached board within the minute (a deleted one at once, by
+  cascade). One caller recomputes, the others serve the previous minute (a try-lock); the very
+  first call waits.
+- **Matchmaking windows** 50, 150, 400 points, then anyone: the same pick as before whenever
+  someone is within 50 points (the closest); beyond, the closest of a wider window.
+- **Weak-spot history: the latest 200 sessions.** An item last seen more than 200 sessions ago
+  and still due would be flagged `weakSpotsNotDue` for an honest player — a flag, never a
+  refusal, and unlikely (items are due within 16 games).
+- **Web caching.** "The Pages Function only on HTML" is not what this does: the Function still
+  serves the large files' first download (brotli 11, the reason it exists), but returning
+  players never call it for the hashed files (a year, `immutable`) nor the fonts (a day). Only
+  `sqlite3.wasm` is still revalidated on every visit: it must match `sqflite_sw.js`, which keeps
+  its name. That is one Function call per returning visit instead of five: the free quota
+  (100,000 a day) is ~100,000 returning visits a day, ~25,000 first visits.

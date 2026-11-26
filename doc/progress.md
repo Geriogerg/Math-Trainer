@@ -1595,9 +1595,9 @@ owner decision, nothing to build).
 | M4 | Quitting bad Levelling games never costs a level | 6b (2), rules v9 | open |
 | M5 | Solo sessions fabricated in bulk; no way to remove a cheater | 6a (3) | **fixed** (with the daily cap of commit 2; the seed is still the client's: a session replays to what it claims, it is not chosen by the server) |
 | M6 | Names: weak filter, no uniqueness, abusable hiding, `profiles` world-readable | 6a (4) | **fixed** (the word filter itself unchanged: the owner reviews within 48 h) |
-| M7 | The main leaderboard does not scale | 6a (5) | open |
-| M8 | Matchmaking and the weak-spot check grow with history | 6a (5) | open |
-| M9 | Free-plan capacity: stored sessions, Pages Function quota, sleeping server | 6a (5); always-on plan bought before 6c | open |
+| M7 | The main leaderboard does not scale | 6a (5) | **fixed** |
+| M8 | Matchmaking and the weak-spot check grow with history | 6a (5) | **fixed** |
+| M9 | Free-plan capacity: stored sessions, Pages Function quota, sleeping server | 6a (5); always-on plan bought before 6c | **part**: hashed assets, the 50 % alert, storage measured (1.5 KB a game, not 5); sessions not slimmed (it would grow them); Render always-on is the owner's purchase (6c) |
 | M10 | Tiny question pools, repeats | 6b (1), rules v9 | open |
 | M11 | Method explanations true but wrong as teaching | 6b (3) | open |
 | M12 | Server ↔ Supabase boundary untested; no duel end to end | 6a (7) | open |
@@ -1759,3 +1759,47 @@ owner decision, nothing to build).
   outlive the players the tests delete). Tests: core name samples, app (2). Counts: core VM
   1126, core JavaScript 900, server 99, app 450, SQL 24
   files.
+- **Commit 5** *(A)* — **Capacity (M7, M8, M9).** Migration `20261202040000_capacity`:
+  `server_players.completed_games` (back-filled, kept by `apply_validated_session`) replaces
+  the main board's count of every active player's sessions; `board_rows` and
+  `board_snapshots`, filled by `board_refresh` at most once a minute (one caller computes,
+  the others serve the previous minute), read by the four board functions (now VOLATILE);
+  `board_rows` is an **unlogged cache without a foreign key** (writing 10,000 rows: 250 ms
+  with the key and WAL, 60–90 ms without), so `delete_my_account` removes the player's rows
+  itself; the boards and matchmaking read the hidden players once, as an array (a per-row
+  `player_visible()` or the anti-join the planner chose cost 50–145 ms at 10,000); `duel_runs.in_pool` kept by triggers (served < 5 times,
+  unflagged or reviewed ok, among the owner's 10 latest), `config_hash` on runs and duels,
+  `duel_take_run` searching rating windows of 50, 150 and 400 points before everyone;
+  `player_upload_history` capped at the latest 200 sessions; `owner_dashboard.database_usage`
+  (ALERT from 50 % of 500 MB) at the top of the report, `dashboard.sh usage`. Web:
+  `tool/web/hash_assets.mjs` names the code `main.<hash>.dart.js` and moves CanvasKit to
+  `canvaskit/<hash>/` (checked in a browser: both load, same behaviour as the unhashed build);
+  the Pages Function serves those `immutable` for a year, fonts for a day, `sqlite3.wasm`
+  revalidated; the read-only smoke test finds the build through `flutter_bootstrap.js`.
+  **Stored sessions not slimmed** — measured (20,000 rows each, every index included): a
+  20-answer game stores **1,519 bytes** as uploaded today (Postgres compresses the JSON), and
+  1,791 bytes slimmed to values and times (too small to be compressed); an 80-answer game
+  3,378 → 1,790. The review's "5 KB a game" was the text size, not the stored one. Kept as is,
+  provisional (`doc/decisions.md`). Tests: SQL `99k_capacity_test.sql`; `30` sets the count
+  it now reads. **Measurements** (scratch Postgres 18, the review's synthetic seed, 100
+  sessions per player, each query twice — the first call of a minute computes the cached
+  board, the second reads it):
+
+  | Query | 1,000 before | 1,000 after | 10,000 before | 10,000 after |
+  |---|---|---|---|---|
+  | `leaderboard_around_me('overall')` | 305 ms | 40 / 1.4 ms | 22,875 ms | 291 / 1.4 ms |
+  | `leaderboard_top('overall')` | 103 ms | 4.5 / 4.0 ms | 7,362 ms | 19 / 4.5 ms |
+  | `leaderboard_around_me('addition')` | 33 ms | 12 / 1.1 ms | 315 ms | 105 / 1.1 ms |
+  | `duel_board_top('basics')` | 14 ms | 17 / 3.9 ms | 103 ms | 121 / 5.1 ms |
+  | `duel_take_run` (matchmaking) | 172–205 ms | 8.6–20 ms | 2,136–2,415 ms | 78–217 ms |
+
+  "after": the first call of a minute (computes the cached board) / a call within it.
+  "before": the faster of two calls. Matchmaking: three calls, as the server makes them.
+  "after" figures are a fresh connection's first calls (plans compiled, catalogs read). In a
+  warm session — PostgREST keeps its connections — the main board's refresh alone takes
+  149–181 ms at 10,000 players, and 20 matchmaking calls at ratings across the range took
+  59–78 ms (the first, cold, 137 ms). Every database vacuumed after seeding, as the review's.
+  Exit test: main board under 300 ms — **met** (291 ms cold, 1.4 ms cached); matchmaking
+  under 200 ms — **met** in a warm session (59–78 ms), one cold call measured 217 ms.
+
+  Counts: SQL 25 files (others unchanged).
