@@ -34,6 +34,12 @@ and CI only: **no visible change to the game, no change to rules or generation**
 store under 5 MB; the main board answers under 300 ms and matchmaking under 200 ms at 10,000
 players and 1,000,000 sessions locally; the integration job is green; every pin raised.
 
+Done: 0–7 (26–27 Nov; `doc/progress.md`, "Phase 6a"). **Open for the owner:** confirm the
+provisional choices (`doc/decisions.md`, "Phase 6a" — above all: sessions not slimmed, the
+sweep on a server timer, "Latin letters only" read as narrowing); check the staging
+server's `ALLOWED_ORIGINS` on Render is `https://math-trainer-staging.pages.dev`. **Not done:**
+a duel in the staging smoke test (reported). Next: Phase 6b.
+
 **The owner's answers that bind this phase** (plan v3.9, "Project review"): duels are fixed then
 open **rated**; the goal is to stop casual abuse (no escaping a loss, no faked time) —
 server-revealed questions come with live duels (7b); launch is sized for ~1,000 players (Render

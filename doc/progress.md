@@ -1844,3 +1844,24 @@ owner decision, nothing to build).
   the non-UUID id were tested in commits 2 and 6. n4/n5: the stale comments (CI's server job,
   `glicko2.dart`), the reviewer agent's rules 1–18 with rule 18's item, `MSYS_NO_PATHCONV` in
   `CLAUDE.md`. Counts: server 103 unit + 7 integration, SQL 27 files and 564 assertions; core 1128 / 902 and app 452 unchanged.
+
+### Phase 6a exit (27 Nov 2026)
+
+All eight commits pushed (`dd5cd7a` … `ce4b401`). Exit test, item by item:
+
+- **The review's duel exploits each end in a loss or a refusal** — met:
+  `server/test/duel_integrity_test.dart` (13 tests, one per exploit and its variants) and the
+  integration job's forfeit in each mode.
+- **2,000 crafted refusals store under 5 MB** — met: 498 MB before, 2.8 MB after (scratch
+  Postgres), now an assertion in `99h_abuse_floor_test.sql`.
+- **Main board under 300 ms, matchmaking under 200 ms at 10,000 players and 1,000,000
+  sessions** — met, with one caveat: the main board's refreshing call 291 ms on a fresh
+  connection (149–181 ms warm), 1.4 ms cached; matchmaking 59–78 ms over 20 warm calls, but one
+  call on a cold connection measured 217 ms.
+- **The integration job is green** — locally (7 of 7) and on GitHub: both migration jobs wait
+  for it, and `ce4b401` reached staging and production (both sites, both servers) at 23:28 UTC.
+- **Every pin raised** — core VM 1116 → 1128, core JavaScript 890 → 902, server 68 → 103,
+  app 447 → 452, integration 7 (new), SQL 20 → 27 files and 564 assertions (new).
+
+Not done: a duel in the staging smoke test (M12's second half). Owner: confirm the
+provisional choices; check `ALLOWED_ORIGINS` of the staging server on Render.
