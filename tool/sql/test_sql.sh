@@ -64,7 +64,7 @@ for file in "$root"/supabase/migrations/*.sql; do run "$file"; done
 # below leaves out would otherwise be skipped while this prints "passed"
 # (Phase 7: the duel tests, named a1_…, for six commits). Raise the minimum
 # when adding test files; never lower it to pass.
-min_sql_tests=26
+min_sql_tests=27
 ran=0
 for file in "$root"/supabase/tests/[1-9]*_test.sql; do run "$file"; ran=$((ran + 1)); done
 for file in "$root"/supabase/tests/*_test.sql; do
@@ -76,9 +76,16 @@ done
 if [ "$ran" -lt "$min_sql_tests" ]; then
   fail count "$ran SQL test files ran, fewer than the pinned minimum $min_sql_tests"
 fi
-echo "$ran SQL test files ran (minimum $min_sql_tests)"
+# And the assertions in them (Phase 6a, review m16): a file emptied of its
+# checks still counts as a file.
+min_sql_asserts=564
+asserts=$(cat "$root"/supabase/tests/[1-9]*_test.sql | grep -oiw assert | wc -l | tr -d ' ')
+if [ "$asserts" -lt "$min_sql_asserts" ]; then
+  fail count "$asserts assert statements in the SQL tests, fewer than the pinned minimum $min_sql_asserts"
+fi
+echo "$ran SQL test files ran, $asserts assert statements (minimums $min_sql_tests, $min_sql_asserts)"
 if [ -n "${GITHUB_ACTIONS:-}" ]; then
-  echo "::notice title=SQL tests::$ran test files ran (minimum $min_sql_tests)"
+  echo "::notice title=SQL tests::$ran test files, $asserts assert statements (minimums $min_sql_tests, $min_sql_asserts)"
 fi
 
 # The owner's dashboard script runs on what the tests left (Phase 3a commit

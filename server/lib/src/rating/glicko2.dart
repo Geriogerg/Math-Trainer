@@ -1,8 +1,9 @@
 import 'dart:math';
 
 /// Glicko-2 (Phase 5.2 commit 3, Phase 7's rating moved earlier): the duel
-/// rating, computed by the server only — the app never rates. No endpoint
-/// yet. Follows Glickman, "Example of the Glicko-2 system" (2013),
+/// rating, computed by the server only — the app never rates
+/// (`duel_rating_update.dart`, used by `DuelEndpoint`). Follows Glickman,
+/// "Example of the Glicko-2 system" (2013),
 /// step by step; tested against its worked example.
 ///
 /// Floating point and `exp`/`log` are fine here: rule 18 (integers only)

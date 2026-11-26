@@ -12,9 +12,17 @@ on:
   pull_request:
   workflow_dispatch:
 
+# A newer push cancels an older run — except on main (Phase 6a, review
+# M13): a run there may be applying migrations or deploying, and a cancelled
+# deploy leaves production half-updated. On main, runs queue instead.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+# The workflow's token reads the repository and nothing else (review M13):
+# deployments use their own secrets. A job needing more says so itself.
+permissions:
+  contents: read
 
 env:
   FLUTTER_VERSION: 3.50.0
@@ -27,8 +35,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           channel: stable
           flutter-version: ${{ env.FLUTTER_VERSION }}
@@ -51,7 +59,8 @@ jobs:
         run: bash ../../tool/ci/test_count.sh "Core VM" 1128 -- dart test --reporter expanded
       - name: Core — tests compiled to JavaScript
         # Players generate on the web, the server replays on the VM: the
-        # pinned sequences of test/determinism must match on both
+        # pinned sequences (test/tiers/tier_references*.dart, the duel pins
+        # in test/duel/duel_config_test.dart) must match on both
         # (architecture rule 18).
         working-directory: packages/math_core
         run: bash ../../tool/ci/test_count.sh "Core JavaScript" 902 -- dart test -p node --reporter expanded
@@ -61,13 +70,13 @@ jobs:
 
   server:
     # The Dart server: analyzer, tests, and its container image builds and
-    # answers /health (Phase 2 commit 4). Deployment is the host's job, once
-    # the owner has chosen one (render.yaml).
+    # answers /health (Phase 2 commit 4). Deployed by the server-staging and
+    # server-production jobs (render_deploy.sh), after this one passed.
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           channel: stable
           flutter-version: ${{ env.FLUTTER_VERSION }}
@@ -86,6 +95,65 @@ jobs:
           docker logs server
           exit 1
 
+  integration:
+    # The real server against the real SQL (Phase 6a commit 7, review M12):
+    # every migration on a scratch Postgres, Supabase's two endpoints
+    # answered by server/tool/postgrest_shim.dart (each call as
+    # service_role, as PostgREST does), bin/server.dart unchanged in front.
+    # Plays a session upload and a duel in each mode between two players
+    # (server/integration/). Never touches a real project.
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready --health-interval 5s
+          --health-timeout 5s --health-retries 12
+    env:
+      DB: postgresql://postgres:postgres@localhost:5432/mt_integration
+      INTEGRATION_DB_URL: postgresql://postgres:postgres@localhost:5432/mt_integration
+      INTEGRATION_SERVER_URL: http://localhost:8091
+      PGCLIENTENCODING: UTF8
+      PGOPTIONS: -c client_min_messages=warning
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - name: A database with every migration
+        run: |
+          psql postgresql://postgres:postgres@localhost:5432/postgres -q -c "create database mt_integration"
+          psql "$DB" -q -v ON_ERROR_STOP=1 -f supabase/tests/00_supabase_stub.sql
+          for f in supabase/migrations/*.sql; do psql "$DB" -q -v ON_ERROR_STOP=1 -f "$f"; done
+      - name: Supabase stand-in and the server
+        working-directory: server
+        run: |
+          dart pub get
+          nohup dart run tool/postgrest_shim.dart 54321 "$DB" > shim.log 2>&1 &
+          SUPABASE_URL=http://localhost:54321 SUPABASE_SECRET_KEY=sb_secret_integration \
+            ALLOWED_ORIGINS=http://localhost BETA_GATE=false PORT=8091 \
+            nohup dart run bin/server.dart > server.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:8091/health > /dev/null 2>&1; then exit 0; fi
+            sleep 1
+          done
+          cat shim.log server.log
+          exit 1
+      - name: Sessions and duels, end to end
+        working-directory: server
+        run: bash ../tool/ci/test_count.sh "Integration" 7 -- dart test integration --reporter expanded
+      - name: Logs on failure
+        if: failure()
+        working-directory: server
+        run: tail -n 100 shim.log server.log
+
   test:
     # The Flutter app. Windows: the golden images are recorded on Windows
     # with the real Inter font, and text antialiasing differs between
@@ -97,8 +165,8 @@ jobs:
         shell: bash
         working-directory: app
     steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           channel: stable
           flutter-version: ${{ env.FLUTTER_VERSION }}
@@ -128,7 +196,7 @@ jobs:
           --health-cmd pg_isready --health-interval 5s
           --health-timeout 5s --health-retries 12
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Migrations and SQL tests
         run: bash tool/sql/test_sql.sh postgresql://postgres:postgres@localhost:5432/postgres
 
@@ -140,14 +208,14 @@ jobs:
 
   migrations-staging:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.STAGING == 'on'
-    needs: [core, server, test, sql]
+    needs: [core, server, test, sql, integration]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     concurrency:
       group: supabase-migrations-staging
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: ./.github/actions/supabase-migrate
         with:
           access-token: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -166,7 +234,7 @@ jobs:
       group: render-staging
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
       - name: Deploy and wait for this commit
@@ -180,8 +248,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           channel: stable
           flutter-version: ${{ env.FLUTTER_VERSION }}
@@ -192,12 +260,13 @@ jobs:
       # the staging server does not ask for one (render.yaml).
       - uses: ./.github/actions/web-build
         with:
+          preview-build: 'true'
           supabase-url: ${{ secrets.STAGING_SUPABASE_URL }}
           publishable-key: ${{ secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
           server-url: ${{ vars.STAGING_SERVER_URL }}
           beta-gate: ''
           base-href: /
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: web-site-staging
           path: app/build/web
@@ -214,12 +283,12 @@ jobs:
     outputs:
       url: ${{ steps.pages.outputs.url }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: web-site-staging
           path: site
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
       - id: pages
@@ -238,8 +307,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
       - name: Smoke test on staging
@@ -250,7 +319,7 @@ jobs:
         run: node tool/smoke/preview_smoke.mjs "$APP_URL" google-chrome
       - name: Screenshot of the failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: smoke-failure-staging
           path: smoke-failure.png
@@ -266,7 +335,7 @@ jobs:
     if: >
       github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
       && !failure() && !cancelled()
-    needs: [core, server, test, sql, smoke-staging]
+    needs: [core, server, test, sql, integration, smoke-staging]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     # One push to the database at a time, never cancelled half-way.
@@ -274,7 +343,7 @@ jobs:
       group: supabase-migrations
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: ./.github/actions/supabase-migrate
         with:
           access-token: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -296,7 +365,7 @@ jobs:
       group: render-production
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
       - name: Deploy and wait for this commit
@@ -309,8 +378,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           channel: stable
           flutter-version: ${{ env.FLUTTER_VERSION }}
@@ -331,7 +400,7 @@ jobs:
           base-href: ${{ vars.PREVIEW_HOST == 'cloudflare' && '/' || format('/{0}/', github.event.repository.name) }}
       - name: Upload the site (Cloudflare Pages)
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.PREVIEW_HOST == 'cloudflare'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: web-site
           path: app/build/web
@@ -360,7 +429,7 @@ jobs:
         if: >
           github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
           && (vars.PREVIEW_HOST != 'cloudflare' || vars.GITHUB_PAGES_REDIRECT == 'on')
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
         with:
           path: ${{ vars.PREVIEW_HOST == 'cloudflare' && 'build/redirect' || 'app/build/web' }}
 
@@ -392,7 +461,7 @@ jobs:
       cancel-in-progress: false
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
 
   deploy-cloudflare:
     # The production preview (Phase 3a commit 1), once PREVIEW_HOST=cloudflare
@@ -410,12 +479,12 @@ jobs:
     outputs:
       url: ${{ steps.pages.outputs.url }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: web-site
           path: site
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
       - id: pages
@@ -441,8 +510,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           # Global WebSocket (no npm dependency) needs Node 22+.
           node-version: 22
@@ -461,7 +530,7 @@ jobs:
           node tool/smoke/preview_smoke.mjs "$APP_URL" google-chrome
       - name: Screenshot of the failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: smoke-failure
           path: smoke-failure.png

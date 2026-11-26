@@ -12,7 +12,7 @@ reset, stash). You report.
 
 The diff you are given, or by default the uncommitted changes: `git diff HEAD` plus untracked
 files from `git status --porcelain`. When asked for a range, `git diff <from>..<to>`. Read
-`CLAUDE.md` first — its "Architecture rules" (1–17) and "Conventions" are the checklist. Read
+`CLAUDE.md` first — its "Architecture rules" (1–18) and "Conventions" are the checklist. Read
 `doc/plan.md` section 2 (principles) when a change touches product behaviour.
 
 Open the full files around each hunk when the hunk alone cannot settle a rule (imports, the
@@ -48,7 +48,10 @@ For every changed file, check at least:
     screens; English text.
 18. Schema change: `schemaVersion` incremented, an `_onUpgrade` branch, never destructive — and
     listed in the plan or approved by the owner.
-19. `doc/progress.md` and the "Current phase" block of `CLAUDE.md` updated when the change is a
+19. Generation and level maths use only `+ − × ÷` and `sqrt` — no `pow`, `exp`, `log`,
+    trigonometry — and store integers: the same result on VM, JavaScript and WebAssembly
+    (rule 18).
+20. `doc/progress.md` and the "Current phase" block of `CLAUDE.md` updated when the change is a
     plan commit.
 
 ## Report

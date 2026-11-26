@@ -21,14 +21,20 @@ inputs:
   base-href:
     description: Where the site is served from.
     required: true
+  preview-build:
+    description: >-
+      "true" keeps the owner's preview tools (the typeface specimen) in the
+      build: staging. Empty for production (Phase 6a, review m15).
+    required: false
+    default: ''
 runs:
   using: composite
   steps:
     - name: dart_defines.json
       # Empty secrets still compile: the app then shows "Missing
       # configuration" instead of starting. APP_VERSION: the build's commit
-      # (feedback, the read-only smoke test). PREVIEW_BUILD: these builds are
-      # previews (the owner's tools, such as the typeface specimen; Phase 5).
+      # (feedback, the read-only smoke test). PREVIEW_BUILD: the owner's tools
+      # (the typeface specimen; Phase 5) — staging only since Phase 6a.
       shell: bash
       working-directory: app
       env:
@@ -36,12 +42,13 @@ runs:
         SUPABASE_PUBLISHABLE_KEY: ${{ inputs.publishable-key }}
         SERVER_URL: ${{ inputs.server-url }}
         BETA_GATE: ${{ inputs.beta-gate }}
+        PREVIEW_BUILD: ${{ inputs.preview-build }}
       run: |
         clean() { printf '%s' "$1" | tr -d '[:space:]'; }
         jq -n --arg url "$(clean "$SUPABASE_URL")" --arg key "$(clean "$SUPABASE_PUBLISHABLE_KEY")" \
           --arg server "$(clean "$SERVER_URL")" --arg gate "$(clean "$BETA_GATE")" \
-          --arg version "${GITHUB_SHA::7}" \
-          '{SUPABASE_URL: $url, SUPABASE_PUBLISHABLE_KEY: $key, SERVER_URL: $server, BETA_GATE: $gate, APP_VERSION: $version, PREVIEW_BUILD: "true"}' \
+          --arg version "${GITHUB_SHA::7}" --arg preview "$(clean "$PREVIEW_BUILD")" \
+          '{SUPABASE_URL: $url, SUPABASE_PUBLISHABLE_KEY: $key, SERVER_URL: $server, BETA_GATE: $gate, APP_VERSION: $version, PREVIEW_BUILD: $preview}' \
           > dart_defines.json
     - name: Web build
       # --no-web-resources-cdn: CanvasKit comes from the site, never from

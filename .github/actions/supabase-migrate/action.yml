@@ -36,7 +36,7 @@ runs:
     # out (24 Nov: "rate limit exceeded", migrations never ran, nothing
     # deployed). v3.3.0 = the latest stable then. Bump on purpose, and keep
     # `db push --remote` below working.
-    - uses: supabase/setup-cli@v1
+    - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1
       with:
         version: 3.3.0
     - name: Apply pending migrations

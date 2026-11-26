@@ -28,7 +28,7 @@ and CI only: **no visible change to the game, no change to rules or generation**
 | 4 | *(A)* **Names and privacy**: reports from linked accounts only, rate-limited; reported name hidden until reviewed; look-alikes folded, folded names unique; `profiles` readable by its owner only; a deleted player's duels kept as "Deleted player" | M6, m8 | done |
 | 5 | *(A)* **Capacity**: per-player game counts; boards computed once and cached ~1 min; maintained run pool, config hash; weak-spot check bounded; stored sessions slimmed (rows migrated); static files content-hashed, cached a year, the Function on HTML only; dashboard alert at 50 % of the database; measurements re-run | M7, M8, M9 | done (sessions not slimmed: measured, it would grow them — `doc/decisions.md`) |
 | 6 | *(A)* **Correctness and security details**: times clamped to 30 s on a monotonic clock; poisoned session set aside, PostgREST 4xx → 400; security headers; advisory locks; 8-character friend codes, "New code", invite link asks first; sweep from `pg_cron`; exact staging origin; `search_path` everywhere, non-root container, dashboard password off the command line | m1, m2, m6, m7, m10, n2, n3 | done (the sweep on a server timer, not `pg_cron`) |
-| 7 | *(A)* **Tests and CI**: integration job (real server + scratch Postgres: an upload and a duel per mode), a duel in the staging smoke test; no cancellation on `main`, actions pinned by commit, `permissions: contents: read`; catalogue test, SQL pin on assertions, chunked-body and non-UUID tests; dead dependencies out, `PREVIEW_BUILD` an input; stale comments and the reviewer's rule list | M12, M13, m15, m16, n4, n5 | |
+| 7 | *(A)* **Tests and CI**: integration job (real server + scratch Postgres: an upload and a duel per mode), a duel in the staging smoke test; no cancellation on `main`, actions pinned by commit, `permissions: contents: read`; catalogue test, SQL pin on assertions, chunked-body and non-UUID tests; dead dependencies out, `PREVIEW_BUILD` an input; stale comments and the reviewer's rule list | M12, M13, m15, m16, n4, n5 | done but the staging smoke duel (`doc/progress.md`) |
 
 **Exit:** each of the review's duel exploits ends in a loss or a refusal; 2,000 crafted refusals
 store under 5 MB; the main board answers under 300 ms and matchmaking under 200 ms at 10,000
@@ -410,6 +410,22 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   `sweepInRequests: true` by default for the tests.
 - Every function in `public` and `owner_dashboard` sets `search_path` (`99l_details_test.sql`
   checks the whole catalogue): a new one without it fails CI.
+- **The integration job** (6a commit 7) runs `bin/server.dart` against every migration through
+  `server/tool/postgrest_shim.dart` (a stand-in for `/auth/v1/user` and `/rest/v1/rpc/*`, each
+  call as `service_role`): a new SQL function the server calls is exercised there with its real
+  grants. Locally: a scratch database with the stub and migrations, then
+  `dart run tool/postgrest_shim.dart 54321 <db url>`, the server with
+  `SUPABASE_URL=http://localhost:54321`, and `INTEGRATION_DB_URL=… INTEGRATION_SERVER_URL=…
+  dart test integration` (in `server/`).
+- **The catalogue test** (`99m_catalogue_test.sql`) lists every `security definer` function
+  players may call and the tables they may touch (only `profiles`): a new one fails CI until it
+  is added there on purpose. `test_sql.sh` also pins the number of `assert` statements.
+- CI cancels a superseded run only off `main` (a run on `main` may be deploying), the
+  workflow's token is `contents: read`, and every third-party action is pinned by commit (the
+  tag in a comment): bump an action by its commit, never back to a tag.
+- `PREVIEW_BUILD` (the typeface specimen) is on for staging only (`preview-build` input).
+- A local `flutter build web` from Git Bash needs `MSYS_NO_PATHCONV=1` for `--base-href /`
+  (Git Bash rewrites `/` to its install path).
 - `HttpSupabaseGateway.userForToken` refuses what cannot be a Supabase token
   (`looksLikeAccessToken`) without calling Supabase; fakes take any string, so endpoint tests
   keep their short tokens.

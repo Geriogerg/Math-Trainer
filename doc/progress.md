@@ -1600,8 +1600,8 @@ owner decision, nothing to build).
 | M9 | Free-plan capacity: stored sessions, Pages Function quota, sleeping server | 6a (5); always-on plan bought before 6c | **part**: hashed assets, the 50 % alert, storage measured (1.5 KB a game, not 5); sessions not slimmed (it would grow them); Render always-on is the owner's purchase (6c) |
 | M10 | Tiny question pools, repeats | 6b (1), rules v9 | open |
 | M11 | Method explanations true but wrong as teaching | 6b (3) | open |
-| M12 | Server ↔ Supabase boundary untested; no duel end to end | 6a (7) | open |
-| M13 | A push can cancel a production deployment | 6a (7) | open |
+| M12 | Server ↔ Supabase boundary untested; no duel end to end | 6a (7) | **part**: the integration job plays it; the staging smoke test plays no duel yet |
+| M13 | A push can cancel a production deployment | 6a (7) | **fixed** |
 | M14 | Empty account on a new device | 6b (5) | open |
 | M15 | Rated duel on one tap, no cancel while waiting | 6b (4, 5) | open |
 | M16 | Nothing explained to a newcomer | 6b (4) | open |
@@ -1622,8 +1622,8 @@ owner decision, nothing to build).
 | m12 | Files that carry too much | when next touched | open |
 | m13 | App contracts in the core; logic twice in Dart and SQL | when next touched | open |
 | m14 | Seven replayable rules versions | 6c (6): v2–v6 retired 30 days after v9 | open |
-| m15 | Dead dependencies; `PREVIEW_BUILD` always on | 6a (7) | open |
-| m16 | Test gaps (SQL pin counts files, no catalogue test, two server cases) | 6a (7) | open |
+| m15 | Dead dependencies; `PREVIEW_BUILD` always on | 6a (7) | **fixed** (`structural_features.dart` kept: the Dart half of a parity pair) |
+| m16 | Test gaps (SQL pin counts files, no catalogue test, two server cases) | 6a (7) | **fixed** |
 | m17 | Smaller friction (sign-out, pending uploads, rules of two modes, terms) | 6b (4, 7) | open |
 | m18 | No localisation mechanism | 6b (7): strings in one place, English at launch | open |
 | m19 | `doc/decisions.md` unmarked superseded entries; legal README gap | 6b (8); the notice gap with 6c (2) | open |
@@ -1632,8 +1632,8 @@ owner decision, nothing to build).
 | n1 | "Once a day" is a UTC calendar day | 6a (1) | **fixed** |
 | n2 | Staging CORS pattern too wide | 6a (6) | **fixed** in `render.yaml` (owner to check the value on Render) |
 | n3 | Functions without `search_path`; root container; dashboard password on the command line | 6a (6) | **fixed** (base image still by tag, not digest) |
-| n4 | Stale comments | 6a (7) | open |
-| n5 | Reviewer agent checks 17 rules of 18; `MSYS_NO_PATHCONV` undocumented | 6a (7) | open |
+| n4 | Stale comments | 6a (7) | **fixed** |
+| n5 | Reviewer agent checks 17 rules of 18; `MSYS_NO_PATHCONV` undocumented | 6a (7) | **fixed** |
 | n6 | `default:` branches on `PatternFamily` | 6b (3) | open |
 
 ## Phase 6a — Integrity and capacity (plan v3.9)
@@ -1825,3 +1825,22 @@ owner decision, nothing to build).
   invite asked, at launch, by the shell); server `details_test.dart` (4); SQL
   `99l_details_test.sql`. Counts: core VM 1128, core JavaScript 902, server 103, app 452, SQL
   26 files.
+- **Commit 7** *(A)* — **Tests and CI (M12, M13, m15, m16, n4, n5).** M12: a CI job,
+  `integration`, runs the real server against every migration on a scratch Postgres, with
+  `server/tool/postgrest_shim.dart` answering Supabase's two endpoints (each call as
+  `service_role`); `server/integration/server_integration_test.dart` plays a session upload
+  (stored, levels and `completed_games` moved, the duplicate answered the same), a non-UUID
+  session id (a final 400 through the real gateway), guests and bad tokens, and in each of the
+  three modes a practice duel then a pool duel between two players (progress sent, rated for
+  both, a forfeit for a run that does not replay). Both migration jobs wait for it. **Run
+  locally before pushing: 7 tests, all green on a fresh database with every migration (the non-UUID id answered by the database's own 22P02 → 400).** The staging smoke test still plays no duel (it would
+  need a linked account in the browser flow: not done in this phase). M13: no cancellation of
+  runs on `main`; `permissions: contents: read`; every third-party action pinned by commit.
+  m15: `cupertino_icons` and the core's `sqflite_common_ffi` removed; `PREVIEW_BUILD` an input
+  of the web build, on for staging only. m16: `99m_catalogue_test.sql` (row-level security on
+  every table; only `profiles` reachable as a table; the 20 `security definer` functions
+  players may call, 5 of them signed out; the owner's schema closed); `test_sql.sh` pins the
+  number of `assert` statements (564) as well as the files; the chunked oversize body and
+  the non-UUID id were tested in commits 2 and 6. n4/n5: the stale comments (CI's server job,
+  `glicko2.dart`), the reviewer agent's rules 1–18 with rule 18's item, `MSYS_NO_PATHCONV` in
+  `CLAUDE.md`. Counts: server 103 unit + 7 integration, SQL 27 files and 564 assertions; core 1128 / 902 and app 452 unchanged.
