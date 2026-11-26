@@ -2,8 +2,10 @@ import 'package:math_trainer_server/server.dart';
 
 /// An in-memory model of the duel SQL functions
 /// (`supabase/migrations/…_duels.sql`, tested on Postgres by
-/// `supabase/tests/a1_duels_test.sql`): what the server's duel endpoints
-/// read and write, so their logic is tested without a database.
+/// `supabase/tests/99a_duels_test.sql` and `99g_duel_integrity_test.sql`):
+/// what the server's duel endpoints read and write, so their logic is
+/// tested without a database. The real functions are played end to end by
+/// CI's integration job (Phase 6a commit 7).
 class FakeDuelGateway implements SupabaseGateway {
   /// Token → user.
   final users = <String, AuthenticatedUser>{};
@@ -19,12 +21,22 @@ class FakeDuelGateway implements SupabaseGateway {
   final calls = <String>[];
   bool down = false;
 
+  /// Friendships (`friendships`), whichever way round.
+  final friends = <Set<String>>[];
+  void befriend(String a, String b) => friends.add({a, b});
+
+  /// The database's clock: a duel is stamped at [now] and its context is
+  /// read [elapsed] later — long enough for any honest run; the tests of a
+  /// run's claimed time shorten it.
+  DateTime now = DateTime.utc(2026, 11, 26, 12);
+  Duration elapsed = const Duration(hours: 1);
+
   /// Bumps these players' rating versions once, right before the next
   /// apply: another duel landed in between.
   final concurrentDuelFor = <String>{};
 
-  /// Whether a challenge between the pair was rated today (the SQL derives
-  /// it from `duels.finished_at`).
+  /// Whether a chosen duel between the pair was rated in the last 24 hours
+  /// (the SQL derives it from `duels.finished_at`).
   bool Function(Map<String, Object?> duel) pairRatedToday = _ratedToday;
 
   int _clock = 0;
@@ -67,7 +79,8 @@ class FakeDuelGateway implements SupabaseGateway {
               : 'awaitingSecond',
           'expiresAt': p['p_expires_at'],
           'rated': false,
-          'createdAt': _clock++,
+          'chosen': p['p_kind'] == 'challenge',
+          'createdAt': now.toIso8601String(),
         };
         return null;
       case 'duel_context':
@@ -80,6 +93,13 @@ class FakeDuelGateway implements SupabaseGateway {
             (duel['state'] == 'awaitingFirst' ||
                 duel['state'] == 'awaitingSecond')) {
           duel['state'] = 'void';
+        }
+        return null;
+      case 'record_duel_run_forfeit':
+        // The reason, once; the duel is not void.
+        final key = (p['p_duel_id'] as String, p['p_player_id'] as String);
+        if (duels[key.$1]?['secondPlayer'] == key.$2) {
+          rejections.putIfAbsent(key, () => p['p_reason'] as String);
         }
         return null;
       case 'apply_duel_run':
@@ -97,8 +117,11 @@ class FakeDuelGateway implements SupabaseGateway {
         return 'saved';
       case 'duel_mark_opened':
         final duel = duels[p['p_duel_id']];
-        if (duel != null && duel['secondPlayer'] == p['p_player_id']) {
-          duel['openedAt'] ??= 'now';
+        if (duel != null &&
+            duel['secondPlayer'] == p['p_player_id'] &&
+            duel['kind'] == 'challenge' &&
+            duel['state'] == 'awaitingSecond') {
+          duel['openedAt'] ??= now.toIso8601String();
         }
         return null;
       case 'duel_abandoned':
@@ -155,13 +178,23 @@ class FakeDuelGateway implements SupabaseGateway {
           return 'notLinked';
         }
         final pair = {me, target};
+        // A friend, or an opponent of the last 30 days (the tests' duels
+        // are all recent).
+        if (!friends.any((f) => f.containsAll(pair)) &&
+            !duels.values.any(
+              (d) =>
+                  d['state'] == 'done' &&
+                  pair.containsAll([d['firstPlayer'], d['secondPlayer']]),
+            )) {
+          return 'notAllowed';
+        }
         if (duels.values.any(
           (d) =>
               d['kind'] == 'challenge' &&
               d['mode'] == p['p_mode'] &&
               (d['state'] == 'awaitingFirst' ||
                   d['state'] == 'awaitingSecond') &&
-              d['expired'] != true &&
+              (d['expired'] != true || d['openedAt'] != null) &&
               pair.containsAll([d['firstPlayer'], d['secondPlayer']]),
         )) {
           return 'exists';
@@ -191,8 +224,13 @@ class FakeDuelGateway implements SupabaseGateway {
     final other = duel['firstPlayer'] == player
         ? duel['secondPlayer']
         : duel['firstPlayer'];
+    final firstRun = runs.where((r) => r['id'] == duel['firstRun']).firstOrNull;
     return {
-      'duel': {...duel, 'opponentName': names[other]},
+      'duel': {...duel, 'chosen': _chosen(duel), 'opponentName': names[other]},
+      'now': now.add(elapsed).toIso8601String(),
+      'firstFlags': firstRun == null || firstRun['review'] == 'ok'
+          ? const <Object?>[]
+          : firstRun['flags'],
       'run': run == null
           ? null
           : {'lane': run['lane'], 'score': run['score'], 'flags': run['flags']},
@@ -202,9 +240,12 @@ class FakeDuelGateway implements SupabaseGateway {
           if (ratings[(who, duel['mode'])] case final r?) who: {...r},
       },
       'levels': levels[player] ?? const {},
-      'pairRatedToday': duel['kind'] == 'challenge' && pairRatedToday(duel),
+      'pairRatedToday': _chosen(duel) && pairRatedToday(duel),
     };
   }
+
+  static bool _chosen(Map<String, Object?> duel) =>
+      duel['chosen'] == true || duel['kind'] == 'challenge';
 
   Map<String, Object?> _apply(Map<String, Object?> p) {
     final duelId = p['p_duel_id'] as String;
@@ -226,7 +267,11 @@ class FakeDuelGateway implements SupabaseGateway {
     } else {
       return {'outcome': 'notOpen'};
     }
-    if (duel['expired'] == true) return {'outcome': 'expired'};
+    // The expiry only before a challenge is opened.
+    if (duel['expired'] == true &&
+        !(turn == 'second' && duel['openedAt'] != null)) {
+      return {'outcome': 'expired'};
+    }
     final mode = duel['mode'] as String;
     final start = p['p_start_rating'] as Map;
     ratings.putIfAbsent(
@@ -248,7 +293,7 @@ class FakeDuelGateway implements SupabaseGateway {
     final before = <String, Object?>{};
     final after = <String, Object?>{};
     if (turn == 'second' && rated) {
-      if (duel['kind'] == 'challenge' && pairRatedToday(duel)) {
+      if (_chosen(duel) && pairRatedToday(duel)) {
         return {'outcome': 'stale'};
       }
       final updates = (p['p_ratings'] as Map).cast<String, Map>();
@@ -368,7 +413,8 @@ class FakeDuelGateway implements SupabaseGateway {
       'firstLane': picked['lane'],
       'state': 'awaitingSecond',
       'rated': false,
-      'createdAt': _clock++,
+      'chosen': opponent != null,
+      'createdAt': now.toIso8601String(),
     };
     final owner = ratings[(picked['player'], mode)]!;
     return {

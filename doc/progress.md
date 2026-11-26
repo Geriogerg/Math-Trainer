@@ -1588,10 +1588,10 @@ owner decision, nothing to build).
 | B2 | Email confirmation off, no CAPTCHA | 6c | open |
 | B3 | No password recovery | 6c | open |
 | B4 | No abuse protection on the server | 6a (2) | open |
-| B5 | A duel's second player escapes any loss | 6a (1) | open |
-| M1 | Duel answers known before play, times self-declared, flagged runs rated | 6a (1) cheap part; 7b server-timed questions | open |
-| M2 | A duel replayable with full knowledge | 6a (1) | open |
-| M3 | Rated duels aimed at a chosen player; daily rule bypassed | 6a (1) | open |
+| B5 | A duel's second player escapes any loss | 6a (1) | **fixed** |
+| M1 | Duel answers known before play, times self-declared, flagged runs rated | 6a (1) cheap part; 7b server-timed questions | **part**: no faked time, flagged runs earn nothing; answers still known to a modified client until 7b |
+| M2 | A duel replayable with full knowledge | 6a (1) | **fixed** |
+| M3 | Rated duels aimed at a chosen player; daily rule bypassed | 6a (1) | **fixed** (no block list: not in the plan) |
 | M4 | Quitting bad Levelling games never costs a level | 6b (2), rules v9 | open |
 | M5 | Solo sessions fabricated in bulk; no way to remove a cheater | 6a (3) | open |
 | M6 | Names: weak filter, no uniqueness, abusable hiding, `profiles` world-readable | 6a (4) | open |
@@ -1616,7 +1616,7 @@ owner decision, nothing to build).
 | m6 | No security headers | 6a (6) | open |
 | m7 | Daily limits can be raced; short friend codes; invite link sends without asking | 6a (6) | open |
 | m8 | Deleting an account deletes opponents' duel history; notice wording | 6a (4); notice wording with 6c (2) | open |
-| m9 | Wrangler state committed | 6a (0) | open |
+| m9 | Wrangler state committed | 6a (0) | **fixed** (GitHub still holds the old commits by hash until its own cleanup) |
 | m10 | Abandonment sweep runs inside other players' requests | 6a (6) | open |
 | m11 | Trivial questions at high tiers; unbalanced duels | 6b (1), rules v9 | open |
 | m12 | Files that carry too much | when next touched | open |
@@ -1629,7 +1629,7 @@ owner decision, nothing to build).
 | m19 | `doc/decisions.md` unmarked superseded entries; legal README gap | 6b (8); the notice gap with 6c (2) | open |
 | m20 | Pattern families that do not grow with the tier | 6b (1), rules v9 | open |
 | m21 | Subtraction T8 second number, non-monotone tiers, Tables repeat | 6b (1), rules v9 | open |
-| n1 | "Once a day" is a UTC calendar day | 6a (1) | open |
+| n1 | "Once a day" is a UTC calendar day | 6a (1) | **fixed** |
 | n2 | Staging CORS pattern too wide | 6a (6) | open |
 | n3 | Functions without `search_path`; root container; dashboard password on the command line | 6a (6) | open |
 | n4 | Stale comments | 6a (7) | open |
@@ -1647,3 +1647,45 @@ owner decision, nothing to build).
   under `RulesVersion.current`, still v8, and the phase must not touch generation): until v9 is
   current the test reads `packages/math_core/test/spec/levels_v1_5.md`, the spec as committed
   before v1.6 — provisional, `doc/decisions.md` "Phase 6a". 190 conformance tests pass as before.
+  **History purged** (26 Nov, 13:52 UTC): mirror backups first, outside the repository, in
+  `D:\mathtrainer-backup\2026-11-26-pre-purge\` — `origin.git` (GitHub as it was, 213
+  commits), `local.git` (the same plus this commit), a bundle of it, and
+  `commit-map-old-new.txt`. `git filter-branch` from `9669a70` (the commit that added the
+  directory) to the tip: **124 commits keep their hash, 90 are rewritten** (old `77f063c` is
+  `347e4cc`; this commit is `dd5cd7a`); each rewritten commit compared with its original —
+  same files apart from `.wrangler/`, same author, dates and message. No path under
+  `.wrangler/` is left in the history. (A first pass rewrote everything from commit 64 on,
+  because GitHub's signature on one web-made commit was dropped; redone from `9669a70` only.)
+  Force-pushed with a lease on the old tip. **Verified after the push**: CI ran on the new
+  history and deployed everything in order — staging site and server, production site and
+  server all on `dd5cd7a` 16 minutes later (`main.dart.js` and `/health`, `server_check.sh`:
+  up to date on both). **Not removed**: GitHub still serves the old commits to an
+  authenticated fetch by hash until its own garbage collection (checked: `git fetch origin
+  77f063c…` still answered); only GitHub Support can force it. Hashes quoted in older parts
+  of this file, from `9669a70` on, are the old ones: the map translates them.
+- **Commit 1** *(A)* — **Duel results hold (B5, M1 cheap part, M2, M3, n1).** Migration
+  `20261202000000_duel_integrity` (every function keeps its signature: the server deployed
+  before it keeps working): `duels.chosen` (challenges and rematches), rated once per pair and
+  mode over a rolling 24 hours (`duel_pair_rated_recently`); `record_duel_run_forfeit` (the
+  reason, the duel not void); `apply_duel_run` no longer expires an opened challenge;
+  `duel_create_challenge` only to a friend or an opponent of the last 30 days, open for 6
+  days then 24 hours to play; `duel_context` gives `now`, `chosen`, `firstFlags`;
+  `owner_dashboard.forfeited_duels`. Core: `DuelRun.continues` and `claimedMs`,
+  `DuelRunProblem.notElapsed`, `ValidationFlag.forfeited`; the queue stores a step before
+  telling the server. Server: the second player's unreplayable run is a forfeit (a loss from
+  the run completed with timeouts if that replays, else the progress held, else nothing);
+  progress parsed, stored in the server's shape, and refused unless it continues what is
+  held; a final run likewise (`progressMismatch`, the duel stays open); `rematchOf` only a
+  finished duel of the same mode; a challenge played only once opened; claimed time checked
+  against the database's clock (5 s margin); a flagged run earns nothing. **The review's
+  exploits, replayed** (`server/test/duel_integrity_test.dart`, 13 tests; before → after):
+  a run with no answer — void, new opponent at once → a rated loss, the same verdict for
+  anything sent after; an unreplayable progress then silence — void → a rated loss after 24
+  hours; a challenge opened in its last day and left — void → a rated loss; the same duel
+  replayed from a second device — accepted → 409 `progressMismatch`, device 1's answers stand;
+  a challenge to a stranger — created → `notAllowed`; `rematchOf` on any duel — a rated pool
+  duel every time → `notFinished` / `wrongMode`, and the rematch unrated when the pair was
+  rated within 24 hours; eight answers "in 4 s each" sent 10 s after the offer — accepted →
+  a loss (`notElapsed`); a flagged winning run — rated → unrated (a flagged losing run still
+  loses). SQL `99g_duel_integrity_test.sql`; core `duel_run_progress_test.dart` (7, VM and
+  JavaScript). Counts: core VM 1123, core JavaScript 897, server 81, app 447, SQL 21 files.

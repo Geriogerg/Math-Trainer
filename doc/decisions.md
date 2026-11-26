@@ -2016,3 +2016,42 @@ spec it implements. **Chosen: (c).** `packages/math_core/test/spec/levels_v1_5.m
 190 conformance tests run as before. Phase 6b deletes the copy with the commit that makes v9
 current. This is not "editing the test to fit the code": the test still fails if v8 drifts from
 its spec, and it will fail in 6b until v9 matches v1.6.
+
+**Commit 1 — duel results hold (B5, M1, M2, M3, n1).** The plan fixes the rules; these are
+the gaps it leaves.
+
+- **What a forfeit keeps.** "A loss with what was received": the run as sent, completed with
+  timeouts, if that replays (a run cut short, or one refused only for its clock); else the
+  progress the server holds, completed; else an empty run. The result is 0 whatever it holds.
+  Flagged `forfeited` (new stored name): never in the pool, not in the owner's review list;
+  the reason stays in `duel_run_rejections`, listed by `owner_dashboard.forfeited_duels`. The
+  answer to the app is the accepted shape with `result: 0` — the stock app never sends such a
+  run, so no screen changes.
+- **A run that does not continue the progress is refused, not forfeited** (409
+  `progressMismatch`). The duel stays open: the device that started it can still finish, and
+  otherwise the 24-hour rule records the loss from the progress. A forfeit on the spot would
+  punish a player who opened the same duel on a second device by mistake more than the plan
+  asks ("only a run that extends it is accepted"). Get the count sends its progress after
+  each round, so a round once received can no longer gain an improvement.
+- **A flagged run earns nothing — but a flagged loss stands.** The plan says "a flagged run's
+  duel is recorded unrated". Applied literally, getting flagged would be a way out of a loss
+  for a client that can produce two instant right answers. Chosen: the duel is unrated unless
+  the flagged run's player lost it (either side). The owner's later review (`review-run … ok`)
+  puts the run back in the pool but does not rate the duel after the fact.
+- **The clock.** A run may not claim more answering time than has passed, by the database's
+  clock, since its duel was handed out (a challenger: the challenge's creation; a friend:
+  when they opened it), plus 5 s. Unanswered questions claim nothing — the app fills in
+  timeouts without waiting, and a quit must stay an ordinary run. For the second player the
+  refusal is a forfeit like any other; for a challenger it voids the challenge.
+- **Challenge lifetime.** "Cannot be opened in its last 24 hours" is kept by the dates
+  themselves: `expires_at` is now the last moment to **open** it (6 days), and an opened
+  challenge is played or lost within 24 hours whatever that date — 7 days in all, and the
+  "Waiting for you" list needs no new filter. Challenges already open keep the date they
+  were given. A challenge must be opened before it is played.
+- **Recent opponent** = any finished duel between the two in the last 30 days, any mode,
+  either way round. No block list (the review suggested one; the plan does not ask for it).
+- **Once per 24 hours**: the earlier duel that blocks the rating is itself a chosen, rated
+  one. A duel matchmaking made between the same two players does not use up the pair's daily
+  rated challenge, and stays rated itself.
+- **Progress is parsed before it is stored** (malformed: 400, nothing kept), and stored in
+  the server's own shape — it was stored as sent.

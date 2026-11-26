@@ -4,7 +4,8 @@ Competitive mental-arithmetic game in Flutter, for teens and adults. UI, code, d
 in English.
 
 **`doc/plan.md` (version 3.9) is the product plan**, and **`doc/levels.md` (v1.6) specifies the
-level system** (v1.6 is rules v9, built in Phase 6b; the code implements v1.5 until then). Both are the owner's: read them at the start of every phase; never edit them.
+level system** (v1.6 is rules v9, built in Phase 6b; the code implements v1.5 until then). Both
+are the owner's: read them at the start of every phase; never edit them.
 This file is the working file: keep it short, update it as the project moves, keep it
 consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/decisions.md`,
 `doc/design.md`, `doc/online.md`, `doc/progress.md`. The plan wins any conflict — report it.
@@ -20,8 +21,8 @@ and CI only: **no visible change to the game, no change to rules or generation**
 
 | # | Commit | Findings | Note |
 |---|---|---|---|
-| 0 | *(A)* **Repository hygiene**: `tool/cloudflare/.wrangler/` out of the index, ignored, purged from the history (mirror backup, force-push, CI and deployments re-verified); decisions of 26 Nov recorded; findings tracked | m9 | |
-| 1 | *(A)* **Duel results hold**: for the second player an unreplayable run or progress is a loss; abandonment scored after a challenge expires, no opening in its last 24 h; a run must extend its progress; challenges only to a friend or a 30-day opponent, `rematchOf` only a finished duel of the same mode, once per rolling 24 h for every chosen opponent; a run claiming more time than passed since the offer is refused; a flagged run's duel is unrated | B5, M1 (cheap part), M2, M3, n1 | |
+| 0 | *(A)* **Repository hygiene**: `tool/cloudflare/.wrangler/` out of the index, ignored, purged from the history (mirror backup, force-push, CI and deployments re-verified); decisions of 26 Nov recorded; findings tracked | m9 | done |
+| 1 | *(A)* **Duel results hold**: for the second player an unreplayable run or progress is a loss; abandonment scored after a challenge expires, no opening in its last 24 h; a run must extend its progress; challenges only to a friend or a 30-day opponent, `rematchOf` only a finished duel of the same mode, once per rolling 24 h for every chosen opponent; a run claiming more time than passed since the offer is refused; a flagged run's duel is unrated | B5, M1 (cheap part), M2, M3, n1 | done |
 | 2 | *(A)* **Abuse floor**: bodies counted while read; token buckets per player and per IP; malformed tokens refused before Supabase; refusals stored as hash + truncated payload, capped per player per day; daily cap on accepted sessions | B4 | |
 | 3 | *(A)* **Solo integrity and moderation**: impossible cadence flagged or refused; a moderation table read by boards, pool and friend search; dashboard hide / unhide / ban; "Account under review" on Profile | M5 | |
 | 4 | *(A)* **Names and privacy**: reports from linked accounts only, rate-limited; reported name hidden until reviewed; look-alikes folded, folded names unique; `profiles` readable by its owner only; a deleted player's duels kept as "Deleted player" | M6, m8 | |
@@ -62,19 +63,29 @@ switches back to the owner's file by itself the day `RulesVersion.current` is v9
 - **Glicko-2, server only**, one rating per mode, each duel its own period, RD capped at 350,
   τ = 0.5. Start: Basics 900 + 15 × main level, Advanced 900 + 15 × mean of the four advanced
   levels, Get the count 1300; "?" for the first 10 duels of a mode. **Both sides move** (a
-  run's owner learns it later). Friend duels rated **once a day per pair and mode**.
+  run's owner learns it later). A duel reached through a **chosen opponent** (a challenge, a
+  rematch — `duels.chosen`) is rated **once per pair and mode over a rolling 24 hours** (6a).
 - **Matchmaking**: the run of the player with the closest rating — never one's own, never a
   run already raced; a run served at most **5 times**, only a player's **10 latest runs** per
   mode in the pool. Empty pool → **Practice** opponent (simulated, no rating change).
-  **Rematch** races another run of the same opponent, else sends them a challenge.
+  **Rematch** (a finished duel of the same mode only) races another run of the same opponent,
+  else sends them a challenge.
 - **Friends**: a friend code (`MATH-7K2P`) and an invite link; requests, accept, remove; list
-  with head-to-head, history per friend; **challenges** (challenger plays first, the friend
-  plays the same questions from "Waiting for you"; **7-day expiry**). In-app badges only.
-- **Fair play**: every run replayed and validated by the server; a failed run never enters the
-  pool and its duel does not count; implausible timing keeps a run out of the pool until
-  reviewed; friend requests limited (~20 a day). **An abandoned duel is a loss** (v3.8): a duel
-  started but not submitted within 24 hours, recorded from the progress the app sends during
-  play (`/v1/duels/progress`), by the next duel request (`sweepAbandoned`).
+  with head-to-head, history per friend; **challenges** — only to a friend or an opponent of
+  the last 30 days (6a) — the challenger plays first, the friend plays the same questions from
+  "Waiting for you": **6 days to open it, then 24 hours to play it**. In-app badges only.
+- **Fair play**: every run replayed and validated by the server; implausible timing keeps a
+  run out of the pool until reviewed; friend requests limited (~20 a day). **An abandoned duel
+  is a loss** (v3.8): a duel started but not submitted within 24 hours, recorded from the
+  progress the app sends during play (`/v1/duels/progress`), by the next duel request
+  (`sweepAbandoned`).
+- **Duel results hold** (6a, plan v3.9): **for the second player a run that does not replay
+  is a loss** (a `forfeited` run applied in its place, the reason kept in
+  `duel_run_rejections`; `void` only for a challenger's own first run); a run must **continue
+  the progress** the server holds (`DuelRun.continues`, else 409 `progressMismatch` and the
+  duel stays open); a run claiming more answering time than has passed since the offer is a
+  forfeit (`notElapsed`, `DuelRun.claimedMs`, the database's clock, 5 s margin); **a flagged
+  run earns nothing** — its duel is unrated unless the flagged player lost.
 
 Phase 7 and its close-out are done and their decisions settled (plan v3.8–v3.9; the
 abandoned-duel choices confirmed on 26 Nov). Still for the owner: Share link on a phone.
@@ -337,8 +348,17 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 - `SessionScreen` and `CountScreen` take a `header` (a duel's lanes): games pass none — the
   game screen's geometry is pinned. A duel's `SessionController` uses a throwaway repository
   and `NoLevelUpdates` (`buildDuelController`).
-- The server checks a duel run's turn **before** replaying it: a refused replay voids the duel,
-  so a run sent out of turn must never reach it.
+- The server checks a duel run's turn **before** replaying it: a refused replay costs its
+  sender the duel (a loss for the second player, a void challenge for a challenger), so a run
+  sent out of turn must never reach it.
+- A duel's progress is what its final run must continue: the app stores each step **before**
+  telling the server (`DuelRunQueue.saveProgress`) — the device must never know less than the
+  server. Test helpers building successive progress must keep earlier answers' times.
+- `ValidationFlag.abandoned` and `forfeited` are losses the server wrote itself, not review
+  matters: `_reviewFlags` (server) and `owner_dashboard.flagged_runs` leave both out.
+- SQL functions the server calls keep their signature across a deploy (migrations run before
+  the server restarts: the old server must still be able to call them) — add keys to a JSON
+  result, or a new function, never a new required parameter.
 - **Weak-spot item keys are stored** (`PersistedSession.weakSpots`, schema v13, upload
   `weakSpots`): `fact:<type>:<numbers>`, `skill:<family>` — never change the format, an
   `ExerciseType` or a `PatternFamily` name. Weak spots in a Levelling game come only from the
@@ -408,9 +428,6 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 - The server flags a Levelling game whose weak spots were not due in the schedule it rebuilds
   from the accepted history (`weakSpotsNotDue`); the app's schedule must leave out the
   sessions the server refused (`loadWeakSpotSchedule`), or honest games get flagged.
-- `ValidationFlag.abandoned` marks a forfeited duel run (never in the pool, never reviewed):
-  the dashboard's `flagged_runs` leaves it out — a new flag that is not a review matter must be
-  left out there too.
 - `RejectionReason` and `ValidationFlag` names are stored server-side and sent to the app:
   renaming breaks both. Same for `InputDevice` names (answers, uploads).
 - Tests apply every migration twice: a later migration must not change the columns of a view

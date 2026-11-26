@@ -35,19 +35,22 @@ void main() {
     return {...json, 'httpStatus': response.statusCode};
   }
 
-  /// [answered] answers of [offer], all right, 4 s each.
+  /// The first [answered] answers of [offer], all right, about 4 s each —
+  /// the same answer at the same time however many follow (a later progress
+  /// continues an earlier one).
   QuizRun answers(Map<String, Object?> offer, int answered) => QuizRun([
-    for (final q in DuelConfig.fromJson(
+    for (final (i, q) in DuelConfig.fromJson(
       offer['config'],
-    ).questions().take(answered))
-      DuelAnswer(value: q.correctAnswer, elapsedMs: 4000 + answered * 7),
+    ).questions().take(answered).indexed)
+      DuelAnswer(value: q.correctAnswer, elapsedMs: 4000 + i * 7),
   ]);
 
   setUp(() {
     gateway = FakeDuelGateway()
       ..addUser('tok-a', 'ana', name: 'Ana')
       ..addUser('tok-b', 'bo', name: 'Bo')
-      ..addUser('tok-c', 'cy', name: 'Cy');
+      ..addUser('tok-c', 'cy', name: 'Cy')
+      ..befriend('ana', 'bo');
     handler = buildHandler(
       ServerConfig.fromEnvironment(const {
         'SUPABASE_URL': 'https://x.supabase.co',

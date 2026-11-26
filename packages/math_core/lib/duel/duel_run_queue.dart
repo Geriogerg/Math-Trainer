@@ -80,9 +80,13 @@ class DuelRunQueue {
   /// Saves [run] of [offer] as it stands (after each answer or round), and
   /// tells the server — never awaited, never failing: what the server has
   /// is what an abandoned duel is recorded from (plan v3.8).
-  Future<void> saveProgress(DuelOffer offer, DuelRun run) {
+  ///
+  /// Stored on the device first: the server only accepts a run that
+  /// continues the progress it holds (Phase 6a), so the device must never
+  /// know less than the server.
+  Future<void> saveProgress(DuelOffer offer, DuelRun run) async {
+    await _put(_pending(offer, run, complete: false));
     client.progress(offer.duelId, run).ignore();
-    return _put(_pending(offer, run, complete: false));
   }
 
   PendingDuelRun _pending(

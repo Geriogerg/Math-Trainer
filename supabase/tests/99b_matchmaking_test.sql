@@ -10,6 +10,10 @@ insert into public.profiles (id, display_name) values
   ('00000000-0000-0000-0000-0000000000e2', 'Inès');
 insert into public.server_levels (player_id, exercise_type, level, sessions_played, updated_at)
 values ('00000000-0000-0000-0000-0000000000e1', 'addition', 4000, 3, now());
+-- Friends: a challenge is sent to a friend or a recent opponent only
+-- (Phase 6a; the refusal is tested in 99g_duel_integrity_test.sql).
+insert into public.friendships (player_a, player_b) values
+  ('00000000-0000-0000-0000-0000000000e1', '00000000-0000-0000-0000-0000000000e2');
 
 set role service_role;
 do $$
@@ -54,8 +58,8 @@ begin
           where id = '00000000-0000-0000-0000-00000000f002')
     = ('challenge'::text, 'awaitingFirst'::text, e1, e2), 'the challenger plays first';
   assert (select expires_at from public.duels where id = '00000000-0000-0000-0000-00000000f002')
-    between now() + interval '7 days' - interval '1 minute' and now() + interval '7 days',
-    '7 days';
+    between now() + interval '6 days' - interval '1 minute' and now() + interval '6 days',
+    '6 days to open it, then 24 hours to play it';
   assert public.duel_create_challenge('00000000-0000-0000-0000-00000000f003', 'basics', cfg,
     e2, e1) = 'exists', 'one open challenge per pair, either way round';
   assert public.duel_create_challenge('00000000-0000-0000-0000-00000000f003', 'count', cfg,

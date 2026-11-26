@@ -73,7 +73,8 @@ void main() {
       ..addUser('tok-a', 'a', name: 'Ana')
       ..addUser('tok-b', 'b', name: 'Bo')
       ..addUser('tok-c', 'c', name: 'Cy')
-      ..addUser('tok-guest', 'guest', anonymous: true);
+      ..addUser('tok-guest', 'guest', anonymous: true)
+      ..befriend('a', 'b');
     // Ana: main level 40 → 1500 → T4.
     gateway.levels['a'] = {
       for (final t in ['addition', 'subtraction', 'multiplication', 'division'])

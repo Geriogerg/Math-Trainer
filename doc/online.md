@@ -534,25 +534,38 @@ quits, or at the next start; it waits until `/health` lists its mode and duel ru
 **Server** (`server/lib/src/duel_endpoint.dart`, linked accounts only — a guest gets 403
 `account_required`):
 - `POST /v1/duels {mode}` — the caller's unanswered duel of the hour, else the pool's run of
-  the closest-rated player (`duel_take_run`), else practice. `{mode, rematchOf}`: another run
-  of that opponent, else a challenge to them. `{mode, challenge: id}`: a challenge at the
-  mean of both ratings, the challenger first.
-- `POST /v1/duels/open {duelId}` — the friend opens a challenge (its lane).
+  the closest-rated player (`duel_take_run`), else practice. `{mode, rematchOf}` (a finished
+  duel of the same mode): another run of that opponent, else a challenge to them.
+  `{mode, challenge: id}`: a challenge at the mean of both ratings, the challenger first —
+  only to a friend or an opponent of the last 30 days.
+- `POST /v1/duels/open {duelId}` — the friend opens a challenge (its lane): within 6 days of
+  its creation; 24 hours to play it from then.
+- `POST /v1/duels/progress {duelId, run}` — the run as it stands, after every answer or
+  round; it must continue what the server already holds.
 - `POST /v1/duels/run {duelId, run}` — replayed, applied once; the second run decides the
-  duel and, when rated, both ratings (`rateDuel`, Glicko-2, each duel one period). Refused
-  runs void their duel.
+  duel and, when rated, both ratings (`rateDuel`, Glicko-2, each duel one period).
+- **Results hold (Phase 6a).** For the second player a run that does not replay — or that
+  claims more answering time than has passed since the duel was handed out — is a loss: the
+  reason is recorded (`record_duel_run_forfeit`) and a `forfeited` run applied in its place.
+  Only a challenger's own first run voids its duel. Once progress exists, a run that does not
+  continue it is refused (`progressMismatch`) and the duel stays open, lost after 24 hours. A
+  duel reached through a chosen opponent (challenge, rematch: `duels.chosen`) is rated once
+  per pair and mode over a rolling 24 hours. A flagged run earns nothing: its duel is unrated
+  unless the flagged player lost.
 
 **Database** (migrations `20261130000000_duels` … `20261130040000_duel_dashboard`; tables
 closed to the API, cascading with the account): `duel_ratings`, `duels`, `duel_runs`,
 `duel_run_rejections`, `friend_codes`, `friend_requests`, `friendships`,
 `friend_request_attempts`. The server's functions (service role): `duel_take_run`,
-`duel_insert`, `duel_context`, `apply_duel_run` (optimistic rating versions; challenges rated
-once a day per pair and mode), `record_duel_run_refused`, `duel_player`, `duel_open_offer`,
-`duel_create_challenge`. The app's (on `auth.uid()`): `duel_overview`, `duel_board_top`,
+`duel_insert`, `duel_context`, `apply_duel_run` (optimistic rating versions; chosen duels rated
+once per pair and mode in 24 hours), `record_duel_run_refused`, `record_duel_run_forfeit`,
+`duel_player`, `duel_open_offer`, `duel_create_challenge`, `duel_save_progress`,
+`duel_mark_opened`, `duel_abandoned`. The app's (on `auth.uid()`): `duel_overview`, `duel_board_top`,
 `duel_board_around_me`, `my_friend_code`, `friend_request` (20 a day, failed lookups
 included), `friend_requests_incoming`, `friend_respond`, `friend_remove`, `friend_list`,
 `friend_history`. Owner: `owner_dashboard.duels_per_day`, `duel_rating_distribution`,
-`flagged_runs` (+ `review_run`), `unanswered_duels`, `friend_counts` — `dashboard.sh duels`,
+`flagged_runs` (+ `review_run`), `abandoned_duels`, `forfeited_duels`, `unanswered_duels`,
+`friend_counts` — `dashboard.sh duels`,
 `dashboard.sh review-run <id> ok|reject`.
 
 **App**: the Online tab (`OnlineScreen`: modes and ratings, Waiting for you, Recent, the

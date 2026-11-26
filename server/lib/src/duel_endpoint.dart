@@ -32,9 +32,13 @@ const maxDuelBytes = 64 * 1024;
 ///   the result (`result`: 1 / 0.5 / 0, both scores, `rated`, the rating
 ///   before and after); for a challenger, `waiting: true`;
 /// - 400 / 404 / 409 `{status: refused, reason}`: malformed, no such duel,
-///   not this player's, not their turn, expired, or the run failed its
-///   replay (a `DuelRunProblem` — the duel is void): the app records it and
-///   never resends;
+///   not this player's, not their turn, expired, not a continuation of the
+///   progress the server holds (`progressMismatch`), or — for a challenger's
+///   own first run — the run failed its replay (a `DuelRunProblem`: the
+///   duel is void): the app records it and never resends;
+/// - **the second player's run that does not replay is a loss** (plan v3.9,
+///   Phase 6a): the answer is the accepted shape, `result: 0`, the run
+///   flagged `forfeited`. No request escapes a duel once it is handed out;
 /// - 401, 403, 413, 503 (Supabase unavailable, or ratings kept moving): the
 ///   app retries later.
 ///
@@ -44,8 +48,10 @@ const maxDuelBytes = 64 * 1024;
 /// **practice** duel at the caller's rating against a simulated lane
 /// (`practiceLane`). `{mode, rematchOf}`: another pool run of that duel's
 /// opponent, the closest tier first; none → a challenge sent to them (after
-/// a practice duel: a new search). `{mode, challenge: playerId}`: a
-/// challenge at the mean of both ratings, the caller playing first. Answers
+/// a practice duel: a new search) — only for a finished duel of the same
+/// mode (`notFinished`, `wrongMode`). `{mode, challenge: playerId}`: a
+/// challenge at the mean of both ratings, the caller playing first — only
+/// to a friend or an opponent of the last 30 days (`notAllowed`). Answers
 /// an offer `{duelId, kind, config, lane, opponent}` (`lane` null for a
 /// challenge the caller opens; `opponent` null for practice), or 409
 /// `{status: refused, reason}`: `self`, `notLinked`, `exists`,
@@ -72,24 +78,54 @@ class DuelEndpoint {
 
   /// `POST /v1/duels/progress {duelId, run}` (close-out commit 1): the run
   /// as it stands, after every answer or round — what an abandoned duel is
-  /// recorded from. Stored as sent, replayed only with the abandonment.
-  /// 200 `{status: saved}`; 409 `notOpen` (not this player's open duel).
+  /// recorded from, and what the final run must continue (Phase 6a). Parsed
+  /// and stored in the server's own shape, replayed only with the run or
+  /// the abandonment. 200 `{status: saved}`; 409 `notOpen` (not this
+  /// player's open duel) or `progressMismatch` (it does not continue the
+  /// progress already held: another device, or an older message arriving
+  /// late — nothing changes).
   Future<Response> handleProgress(Request request) =>
       _guarded(request, sweep: false, (user, body) async {
         final duelId = body['duelId'];
-        final run = body['run'];
-        if (duelId is! String || run is! Map) {
+        final sent = body['run'];
+        if (duelId is! String || sent is! Map) {
           return refused(400, 'badRequest', detail: 'duelId, run');
+        }
+        final context = await gateway.rpc('duel_context', {
+          'p_duel_id': duelId,
+          'p_player_id': user.id,
+        });
+        if (context is! Map) return refused(409, 'notOpen');
+        final duel = _map(context['duel']);
+        if (duel['secondPlayer'] != user.id ||
+            duel['state'] != 'awaitingSecond' ||
+            context['run'] is Map) {
+          return refused(409, 'notOpen');
+        }
+        final config = DuelConfig.fromJson(duel['config']);
+        final DuelRun run;
+        try {
+          run = DuelRun.fromJson(sent, config.mode);
+        } on FormatException catch (e) {
+          return refused(400, 'badRequest', detail: e.message);
+        }
+        final held = _progress(duel, config.mode);
+        if (held != null && !run.continues(held)) {
+          return refused(409, 'progressMismatch');
         }
         final outcome = await gateway.rpc('duel_save_progress', {
           'p_duel_id': duelId,
           'p_player_id': user.id,
-          'p_payload': run,
+          'p_payload': run.toJson(),
         });
         return outcome == 'saved'
             ? jsonResponse(200, {'status': 'saved'})
             : refused(409, 'notOpen');
       });
+
+  /// How much more than the time since the duel was handed out a run may
+  /// claim (`DuelRun.claimedMs`): clocks and rounding, not play.
+  static const clockMargin = Duration(seconds: 5);
 
   /// How many abandoned duels one request records at most.
   static const abandonedPerRequest = 3;
@@ -98,8 +134,10 @@ class DuelEndpoint {
   /// as losses, from the progress the server received: the run completed
   /// with timeouts (empty rounds), replayed, applied with result 0 — rated
   /// like any duel of its kind — and flagged `abandoned` (never in the
-  /// pool). A progress that no longer replays voids the duel. Runs on every
-  /// duel request (the free server has no clock of its own); a failure here
+  /// pool). A progress that does not replay is still a loss (Phase 6a: a
+  /// forfeited run, empty if nothing of it can be kept), and a challenge
+  /// the friend opened is scored whatever its expiry. Runs on every duel
+  /// request (the free server has no clock of its own); a failure here
   /// never fails the request.
   Future<void> sweepAbandoned() async {
     final List<Object?> abandoned;
@@ -132,45 +170,32 @@ class DuelEndpoint {
       final duel = _map(context['duel']);
       if (duel['state'] != 'awaitingSecond' || context['run'] is Map) return;
       final config = DuelConfig.fromJson(duel['config']);
-      DuelRun played;
-      try {
-        played = DuelRun.fromJson(duel['progress'], config.mode);
-      } on FormatException {
-        played = config.mode.isQuiz ? QuizRun(const []) : CountRun(const []);
-      }
-      final run = switch (played) {
-        final QuizRun q => q.completedWithTimeouts(),
-        final CountRun c => c.completedWithEmptyRounds(),
-      };
+      final played = _progress(duel, config.mode) ?? _emptyRun(config.mode);
       final outcome = await _applyRun(
         duelId: duelId,
         player: player,
         role: 'second',
         context: context,
         config: config,
-        run: run,
+        run: _completed(played),
         forcedResult: 0,
         extraFlags: const ['abandoned'],
       );
-      if (outcome != 'stale') {
-        if (outcome == 'expired') {
-          await gateway.rpc('record_duel_run_refused', {
-            'p_duel_id': duelId,
-            'p_player_id': player,
-            'p_reason': 'expired',
-            'p_detail': 'abandoned after its expiry',
-            'p_payload': run.toJson(),
-          });
-        }
-        return;
-      }
+      if (outcome != 'stale') return;
     }
   }
 
-  /// Replays [run] of [player] in [duelId] and applies it (one try):
-  /// `apply_duel_run`'s outcome, or the `DuelRunProblem` name when the run
-  /// does not replay (recorded, the duel void). [forcedResult]: an
-  /// abandoned duel is a loss whatever its answers.
+  /// Decides [run] of [player] in [duelId] and applies it (one try):
+  /// `apply_duel_run`'s outcome, or — for a challenger's own first run that
+  /// does not replay — the `DuelRunProblem` name (recorded, the duel void).
+  ///
+  /// **The second player's run that does not replay is a loss** (plan v3.9,
+  /// Phase 6a; review B5): the reason is recorded and a forfeited run is
+  /// applied in its place (`_forfeit`). So is a run claiming more playing
+  /// time than has passed since the duel was handed out
+  /// (`DuelRunProblem.notElapsed`). [forcedResult]: an abandoned duel is a
+  /// loss whatever its answers, and its clock is not checked (the server
+  /// completed the run itself).
   Future<String> _applyRun({
     required String duelId,
     required String player,
@@ -181,10 +206,36 @@ class DuelEndpoint {
     double? forcedResult,
     List<String> extraFlags = const [],
   }) async {
-    final duel = _map(context['duel']);
-    final verdict = validateDuelRun(config, run);
+    // A forfeit recorded but not applied yet (a rating moved in between):
+    // whatever is sent now, the duel stays lost.
+    final recorded = context['rejection'];
+    var verdict = role == 'second' && recorded is Map
+        ? DuelRunInvalid(_problem(recorded['reason']), 'recorded before')
+        : validateDuelRun(config, run);
+    if (verdict is DuelRunValid && forcedResult == null) {
+      final played = _playedMs(context, role);
+      if (played != null &&
+          run.claimedMs > played + clockMargin.inMilliseconds) {
+        verdict = DuelRunInvalid(
+          DuelRunProblem.notElapsed,
+          'claims ${run.claimedMs} ms, $played ms since the offer',
+        );
+      }
+    }
     switch (verdict) {
       case DuelRunInvalid(:final problem, :final detail):
+        if (role == 'second') {
+          return _forfeit(
+            duelId: duelId,
+            player: player,
+            context: context,
+            config: config,
+            sent: run,
+            problem: problem,
+            detail: detail,
+            extraFlags: extraFlags,
+          );
+        }
         await gateway.rpc('record_duel_run_refused', {
           'p_duel_id': duelId,
           'p_player_id': player,
@@ -193,37 +244,119 @@ class DuelEndpoint {
           'p_payload': run.toJson(),
         });
         return problem.name;
-      case DuelRunValid(:final score, :final lane, :final flags):
-        final start = _startRating(config.mode, context['levels']);
-        double? result;
-        Map<String, Object?>? ratings;
-        if (role == 'second') {
-          final theirs = DuelLane.fromJson(duel['firstLane'], config.mode);
-          result = forcedResult ?? duelResult(score, theirs.score);
-          ratings = _ratingUpdates(context, player, start, result);
-        }
-        final rows = _rows(
-          await gateway.rpc('apply_duel_run', {
-            'p_duel_id': duelId,
-            'p_player_id': player,
-            'p_payload': run.toJson(),
-            'p_lane': lane.toJson(),
-            'p_score': score.toJson(),
-            'p_flags': [for (final f in flags) f.name, ...extraFlags],
-            'p_start_rating': {
-              'rating': start.rating,
-              'deviation': start.deviation,
-              'volatility': start.volatility,
-            },
-            'p_result': result,
-            'p_rated': ratings != null,
-            'p_ratings': ratings,
-          }),
+      case final DuelRunValid valid:
+        return _store(
+          duelId: duelId,
+          player: player,
+          role: role,
+          context: context,
+          config: config,
+          run: run,
+          verdict: valid,
+          forcedResult: forcedResult,
+          extraFlags: extraFlags,
         );
-        final outcome = rows.isEmpty ? null : rows.first['outcome'];
-        if (outcome is! String) throw StateError('apply_duel_run: $outcome');
-        return outcome;
     }
+  }
+
+  /// The second player's run did not replay: the reason is recorded once
+  /// (`record_duel_run_forfeit` — the duel is not void) and the duel is
+  /// applied as a loss, "with what was received": the run as sent if
+  /// completing it with timeouts makes it replay, else the progress the
+  /// server holds, else nothing. Flagged `forfeited`: never in the pool,
+  /// rated like any duel of its kind.
+  Future<String> _forfeit({
+    required String duelId,
+    required String player,
+    required Map<Object?, Object?> context,
+    required DuelConfig config,
+    required DuelRun sent,
+    required DuelRunProblem problem,
+    required String detail,
+    required List<String> extraFlags,
+  }) async {
+    final duel = _map(context['duel']);
+    await gateway.rpc('record_duel_run_forfeit', {
+      'p_duel_id': duelId,
+      'p_player_id': player,
+      'p_reason': problem.name,
+      'p_detail': detail,
+      'p_payload': sent.toJson(),
+    });
+    final held = _progress(duel, config.mode);
+    final candidates = [sent, ?held, _emptyRun(config.mode)];
+    for (final candidate in candidates) {
+      final run = _completed(candidate);
+      final verdict = validateDuelRun(config, run);
+      if (verdict is! DuelRunValid) continue;
+      return _store(
+        duelId: duelId,
+        player: player,
+        role: 'second',
+        context: context,
+        config: config,
+        run: run,
+        verdict: verdict,
+        forcedResult: 0,
+        extraFlags: [
+          ...extraFlags,
+          if (!extraFlags.contains('forfeited')) 'forfeited',
+        ],
+      );
+    }
+    throw StateError('an empty run did not replay for duel $duelId');
+  }
+
+  /// Applies a run that replays ([verdict]): the result against the first
+  /// lane for the second player, the ratings when the duel is rated.
+  Future<String> _store({
+    required String duelId,
+    required String player,
+    required String role,
+    required Map<Object?, Object?> context,
+    required DuelConfig config,
+    required DuelRun run,
+    required DuelRunValid verdict,
+    double? forcedResult,
+    List<String> extraFlags = const [],
+  }) async {
+    final duel = _map(context['duel']);
+    final DuelRunValid(:score, :lane, :flags) = verdict;
+    final start = _startRating(config.mode, context['levels']);
+    double? result;
+    Map<String, Object?>? ratings;
+    if (role == 'second') {
+      final theirs = DuelLane.fromJson(duel['firstLane'], config.mode);
+      result = forcedResult ?? duelResult(score, theirs.score);
+      ratings = _ratingUpdates(
+        context,
+        player,
+        start,
+        result,
+        secondFlagged: flags.isNotEmpty,
+      );
+    }
+    final rows = _rows(
+      await gateway.rpc('apply_duel_run', {
+        'p_duel_id': duelId,
+        'p_player_id': player,
+        'p_payload': run.toJson(),
+        'p_lane': lane.toJson(),
+        'p_score': score.toJson(),
+        'p_flags': [for (final f in flags) f.name, ...extraFlags],
+        'p_start_rating': {
+          'rating': start.rating,
+          'deviation': start.deviation,
+          'volatility': start.volatility,
+        },
+        'p_result': result,
+        'p_rated': ratings != null,
+        'p_ratings': ratings,
+      }),
+    );
+    final outcome = rows.isEmpty ? null : rows.first['outcome'];
+    if (outcome is! String) throw StateError('apply_duel_run: $outcome');
+    return outcome;
   }
 
   /// A duel's seed: positive and under 2³¹, the same on every platform
@@ -262,6 +395,10 @@ class DuelEndpoint {
           } else {
             return refused(409, 'notYourDuel');
           }
+          // Only a finished duel of this mode is played again (Phase 6a):
+          // `rematchOf` is not a way to aim at any player one once met.
+          if (duel['state'] != 'done') return refused(409, 'notFinished');
+          if (duel['mode'] != mode.name) return refused(409, 'wrongMode');
           if (opponent != null) {
             final offer = await gateway.rpc('duel_take_run', {
               'p_player_id': user.id,
@@ -445,17 +582,27 @@ class DuelEndpoint {
           } else {
             return refused(409, 'notYourDuel');
           }
-          if (context['rejection'] case final Map<Object?, Object?> rejection) {
-            return refused(409, '${rejection['reason']}');
-          }
+          // Decided already — a forfeit too (a run and its reason): the
+          // same answer again.
           if (context['run'] is Map) {
             return _decided(context, role: role, duplicate: true);
           }
+          final turn = role == 'first' ? 'awaitingFirst' : 'awaitingSecond';
+          if (context['rejection'] case final Map<Object?, Object?> rejection
+              when role == 'first' || duel['state'] != turn) {
+            return refused(409, '${rejection['reason']}');
+          }
           // Not this player's turn (a friend before the challenger, a decided
           // or void duel): refused before the replay, which would record a
-          // refusal and void the duel for someone else's mistake.
-          final turn = role == 'first' ? 'awaitingFirst' : 'awaitingSecond';
+          // refusal for someone else's mistake.
           if (duel['state'] != turn) return refused(409, 'notOpen');
+          // A challenge is played after it was opened (`/open` hands out its
+          // questions and starts its clock).
+          if (role == 'second' &&
+              duel['kind'] == 'challenge' &&
+              duel['openedAt'] == null) {
+            return refused(409, 'notOpen');
+          }
 
           final config = DuelConfig.fromJson(duel['config']);
           final DuelRun run;
@@ -463,6 +610,15 @@ class DuelEndpoint {
             run = DuelRun.fromJson(body['run'], config.mode);
           } on FormatException catch (e) {
             return refused(400, 'badRequest', detail: e.message);
+          }
+          // Once the server holds progress, only its continuation is a run
+          // (review M2): the duel stays open for the device that started it,
+          // or is lost after 24 hours from that progress.
+          if (role == 'second') {
+            final held = _progress(duel, config.mode);
+            if (held != null && !run.continues(held)) {
+              return refused(409, 'progressMismatch');
+            }
           }
           final outcome = await _applyRun(
             duelId: duelId,
@@ -489,7 +645,7 @@ class DuelEndpoint {
             case 'stale':
               continue;
             default:
-              // notOpen, expired, or the run's DuelRunProblem.
+              // notOpen, expired, or a challenger's own DuelRunProblem.
               return refused(409, outcome);
           }
         }
@@ -539,23 +695,34 @@ class DuelEndpoint {
 
 /// The rating rows `apply_duel_run` writes for a rated duel — both
 /// players' new Glicko-2 ratings with the versions they were computed from
-/// — or `null` when the duel is not rated (plan v3.7): practice never; a
-/// challenge only if no other challenge between the pair was rated today in
-/// this mode; a pool duel always. The second player ([me]) without a rating
-/// yet starts at [start] (`apply_duel_run` creates it at version 0).
+/// — or `null` when the duel is not rated:
+/// - practice, never;
+/// - a duel reached through a **chosen opponent** (a challenge, a rematch:
+///   `chosen`), only if no other chosen duel between the pair was rated in
+///   this mode in the last 24 hours (plan v3.9; `pairRatedToday`);
+/// - **a flagged run earns nothing** (plan v3.9, "a flagged run's duel is
+///   recorded unrated"): the duel is unrated unless the flagged run's
+///   player lost it — a loss stands, or getting flagged would be a way out
+///   of one. [secondFlagged]: this run's timing flags; `firstFlags`: the
+///   first run's, unless the owner reviewed it ok.
+/// The second player ([me]) without a rating yet starts at [start]
+/// (`apply_duel_run` creates it at version 0).
 Map<String, Object?>? _ratingUpdates(
   Map<Object?, Object?> context,
   String me,
   Glicko2Rating start,
-  double result,
-) {
+  double result, {
+  required bool secondFlagged,
+}) {
   final duel = _map(context['duel']);
+  final chosen = duel['chosen'] == true || duel['kind'] == 'challenge';
   final rated = switch (duel['kind']) {
-    'pool' => true,
-    'challenge' => context['pairRatedToday'] != true,
+    'pool' || 'challenge' => !(chosen && context['pairRatedToday'] == true),
     _ => false,
   };
   if (!rated) return null;
+  if (secondFlagged && result > 0) return null;
+  if (_reviewFlags(context['firstFlags']).isNotEmpty && result < 1) return null;
   final rows = _map(context['ratings']);
   final first = duel['firstPlayer'];
   final firstRow = rows[first];
@@ -671,6 +838,55 @@ Response _decided(
 
 Map<Object?, Object?> _map(Object? value) =>
     value is Map ? value : const <Object?, Object?>{};
+
+/// The flags of a run that wait for the owner's review: not the marks of a
+/// loss the server recorded itself.
+List<String> _reviewFlags(Object? flags) => [
+  if (flags is List)
+    for (final f in flags)
+      if (f is String && f != 'abandoned' && f != 'forfeited') f,
+];
+
+/// The second player's progress the server holds, or `null` (none, or
+/// stored before the server parsed it and unreadable).
+DuelRun? _progress(Map<Object?, Object?> duel, DuelMode mode) {
+  final stored = duel['progress'];
+  if (stored == null) return null;
+  try {
+    return DuelRun.fromJson(stored, mode);
+  } on FormatException {
+    return null;
+  }
+}
+
+DuelRun _emptyRun(DuelMode mode) =>
+    mode.isQuiz ? QuizRun(const []) : CountRun(const []);
+
+/// [run] with what was not played filled in: timeouts, empty rounds.
+DuelRun _completed(DuelRun run) => switch (run) {
+  final QuizRun q => q.completedWithTimeouts(),
+  final CountRun c => c.completedWithEmptyRounds(),
+};
+
+DuelRunProblem _problem(Object? name) => DuelRunProblem.values.firstWhere(
+  (p) => p.name == name,
+  orElse: () => DuelRunProblem.wrongShape,
+);
+
+/// How long ago, by the database's clock, [role]'s part of the duel was
+/// handed out: a challenger's when the challenge was created, a friend's
+/// when they opened it, a pool or practice duel's when matchmaking made it.
+/// `null` when the context does not say (a database before Phase 6a).
+int? _playedMs(Map<Object?, Object?> context, String role) {
+  final duel = _map(context['duel']);
+  final opened = role == 'second' && duel['kind'] == 'challenge';
+  final now = DateTime.tryParse('${context['now']}');
+  final started = DateTime.tryParse(
+    '${opened ? duel['openedAt'] : duel['createdAt']}',
+  );
+  if (now == null || started == null) return null;
+  return now.difference(started).inMilliseconds;
+}
 
 List<Map<String, Object?>> _rows(Object? result) => switch (result) {
   final List<Object?> list => [

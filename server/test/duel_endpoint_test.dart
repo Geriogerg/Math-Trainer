@@ -147,46 +147,46 @@ void main() {
       expect(gateway.runs.length, 1);
     });
 
-    test(
-      'a forged Get the count run: refused, the duel void, recorded once',
-      () async {
-        insertDuel(
-          'd2',
-          config: countConfig,
-          lane: CountLane([
-            for (var i = 0; i < 3; i++)
-              CountLaneRound(baseDistance: 50, improvements: const []),
-          ]).toJson(),
-        );
-        final forged = CountRun([
-          CountRoundRun([
-            CountImprovement(
-              atMs: 4000,
-              value: 442,
-              steps: const [CountStep(400, CountOperator.add, 42, 442)],
-            ),
-          ]),
-          CountRoundRun(const []),
-          CountRoundRun(const []),
-        ]);
-        final (status, body) = await post('/v1/duels/run', {
-          'duelId': 'd2',
-          'run': forged.toJson(),
-        });
-        expect(status, 409);
-        expect(body, {'status': 'refused', 'reason': 'badDerivation'});
-        expect(gateway.duels['d2']!['state'], 'void');
-        expect(gateway.runs, isEmpty);
-        // Resent, even "fixed": the same verdict.
-        final (status2, body2) = await post('/v1/duels/run', {
-          'duelId': 'd2',
-          'run': CountRun([
-            for (var i = 0; i < 3; i++) CountRoundRun(const []),
-          ]).toJson(),
-        });
-        expect((status2, body2['reason']), (409, 'badDerivation'));
-      },
-    );
+    test('a forged Get the count run from the second player: a loss, recorded '
+        'once (Phase 6a: no void duel to escape through)', () async {
+      insertDuel(
+        'd2',
+        config: countConfig,
+        lane: CountLane([
+          for (var i = 0; i < 3; i++)
+            CountLaneRound(baseDistance: 50, improvements: const []),
+        ]).toJson(),
+      );
+      final forged = CountRun([
+        CountRoundRun([
+          CountImprovement(
+            atMs: 4000,
+            value: 442,
+            steps: const [CountStep(400, CountOperator.add, 42, 442)],
+          ),
+        ]),
+        CountRoundRun(const []),
+        CountRoundRun(const []),
+      ]);
+      final (status, body) = await post('/v1/duels/run', {
+        'duelId': 'd2',
+        'run': forged.toJson(),
+      });
+      expect(status, 200);
+      expect((body['status'], body['result']), ('accepted', 0));
+      expect(body['flags'], ['forfeited']);
+      expect(gateway.duels['d2']!['state'], 'done');
+      expect(gateway.rejections[('d2', 'player-a')], 'badDerivation');
+      expect(gateway.runs, hasLength(1), reason: 'the forfeited run');
+      // Resent, even "fixed": the same verdict.
+      final (status2, body2) = await post('/v1/duels/run', {
+        'duelId': 'd2',
+        'run': CountRun([
+          for (var i = 0; i < 3; i++) CountRoundRun(const []),
+        ]).toJson(),
+      });
+      expect((status2, body2['duplicate'], body2['result']), (200, true, 0));
+    });
 
     test('a challenge: the challenger waits, the friend decides', () async {
       insertDuel(
@@ -210,6 +210,13 @@ void main() {
       expect(b1['role'], 'first');
       expect(b1['waiting'], isTrue);
       expect(b1.containsKey('result'), isFalse);
+      // A challenge is opened before it is played.
+      final (blind, blindBody) = await post('/v1/duels/run', {
+        'duelId': 'd3',
+        'run': quizRun(6),
+      });
+      expect((blind, blindBody['reason']), (409, 'notOpen'));
+      expect((await post('/v1/duels/open', {'duelId': 'd3'})).$1, 200);
       final (s2, b2) = await post('/v1/duels/run', {
         'duelId': 'd3',
         'run': quizRun(6),
@@ -252,11 +259,14 @@ void main() {
           'run': {'rounds': []},
         });
         expect((bad, badBody['reason']), (400, 'badRequest'));
+        // A run that parses but does not replay is the second player's
+        // loss, not a refusal (duel_integrity_test.dart).
         final (shape, shapeBody) = await post('/v1/duels/run', {
           'duelId': 'd4',
           'run': {'answers': []},
         });
-        expect((shape, shapeBody['reason']), (409, 'wrongShape'));
+        expect((shape, shapeBody['result']), (200, 0));
+        expect(gateway.rejections[('d4', 'player-a')], 'wrongShape');
         expect((await post('/v1/duels/run', {'run': 1})).$1, 400);
       },
     );
@@ -284,7 +294,9 @@ void main() {
         first: kind == 'practice' ? null : first,
         lane: quizLane(theirs),
       );
-      gateway.duels[id]!['kind'] = kind;
+      gateway.duels[id]!
+        ..['kind'] = kind
+        ..['openedAt'] = kind == 'challenge' ? '2026-11-26T12:00:00Z' : null;
       final (status, body) = await post('/v1/duels/run', {
         'duelId': id,
         'run': quizRun(mine),

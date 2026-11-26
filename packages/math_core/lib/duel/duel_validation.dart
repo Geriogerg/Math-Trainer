@@ -28,6 +28,12 @@ enum DuelRunProblem {
 
   /// An improvement after the target was reached (the round had ended).
   afterTarget,
+
+  /// The run claims more playing time than has passed since the duel was
+  /// handed out (`DuelRun.claimedMs`; plan v3.9, Phase 6a): times that were
+  /// declared, not lived. Decided by the server, which has the clock — the
+  /// replay alone ([validateDuelRun]) never returns it.
+  notElapsed,
 }
 
 sealed class DuelRunVerdict {

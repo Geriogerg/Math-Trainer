@@ -98,6 +98,13 @@ enum ValidationFlag {
   /// received. Kept out of the duel pool (never a run to race), never
   /// reviewed.
   abandoned,
+
+  /// A duel run the server wrote in place of one that did not replay
+  /// (plan v3.9, Phase 6a): for a duel's second player a refused run is a
+  /// loss, recorded from what the server had received. Like [abandoned]:
+  /// never in the pool, never reviewed (the reason is in
+  /// `duel_run_rejections`).
+  forfeited,
 }
 
 sealed class ValidationResult {

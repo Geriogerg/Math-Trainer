@@ -123,7 +123,7 @@ void main() {
     }
   });
 
-  test('a forged run is refused and never served; an implausible one is '
+  test('a forged run is a loss and never served; an implausible one is '
       'kept out of the pool', () async {
     // A forged Get the count run: a number that is not on the board.
     final practice = await post('/v1/duels', {'mode': 'count'}, 'tok-a');
@@ -149,9 +149,11 @@ void main() {
       'duelId': practice['duelId'],
       'run': forged.toJson(),
     }, 'tok-a');
-    expect(refused['httpStatus'], 409);
-    expect(refused['reason'], 'badDerivation');
-    expect(gateway.runs, isEmpty, reason: 'nothing stored');
+    // Phase 6a: for a duel's second player a run that does not replay is a
+    // loss — the forfeited run stored in its place is never one to race.
+    expect((refused['httpStatus'], refused['result']), (200, 0));
+    expect(gateway.rejections[(practice['duelId'], 'ana')], 'badDerivation');
+    expect(gateway.runs.single['flags'], ['forfeited']);
 
     // An implausible Basics run: multi-digit answers in 120 ms.
     final basics = await post('/v1/duels', {'mode': 'basics'}, 'tok-a');

@@ -12,6 +12,20 @@ sealed class DuelRun {
 
   Map<String, Object?> toJson();
 
+  /// The time the run says its player spent producing what it holds: a
+  /// lower bound of how long the duel was played. Questions left unanswered
+  /// (timeouts, a quit) count for nothing: the app fills them in without
+  /// waiting. The server refuses a run claiming more than has passed since
+  /// the duel was handed out (plan v3.9, Phase 6a: no faked time).
+  int get claimedMs;
+
+  /// Whether this run continues [earlier] — what the server received
+  /// during the duel (`/v1/duels/progress`): the same answers and times for
+  /// everything [earlier] holds, in the same order. Once progress exists
+  /// only such a run is accepted (plan v3.9): a second device or a private
+  /// window cannot play the same questions again.
+  bool continues(DuelRun earlier);
+
   /// Strict: anything missing or mistyped throws [FormatException]. The
   /// shape must match [mode] (answers for a question mode, rounds for Get
   /// the count); lengths and ranges are the validation's to check.
@@ -89,6 +103,26 @@ final class QuizRun extends DuelRun {
   ]);
 
   @override
+  int get claimedMs {
+    var total = 0;
+    for (final a in answers) {
+      if (a.value != timeoutSubmittedValue) total += a.elapsedMs;
+    }
+    return total;
+  }
+
+  @override
+  bool continues(DuelRun earlier) {
+    if (earlier is! QuizRun || earlier.answers.length > answers.length) {
+      return false;
+    }
+    for (final (i, a) in earlier.answers.indexed) {
+      if (answers[i] != a) return false;
+    }
+    return true;
+  }
+
+  @override
   Map<String, Object?> toJson() => {
     'answers': [
       for (final a in answers) {'value': a.value, 'ms': a.elapsedMs},
@@ -109,6 +143,23 @@ final class CountImprovement {
   final int atMs;
   final int value;
   final List<CountStep> steps;
+
+  @override
+  bool operator ==(Object other) {
+    if (other is! CountImprovement ||
+        other.atMs != atMs ||
+        other.value != value ||
+        other.steps.length != steps.length) {
+      return false;
+    }
+    for (final (i, s) in steps.indexed) {
+      if (other.steps[i] != s) return false;
+    }
+    return true;
+  }
+
+  @override
+  int get hashCode => Object.hash(atMs, value, Object.hashAll(steps));
 }
 
 final class CountRoundRun {
@@ -117,6 +168,21 @@ final class CountRoundRun {
 
   /// In time order, each strictly closer to the target.
   final List<CountImprovement> improvements;
+
+  @override
+  bool operator ==(Object other) {
+    if (other is! CountRoundRun ||
+        other.improvements.length != improvements.length) {
+      return false;
+    }
+    for (final (i, imp) in improvements.indexed) {
+      if (other.improvements[i] != imp) return false;
+    }
+    return true;
+  }
+
+  @override
+  int get hashCode => Object.hashAll(improvements);
 }
 
 /// Get the count: the 3 rounds, in order.
@@ -131,6 +197,29 @@ final class CountRun extends DuelRun {
     for (var i = rounds.length; i < countDuelRounds; i++)
       CountRoundRun(const []),
   ]);
+
+  /// A round lasted at least until its last improvement.
+  @override
+  int get claimedMs {
+    var total = 0;
+    for (final round in rounds) {
+      if (round.improvements.isNotEmpty) total += round.improvements.last.atMs;
+    }
+    return total;
+  }
+
+  /// The app sends its progress after each round: every round [earlier]
+  /// holds is finished, and must be found here as it was.
+  @override
+  bool continues(DuelRun earlier) {
+    if (earlier is! CountRun || earlier.rounds.length > rounds.length) {
+      return false;
+    }
+    for (final (i, round) in earlier.rounds.indexed) {
+      if (rounds[i] != round) return false;
+    }
+    return true;
+  }
 
   @override
   Map<String, Object?> toJson() => {
