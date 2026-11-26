@@ -2055,3 +2055,30 @@ the gaps it leaves.
   rated challenge, and stays rated itself.
 - **Progress is parsed before it is stored** (malformed: 400, nothing kept), and stored in
   the server's own shape — it was stored as sent.
+
+**Commit 2 — abuse floor (B4).** The plan names the mechanisms; the numbers are mine.
+
+- **Limits.** Per address 120 requests in a burst, then 2 a second; per player 40, then one
+  every 2 s. A duel is about ten requests over a minute or more; a backlog of offline games
+  uploads one at a time and simply slows down past the burst (the app retries a 429). A
+  school or a phone network behind one address gets 120 a minute sustained. Daily: 300
+  accepted sessions (five hours of 10-question games back to back) and 200 new duels per
+  player over a rolling 24 hours. Refusals kept: 50 a day per player, each a digest with the
+  first 1,000 characters of the payload.
+- **Every limit is a 429, never a refusal.** A refusal is final for the app (the session is
+  dropped from the queue); a limit must only delay. Past the daily duel cap the duel still
+  open is handed back.
+- **In memory.** One server instance; a restart forgives everyone. A second instance would
+  need the counts in the database — not before the load asks for it.
+- **The address** is what the host's proxy reports (`cf-connecting-ip`, else the first
+  `x-forwarded-for` entry), else the socket. If Render does not overwrite those headers a
+  client can choose its own key: that weakens the address limit, never turns it against
+  other players, and leaves the per-player limit and the daily caps intact. Taking the last
+  forwarded entry instead would be safe against forging but would put every player in one
+  bucket if that entry is the proxy. **To verify on staging after the deploy** (a burst with
+  forged headers): recorded in the phase report.
+- **Tokens.** Shape only (a JWT naming a user id, not expired): no signature check on the
+  server, Supabase Auth still decides. A well-formed forged token still costs one call to
+  Supabase — bounded by the address limit.
+- **A refusal past the daily count is not stored.** If it were ever resent it would be
+  decided again, to the same verdict; the app never resends a refusal.

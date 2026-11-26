@@ -7,7 +7,13 @@ import 'package:math_core/validation/session_validation.dart';
 import 'package:shelf/shelf.dart';
 
 import 'http_app.dart';
+import 'rate_limit.dart';
 import 'supabase_gateway.dart';
+
+/// Most sessions accepted from one player over a rolling 24 hours (plan
+/// v3.9, Phase 6a): about five hours of games back to back. Past it the
+/// answer is 429 — the app keeps the session and sends it later.
+const maxSessionsPerDay = 300;
 
 /// Largest accepted body: a 24-question session is about 6 KB; the longest
 /// game (4 operations × 20 questions) about 20 KB.
@@ -18,8 +24,9 @@ const maxUploadBytes = 256 * 1024;
 /// - 200 `{status: accepted, syncedAt, duplicate}` — stored now or before;
 /// - 400 / 409 `{status: refused, reason}` — malformed or refused for good:
 ///   the app records it and never resends;
-/// - 401 no or bad token, 413 too large, 503 Supabase unavailable: the app
-///   retries later;
+/// - 401 no or bad token, 413 too large, 429 too many requests or sessions
+///   today (`rate_limited`, `daily_limit`), 503 Supabase unavailable: the
+///   app retries later;
 /// - 403 `{error: beta_code_required}` ([requireBetaCode]): an anonymous
 ///   player who never redeemed an invitation code and has nothing accepted
 ///   yet. Not a refusal: the app keeps the session and retries, so a tester
@@ -29,9 +36,13 @@ class SessionEndpoint {
     this.gateway, {
     DateTime Function()? clock,
     this.requireBetaCode = false,
+    this.limits,
   }) : _clock = clock ?? DateTime.now;
 
   final SupabaseGateway gateway;
+
+  /// The per-player request limit (none in most tests).
+  final RateLimits? limits;
   final DateTime Function() _clock;
 
   /// The invite-only beta, enforced here too (Phase 5.1 commit 5): the app's
@@ -59,11 +70,11 @@ class SessionEndpoint {
       return _unavailable(e);
     }
     if (user == null) return jsonResponse(401, {'error': 'unauthorized'});
+    final limited = limits?.checkPlayer(user.id);
+    if (limited != null) return limited;
 
-    final text = await request.readAsString();
-    if (text.length > maxUploadBytes) {
-      return jsonResponse(413, {'error': 'too_large'});
-    }
+    final text = await readBodyWithin(request, maxUploadBytes);
+    if (text == null) return jsonResponse(413, {'error': 'too_large'});
     final SessionUpload upload;
     try {
       upload = SessionUpload.fromJson(jsonDecode(text));
@@ -134,11 +145,19 @@ class SessionEndpoint {
           )
         : null;
     for (var attempt = 0; attempt < maxAttempts; attempt++) {
-      final (version, state) = parseServerState(
-        await gateway.rpc('player_server_state', {
-          'p_player_id': session.playerId,
-        }),
-      );
+      final stateJson = await gateway.rpc('player_server_state', {
+        'p_player_id': session.playerId,
+      });
+      final (version, state) = parseServerState(stateJson);
+      // The daily cap (`acceptedToday`: a rolling 24 hours, counted by the
+      // database). Not a refusal: the session waits on the device.
+      if (stateJson is Map &&
+          (stateJson['acceptedToday'] as int? ?? 0) >= maxSessionsPerDay) {
+        return tooManyRequests(
+          'daily_limit',
+          retryAfter: const Duration(hours: 1),
+        );
+      }
       final verdict = validateSessionUpload(
         upload: upload,
         callerId: session.playerId,

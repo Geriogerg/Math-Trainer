@@ -43,6 +43,36 @@ Future<AuthenticatedUser?> bearerUser(
   return gateway.userForToken(authorization.substring(7));
 }
 
+final _uuid = RegExp(
+  r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+  caseSensitive: false,
+);
+
+/// Whether [token] can be a Supabase access token at all: a JWT whose
+/// payload names a user id and an expiry not yet passed (a minute's grace
+/// for clocks). Nothing is verified — Supabase Auth does that — but what
+/// fails here is refused without calling it (review B4: any `Bearer x`
+/// cost an outbound request).
+bool looksLikeAccessToken(String token, {DateTime? now}) {
+  if (token.length > 4096) return false;
+  final parts = token.split('.');
+  if (parts.length != 3 || parts.any((p) => p.isEmpty)) return false;
+  try {
+    final payload = jsonDecode(
+      utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))),
+    );
+    if (payload is! Map) return false;
+    final subject = payload['sub'];
+    final expiry = payload['exp'];
+    if (subject is! String || !_uuid.hasMatch(subject)) return false;
+    if (expiry is! num) return false;
+    final seconds = (now ?? DateTime.now()).millisecondsSinceEpoch ~/ 1000;
+    return expiry + 60 > seconds;
+  } on FormatException {
+    return false;
+  }
+}
+
 class HttpSupabaseGateway implements SupabaseGateway {
   HttpSupabaseGateway(this.config, {http.Client? client})
     : _client = client ?? http.Client();
@@ -62,6 +92,7 @@ class HttpSupabaseGateway implements SupabaseGateway {
 
   @override
   Future<AuthenticatedUser?> userForToken(String accessToken) async {
+    if (!looksLikeAccessToken(accessToken)) return null;
     final response = await _send(
       () => _client.get(
         config.supabaseUrl.resolve('/auth/v1/user'),

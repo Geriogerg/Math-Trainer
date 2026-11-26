@@ -40,6 +40,9 @@ class FakeGateway implements SupabaseGateway {
   /// Accepted payloads per player, in the order accepted.
   final payloads = <String, List<Object?>>{};
 
+  /// Sessions accepted over the last 24 hours (the SQL counts them).
+  final acceptedToday = <String, int>{};
+
   /// Players who redeemed an invitation code (`beta_code_uses`).
   final withCode = <String>{};
 
@@ -77,6 +80,7 @@ class FakeGateway implements SupabaseGateway {
           'version': versions[player] ?? 0,
           'lastSessionAt': lastSessionAt[player],
           'hasCompletedSession': completed.contains(player),
+          'acceptedToday': acceptedToday[player] ?? 0,
           'levels': levels[player] ?? {},
         };
       case 'apply_validated_session':

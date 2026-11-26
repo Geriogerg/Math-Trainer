@@ -23,7 +23,7 @@ and CI only: **no visible change to the game, no change to rules or generation**
 |---|---|---|---|
 | 0 | *(A)* **Repository hygiene**: `tool/cloudflare/.wrangler/` out of the index, ignored, purged from the history (mirror backup, force-push, CI and deployments re-verified); decisions of 26 Nov recorded; findings tracked | m9 | done |
 | 1 | *(A)* **Duel results hold**: for the second player an unreplayable run or progress is a loss; abandonment scored after a challenge expires, no opening in its last 24 h; a run must extend its progress; challenges only to a friend or a 30-day opponent, `rematchOf` only a finished duel of the same mode, once per rolling 24 h for every chosen opponent; a run claiming more time than passed since the offer is refused; a flagged run's duel is unrated | B5, M1 (cheap part), M2, M3, n1 | done |
-| 2 | *(A)* **Abuse floor**: bodies counted while read; token buckets per player and per IP; malformed tokens refused before Supabase; refusals stored as hash + truncated payload, capped per player per day; daily cap on accepted sessions | B4 | |
+| 2 | *(A)* **Abuse floor**: bodies counted while read; token buckets per player and per IP; malformed tokens refused before Supabase; refusals stored as hash + truncated payload, capped per player per day; daily cap on accepted sessions | B4 | done |
 | 3 | *(A)* **Solo integrity and moderation**: impossible cadence flagged or refused; a moderation table read by boards, pool and friend search; dashboard hide / unhide / ban; "Account under review" on Profile | M5 | |
 | 4 | *(A)* **Names and privacy**: reports from linked accounts only, rate-limited; reported name hidden until reviewed; look-alikes folded, folded names unique; `profiles` readable by its owner only; a deleted player's duels kept as "Deleted player" | M6, m8 | |
 | 5 | *(A)* **Capacity**: per-player game counts; boards computed once and cached ~1 min; maintained run pool, config hash; weak-spot check bounded; stored sessions slimmed (rows migrated); static files content-hashed, cached a year, the Function on HTML only; dashboard alert at 50 % of the database; measurements re-run | M7, M8, M9 | |
@@ -356,6 +356,17 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   server. Test helpers building successive progress must keep earlier answers' times.
 - `ValidationFlag.abandoned` and `forfeited` are losses the server wrote itself, not review
   matters: `_reviewFlags` (server) and `owner_dashboard.flagged_runs` leave both out.
+- **The abuse floor** (6a commit 2, `server/lib/src/rate_limit.dart`): token buckets in
+  memory per address (120, +2/s; before any work, `/health` and preflights exempt) and per
+  player (40, +0.5/s); daily caps of 300 accepted sessions and 200 new duels per player
+  (`acceptedToday`, `duelsToday`, counted by SQL the server already calls). **Every limit
+  answers 429 `{error}`, never `{status: refused}`**: the app keeps what it was sending and
+  retries — a limit that refused would lose honest games. Bodies are read with
+  `readBodyWithin` (never `readAsString`); a refused payload is stored as
+  `refusal_digest` (hash, size, first 1,000 characters), 50 a day per player.
+- `HttpSupabaseGateway.userForToken` refuses what cannot be a Supabase token
+  (`looksLikeAccessToken`) without calling Supabase; fakes take any string, so endpoint tests
+  keep their short tokens.
 - SQL functions the server calls keep their signature across a deploy (migrations run before
   the server restarts: the old server must still be able to call them) — add keys to a JSON
   result, or a new function, never a new required parameter.

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:math_core/duel/duel_mode.dart';
 import 'package:math_core/leveling/rules_version.dart';
@@ -6,14 +7,20 @@ import 'package:math_core/models/session_kind.dart';
 import 'package:shelf/shelf.dart';
 
 import 'config.dart';
+import 'rate_limit.dart';
 
 /// A route: method + exact path → handler.
 typedef Route = ({String method, String path, Handler handler});
 
 /// The whole HTTP surface: CORS for the allowed web origins, JSON errors,
 /// then [routes] plus `GET /health`. A handful of exact paths: no router
-/// dependency.
-Handler buildHandler(ServerConfig config, {List<Route> routes = const []}) {
+/// dependency. With [limits], every request but `/health` and a preflight
+/// first counts against its address (Phase 6a: before any work is done).
+Handler buildHandler(
+  ServerConfig config, {
+  List<Route> routes = const [],
+  RateLimits? limits,
+}) {
   final all = <Route>[
     (
       method: 'GET',
@@ -44,6 +51,10 @@ Handler buildHandler(ServerConfig config, {List<Route> routes = const []}) {
       .addMiddleware(_jsonErrors())
       .addHandler((request) {
         final path = '/${request.url.path}';
+        if (limits != null && path != '/health') {
+          final limited = limits.checkAddress(request);
+          if (limited != null) return limited;
+        }
         final matching = all.where((r) => r.path == path).toList();
         if (matching.isEmpty) return jsonResponse(404, {'error': 'not_found'});
         for (final route in matching) {
@@ -51,6 +62,22 @@ Handler buildHandler(ServerConfig config, {List<Route> routes = const []}) {
         }
         return jsonResponse(405, {'error': 'method_not_allowed'});
       });
+}
+
+/// [request]'s body as text, read as it arrives and given up as soon as it
+/// passes [maxBytes] — `null` then (the caller answers 413). A body with no
+/// declared length is never read whole first (review B4): at most
+/// [maxBytes] plus one chunk is ever held.
+Future<String?> readBodyWithin(Request request, int maxBytes) async {
+  final declared = request.contentLength;
+  if (declared != null && declared > maxBytes) return null;
+  final bytes = BytesBuilder(copy: false);
+  await for (final chunk in request.read()) {
+    // Leaving the loop cancels the subscription: the rest is not read.
+    if (bytes.length + chunk.length > maxBytes) return null;
+    bytes.add(chunk);
+  }
+  return utf8.decode(bytes.takeBytes(), allowMalformed: true);
 }
 
 Response jsonResponse(int status, Object body) => Response(

@@ -74,7 +74,7 @@ jobs:
           cache: true
       - name: Analyzer and tests
         working-directory: server
-        run: dart pub get && dart analyze --fatal-infos && bash ../tool/ci/test_count.sh "Server" 81 -- dart test --reporter expanded
+        run: dart pub get && dart analyze --fatal-infos && bash ../tool/ci/test_count.sh "Server" 95 -- dart test --reporter expanded
       - name: Container image builds and starts
         run: |
           docker build -f server/Dockerfile -t math-trainer-server .

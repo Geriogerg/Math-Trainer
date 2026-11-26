@@ -544,6 +544,14 @@ quits, or at the next start; it waits until `/health` lists its mode and duel ru
   round; it must continue what the server already holds.
 - `POST /v1/duels/run {duelId, run}` — replayed, applied once; the second run decides the
   duel and, when rated, both ratings (`rateDuel`, Glicko-2, each duel one period).
+- **Limits (Phase 6a commit 2).** Every request but `/health` and a preflight first counts
+  against its address (120 in a burst, 2 a second after), every authenticated one against
+  its player (40, then one every 2 s); 300 accepted sessions and 200 new duels per player
+  over 24 hours. All answer **429** (`rate_limited`, `daily_limit`, with `retry-after`):
+  the app keeps the session or run and tries again later. Bodies are cut at 256 KB
+  (sessions) and 64 KB (duels) while they are read; a token that cannot be a Supabase token
+  is answered 401 without a call to Supabase; a refused upload or run is stored as a digest
+  (SHA-256, size, first 1,000 characters), at most 50 a day per player.
 - **Results hold (Phase 6a).** For the second player a run that does not replay — or that
   claims more answering time than has passed since the duel was handed out — is a loss: the
   reason is recorded (`record_duel_run_forfeit`) and a `forfeited` run applied in its place.

@@ -1587,7 +1587,7 @@ owner decision, nothing to build).
 | B1 | No publishable legal surface; age rule | 6c | open (age decided: 15) |
 | B2 | Email confirmation off, no CAPTCHA | 6c | open |
 | B3 | No password recovery | 6c | open |
-| B4 | No abuse protection on the server | 6a (2) | open |
+| B4 | No abuse protection on the server | 6a (2) | **fixed** (the address limit trusts the host's proxy headers: to check on staging) |
 | B5 | A duel's second player escapes any loss | 6a (1) | **fixed** |
 | M1 | Duel answers known before play, times self-declared, flagged runs rated | 6a (1) cheap part; 7b server-timed questions | **part**: no faked time, flagged runs earn nothing; answers still known to a modified client until 7b |
 | M2 | A duel replayable with full knowledge | 6a (1) | **fixed** |
@@ -1689,3 +1689,23 @@ owner decision, nothing to build).
   a loss (`notElapsed`); a flagged winning run — rated → unrated (a flagged losing run still
   loses). SQL `99g_duel_integrity_test.sql`; core `duel_run_progress_test.dart` (7, VM and
   JavaScript). Counts: core VM 1123, core JavaScript 897, server 81, app 447, SQL 21 files.
+- **Commit 2** *(A)* — **Abuse floor (B4).** Server: `rate_limit.dart` — token buckets in
+  memory, per address (120, +2/s; checked before anything else, `/health` and preflights
+  exempt) and per player (40, +0.5/s), bounded (20,000 keys); `readBodyWithin` counts a body
+  while it is read and gives it up at the cap (sessions 256 KB, duels 64 KB) — both endpoints
+  used `readAsString()`; `looksLikeAccessToken` — a bearer that cannot be a Supabase token
+  (not a JWT, no user id, expired) is answered 401 by the gateway with no outbound call;
+  daily caps of 300 accepted sessions and 200 new duels per player, read from calls the
+  server already makes (`player_server_state.acceptedToday`, `duel_player.duelsToday`). Every
+  limit answers 429, which both app clients already treat as "retry later". Migration
+  `20261202010000_abuse_floor`: `refusal_digest` (SHA-256, size, first 1,000 characters) for
+  refused uploads and duel runs, existing rows reduced; `record_rejected_upload` keeps 50 a
+  day per player (advisory lock on the count), details cut at 500 characters; two indexes on
+  `(player_id, received_at)`. **Measured** (scratch Postgres 18, 2,000 crafted refusals of
+  ~250 KB with fresh ids across 40 accounts): **498 MB before, 2.8 MB after**; one account
+  alone keeps 50 rows (~73 KB). The same probe is now an assertion (`99h_abuse_floor_test.sql`:
+  under 5 MB). Tests: `server/test/abuse_floor_test.dart` (14: buckets, the address limit
+  with CORS and `retry-after`, a chunked endless body cut after ≤ 300 KB on sessions and
+  ≤ 80 KB on duels, token shapes, the real gateway against a mock HTTP client — nothing sent
+  for garbage — the per-player limit, both daily caps). `supabase_gateway.dart` line
+  coverage rises from 11 % (review) with these. Counts: server 95, SQL 22 files.

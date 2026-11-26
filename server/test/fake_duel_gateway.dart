@@ -21,6 +21,9 @@ class FakeDuelGateway implements SupabaseGateway {
   final calls = <String>[];
   bool down = false;
 
+  /// Duels handed out over the last 24 hours (the SQL counts them).
+  final duelsToday = <String, int>{};
+
   /// Friendships (`friendships`), whichever way round.
   final friends = <Set<String>>[];
   void befriend(String a, String b) => friends.add({a, b});
@@ -146,6 +149,7 @@ class FakeDuelGateway implements SupabaseGateway {
           'linked': !user.isAnonymous,
           'name': names[id],
           'rating': row == null ? null : {...row},
+          'duelsToday': duelsToday[id] ?? 0,
           'levels': levels[id] ?? const {},
         };
       case 'duel_open_offer':

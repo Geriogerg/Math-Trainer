@@ -13,6 +13,7 @@ import 'package:math_core/persistence/uuid.dart';
 import 'package:shelf/shelf.dart';
 
 import 'http_app.dart';
+import 'rate_limit.dart';
 import 'rating/duel_rating_update.dart';
 import 'rating/glicko2.dart';
 import 'session_endpoint.dart' show refused;
@@ -21,6 +22,10 @@ import 'supabase_gateway.dart';
 /// Largest accepted duel body: a Get the count run with many improvements
 /// is a few KB.
 const maxDuelBytes = 64 * 1024;
+
+/// Most duels handed out to one player over a rolling 24 hours (plan v3.9,
+/// Phase 6a): a duel takes a minute or more, and each one is a row.
+const maxDuelsPerDay = 200;
 
 /// The duel endpoints (plan v3.7, Phase 7). Online play needs a linked
 /// account: a guest gets 403 `account_required`.
@@ -61,11 +66,18 @@ const maxDuelBytes = 64 * 1024;
 /// for them: the offer with the challenger's lane; 409 `notOpen` or
 /// `expired` otherwise.
 class DuelEndpoint {
-  DuelEndpoint(this.gateway, {Random? seeds, String Function()? newId})
-    : _seeds = seeds ?? Random.secure(),
-      _newId = newId ?? generateUuidV4;
+  DuelEndpoint(
+    this.gateway, {
+    Random? seeds,
+    String Function()? newId,
+    this.limits,
+  }) : _seeds = seeds ?? Random.secure(),
+       _newId = newId ?? generateUuidV4;
 
   final SupabaseGateway gateway;
+
+  /// The per-player request limit (none in most tests).
+  final RateLimits? limits;
   final Random _seeds;
   final String Function() _newId;
 
@@ -373,6 +385,18 @@ class DuelEndpoint {
         }
         final me = await _player(user.id, mode);
         if (me == null) return refused(409, 'notLinked');
+        // The daily cap on new duels; the one still open is handed back.
+        if (me.duelsToday >= maxDuelsPerDay) {
+          final open = await gateway.rpc('duel_open_offer', {
+            'p_player_id': user.id,
+            'p_mode': mode.name,
+          });
+          if (open is Map) return jsonResponse(200, open);
+          return tooManyRequests(
+            'daily_limit',
+            retryAfter: const Duration(hours: 1),
+          );
+        }
         final rating = me.rating;
 
         if (body['challenge'] case final String target) {
@@ -539,10 +563,8 @@ class DuelEndpoint {
 
   /// A linked player's rating in [mode] (their row, or the start from their
   /// levels); `null` for a guest or nobody.
-  Future<({double rating, int ratedDuels, String? name})?> _player(
-    String id,
-    DuelMode mode,
-  ) async {
+  Future<({double rating, int ratedDuels, String? name, int duelsToday})?>
+  _player(String id, DuelMode mode) async {
     final json = await gateway.rpc('duel_player', {
       'p_player_id': id,
       'p_mode': mode.name,
@@ -555,6 +577,7 @@ class DuelEndpoint {
           : _startRating(mode, json['levels']).rating,
       ratedDuels: row is Map ? row['ratedDuels'] as int : 0,
       name: json['name'] as String?,
+      duelsToday: json['duelsToday'] as int? ?? 0,
     );
   }
 
@@ -668,14 +691,10 @@ class DuelEndpoint {
       if (user.isAnonymous) {
         return jsonResponse(403, {'error': 'account_required'});
       }
-      final length = request.contentLength;
-      if (length != null && length > maxDuelBytes) {
-        return jsonResponse(413, {'error': 'too_large'});
-      }
-      final text = await request.readAsString();
-      if (text.length > maxDuelBytes) {
-        return jsonResponse(413, {'error': 'too_large'});
-      }
+      final limited = limits?.checkPlayer(user.id);
+      if (limited != null) return limited;
+      final text = await readBodyWithin(request, maxDuelBytes);
+      if (text == null) return jsonResponse(413, {'error': 'too_large'});
       final Object? body;
       try {
         body = text.isEmpty ? const <String, Object?>{} : jsonDecode(text);
