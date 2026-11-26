@@ -501,6 +501,125 @@ void main() {
     });
   });
 
+  // Phase 6a commit 3 (plan v3.9; review M5): timestamps that were written,
+  // not lived.
+  group('cadence', () {
+    // The honest game: 8 answers, 1500 + 97 × i ms each.
+    const played = Duration(milliseconds: 8 * 1500 + 97 * 28);
+
+    void refusedAsFuture(ValidationResult result) => expect(
+      result,
+      isA<Rejected>().having(
+        (r) => r.reason,
+        'reason',
+        RejectionReason.futureTimestamp,
+      ),
+    );
+
+    test('a session cannot arrive sooner than its own answers took', () {
+      // Started 5 minutes "ago" by the tolerance, but its answers add 14.7 s.
+      refusedAsFuture(
+        validate(honestGame(at: _received.add(const Duration(minutes: 5)))),
+      );
+      // Forty 30-second answers (20 minutes) "played" in 4 minutes.
+      final slow = honestGame(
+        count: 40,
+        at: _received.subtract(const Duration(minutes: 4)),
+        answer: (i, q) => (value: q.correctAnswer, ms: 30000),
+      );
+      refusedAsFuture(validate(slow));
+      // The same game started 21 minutes before: it had the time.
+      final possible = honestGame(
+        count: 40,
+        at: _received.subtract(const Duration(minutes: 21)),
+        answer: (i, q) => (value: q.correctAnswer, ms: 30000),
+      );
+      expect(validate(possible), isA<Accepted>());
+      // A phone 4 minutes ahead is still tolerated, as before.
+      expect(
+        validate(
+          honestGame(
+            at: _received
+                .add(const Duration(minutes: 4))
+                .subtract(const Duration(seconds: 20)),
+          ),
+        ),
+        isA<Accepted>(),
+      );
+    });
+
+    test('the state records when the session ended', () {
+      final start = DateTime.utc(2026, 11, 20, 11);
+      final first = validate(honestGame(at: start)) as Accepted;
+      expect(first.newState.lastSessionEndsAt, start.add(played));
+      expect(first.flags, isNot(contains(ValidationFlag.overlapsPrevious)));
+      // An earlier end never replaces a later one.
+      final later = start.add(const Duration(hours: 1));
+      final kept =
+          validate(
+                honestGame(id: 's2', at: start.add(const Duration(seconds: 1))),
+                state: ServerPlayerState(
+                  lastSessionAt: start,
+                  lastSessionEndsAt: later,
+                ),
+              )
+              as Accepted;
+      expect(kept.newState.lastSessionEndsAt, later);
+    });
+
+    test('created before the previous one could end: flagged, accepted', () {
+      final start = DateTime.utc(2026, 11, 20, 11);
+      final state = ServerPlayerState(
+        lastSessionAt: start,
+        lastSessionEndsAt: start.add(played),
+      );
+      // "Created" a millisecond after the previous one started.
+      final stacked =
+          validate(
+                honestGame(
+                  id: 's2',
+                  at: start.add(const Duration(milliseconds: 1)),
+                ),
+                state: state,
+              )
+              as Accepted;
+      expect(stacked.flags, contains(ValidationFlag.overlapsPrevious));
+      expect(stacked.levelUpdates, isNotEmpty, reason: 'never a refusal');
+      // Started when the previous one ended — or within rounding of it.
+      for (final gap in const [Duration.zero, Duration(seconds: -2)]) {
+        final next =
+            validate(
+                  honestGame(id: 's3', at: start.add(played + gap)),
+                  state: state,
+                )
+                as Accepted;
+        expect(
+          next.flags,
+          isNot(contains(ValidationFlag.overlapsPrevious)),
+          reason: '$gap',
+        );
+      }
+      final early =
+          validate(
+                honestGame(
+                  id: 's4',
+                  at: start.add(played - const Duration(seconds: 3)),
+                ),
+                state: state,
+              )
+              as Accepted;
+      expect(early.flags, contains(ValidationFlag.overlapsPrevious));
+      // A server that never recorded an end checks nothing.
+      final unknown =
+          validate(
+                honestGame(id: 's5', at: start.add(const Duration(seconds: 1))),
+                state: ServerPlayerState(lastSessionAt: start),
+              )
+              as Accepted;
+      expect(unknown.flags, isNot(contains(ValidationFlag.overlapsPrevious)));
+    });
+  });
+
   group('timing flags: flagged, never rejected', () {
     test('multi-digit answers under 300 ms', () {
       final upload = honestGame(

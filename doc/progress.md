@@ -1587,13 +1587,13 @@ owner decision, nothing to build).
 | B1 | No publishable legal surface; age rule | 6c | open (age decided: 15) |
 | B2 | Email confirmation off, no CAPTCHA | 6c | open |
 | B3 | No password recovery | 6c | open |
-| B4 | No abuse protection on the server | 6a (2) | **fixed** (the address limit trusts the host's proxy headers: to check on staging) |
+| B4 | No abuse protection on the server | 6a (2) | **fixed** |
 | B5 | A duel's second player escapes any loss | 6a (1) | **fixed** |
 | M1 | Duel answers known before play, times self-declared, flagged runs rated | 6a (1) cheap part; 7b server-timed questions | **part**: no faked time, flagged runs earn nothing; answers still known to a modified client until 7b |
 | M2 | A duel replayable with full knowledge | 6a (1) | **fixed** |
 | M3 | Rated duels aimed at a chosen player; daily rule bypassed | 6a (1) | **fixed** (no block list: not in the plan) |
 | M4 | Quitting bad Levelling games never costs a level | 6b (2), rules v9 | open |
-| M5 | Solo sessions fabricated in bulk; no way to remove a cheater | 6a (3) | open |
+| M5 | Solo sessions fabricated in bulk; no way to remove a cheater | 6a (3) | **fixed** (with the daily cap of commit 2; the seed is still the client's: a session replays to what it claims, it is not chosen by the server) |
 | M6 | Names: weak filter, no uniqueness, abusable hiding, `profiles` world-readable | 6a (4) | open |
 | M7 | The main leaderboard does not scale | 6a (5) | open |
 | M8 | Matchmaking and the weak-spot check grow with history | 6a (5) | open |
@@ -1709,3 +1709,29 @@ owner decision, nothing to build).
   ≤ 80 KB on duels, token shapes, the real gateway against a mock HTTP client — nothing sent
   for garbage — the per-player limit, both daily caps). `supabase_gateway.dart` line
   coverage rises from 11 % (review) with these. Counts: server 95, SQL 22 files.
+  **Checked on staging after the deploy** (26 Nov, server `5c2d643`), the address limit behind
+  Render's proxy: 200 requests in a row with a bogus token → 193 × 401, 7 × 429 (the burst of
+  120 plus the refill over the run); 260 requests each with its own forged
+  `X-Forwarded-For` → 221 × 401, 39 × 429 in 51 s (120 + 2 × 51 = 222: one key — forging
+  changed nothing); 260 with a forged `CF-Connecting-IP` → 260 × 403 from Cloudflare, before
+  the server. Render is behind Cloudflare, which sets that header itself: the key cannot be
+  chosen by a client. A bogus token now costs no call to Supabase (401 at once, locally and
+  on staging).
+- **Commit 3** *(A)* — **Solo integrity and moderation (M5).** Core: a session whose end
+  (`createdAt` + its answers' times) is after the moment it was received (beyond the 5-minute
+  skew) is refused `futureTimestamp`; one created before the player's previous session could
+  have ended (2 s tolerance) is flagged `overlapsPrevious` and accepted
+  (`ServerPlayerState.lastSessionEndsAt`). Migration `20261202020000_moderation`:
+  `server_players.last_session_ends_at` (back-filled from each player's latest session);
+  `player_moderation` (hidden / banned, reason, date; cascades with the account) read by
+  `leaderboard_rows`, `duel_board_rows`, `duel_take_run` (both ways), `duel_create_challenge`
+  and `friend_request` through `player_visible`; `my_account_under_review()` for the app;
+  `owner_dashboard.moderate` / `unmoderate`, views `moderation` and `moderation_evidence`
+  (flagged sessions by flag, refused uploads, flagged, forfeited and abandoned duel runs,
+  last 30 days). Server: a banned player's uploads and new duels answer 403
+  `account_suspended` (nothing decided; a hidden one still plays, unranked, against practice
+  opponents). `dashboard.sh moderation | hide | ban | unhide` (run by the SQL suite). App:
+  Profile says "Account under review" with one line of why; the privacy notice names
+  fair-play marks and a review decision. Tests: core cadence (3), SQL
+  `99i_moderation_test.sql`, server `moderation_test.dart` (4), Profile (1). Counts: core VM
+  1126, core JavaScript 900, server 99, app 448, SQL 23 files.

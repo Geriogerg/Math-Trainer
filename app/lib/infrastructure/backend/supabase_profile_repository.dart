@@ -31,9 +31,21 @@ class SupabaseProfileRepository implements ProfileRepository {
       return PlayerProfile(
         accountId: userId,
         displayName: row?['display_name'] as String?,
+        underReview: await _underReview(),
       );
     } on PostgrestException catch (e) {
       throw Exception(e.message);
+    }
+  }
+
+  /// Whether the owner hid or suspended the account
+  /// (`my_account_under_review()`, Phase 6a). Best effort: a failure here
+  /// must not hide the player's name.
+  Future<bool> _underReview() async {
+    try {
+      return await _client.rpc('my_account_under_review') == true;
+    } on PostgrestException {
+      return false;
     }
   }
 

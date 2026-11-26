@@ -436,7 +436,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               future: _profile,
               builder: (context, profileSnapshot) {
                 final profile = profileSnapshot.data;
-                return _IdentityBlock(
+                final identity = _IdentityBlock(
                   account: data.account,
                   profile: profile,
                   profileFailed: profileSnapshot.hasError,
@@ -451,6 +451,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     data.account.isAnonymous,
                     data.recentSessions.isNotEmpty,
                   ),
+                );
+                if (profile == null || !profile.underReview) return identity;
+                // The owner hid or suspended the account (plan v3.9): said
+                // in words, where the player looks for their account.
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    identity,
+                    const SizedBox(height: 12),
+                    Text(
+                      'Account under review',
+                      style: theme.textTheme.titleSmall,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Your results are not shown on the boards until the '
+                      'review is done.',
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                  ],
                 );
               },
             ),

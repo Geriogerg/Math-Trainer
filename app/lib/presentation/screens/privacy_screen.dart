@@ -24,6 +24,9 @@ class PrivacyScreen extends StatelessWidget {
             'and your duel ratings.',
         'Friends: your friend code, the requests you send and receive, and '
             'your friends.',
+        'Fair play: marks the server puts on a game or duel whose timing '
+            'looks impossible, and, if the game’s author puts your '
+            'account under review, that decision and its reason.',
       ],
     ),
     (

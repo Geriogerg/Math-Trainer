@@ -24,6 +24,10 @@ class FakeDuelGateway implements SupabaseGateway {
   /// Duels handed out over the last 24 hours (the SQL counts them).
   final duelsToday = <String, int>{};
 
+  /// The owner's decision on a player: 'hidden' or 'banned'. Either one
+  /// takes the player out of the pool, both ways, and of challenges.
+  final moderation = <String, String>{};
+
   /// Friendships (`friendships`), whichever way round.
   final friends = <Set<String>>[];
   void befriend(String a, String b) => friends.add({a, b});
@@ -150,6 +154,7 @@ class FakeDuelGateway implements SupabaseGateway {
           'name': names[id],
           'rating': row == null ? null : {...row},
           'duelsToday': duelsToday[id] ?? 0,
+          'moderation': moderation[id],
           'levels': levels[id] ?? const {},
         };
       case 'duel_open_offer':
@@ -182,6 +187,7 @@ class FakeDuelGateway implements SupabaseGateway {
           return 'notLinked';
         }
         final pair = {me, target};
+        if (pair.any(moderation.containsKey)) return 'notAllowed';
         // A friend, or an opponent of the last 30 days (the tests' duels
         // are all recent).
         if (!friends.any((f) => f.containsAll(pair)) &&
@@ -356,6 +362,7 @@ class FakeDuelGateway implements SupabaseGateway {
   /// `duel_take_run`: the pool's rules, as the SQL applies them.
   Map<String, Object?>? _take(Map<String, Object?> p) {
     final player = p['p_player_id'] as String;
+    if (moderation.containsKey(player)) return null;
     final mode = p['p_mode'] as String;
     final rating = (p['p_rating'] as num).toDouble();
     final opponent = p['p_opponent'] as String?;
@@ -383,6 +390,7 @@ class FakeDuelGateway implements SupabaseGateway {
       for (final r in pool)
         if (r['player'] != player &&
             linked(r['player']) &&
+            !moderation.containsKey(r['player']) &&
             (opponent == null || r['player'] == opponent) &&
             (r['serves'] as int) < 5 &&
             (((r['flags'] as List).isEmpty && r['review'] != 'rejected') ||

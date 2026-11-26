@@ -149,6 +149,11 @@ class SessionEndpoint {
         'p_player_id': session.playerId,
       });
       final (version, state) = parseServerState(stateJson);
+      // The owner suspended the account (Phase 6a commit 3). Not a refusal
+      // either: nothing is decided, the session stays on the device.
+      if (stateJson is Map && stateJson['moderation'] == 'banned') {
+        return jsonResponse(403, {'error': 'account_suspended'});
+      }
       // The daily cap (`acceptedToday`: a rolling 24 hours, counted by the
       // database). Not a refusal: the session waits on the device.
       if (stateJson is Map &&
@@ -243,12 +248,14 @@ List<StoredGame> parseUploadHistory(Object? json) {
   if (json is! Map) throw StateError('player_server_state: $json');
   final version = json['version'];
   final last = json['lastSessionAt'];
+  final ends = json['lastSessionEndsAt'];
   if (version is! int) throw StateError('player_server_state: version');
   return (
     version,
     ServerPlayerState(
       levels: levelCacheFromJson(json['levels'] ?? const {}),
       lastSessionAt: last == null ? null : DateTime.parse('$last').toUtc(),
+      lastSessionEndsAt: ends == null ? null : DateTime.parse('$ends').toUtc(),
       hasCompletedSession: json['hasCompletedSession'] == true,
     ),
   );

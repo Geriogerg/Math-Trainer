@@ -43,6 +43,12 @@ class FakeGateway implements SupabaseGateway {
   /// Sessions accepted over the last 24 hours (the SQL counts them).
   final acceptedToday = <String, int>{};
 
+  /// When each player's latest session ended (start + answers' times).
+  final lastSessionEndsAt = <String, String>{};
+
+  /// The owner's decision on a player: 'hidden' or 'banned'.
+  final moderation = <String, String>{};
+
   /// Players who redeemed an invitation code (`beta_code_uses`).
   final withCode = <String>{};
 
@@ -81,6 +87,8 @@ class FakeGateway implements SupabaseGateway {
           'lastSessionAt': lastSessionAt[player],
           'hasCompletedSession': completed.contains(player),
           'acceptedToday': acceptedToday[player] ?? 0,
+          'lastSessionEndsAt': lastSessionEndsAt[player],
+          'moderation': moderation[player],
           'levels': levels[player] ?? {},
         };
       case 'apply_validated_session':
@@ -112,6 +120,18 @@ class FakeGateway implements SupabaseGateway {
         payloads.putIfAbsent(player, () => []).add(p['p_payload']);
         versions[player] = (versions[player] ?? 0) + 1;
         lastSessionAt[player] = p['p_created_at'] as String;
+        // As the SQL: the start plus the answers' times, never moved back.
+        final playedMs = [
+          for (final a in ((p['p_payload'] as Map)['answers'] as List))
+            (a as Map)['elapsedMs'] as int,
+        ].fold<int>(0, (sum, ms) => sum + ms);
+        final ends = DateTime.parse(
+          p['p_created_at'] as String,
+        ).add(Duration(milliseconds: playedMs));
+        final before = lastSessionEndsAt[player];
+        if (before == null || DateTime.parse(before).isBefore(ends)) {
+          lastSessionEndsAt[player] = ends.toIso8601String();
+        }
         if (p['p_completed'] == true) completed.add(player);
         return [
           {'outcome': 'applied', 'received_at': at},

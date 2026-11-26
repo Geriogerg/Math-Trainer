@@ -7,6 +7,9 @@ import 'package:math_core/account/profile_repository.dart';
 class FakeProfileRepository implements ProfileRepository {
   String? displayName = 'Joueur Test';
 
+  /// The owner hid or suspended the account (Phase 6a).
+  bool underReview = false;
+
   /// Simulates an unreachable Supabase (offline) for `currentProfile()`.
   bool shouldFail = false;
 
@@ -16,6 +19,7 @@ class FakeProfileRepository implements ProfileRepository {
     return PlayerProfile(
       accountId: 'fake-account-id',
       displayName: displayName,
+      underReview: underReview,
     );
   }
 

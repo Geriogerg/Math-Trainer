@@ -15,6 +15,10 @@
 #   bash tool/dashboard/dashboard.sh weak-spots          Phase 4: scheduled items, before/after (needs dart)
 #   bash tool/dashboard/dashboard.sh duels               Phase 7: duels, ratings, flagged runs, friends
 #   bash tool/dashboard/dashboard.sh review-run <run id> ok|reject   a flagged duel run: back in the pool, or out
+#   bash tool/dashboard/dashboard.sh moderation                     who is hidden or banned; who to look at
+#   bash tool/dashboard/dashboard.sh hide <player id> [reason]      off the boards, the pool and friend search
+#   bash tool/dashboard/dashboard.sh ban <player id> [reason]       hidden, and nothing more accepted from them
+#   bash tool/dashboard/dashboard.sh unhide <player id>             lifts either
 #
 # Connection: the environment variable DASHBOARD_DB_URL, else the first
 # line of tool/dashboard/connection.txt (git-ignored): Supabase → Connect →
@@ -85,6 +89,23 @@ case "$command" in
       *) echo "verdict: ok or reject" >&2; exit 2 ;;
     esac
     echo "select owner_dashboard.review_run('$2', '$verdict') as found;" | run
+    ;;
+  moderation)
+    # Who is hidden or banned, then every player with something to look at
+    # over the last 30 days (Phase 6a commit 3).
+    echo "select player_id, player, state, reason, to_char(decided_at, 'YYYY-MM-DD HH24:MI') as decided from owner_dashboard.moderation order by decided_at desc; select * from owner_dashboard.moderation_evidence limit 50;" | run
+    ;;
+  hide|ban)
+    need "${2:-}"
+    [[ "$2" =~ ^[0-9a-fA-F-]{36}$ ]] || { echo "not a player id: $2" >&2; exit 2; }
+    state=hidden
+    [ "$command" = ban ] && state=banned
+    echo "select owner_dashboard.moderate('$2', '$state', $(literal "${3:-}")) as done;" | run
+    ;;
+  unhide)
+    need "${2:-}"
+    [[ "$2" =~ ^[0-9a-fA-F-]{36}$ ]] || { echo "not a player id: $2" >&2; exit 2; }
+    echo "select owner_dashboard.unmoderate('$2') as lifted;" | run
     ;;
   new-code)
     need "${2:-}"

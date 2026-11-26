@@ -385,6 +385,9 @@ class DuelEndpoint {
         }
         final me = await _player(user.id, mode);
         if (me == null) return refused(409, 'notLinked');
+        // The owner suspended the account: no new duel (a hidden player
+        // still plays, against practice opponents — `duel_take_run`).
+        if (me.banned) return jsonResponse(403, {'error': 'account_suspended'});
         // The daily cap on new duels; the one still open is handed back.
         if (me.duelsToday >= maxDuelsPerDay) {
           final open = await gateway.rpc('duel_open_offer', {
@@ -563,7 +566,15 @@ class DuelEndpoint {
 
   /// A linked player's rating in [mode] (their row, or the start from their
   /// levels); `null` for a guest or nobody.
-  Future<({double rating, int ratedDuels, String? name, int duelsToday})?>
+  Future<
+    ({
+      double rating,
+      int ratedDuels,
+      String? name,
+      int duelsToday,
+      bool banned,
+    })?
+  >
   _player(String id, DuelMode mode) async {
     final json = await gateway.rpc('duel_player', {
       'p_player_id': id,
@@ -578,6 +589,7 @@ class DuelEndpoint {
       ratedDuels: row is Map ? row['ratedDuels'] as int : 0,
       name: json['name'] as String?,
       duelsToday: json['duelsToday'] as int? ?? 0,
+      banned: json['moderation'] == 'banned',
     );
   }
 

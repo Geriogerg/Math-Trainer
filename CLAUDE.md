@@ -24,7 +24,7 @@ and CI only: **no visible change to the game, no change to rules or generation**
 | 0 | *(A)* **Repository hygiene**: `tool/cloudflare/.wrangler/` out of the index, ignored, purged from the history (mirror backup, force-push, CI and deployments re-verified); decisions of 26 Nov recorded; findings tracked | m9 | done |
 | 1 | *(A)* **Duel results hold**: for the second player an unreplayable run or progress is a loss; abandonment scored after a challenge expires, no opening in its last 24 h; a run must extend its progress; challenges only to a friend or a 30-day opponent, `rematchOf` only a finished duel of the same mode, once per rolling 24 h for every chosen opponent; a run claiming more time than passed since the offer is refused; a flagged run's duel is unrated | B5, M1 (cheap part), M2, M3, n1 | done |
 | 2 | *(A)* **Abuse floor**: bodies counted while read; token buckets per player and per IP; malformed tokens refused before Supabase; refusals stored as hash + truncated payload, capped per player per day; daily cap on accepted sessions | B4 | done |
-| 3 | *(A)* **Solo integrity and moderation**: impossible cadence flagged or refused; a moderation table read by boards, pool and friend search; dashboard hide / unhide / ban; "Account under review" on Profile | M5 | |
+| 3 | *(A)* **Solo integrity and moderation**: impossible cadence flagged or refused; a moderation table read by boards, pool and friend search; dashboard hide / unhide / ban; "Account under review" on Profile | M5 | done |
 | 4 | *(A)* **Names and privacy**: reports from linked accounts only, rate-limited; reported name hidden until reviewed; look-alikes folded, folded names unique; `profiles` readable by its owner only; a deleted player's duels kept as "Deleted player" | M6, m8 | |
 | 5 | *(A)* **Capacity**: per-player game counts; boards computed once and cached ~1 min; maintained run pool, config hash; weak-spot check bounded; stored sessions slimmed (rows migrated); static files content-hashed, cached a year, the Function on HTML only; dashboard alert at 50 % of the database; measurements re-run | M7, M8, M9 | |
 | 6 | *(A)* **Correctness and security details**: times clamped to 30 s on a monotonic clock; poisoned session set aside, PostgREST 4xx → 400; security headers; advisory locks; 8-character friend codes, "New code", invite link asks first; sweep from `pg_cron`; exact staging origin; `search_path` everywhere, non-root container, dashboard password off the command line | m1, m2, m6, m7, m10, n2, n3 | |
@@ -364,6 +364,20 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   retries — a limit that refused would lose honest games. Bodies are read with
   `readBodyWithin` (never `readAsString`); a refused payload is stored as
   `refusal_digest` (hash, size, first 1,000 characters), 50 a day per player.
+- The address limit's key is `cf-connecting-ip`: Render sits behind Cloudflare, which sets it
+  and refuses a request that sets it itself (checked on staging, 26 Nov: forged
+  `x-forwarded-for` changed nothing, forged `cf-connecting-ip` got Cloudflare's 403). Keep it
+  first in `clientAddress`.
+- **Moderation** (6a commit 3): `player_moderation` (`hidden` | `banned`), written only by
+  `owner_dashboard.moderate` / `unmoderate` (`dashboard.sh hide|ban|unhide`). Every board,
+  `duel_take_run` (both ways), `duel_create_challenge` and `friend_request` read
+  `player_visible`; a new place that lists or matches players must too. `banned` = hidden plus
+  403 `account_suspended` on uploads and new duels — **a 403, never a refusal**: lifting the
+  ban must lose nothing. The player sees "Account under review" (`my_account_under_review`).
+- A session's end (`createdAt` + its answers' times) is stored
+  (`server_players.last_session_ends_at`); one created before the previous one ended is
+  flagged `overlapsPrevious` (accepted), one that ends after it was received is refused
+  `futureTimestamp`.
 - `HttpSupabaseGateway.userForToken` refuses what cannot be a Supabase token
   (`looksLikeAccessToken`) without calling Supabase; fakes take any string, so endpoint tests
   keep their short tokens.

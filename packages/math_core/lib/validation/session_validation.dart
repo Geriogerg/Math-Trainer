@@ -22,6 +22,7 @@ class ServerPlayerState {
   const ServerPlayerState({
     this.levels = const {},
     this.lastSessionAt,
+    this.lastSessionEndsAt,
     this.hasCompletedSession = false,
   });
 
@@ -29,6 +30,11 @@ class ServerPlayerState {
 
   final Map<ExerciseType, LevelCacheEntry> levels;
   final DateTime? lastSessionAt;
+
+  /// When the player's latest accepted session ended: its start plus its
+  /// answers' times (Phase 6a). `null`: none yet, or a server that did not
+  /// record it.
+  final DateTime? lastSessionEndsAt;
   final bool hasCompletedSession;
 }
 
@@ -38,7 +44,9 @@ enum RejectionReason {
   /// The session belongs to another player than the caller.
   wrongPlayer,
 
-  /// Timestamped after the moment the server received it (beyond clock skew).
+  /// Timestamped after the moment the server received it (beyond clock
+  /// skew) — or, from Phase 6a, ending after it: a session cannot arrive
+  /// sooner than the time its own answers took.
   futureTimestamp,
 
   /// Older than the player's last accepted session: uploads come in order.
@@ -105,6 +113,13 @@ enum ValidationFlag {
   /// never in the pool, never reviewed (the reason is in
   /// `duel_run_rejections`).
   forfeited,
+
+  /// A session created before the player's previous one could have ended
+  /// (plan v3.9, Phase 6a; review M5): two games at once, or timestamps
+  /// that were written, not lived. Accepted — a phone's clock set back
+  /// between two games does it honestly — and listed for the owner
+  /// (`owner_dashboard.moderation_evidence`).
+  overlapsPrevious,
 }
 
 sealed class ValidationResult {
@@ -144,6 +159,10 @@ const maxClockSkew = Duration(minutes: 5);
 
 /// The longest a question can take: the per-question timeout.
 const maxElapsedMs = 30000;
+
+/// How far before the previous session's end a session may start without
+/// being flagged [ValidationFlag.overlapsPrevious]: rounding, not play.
+const overlapTolerance = Duration(seconds: 2);
 
 /// The server's check of one uploaded session (plan 6.4): regenerate every
 /// question from the seed and the stored config with the same core, recheck
@@ -196,11 +215,27 @@ ValidationResult validateSessionUpload({
       '${answers.length} for ${session.exerciseCount}',
     );
   }
+  var playedMs = 0;
   for (final (i, a) in answers.indexed) {
     if (a.elapsedMs < 0 || a.elapsedMs > maxElapsedMs) {
       return Rejected(RejectionReason.badElapsed, 'answer $i: ${a.elapsedMs}');
     }
+    playedMs += a.elapsedMs;
   }
+  // Received sooner than its own answers took (Phase 6a): the session ends
+  // after the server got it. The same tolerance as for its start, so a
+  // phone whose clock runs up to five minutes ahead is never refused.
+  final endsAt = session.createdAt.add(Duration(milliseconds: playedMs));
+  if (endsAt.isAfter(receivedAt.add(maxClockSkew))) {
+    return Rejected(
+      RejectionReason.futureTimestamp,
+      'ends $endsAt > received $receivedAt',
+    );
+  }
+  final previousEnd = state.lastSessionEndsAt;
+  final overlaps =
+      previousEnd != null &&
+      session.createdAt.isBefore(previousEnd.subtract(overlapTolerance));
 
   // Every question regenerated from what the session stores.
   final List<Exercise> questions;
@@ -292,6 +327,7 @@ ValidationResult validateSessionUpload({
     levelUpdates: updates,
     flags: {
       ...timingFlags(outcomes),
+      if (overlaps) ValidationFlag.overlapsPrevious,
       if (history != null &&
           needsUploadHistory(session) &&
           weakSpotsNotDue(session, history).isNotEmpty)
@@ -300,6 +336,9 @@ ValidationResult validateSessionUpload({
     newState: ServerPlayerState(
       levels: {...state.levels, ...updates},
       lastSessionAt: session.createdAt,
+      lastSessionEndsAt: previousEnd != null && previousEnd.isAfter(endsAt)
+          ? previousEnd
+          : endsAt,
       hasCompletedSession: state.hasCompletedSession || completed,
     ),
   );

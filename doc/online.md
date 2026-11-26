@@ -552,6 +552,14 @@ quits, or at the next start; it waits until `/health` lists its mode and duel ru
   (sessions) and 64 KB (duels) while they are read; a token that cannot be a Supabase token
   is answered 401 without a call to Supabase; a refused upload or run is stored as a digest
   (SHA-256, size, first 1,000 characters), at most 50 a day per player.
+- **Moderation (Phase 6a commit 3).** The owner hides or bans a player from the dashboard
+  (`dashboard.sh moderation`, `hide`, `ban`, `unhide`; evidence in
+  `owner_dashboard.moderation_evidence`). Hidden: off every board, out of the duel pool both
+  ways (matched with practice only), no challenge from or to them, their friend code finds
+  nobody. Banned: hidden, and uploads and new duels answer 403 `account_suspended` (nothing
+  refused, nothing lost). Their Profile says "Account under review". A session created
+  before the player's previous one could have ended is flagged `overlapsPrevious`; one
+  received sooner than its own answers took is refused `futureTimestamp`.
 - **Results hold (Phase 6a).** For the second player a run that does not replay — or that
   claims more answering time than has passed since the duel was handed out — is a loss: the
   reason is recorded (`record_duel_run_forfeit`) and a `forfeited` run applied in its place.

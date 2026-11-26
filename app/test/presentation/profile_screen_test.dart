@@ -608,6 +608,45 @@ void main() {
     expect(find.text('Choose a player name'), findsNothing);
   });
 
+  // Phase 6a commit 3 (plan v3.9): the owner hid or suspended the account.
+  testWidgets('an account the owner hid says "Account under review"; any '
+      'other says nothing', (WidgetTester tester) async {
+    await setTallSurface(tester);
+    final profiles = FakeProfileRepository()..displayName = 'Alex';
+    Future<void> pump() async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildLightTheme(),
+          home: Scaffold(
+            body: ProfileScreen(
+              key: UniqueKey(),
+              environment: AppEnvironment(
+                repository: InMemorySessionRepository(),
+                playerId: 'test-player',
+                accountRepository: FakeAccountRepository(),
+                profileRepository: profiles,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    await pump();
+    expect(find.text('Account under review'), findsNothing);
+
+    profiles.underReview = true;
+    await pump();
+    expect(find.text('Account under review'), findsOneWidget);
+    expect(
+      find.textContaining('not shown on the boards'),
+      findsOneWidget,
+      reason: 'said in words, never by colour alone',
+    );
+    expect(find.text('Alex'), findsOneWidget, reason: 'the rest is unchanged');
+  });
+
   testWidgets(
     'editing the player name calls updateDisplayName and refreshes the display',
     (WidgetTester tester) async {

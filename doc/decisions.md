@@ -2082,3 +2082,27 @@ the gaps it leaves.
   Supabase — bounded by the address limit.
 - **A refusal past the daily count is not stored.** If it were ever resent it would be
   decided again, to the same verdict; the app never resends a refusal.
+
+**Commit 2, verified on staging.** The address limit's key is `cf-connecting-ip`: Render is
+behind Cloudflare, which sets it and refuses a request carrying its own (403). The caveat
+above no longer holds for Render; it would again on a host without Cloudflare in front.
+
+**Commit 3 — solo integrity and moderation (M5).**
+
+- **Overlap is a flag, received-too-soon is a refusal.** "Created before the previous one could
+  end" also happens honestly when a phone's clock is set back between two games, so it is
+  flagged and accepted (the owner sees it in `moderation_evidence`). "Received sooner than
+  its own total time" cannot happen honestly beyond the clock skew already tolerated (5
+  minutes), so it is refused like a session dated in the future, with the same reason
+  (`futureTimestamp`: no new stored name). The overlap tolerance is 2 s.
+- **Two levels of moderation.** `hidden` (the plan's "hidden player": off boards, pool and
+  friend search) and `banned` (also nothing more accepted). Neither is a refusal: a banned
+  player's uploads get 403 and stay on the device, so lifting a ban mistaken loses nothing.
+  A hidden player keeps playing and levelling; duels match them with practice opponents only
+  (they are out of the pool both ways) and stay unrated as practice is.
+- **What the player sees**: "Account under review" and one line ("Your results are not shown
+  on the boards until the review is done") on Profile — not the state, not the reason. A
+  hidden player's code finds nobody, and a challenge to them answers `notAllowed` like one to
+  a stranger: other players are not told.
+- **Evidence for the owner**: one view, a row per player with anything over the last 30 days.
+  No automatic hiding: the plan says the owner decides.

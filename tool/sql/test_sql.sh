@@ -64,7 +64,7 @@ for file in "$root"/supabase/migrations/*.sql; do run "$file"; done
 # below leaves out would otherwise be skipped while this prints "passed"
 # (Phase 7: the duel tests, named a1_…, for six commits). Raise the minimum
 # when adding test files; never lower it to pass.
-min_sql_tests=22
+min_sql_tests=23
 ran=0
 for file in "$root"/supabase/tests/[1-9]*_test.sql; do run "$file"; ran=$((ran + 1)); done
 for file in "$root"/supabase/tests/*_test.sql; do
@@ -98,6 +98,10 @@ dashboard approve-name 00000000-0000-0000-0000-0000000000d5
 dashboard feedback 5
 dashboard data-check
 dashboard features
+dashboard moderation
+dashboard hide 00000000-0000-0000-0000-0000000000d5 "scripted uploads, it's obvious"
+dashboard ban 00000000-0000-0000-0000-0000000000d5
+dashboard unhide 00000000-0000-0000-0000-0000000000d5
 dashboard duels
 dashboard review-run 00000000-0000-0000-0000-000000000000 ok
 echo "SQL tests passed"
