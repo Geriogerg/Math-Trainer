@@ -2,6 +2,8 @@
 -- for 24 hours listed for the server, unplayed challenges voided.
 
 delete from auth.users;
+-- Duels outlive their players (Phase 6a: "Deleted player"): cleared here.
+delete from public.duels;
 insert into auth.users (id, is_anonymous) values
   ('00000000-0000-0000-0000-0000000008a1', false),
   ('00000000-0000-0000-0000-0000000008a2', false);

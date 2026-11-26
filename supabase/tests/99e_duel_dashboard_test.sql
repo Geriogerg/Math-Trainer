@@ -1,6 +1,8 @@
 -- Phase 7 commit 8: the owner's duel views and the review of a flagged run.
 
 delete from auth.users;
+-- Duels outlive their players (Phase 6a: "Deleted player"): cleared here.
+delete from public.duels;
 insert into auth.users (id, is_anonymous) values
   ('00000000-0000-0000-0000-0000000005a1', false),
   ('00000000-0000-0000-0000-0000000005a2', false);

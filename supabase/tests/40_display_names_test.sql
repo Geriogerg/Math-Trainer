@@ -10,8 +10,8 @@ begin
     ('Ada', null),
     ('Zoé Martin', null),
     ('Nguyễn Văn An', null),
-    ('Ελένη', null),
-    ('Пётр', null),
+    ('Ελένη', 'charset'),
+    ('Пётр', 'charset'),
     ('O''Brien-2', null),
     ('Marc_Antoine.9', null),
     ('Mitsuko', null),
@@ -57,43 +57,105 @@ insert into public.profiles (id, display_name)
   values ('00000000-0000-0000-0000-0000000002a1', 'Target Name');
 reset role;
 
--- Reports: one per reporter, never on oneself, hidden at three.
+-- Reports (Phase 6a commit 4): from a saved account only, one per reporter
+-- and player; the first one hides the player's name until the owner
+-- reviews it — renaming does not bring it back.
+insert into auth.users (id, is_anonymous) values
+  ('00000000-0000-0000-0000-0000000002a5', true);
 do $$
-declare
-  reporter text;
 begin
-  foreach reporter in array array[
-    '00000000-0000-0000-0000-0000000002a2',
-    '00000000-0000-0000-0000-0000000002a3'
-  ] loop
-    perform set_config('request.jwt.claim.sub', reporter, false);
-    set local role authenticated;
-    perform public.report_player_name('00000000-0000-0000-0000-0000000002a1');
-    perform public.report_player_name('00000000-0000-0000-0000-0000000002a1');
-    reset role;
-  end loop;
-  assert (select count(*) from public.name_reports) = 2, 'one report per reporter';
-  assert public.public_display_name('00000000-0000-0000-0000-0000000002a1') = 'Target Name',
-    'hidden after two reports';
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000002a2', false);
+  set local role authenticated;
+  perform public.report_player_name('00000000-0000-0000-0000-0000000002a1');
+  perform public.report_player_name('00000000-0000-0000-0000-0000000002a1');
+  reset role;
+  assert (select count(*) from public.name_reports) = 1, 'one report per reporter';
+  assert public.public_display_name('00000000-0000-0000-0000-0000000002a1') is null,
+    'shown after a report';
 
   perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000002a1', false);
   set local role authenticated;
   perform public.report_player_name('00000000-0000-0000-0000-0000000002a1');
   reset role;
-  assert (select count(*) from public.name_reports) = 2, 'reported oneself';
+  assert (select count(*) from public.name_reports) = 1, 'reported oneself';
 
-  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000002a4', false);
+  -- A guest cannot report.
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000002a5', false);
+  set local role authenticated;
+  begin
+    perform public.report_player_name('00000000-0000-0000-0000-0000000002a1');
+    raise exception 'a guest reported';
+  exception when insufficient_privilege then null;
+  end;
+  reset role;
+  assert (select count(*) from public.name_reports) = 1;
+
+  -- A new spelling stays hidden: the report is about the player.
+  update public.profiles set display_name = 'Fresh Start'
+  where id = '00000000-0000-0000-0000-0000000002a1';
+  assert public.public_display_name('00000000-0000-0000-0000-0000000002a1') is null,
+    'renaming brought a reported name back';
+  assert (select display_name from owner_dashboard.names_to_review
+    where player_id = '00000000-0000-0000-0000-0000000002a1') = 'Fresh Start',
+    'the owner reviews the name as it is now';
+end;
+$$;
+
+-- The owner approves it (a later transaction): shown again.
+do $$
+begin
+  assert owner_dashboard.review_name('00000000-0000-0000-0000-0000000002a1', 'approve')
+    = 'approved: Fresh Start';
+  assert public.public_display_name('00000000-0000-0000-0000-0000000002a1') = 'Fresh Start';
+  assert not exists (select from owner_dashboard.names_to_review);
+end;
+$$;
+
+-- Reported again after the review: hidden again, back in the queue.
+do $$
+begin
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000002a2', false);
   set local role authenticated;
   perform public.report_player_name('00000000-0000-0000-0000-0000000002a1');
   reset role;
-  assert public.public_display_name('00000000-0000-0000-0000-0000000002a1') is null,
-    'not hidden after three reports';
+  assert public.public_display_name('00000000-0000-0000-0000-0000000002a1') is null;
+  assert (select reports from owner_dashboard.names_to_review) = 1;
+end;
+$$;
 
-  -- A new name starts clean: the reports were about the old one.
-  update public.profiles set display_name = 'Fresh Start'
+-- Cleared (a later transaction): the player picks another, shown.
+do $$
+begin
+  assert owner_dashboard.review_name('00000000-0000-0000-0000-0000000002a1', 'clear')
+    = 'cleared: Fresh Start';
+  update public.profiles set display_name = 'Second Try'
   where id = '00000000-0000-0000-0000-0000000002a1';
-  assert public.public_display_name('00000000-0000-0000-0000-0000000002a1') = 'Fresh Start',
-    'new name still hidden';
+  assert public.public_display_name('00000000-0000-0000-0000-0000000002a1') = 'Second Try';
+end;
+$$;
+
+-- At most 10 reports a day per reporter.
+insert into auth.users (id, is_anonymous)
+select ('00000000-0000-0000-0000-0000000003' || lpad(i::text, 2, '0'))::uuid, false
+from generate_series(1, 11) i;
+insert into public.profiles (id, display_name)
+select ('00000000-0000-0000-0000-0000000003' || lpad(i::text, 2, '0'))::uuid, 'Rate ' || i
+from generate_series(1, 11) i;
+do $$
+begin
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000002a3', false);
+  set local role authenticated;
+  for i in 1..10 loop
+    perform public.report_player_name(
+      ('00000000-0000-0000-0000-0000000003' || lpad(i::text, 2, '0'))::uuid);
+  end loop;
+  begin
+    perform public.report_player_name('00000000-0000-0000-0000-000000000311');
+    raise exception 'an 11th report in a day went through';
+  exception when program_limit_exceeded then null;
+  end;
+  reset role;
+  assert public.public_display_name('00000000-0000-0000-0000-000000000311') = 'Rate 11';
 end;
 $$;
 

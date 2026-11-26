@@ -560,6 +560,12 @@ quits, or at the next start; it waits until `/health` lists its mode and duel ru
   refused, nothing lost). Their Profile says "Account under review". A session created
   before the player's previous one could have ended is flagged `overlapsPrevious`; one
   received sooner than its own answers took is refused `futureTimestamp`.
+- **Names and privacy (Phase 6a commit 4).** Names use Latin letters only and are unique
+  ignoring case, accents and look-alike letters (`fold_display_name`). Only saved accounts
+  report a name, 10 a day; one report hides the player's name until the owner reviews it
+  (`dashboard.sh approve-name | clear-name`), whatever they rename it to. `profiles` is read
+  by its owner only. A deleted player's duels stay in their opponents' history as "Deleted
+  player"; their open duels are voided by the next sweep.
 - **Results hold (Phase 6a).** For the second player a run that does not replay — or that
   claims more answering time than has passed since the duel was handed out — is a loss: the
   reason is recorded (`record_duel_run_forfeit`) and a `forfeited` run applied in its place.

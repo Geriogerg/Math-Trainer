@@ -2,6 +2,8 @@
 -- capped per player per day; the daily counts the server reads.
 
 delete from auth.users;
+-- Duels outlive their players (Phase 6a: "Deleted player"): cleared here.
+delete from public.duels;
 insert into auth.users (id, is_anonymous) values
   ('00000000-0000-0000-0000-000000000fa1', true),
   ('00000000-0000-0000-0000-000000000fa2', false);

@@ -1,3 +1,4 @@
+import 'package:math_core/account/display_name.dart';
 import 'package:math_core/account/player_profile.dart';
 import 'package:math_core/account/profile_repository.dart';
 
@@ -26,9 +27,13 @@ class FakeProfileRepository implements ProfileRepository {
   /// Simulates a refused save (network, missing table).
   bool updateShouldFail = false;
 
+  /// Simulates a name another player holds (the unique index, Phase 6a).
+  bool nameTaken = false;
+
   @override
   Future<void> updateDisplayName(String displayName) async {
     if (updateShouldFail) throw Exception('save refused (simulated)');
+    if (nameTaken) throw const DisplayNameTaken();
     this.displayName = displayName;
   }
 }

@@ -56,7 +56,11 @@ void main() {
 
   setUp(() => leaderboard = _FakeLeaderboard());
 
-  Future<void> pump(WidgetTester tester, {bool isActive = true}) async {
+  Future<void> pump(
+    WidgetTester tester, {
+    bool isActive = true,
+    bool guest = false,
+  }) async {
     await tester.pumpWidget(
       MaterialApp(
         theme: buildLightTheme(),
@@ -66,7 +70,7 @@ void main() {
             environment: AppEnvironment(
               repository: InMemorySessionRepository(),
               playerId: 'me',
-              accountRepository: FakeAccountRepository(),
+              accountRepository: FakeAccountRepository(anonymous: guest),
               profileRepository: FakeProfileRepository(),
               leaderboardRepository: leaderboard,
             ),
@@ -226,6 +230,23 @@ void main() {
     await tester.pumpAndSettle();
     expect(leaderboard.reported, ['id-1']);
     expect(find.text('Reported — thank you.'), findsOneWidget);
+  });
+
+  // Phase 6a commit 4 (plan v3.9): only a saved account reports a name.
+  testWidgets('a guest is told to save their progress; nothing is sent', (
+    tester,
+  ) async {
+    leaderboard.tops[const LeaderboardBoard.main()] = [
+      _entry(1, 'Rude Name', 30),
+    ];
+    await pump(tester, guest: true);
+    await tester.tap(find.text('Top 100'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Report name'));
+    await tester.pumpAndSettle();
+    expect(find.text('Report "Rude Name"?'), findsNothing);
+    expect(find.text('Save your progress to report a name.'), findsOneWidget);
+    expect(leaderboard.reported, isEmpty);
   });
 
   testWidgets('a guest is offered to save their progress (Phase 2 commit 10)', (

@@ -2106,3 +2106,30 @@ above no longer holds for Render; it would again on a host without Cloudflare in
   a stranger: other players are not told.
 - **Evidence for the owner**: one view, a row per player with anything over the last 30 days.
   No automatic hiding: the plan says the owner decides.
+
+**Commit 4 — names and privacy (M6, m8).**
+
+- **"Latin letters only for names at launch"** (answer 15) is read as narrowing today's rule
+  (Latin, Greek, Cyrillic) to Latin — Basic Latin, Latin-1, Latin Extended-A and Vietnamese —
+  applied now because this commit owns names. Names already saved in Greek or Cyrillic are
+  kept (the database's check is `NOT VALID`; the fold covers both scripts so they cannot be
+  imitated). If "Latin only" meant "no wider than today", it is one line in Dart and one in
+  SQL to restore.
+- **What counts as the same name**: case, accents, look-alike letters of Latin, Greek and
+  Cyrillic, i/l/1 (I and l are the same glyph in Inter, and case is ignored), o/0, rn/m,
+  vv/w, and separators (space . _ ' -) ignored altogether: "Jean-Paul", "jean paul" and
+  "JeanPaul" are one name. Digits other than 0 and 1 are not folded ("Max 2" ≠ "Max 3").
+- **Duplicates already stored**: the profile that chose the name first keeps it; each later
+  one becomes "Name 2", "Name 3"… (cut to 30 characters), or no name if the result breaks the
+  rule. The players are not told; the next Profile visit shows the new name. Only the count
+  is printed by the migration (CI logs are no place for names).
+- **Reports**: saved accounts only (a guest is told to save their progress), 10 a day per
+  reporter. **One report hides the name** (answer 8: "a reported name is hidden until the
+  owner reviews it") — on the player, not the spelling. The hiding lasts until the owner's
+  next verdict on that player; a report made after it starts again. Abuse of reporting is
+  visible to the owner in `names_to_review` and `name_reports`, and the reporter can be
+  hidden or banned.
+- **A deleted player's duels**: kept with their result, their lane (times and right/wrong per
+  question, never the values typed) and the opponent's rating change; the deleted player's
+  name, runs, ratings, friends and everything else go. Open duels left with nobody to play
+  them are voided. The in-app notice says so; the published policy (6c) must too.

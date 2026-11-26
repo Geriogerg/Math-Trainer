@@ -167,16 +167,25 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     }
   }
 
-  /// Confirm, report, say so. Names are public content (plan 6.4).
+  /// Confirm, report, say so. Names are public content (plan 6.4). Only a
+  /// saved account reports (plan v3.9): a guest is told how.
   Future<void> _report(LeaderboardEntry entry) async {
     final controller = _controller!;
+    final account = await widget.environment.accountRepository.authState.first;
+    if (!mounted) return;
+    if (account == null || account.isAnonymous) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Save your progress to report a name.')),
+      );
+      return;
+    }
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text('Report "${entry.name}"?'),
         content: const Text(
-          'Report a name that is offensive or impersonates someone. A name '
-          'reported by several players is hidden until it is reviewed.',
+          'Report a name that is offensive or impersonates someone. A '
+          'reported name is hidden until it is reviewed.',
         ),
         actions: [
           AppButton.secondary(

@@ -25,7 +25,7 @@ and CI only: **no visible change to the game, no change to rules or generation**
 | 1 | *(A)* **Duel results hold**: for the second player an unreplayable run or progress is a loss; abandonment scored after a challenge expires, no opening in its last 24 h; a run must extend its progress; challenges only to a friend or a 30-day opponent, `rematchOf` only a finished duel of the same mode, once per rolling 24 h for every chosen opponent; a run claiming more time than passed since the offer is refused; a flagged run's duel is unrated | B5, M1 (cheap part), M2, M3, n1 | done |
 | 2 | *(A)* **Abuse floor**: bodies counted while read; token buckets per player and per IP; malformed tokens refused before Supabase; refusals stored as hash + truncated payload, capped per player per day; daily cap on accepted sessions | B4 | done |
 | 3 | *(A)* **Solo integrity and moderation**: impossible cadence flagged or refused; a moderation table read by boards, pool and friend search; dashboard hide / unhide / ban; "Account under review" on Profile | M5 | done |
-| 4 | *(A)* **Names and privacy**: reports from linked accounts only, rate-limited; reported name hidden until reviewed; look-alikes folded, folded names unique; `profiles` readable by its owner only; a deleted player's duels kept as "Deleted player" | M6, m8 | |
+| 4 | *(A)* **Names and privacy**: reports from linked accounts only, rate-limited; reported name hidden until reviewed; look-alikes folded, folded names unique; `profiles` readable by its owner only; a deleted player's duels kept as "Deleted player" | M6, m8 | done |
 | 5 | *(A)* **Capacity**: per-player game counts; boards computed once and cached ~1 min; maintained run pool, config hash; weak-spot check bounded; stored sessions slimmed (rows migrated); static files content-hashed, cached a year, the Function on HTML only; dashboard alert at 50 % of the database; measurements re-run | M7, M8, M9 | |
 | 6 | *(A)* **Correctness and security details**: times clamped to 30 s on a monotonic clock; poisoned session set aside, PostgREST 4xx → 400; security headers; advisory locks; 8-character friend codes, "New code", invite link asks first; sweep from `pg_cron`; exact staging origin; `search_path` everywhere, non-root container, dashboard password off the command line | m1, m2, m6, m7, m10, n2, n3 | |
 | 7 | *(A)* **Tests and CI**: integration job (real server + scratch Postgres: an upload and a duel per mode), a duel in the staging smoke test; no cancellation on `main`, actions pinned by commit, `permissions: contents: read`; catalogue test, SQL pin on assertions, chunked-body and non-UUID tests; dead dependencies out, `PREVIEW_BUILD` an input; stale comments and the reviewer's rule list | M12, M13, m15, m16, n4, n5 | |
@@ -461,8 +461,24 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 - Structural features exist twice — `math_core/difficulty/structural_features.dart` and SQL
   `owner_dashboard.structural_features`; the SQL test's cases run against Dart: change both.
 - The name rule exists twice — `math_core/account/display_name.dart` and the SQL
-  `display_name_problem`; change both (a parity test fails otherwise). Allowed letters must stay
+  `display_name_problem` (latest definition: `…_names_privacy.sql`; the parity test reads the
+  newest migration defining it); change both. **Latin letters only** since 6a (owner, plan
+  v3.9); names saved before are kept (the constraint is `NOT VALID`). Allowed letters must stay
   inside Inter's coverage (`name_charset_font_test.dart`).
+- **Names are unique by `fold_display_name`** (lowercase, accents and look-alikes of any script
+  folded, i/l/1 and o/0 together, separators dropped, rn → m, vv → w) — a unique index on it.
+  It folds upper case explicitly: `lower()` leaves non-ASCII letters alone under a C collation.
+  Changing the fold means rebuilding `profiles_display_name_folded` (and resolving the
+  duplicates first, `resolve_duplicate_display_names`). The app maps 23505 to
+  `DisplayNameTaken`.
+- **A report hides the player's name, not the spelling**, until the owner's next review
+  (`name_reviewed_at`); only saved accounts report, 10 a day. `profiles` is readable by its
+  owner only: anything showing another player's name goes through `public_display_name`.
+- **Duels outlive their players** (6a, "Deleted player"): `duels.first_player` and
+  `second_player` are `on delete set null`; runs, ratings and the rest still cascade. A SQL
+  test that starts with `delete from auth.users` and uses duels must also
+  `delete from public.duels`. A list of duels shows the other side through
+  `duel_opponent_name`.
 - SQL tests set `PGCLIENTENCODING=UTF8`: psql on Windows otherwise reads files in the console's
   code page. Git Bash also mangles non-ASCII command-line arguments to Windows programs — put
   such SQL in a file.

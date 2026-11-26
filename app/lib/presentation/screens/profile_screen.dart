@@ -260,6 +260,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('This name is not allowed.')),
       );
+    } on DisplayNameTaken {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('This name is taken — try another.')),
+      );
     } catch (_) {
       // The old name stays shown; without this message, the player would
       // think the new name was saved (network down, `profiles` table missing).

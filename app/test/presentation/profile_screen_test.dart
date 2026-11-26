@@ -710,6 +710,41 @@ void main() {
     expect(find.text('Alex'), findsOneWidget);
   });
 
+  // Phase 6a commit 4 (plan v3.9): names are unique.
+  testWidgets('a name another player holds: "taken", the old name stays', (
+    WidgetTester tester,
+  ) async {
+    await setTallSurface(tester);
+    final profileRepository = FakeProfileRepository()
+      ..displayName = 'Alex'
+      ..nameTaken = true;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildLightTheme(),
+        home: Scaffold(
+          body: ProfileScreen(
+            environment: AppEnvironment(
+              repository: InMemorySessionRepository(),
+              playerId: 'test-player',
+              accountRepository: FakeAccountRepository(),
+              profileRepository: profileRepository,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.edit_outlined));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'Lili Rose');
+    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('This name is taken — try another.'), findsOneWidget);
+    expect(find.text('Alex'), findsOneWidget);
+  });
+
   testWidgets('Sign out calls signOut', (WidgetTester tester) async {
     await setTallSurface(tester);
     final accountRepository = _RecordingAccountRepository();

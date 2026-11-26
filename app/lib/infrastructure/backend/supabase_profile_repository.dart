@@ -62,6 +62,9 @@ class SupabaseProfileRepository implements ProfileRepository {
     } on PostgrestException catch (e) {
       // 23514: a check constraint — the name rule (or its length).
       if (e.code == '23514') throw const DisplayNameRefused();
+      // 23505: the unique index — the name, or one that reads the same,
+      // is held by another player (Phase 6a).
+      if (e.code == '23505') throw const DisplayNameTaken();
       throw Exception(e.message);
     }
   }

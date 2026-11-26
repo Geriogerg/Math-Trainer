@@ -1,8 +1,10 @@
 /// Player names are public content (plan 6.4): checked before they are
 /// saved — here, for the player's immediate feedback, and by the database
-/// itself (`public.display_name_problem`, migration
-/// `…_display_names.sql`), which is the actual enforcement. A test keeps
-/// the two in step (`test/account/display_name_test.dart`).
+/// itself (`public.display_name_problem`, latest in migration
+/// `…_names_privacy.sql`), which is the actual enforcement. A test keeps
+/// the two in step (`test/account/display_name_test.dart`). The database
+/// also keeps names unique, ignoring case and look-alike letters
+/// (`fold_display_name`): a name already held is [DisplayNameTaken].
 ///
 /// **Provisional rules** (Phase 2 commit 9, `doc/decisions.md`).
 library;
@@ -10,15 +12,14 @@ library;
 /// Longest name (the `profiles` check, the input's `maxLength`).
 const maxDisplayNameLength = 30;
 
-/// Characters a name may use: letters the bundled Inter font draws (no
-/// font is fetched at runtime, a missing glyph would show as a box) —
-/// Basic Latin, Latin-1, Latin Extended-A, Vietnamese, modern Greek, basic
-/// Cyrillic — digits, space and `. _ ' -`. The same text, character for
-/// character, is the database's regular expression.
-const displayNameCharClass =
-    r"[A-Za-z0-9À-ÖØ-öø-ňŊ-ſ"
-    r"ΆΈ-ΊΌΎ-ΡΣ-ώЀ-џ"
-    r"Ạ-ỹ ._'-]";
+/// Characters a name may use: **Latin letters only** (owner, plan v3.9:
+/// "Latin letters only for names at launch"; Greek and Cyrillic were
+/// allowed until Phase 6a, names already saved are kept) that the bundled
+/// Inter font draws (no font is fetched at runtime, a missing glyph would
+/// show as a box) — Basic Latin, Latin-1, Latin Extended-A, Vietnamese —
+/// digits, space and `. _ ' -`. The same text, character for character, is
+/// the database's regular expression.
+const displayNameCharClass = r"[A-Za-z0-9À-ÖØ-öø-ňŊ-ſẠ-ỹ ._'-]";
 
 /// Refused anywhere in the name once separators are removed: long enough
 /// not to hide inside ordinary names. Lowercase.
@@ -49,6 +50,15 @@ class DisplayNameRefused implements Exception {
 
   @override
   String toString() => 'DisplayNameRefused';
+}
+
+/// Another player holds the name, or one that reads the same (case,
+/// accents, look-alike letters: the database's `fold_display_name`).
+class DisplayNameTaken implements Exception {
+  const DisplayNameTaken();
+
+  @override
+  String toString() => 'DisplayNameTaken';
 }
 
 enum DisplayNameProblem {

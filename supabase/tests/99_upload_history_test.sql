@@ -2,6 +2,8 @@
 -- for the server's weak-spot check; nobody else's; service role only.
 
 delete from auth.users;
+-- Duels outlive their players (Phase 6a: "Deleted player"): cleared here.
+delete from public.duels;
 insert into auth.users (id, is_anonymous) values
   ('00000000-0000-0000-0000-0000000000a1', true),
   ('00000000-0000-0000-0000-0000000000a2', true);

@@ -24,11 +24,27 @@ end;
 $$;
 reset role;
 
--- Everyone reads profiles, signed out included.
+-- Each player reads their own profile only (Phase 6a commit 4; boards
+-- read names through `public_display_name`); signed out, none.
+insert into public.profiles (id, display_name)
+  values ('00000000-0000-0000-0000-00000000000b', 'Bea');
+set role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+do $$
+begin
+  assert (select array_agg(display_name) from public.profiles) = array['Ada'],
+    'a player read someone else''s profile';
+end;
+$$;
+reset role;
 set role anon;
 do $$
 begin
-  assert (select count(*) from public.profiles) = 1, 'anon cannot read profiles';
+  begin
+    perform 1 from public.profiles;
+    raise exception 'anon read profiles';
+  exception when insufficient_privilege then null;
+  end;
 end;
 $$;
 -- Signed out: the deletion function is not even callable.

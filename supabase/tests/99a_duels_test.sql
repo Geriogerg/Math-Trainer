@@ -3,6 +3,8 @@
 -- server calls these as the service role; players cannot.
 
 delete from auth.users;
+-- Duels outlive their players (Phase 6a: "Deleted player"): cleared here.
+delete from public.duels;
 insert into auth.users (id, is_anonymous) values
   ('00000000-0000-0000-0000-0000000000c1', false),
   ('00000000-0000-0000-0000-0000000000c2', false),

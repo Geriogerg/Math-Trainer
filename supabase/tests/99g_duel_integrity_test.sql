@@ -3,6 +3,8 @@
 -- challenge, who may be challenged, forfeits recorded without voiding.
 
 delete from auth.users;
+-- Duels outlive their players (Phase 6a: "Deleted player"): cleared here.
+delete from public.duels;
 insert into auth.users (id, is_anonymous) values
   ('00000000-0000-0000-0000-000000000ca1', false),
   ('00000000-0000-0000-0000-000000000ca2', false),

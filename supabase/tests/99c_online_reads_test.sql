@@ -2,6 +2,8 @@
 -- players through security definer functions on auth.uid().
 
 delete from auth.users;
+-- Duels outlive their players (Phase 6a: "Deleted player"): cleared here.
+delete from public.duels;
 insert into auth.users (id, is_anonymous) values
   ('00000000-0000-0000-0000-0000000001a1', false),
   ('00000000-0000-0000-0000-0000000001a2', false),

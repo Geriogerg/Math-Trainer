@@ -1594,7 +1594,7 @@ owner decision, nothing to build).
 | M3 | Rated duels aimed at a chosen player; daily rule bypassed | 6a (1) | **fixed** (no block list: not in the plan) |
 | M4 | Quitting bad Levelling games never costs a level | 6b (2), rules v9 | open |
 | M5 | Solo sessions fabricated in bulk; no way to remove a cheater | 6a (3) | **fixed** (with the daily cap of commit 2; the seed is still the client's: a session replays to what it claims, it is not chosen by the server) |
-| M6 | Names: weak filter, no uniqueness, abusable hiding, `profiles` world-readable | 6a (4) | open |
+| M6 | Names: weak filter, no uniqueness, abusable hiding, `profiles` world-readable | 6a (4) | **fixed** (the word filter itself unchanged: the owner reviews within 48 h) |
 | M7 | The main leaderboard does not scale | 6a (5) | open |
 | M8 | Matchmaking and the weak-spot check grow with history | 6a (5) | open |
 | M9 | Free-plan capacity: stored sessions, Pages Function quota, sleeping server | 6a (5); always-on plan bought before 6c | open |
@@ -1615,7 +1615,7 @@ owner decision, nothing to build).
 | m5 | Weak spots can be 25 % of an operation | 6b (7) | open |
 | m6 | No security headers | 6a (6) | open |
 | m7 | Daily limits can be raced; short friend codes; invite link sends without asking | 6a (6) | open |
-| m8 | Deleting an account deletes opponents' duel history; notice wording | 6a (4); notice wording with 6c (2) | open |
+| m8 | Deleting an account deletes opponents' duel history; notice wording | 6a (4); notice wording with 6c (2) | **fixed** in 6a (duels kept, in-app notice says so); the published policy is 6c |
 | m9 | Wrangler state committed | 6a (0) | **fixed** (GitHub still holds the old commits by hash until its own cleanup) |
 | m10 | Abandonment sweep runs inside other players' requests | 6a (6) | open |
 | m11 | Trivial questions at high tiers; unbalanced duels | 6b (1), rules v9 | open |
@@ -1735,3 +1735,27 @@ owner decision, nothing to build).
   fair-play marks and a review decision. Tests: core cadence (3), SQL
   `99i_moderation_test.sql`, server `moderation_test.dart` (4), Profile (1). Counts: core VM
   1126, core JavaScript 900, server 99, app 448, SQL 23 files.
+- **Commit 4** *(A)* — **Names and privacy (M6, m8).** Migration
+  `20261202030000_names_privacy`: the name rule allows **Latin letters only** (owner's answer
+  15; Greek and Cyrillic names already saved are kept — `NOT VALID`); `fold_display_name`
+  (422 letters folded to the Latin letter they read as, upper case included; separators
+  dropped; i/l/1, o/0, rn/m, vv/w) and a **unique index** on it, after
+  `resolve_duplicate_display_names` (the earliest profile keeps a name, later ones become
+  "Name 2", "Name 3"…; only the count is printed); `profiles` readable by its owner only
+  (anon: no grant); `report_player_name` from saved accounts only (42501), 10 a day (54000,
+  advisory lock), a re-report after a review counts again; `public_display_name` hides a
+  player with any report newer than their latest review (`name_reviewed_at`) — renaming no
+  longer brings a reported name back; `review_name` records every verdict;
+  `names_to_review` oldest report first (same columns); `duels.first_player` /
+  `second_player` `on delete set null`, the practice check rewritten; `duel_opponent_name`
+  ("Deleted player"); `duel_abandoned` voids open duels left with nobody and never lists them.
+  **Fix of commit 1**: `duel_overview` kept a challenge in "Waiting for you" only until its
+  opening date — one opened in time disappeared during its 24 hours to play; now it stays.
+  Core: `displayNameCharClass` Latin only, `DisplayNameTaken`; the parity test reads the newest
+  migration defining the rule. App: a taken name says so on Profile; a guest's report says
+  "Save your progress to report a name." and sends nothing; the report dialog and the privacy
+  notice say what changed (goldens re-rendered). SQL tests: `99j_names_privacy_test.sql`,
+  `40`, `10` rewritten for the new rules; every duel test clears `public.duels` (duels now
+  outlive the players the tests delete). Tests: core name samples, app (2). Counts: core VM
+  1126, core JavaScript 900, server 99, app 450, SQL 24
+  files.

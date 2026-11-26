@@ -6,14 +6,25 @@ import 'dart:io';
 import 'package:math_core/account/display_name.dart';
 import 'package:test/test.dart';
 
-/// The database enforces the same rule as the app
-/// (`supabase/migrations/…_display_names.sql`): this checks the migration
-/// holds this package's character class and word lists, character for
-/// character — change one, change both. Reads the file: VM only.
+/// The database enforces the same rule as the app: this checks the latest
+/// migration that defines `public.display_name_problem` holds this
+/// package's character class and word lists, character for character —
+/// change one, change both. Reads the files: VM only.
 void main() {
-  final sql = File(
-    '../../supabase/migrations/20261120030000_display_names.sql',
-  ).readAsStringSync();
+  final migrations =
+      Directory('../../supabase/migrations')
+          .listSync()
+          .whereType<File>()
+          .where((f) => f.path.endsWith('.sql'))
+          .toList()
+        ..sort((a, b) => a.path.compareTo(b.path));
+  final sql = migrations.reversed
+      .map((f) => f.readAsStringSync())
+      .firstWhere(
+        (text) => text.contains(
+          'create or replace function public.display_name_problem',
+        ),
+      );
 
   /// A Dart string as it appears in a SQL literal (quotes doubled).
   String inSql(String s) => s.replaceAll("'", "''");
