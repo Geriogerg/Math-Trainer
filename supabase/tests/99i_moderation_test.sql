@@ -74,7 +74,7 @@ values
   ('00000000-0000-0000-0000-00000000ad02', '00000000-0000-0000-0000-000000000ab2', 'basics',
    '{"seed": 32, "difficulty": 4}', '{}', '{"answers": []}', '{"points": 3, "ms": 9000}');
 insert into public.friend_codes (player_id, code) values
-  ('00000000-0000-0000-0000-000000000ab1', 'MATH-AAAA');
+  ('00000000-0000-0000-0000-000000000ab1', 'MATH-AAAA-AAAA');
 insert into public.friendships (player_a, player_b) values
   ('00000000-0000-0000-0000-000000000ab1', '00000000-0000-0000-0000-000000000ab2');
 
@@ -135,7 +135,7 @@ set role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000ab3', false);
 do $$
 begin
-  assert public.friend_request('MATH-AAAA') = 'unknown', 'a hidden player is not found';
+  assert public.friend_request('MATH-AAAA-AAAA') = 'unknown', 'a hidden player is not found';
   assert not public.my_account_under_review();
 end;
 $$;
@@ -174,7 +174,7 @@ set role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000ab3', false);
 do $$
 begin
-  assert public.friend_request('MATH-AAAA') = 'sent', 'found again';
+  assert public.friend_request('MATH-AAAA-AAAA') = 'sent', 'found again';
 end;
 $$;
 reset role;

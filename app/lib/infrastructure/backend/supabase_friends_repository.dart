@@ -20,6 +20,9 @@ class SupabaseFriendsRepository implements FriendsRepository {
   Future<String> myCode() async => '${await _call('my_friend_code')}';
 
   @override
+  Future<String> newCode() async => '${await _call('new_friend_code')}';
+
+  @override
   Future<FriendRequestOutcome> request(String code) async =>
       FriendRequestOutcome.parse(
         await _call('friend_request', {'p_code': code}),

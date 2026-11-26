@@ -34,7 +34,12 @@ class FakeFriendsRepository implements FriendsRepository {
   FriendRequestOutcome next = FriendRequestOutcome.sent;
 
   @override
-  Future<String> myCode() async => 'MATH-7K2P';
+  Future<String> myCode() async => 'MATH-7K2P-QX4M';
+
+  var newCodes = 0;
+
+  @override
+  Future<String> newCode() async => 'MATH-NEW${++newCodes}-QX4M';
 
   @override
   Future<FriendRequestOutcome> request(String code) async {
@@ -156,7 +161,7 @@ void main() {
   ]) {
     testWidgets('the Friends page, as in the mockup — $name', (tester) async {
       await pumpFriends(tester, theme);
-      expect(find.text('MATH-7K2P'), findsOneWidget);
+      expect(find.text('MATH-7K2P-QX4M'), findsOneWidget);
       expect(find.text('Share link'), findsOneWidget);
       expect(find.text('Add code'), findsOneWidget);
       expect(find.text('Challenge'), findsNWidgets(3));
@@ -171,18 +176,36 @@ void main() {
     await pumpFriends(tester, buildLightTheme());
     await tester.tap(find.text('Add code'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), ' math 2b3c ');
+    await tester.enterText(find.byType(TextField), ' math 2b3c 4d5e ');
     await tester.tap(find.text('Add'));
     await tester.pumpAndSettle();
-    expect(friends.requested, ['MATH-2B3C']);
+    expect(friends.requested, ['MATH-2B3C-4D5E']);
     expect(find.text('Request sent.'), findsOneWidget);
+  });
+
+  // Phase 6a (review m7): a player can replace a code shared too widely.
+  testWidgets('New code: asked first, then shown', (tester) async {
+    await pumpFriends(tester, buildLightTheme());
+    await tester.ensureVisible(find.text('New code'));
+    await tester.tap(find.text('New code'));
+    await tester.pumpAndSettle();
+    expect(find.text('Get a new code?'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(friends.newCodes, 0);
+    await tester.tap(find.text('New code'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('New code').last);
+    await tester.pumpAndSettle();
+    expect(friends.newCodes, 1);
+    expect(find.text('MATH-NEW1-QX4M'), findsOneWidget);
   });
 
   testWidgets('a code that cannot be one is never sent', (tester) async {
     await pumpFriends(tester, buildLightTheme());
     await tester.tap(find.text('Add code'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), 'MATH-0O1I');
+    await tester.enterText(find.byType(TextField), 'MATH-0O1I-2345');
     await tester.tap(find.text('Add'));
     await tester.pumpAndSettle();
     expect(friends.requested, isEmpty);
@@ -203,7 +226,7 @@ void main() {
     await pumpFriends(tester, buildLightTheme());
     await tester.tap(find.text('Share link'));
     await tester.pumpAndSettle();
-    expect(copied, 'https://math-trainer-kjc.pages.dev/?friend=MATH-7K2P');
+    expect(copied, 'https://math-trainer-kjc.pages.dev/?friend=MATH-7K2P-QX4M');
     expect(find.text('Link copied'), findsOneWidget);
   });
 
@@ -222,7 +245,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       sheet.shared.single.toString(),
-      'https://math-trainer-kjc.pages.dev/?friend=MATH-7K2P',
+      'https://math-trainer-kjc.pages.dev/?friend=MATH-7K2P-QX4M',
     );
     expect(copied, isFalse);
     expect(find.text('Link copied'), findsNothing);
@@ -248,7 +271,7 @@ void main() {
     );
     await tester.tap(find.text('Share link'));
     await tester.pumpAndSettle();
-    expect(copied, 'https://math-trainer-kjc.pages.dev/?friend=MATH-7K2P');
+    expect(copied, 'https://math-trainer-kjc.pages.dev/?friend=MATH-7K2P-QX4M');
     expect(find.text('Link copied'), findsOneWidget);
   });
 
@@ -294,13 +317,17 @@ void main() {
     await tester.tap(find.text('Remove'));
     await tester.pumpAndSettle();
     expect(friends.removed, ['lea']);
-    expect(find.text('MATH-7K2P'), findsOneWidget, reason: 'back on Friends');
+    expect(
+      find.text('MATH-7K2P-QX4M'),
+      findsOneWidget,
+      reason: 'back on Friends',
+    );
   });
 
   testWidgets('an invite link becomes a request once linked; the pill', (
     tester,
   ) async {
-    invites.code = 'MATH-9XYZ';
+    invites.code = 'MATH-9XYZ-9XYZ';
     final online = FakeOnlineRepository(
       OnlineOverview.fromJson({
         'linked': true,
@@ -318,7 +345,12 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(friends.requested, ['MATH-9XYZ']);
+    // Phase 6a: a link alone sends nothing; the player is asked.
+    expect(friends.requested, isEmpty);
+    expect(find.text('Send a friend request?'), findsOneWidget);
+    await tester.tap(find.text('Send request'));
+    await tester.pumpAndSettle();
+    expect(friends.requested, ['MATH-9XYZ-9XYZ']);
     expect(invites.code, isNull, reason: 'sent once');
     await tester.tap(find.text('Online'));
     await tester.pumpAndSettle();
@@ -330,6 +362,6 @@ void main() {
     );
     await tester.tap(find.byKey(const ValueKey('friends-pill')));
     await tester.pumpAndSettle();
-    expect(find.text('MATH-7K2P'), findsOneWidget);
+    expect(find.text('MATH-7K2P-QX4M'), findsOneWidget);
   });
 }

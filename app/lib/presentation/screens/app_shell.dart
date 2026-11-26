@@ -2,6 +2,8 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../composition_root.dart';
 import '../../core/state/online_controller.dart';
+import 'friends_screen.dart' show friendRequestText;
+import '../kit/kit.dart';
 import '../theme/app_theme.dart';
 import 'leaderboard_screen.dart';
 import 'online_screen.dart';
@@ -46,7 +48,7 @@ class _AppShellState extends State<AppShell>
   @override
   void initState() {
     super.initState();
-    _online = _buildOnline(widget.environment);
+    _online = _buildOnline(widget.environment)?..addListener(_onOnline);
   }
 
   @override
@@ -54,8 +56,44 @@ class _AppShellState extends State<AppShell>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.environment.playerId != widget.environment.playerId) {
       _online?.dispose();
-      _online = _buildOnline(widget.environment);
+      _online = _buildOnline(widget.environment)?..addListener(_onOnline);
     }
+  }
+
+  /// An invite link waits for the player's yes (Phase 6a, review m7): asked
+  /// here, on whatever tab is shown; the request's outcome said once.
+  void _onOnline() {
+    final online = _online;
+    if (online == null || !mounted) return;
+    final invite = online.takePendingInvite();
+    if (invite != null) _askInvite(online, invite).ignore();
+    final outcome = online.takeInviteOutcome();
+    if (outcome != null) {
+      ScaffoldMessenger.maybeOf(
+        context,
+      )?.showSnackBar(SnackBar(content: Text(friendRequestText(outcome))));
+    }
+  }
+
+  Future<void> _askInvite(OnlineController online, String code) async {
+    final send = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Send a friend request?'),
+        content: Text('An invite link asks to add the player with code $code.'),
+        actions: [
+          AppButton.secondary(
+            label: 'Not now',
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+          ),
+          AppButton.primary(
+            label: 'Send request',
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+          ),
+        ],
+      ),
+    );
+    await online.answerInvite(code, send: send == true);
   }
 
   static OnlineController? _buildOnline(AppEnvironment environment) {

@@ -2166,3 +2166,26 @@ above no longer holds for Render; it would again on a host without Cloudflare in
   `sqlite3.wasm` is still revalidated on every visit: it must match `sqflite_sw.js`, which keeps
   its name. That is one Function call per returning visit instead of five: the free quota
   (100,000 a day) is ~100,000 returning visits a day, ~25,000 first visits.
+
+**Commit 6 — details (m1, m2, m6, m7, m10, n2, n3).**
+
+- **The sweep runs on a server timer, not `pg_cron`** (deviation). Recording an abandoned duel
+  needs the Dart replay (score, lane) and Glicko-2, both in the server; `pg_cron` could only
+  call the server back through `pg_net` with a shared secret stored in the database — more
+  moving parts than the finding is worth. The server sweeps every 5 minutes and soon after a
+  duel request (at most once a minute), never inside one. On Render's free plan the timer
+  stops while the server sleeps; the first request after waking sweeps. With the always-on
+  plan (6c) it runs all the time.
+- **Setting a session aside**: 20 failures *the server answered* (5xx), the first at least 3
+  days before the last. Being offline or the server asleep never counts. The session is
+  marked refused on the device (`setAside`, shown as "the server could not check this game")
+  and the games after it are sent; they may then be refused `levelsMismatch` and the app
+  adopts the server's levels, as for any refusal.
+- **Friend codes**: 8 characters in two groups of 4 (about 10¹² codes); every existing code
+  was replaced and old invite links find nobody (a handful of beta testers). "New code" is
+  confirmed first and keeps friends.
+- **CSP**: `'unsafe-inline'` for scripts stays (the boot sign-in and the loader are inline in
+  `index.html`); `'wasm-unsafe-eval'` for CanvasKit and SQLite; no `'unsafe-eval'`;
+  `connect-src` limited to the site, its Supabase project (HTTPS and WebSocket) and its server.
+- **Container**: UID 65534 by number (the scratch image has no user database). The base image
+  stays a tag (`dart:3.14`): pinning a digest needs a way to bump it, not in this phase.

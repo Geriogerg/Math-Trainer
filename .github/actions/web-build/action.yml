@@ -66,3 +66,9 @@ runs:
       shell: bash
       working-directory: app
       run: node ../tool/web/hash_assets.mjs build/web
+    - name: Security headers
+      # A Content Security Policy naming this build's own backend, no
+      # framing, nosniff, a referrer policy (Phase 6a commit 6): _headers.
+      shell: bash
+      working-directory: app
+      run: node ../tool/web/security_headers.mjs build/web dart_defines.json

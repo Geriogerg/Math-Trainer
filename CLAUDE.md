@@ -27,7 +27,7 @@ and CI only: **no visible change to the game, no change to rules or generation**
 | 3 | *(A)* **Solo integrity and moderation**: impossible cadence flagged or refused; a moderation table read by boards, pool and friend search; dashboard hide / unhide / ban; "Account under review" on Profile | M5 | done |
 | 4 | *(A)* **Names and privacy**: reports from linked accounts only, rate-limited; reported name hidden until reviewed; look-alikes folded, folded names unique; `profiles` readable by its owner only; a deleted player's duels kept as "Deleted player" | M6, m8 | done |
 | 5 | *(A)* **Capacity**: per-player game counts; boards computed once and cached ~1 min; maintained run pool, config hash; weak-spot check bounded; stored sessions slimmed (rows migrated); static files content-hashed, cached a year, the Function on HTML only; dashboard alert at 50 % of the database; measurements re-run | M7, M8, M9 | done (sessions not slimmed: measured, it would grow them — `doc/decisions.md`) |
-| 6 | *(A)* **Correctness and security details**: times clamped to 30 s on a monotonic clock; poisoned session set aside, PostgREST 4xx → 400; security headers; advisory locks; 8-character friend codes, "New code", invite link asks first; sweep from `pg_cron`; exact staging origin; `search_path` everywhere, non-root container, dashboard password off the command line | m1, m2, m6, m7, m10, n2, n3 | |
+| 6 | *(A)* **Correctness and security details**: times clamped to 30 s on a monotonic clock; poisoned session set aside, PostgREST 4xx → 400; security headers; advisory locks; 8-character friend codes, "New code", invite link asks first; sweep from `pg_cron`; exact staging origin; `search_path` everywhere, non-root container, dashboard password off the command line | m1, m2, m6, m7, m10, n2, n3 | done (the sweep on a server timer, not `pg_cron`) |
 | 7 | *(A)* **Tests and CI**: integration job (real server + scratch Postgres: an upload and a duel per mode), a duel in the staging smoke test; no cancellation on `main`, actions pinned by commit, `permissions: contents: read`; catalogue test, SQL pin on assertions, chunked-body and non-UUID tests; dead dependencies out, `PREVIEW_BUILD` an input; stale comments and the reviewer's rule list | M12, M13, m15, m16, n4, n5 | |
 
 **Exit:** each of the review's duel exploits ends in a loss or a refusal; 2,000 crafted refusals
@@ -393,6 +393,23 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   year by the Pages Function; fonts a day; `sqlite3.wasm` revalidated (it must match the
   unhashed `sqflite_sw.js`). `precompress.mjs` routes the hashed name it finds. A new large file
   loaded by name needs a decision: hashed (and its reference rewritten) or revalidated.
+- **Answer times never leave [0, 30 s]** (6a commit 6): `SessionController` times answers on a
+  monotonic clock (a `Stopwatch`; tests that inject `clock` time by it) and clamps them.
+- **Supabase's refusal is final**: `HttpSupabaseGateway.rpc` throws `GatewayRejected` on a
+  PostgREST 4xx other than 401/403/404/408/429, and the endpoints answer 400 `badRequest`; a
+  5xx stays `GatewayUnavailable` (503, retried). The app sets a session aside after 20
+  server-answered failures over 3 days (`UploadAttemptLog`, reason `setAside`).
+- **Security headers** come from `tool/web/security_headers.mjs` (`_headers`, written by CI's
+  web build from `dart_defines.json`): a new place the app talks to must be added to its
+  `connect-src`, or the browser blocks it. Inline scripts stay allowed (index.html's boot).
+- **Friend codes have 8 characters** (`MATH-7K2P-QX4M`, `normalizeFriendCode` and SQL
+  `normalize_friend_code`: change both); `new_friend_code()` replaces one. An invite link
+  asks before it sends a request (`OnlineController.takePendingInvite`).
+- Abandoned duels are swept by the production server outside requests (`sweepSoon`: a timer
+  every 5 minutes, and after a duel request at most once a minute); `DuelEndpoint` keeps
+  `sweepInRequests: true` by default for the tests.
+- Every function in `public` and `owner_dashboard` sets `search_path` (`99l_details_test.sql`
+  checks the whole catalogue): a new one without it fails CI.
 - `HttpSupabaseGateway.userForToken` refuses what cannot be a Supabase token
   (`looksLikeAccessToken`) without calling Supabase; fakes take any string, so endpoint tests
   keep their short tokens.

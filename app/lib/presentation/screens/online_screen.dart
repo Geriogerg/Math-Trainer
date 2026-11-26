@@ -57,14 +57,9 @@ class _OnlineScreenState extends State<OnlineScreen> {
     super.dispose();
   }
 
-  /// An invite link's request was sent: said once.
-  void _onChanged() {
-    final outcome = widget.controller?.takeInviteOutcome();
-    if (outcome == null || !mounted) return;
-    ScaffoldMessenger.maybeOf(
-      context,
-    )?.showSnackBar(SnackBar(content: Text(friendRequestText(outcome))));
-  }
+  /// The invite link is handled by the shell (Phase 6a: asked on any
+  /// tab); this screen only rebuilds.
+  void _onChanged() {}
 
   AppEnvironment get environment => widget.environment;
 

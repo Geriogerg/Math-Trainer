@@ -143,6 +143,10 @@ class HttpSessionUploadClient implements SessionUploadClient {
         }
     }
     // 401 (token expired between refresh and call), 5xx, anything else.
-    throw UploadUnavailable('HTTP ${response.statusCode}');
+    // A 5xx is the server failing on this session: counted against it.
+    throw UploadUnavailable(
+      'HTTP ${response.statusCode}',
+      serverAnswered: response.statusCode >= 500,
+    );
   }
 }

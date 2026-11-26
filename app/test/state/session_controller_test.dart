@@ -881,6 +881,21 @@ void main() {
       expect(s.controller.state.outcomes.last.elapsedMs, 2000);
     });
 
+    // Phase 6a (review m1): an answer after a late timer, or a clock moved
+    // back, never records a time the server refuses.
+    test('a response time is kept within [0, 30 s]', () {
+      final s = build();
+      s.controller.start();
+      s.tick(31500); // the timer did not fire: a hidden tab
+      s.controller.submitAnswer(99);
+      expect(s.controller.state.outcomes.last.elapsedMs, 30000);
+      s.tick(1000);
+      s.spy.latest.fire();
+      s.tick(-5000); // the clock set back
+      s.controller.submitAnswer(2);
+      expect(s.controller.state.outcomes.last.elapsedMs, 0);
+    });
+
     test('a mistake on the last question ends the session without pause', () {
       final s = build(count: 1);
       s.controller.start();

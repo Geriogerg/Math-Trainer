@@ -16,11 +16,12 @@ insert into public.profiles (id, display_name) values
 
 do $$
 begin
-  assert public.normalize_friend_code('MATH-7K2P') = 'MATH-7K2P';
-  assert public.normalize_friend_code(' math 7k2p ') = 'MATH-7K2P';
-  assert public.normalize_friend_code('7k2p') = 'MATH-7K2P';
-  assert public.normalize_friend_code('MATH-MATH') = 'MATH-MATH';
-  assert public.normalize_friend_code('MATH-7K2O') is null, 'O is never in a code';
+  -- 8 characters since Phase 6a (99l_details_test.sql has the rest).
+  assert public.normalize_friend_code('MATH-7K2P-QX4M') = 'MATH-7K2P-QX4M';
+  assert public.normalize_friend_code(' math 7k2p qx4m ') = 'MATH-7K2P-QX4M';
+  assert public.normalize_friend_code('7k2pqx4m') = 'MATH-7K2P-QX4M';
+  assert public.normalize_friend_code('MATH-MATH-MATH') = 'MATH-MATH-MATH';
+  assert public.normalize_friend_code('MATH-7K2P-QX4O') is null, 'O is never in a code';
   assert public.normalize_friend_code('MATH-7K2') is null, 'too short';
   assert public.normalize_friend_code(null) is null;
 end;
@@ -35,7 +36,7 @@ grant all on codes to authenticated;
 insert into codes select 'lea', public.my_friend_code();
 do $$
 begin
-  assert (select code from codes where who = 'lea') ~ '^MATH-[A-HJ-NP-Z2-9]{4}$';
+  assert (select code from codes where who = 'lea') ~ '^MATH-[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$';
   assert public.my_friend_code() = (select code from codes where who = 'lea'), 'stable';
 end;
 $$;
@@ -53,7 +54,7 @@ declare
 begin
   assert public.friend_request(lea) = 'sent';
   assert public.friend_request(lower(lea)) = 'pending', 'asked already';
-  assert public.friend_request('MATH-2222') = 'unknown';
+  assert public.friend_request('MATH-2222-2222') = 'unknown';
   assert public.friend_request((select code from codes where who = 'tom')) = 'self';
 end;
 $$;
@@ -155,9 +156,9 @@ declare
   i integer;
 begin
   for i in 1..19 loop
-    assert public.friend_request('MATH-2222') = 'unknown';
+    assert public.friend_request('MATH-2222-2222') = 'unknown';
   end loop;
-  assert public.friend_request('MATH-2222') = 'tooMany', 'Inès made 1 + 19 already';
+  assert public.friend_request('MATH-2222-2222') = 'tooMany', 'Inès made 1 + 19 already';
 end;
 $$;
 

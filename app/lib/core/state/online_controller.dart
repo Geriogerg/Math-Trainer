@@ -32,12 +32,37 @@ class OnlineController extends ChangeNotifier {
   final DuelClient? client;
   final DuelRunQueue? queue;
 
-  /// An invite link's code is sent as a friend request once the player is
-  /// linked (commit 7).
+  /// An invite link's code becomes a friend request once the player is
+  /// linked (commit 7) — and once they said yes (Phase 6a, review m7: a
+  /// link alone no longer sends a request).
   final FriendsRepository? friends;
   final PendingInviteStore? invites;
 
   FriendRequestOutcome? _inviteOutcome;
+  String? _pendingInvite;
+
+  /// An invite link's code waiting for the player's yes, once: the tab
+  /// asks.
+  String? takePendingInvite() {
+    final code = _pendingInvite;
+    _pendingInvite = null;
+    return code;
+  }
+
+  /// The player's answer to [code]'s invite: sent as a friend request, or
+  /// dropped. Either way the link is forgotten.
+  Future<void> answerInvite(String code, {required bool send}) async {
+    final friends = this.friends;
+    final invites = this.invites;
+    if (friends == null || invites == null) return;
+    try {
+      if (send) _inviteOutcome = await friends.request(code);
+      await invites.save(null);
+    } on Exception catch (_) {
+      // Kept: asked again at the next load.
+    }
+    _notify();
+  }
 
   /// What the invite link's request did, once: the tab says so.
   FriendRequestOutcome? takeInviteOutcome() {
@@ -104,9 +129,7 @@ class OnlineController extends ChangeNotifier {
     try {
       final code = await invites.load();
       if (code == null) return;
-      final outcome = await friends.request(code);
-      await invites.save(null);
-      _inviteOutcome = outcome;
+      _pendingInvite = code;
     } on Exception catch (_) {
       // Kept: tried again at the next load.
     }

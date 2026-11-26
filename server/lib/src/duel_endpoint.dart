@@ -71,8 +71,41 @@ class DuelEndpoint {
     Random? seeds,
     String Function()? newId,
     this.limits,
+    this.sweepInRequests = true,
+    DateTime Function()? clock,
   }) : _seeds = seeds ?? Random.secure(),
-       _newId = newId ?? generateUuidV4;
+       _newId = newId ?? generateUuidV4,
+       _clock = clock ?? DateTime.now;
+
+  /// Whether each duel request records the abandoned duels before it is
+  /// handled (tests: deterministic). The production server does it on a
+  /// timer and, at most once a minute, after a request — never inside one
+  /// (Phase 6a, review m10: it slowed unrelated requests).
+  final bool sweepInRequests;
+  final DateTime Function() _clock;
+  DateTime? _lastSweep;
+  Future<void>? _sweeping;
+
+  /// Starts a sweep unless one ran in the last [minSweepGap] or is running;
+  /// never awaited by a request, never failing.
+  void sweepSoon() {
+    final now = _clock();
+    final last = _lastSweep;
+    if (_sweeping != null ||
+        (last != null && now.difference(last) < minSweepGap)) {
+      return;
+    }
+    _lastSweep = now;
+    _sweeping = sweepAbandoned()
+        .catchError((Object e) {
+          // ignore: avoid_print
+          print('sweep: $e');
+        })
+        .whenComplete(() => _sweeping = null);
+  }
+
+  /// The shortest time between two sweeps outside requests.
+  static const minSweepGap = Duration(minutes: 1);
 
   final SupabaseGateway gateway;
 
@@ -714,12 +747,19 @@ class DuelEndpoint {
         return refused(400, 'badRequest', detail: 'not JSON');
       }
       if (body is! Map) return refused(400, 'badRequest', detail: 'body');
-      if (sweep) await sweepAbandoned();
-      return await handle(user, body.cast<String, Object?>());
+      if (sweep && sweepInRequests) await sweepAbandoned();
+      final response = await handle(user, body.cast<String, Object?>());
+      // After the answer is ready: the sweep never delays a request.
+      if (!sweepInRequests) sweepSoon();
+      return response;
     } on GatewayUnavailable catch (e) {
       // ignore: avoid_print
       print('503 on POST $path: ${e.detail}');
       return jsonResponse(503, {'error': 'unavailable'});
+    } on GatewayRejected catch (e) {
+      // ignore: avoid_print
+      print('400 on POST $path: ${e.detail}');
+      return refused(400, 'badRequest', detail: 'refused by the database');
     }
   }
 }

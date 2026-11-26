@@ -10,6 +10,7 @@ import 'package:math_core/models/answer_result.dart';
 import 'package:math_core/models/exercise.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/models/input_device.dart';
+import 'package:math_core/validation/session_validation.dart' show maxElapsedMs;
 import 'package:math_core/models/session_config.dart';
 import 'package:math_core/models/session_result.dart';
 import 'package:math_core/persistence/exercise_codec.dart';
@@ -52,8 +53,31 @@ class SessionController extends ChangeNotifier {
     this.correctionDelay,
     this.appVersion,
     SessionLevelUpdates? levelCacheOrchestrator,
+    int Function()? monotonicMs,
   }) : levelCacheOrchestrator =
-           levelCacheOrchestrator ?? const LevelCacheOrchestrator();
+           levelCacheOrchestrator ?? const LevelCacheOrchestrator(),
+       // Response times come from a monotonic clock (Phase 6a, review
+       // m1): a wall clock adjusted mid-question would record a time the
+       // server refuses. A test that injects [clock] times answers by it.
+       _monotonicMs =
+           monotonicMs ??
+           (identical(clock, DateTime.now)
+               ? _stopwatchMs
+               : () => clock().millisecondsSinceEpoch);
+
+  static final Stopwatch _stopwatch = Stopwatch()..start();
+  static int _stopwatchMs() => _stopwatch.elapsedMilliseconds;
+  final int Function() _monotonicMs;
+  int _questionStartedMs = 0;
+
+  /// Milliseconds since the current question appeared, never above the
+  /// 30-second limit the server checks (`maxElapsedMs`): an answer typed
+  /// as the timer fires, or after a late timer in a hidden tab, records
+  /// 30 s — never a time that gets an honest game refused.
+  int _elapsedThisQuestion() {
+    final ms = _monotonicMs() - _questionStartedMs;
+    return ms < 0 ? 0 : (ms > maxElapsedMs ? maxElapsedMs : ms);
+  }
 
   final SessionConfig config;
   final ExerciseSource exerciseSource;
@@ -99,7 +123,6 @@ class SessionController extends ChangeNotifier {
   SessionState _state = SessionState.initial();
   SessionState get state => _state;
 
-  DateTime? _questionStartedAt;
   Timer? _timeoutTimer;
   Timer? _correctionTimer;
   bool _hasActivityThisQuestion = false;
@@ -168,7 +191,7 @@ class SessionController extends ChangeNotifier {
       status: SessionStatus.inProgress,
       currentExercise: exerciseSource.next(),
     );
-    _questionStartedAt = clock();
+    _questionStartedMs = _monotonicMs();
     _scheduleTimeout();
     notifyListeners();
   }
@@ -244,7 +267,7 @@ class SessionController extends ChangeNotifier {
       exercise: exercise,
       submittedValue: submittedValue,
       isCorrect: isCorrect,
-      elapsedMs: now.difference(_questionStartedAt!).inMilliseconds,
+      elapsedMs: _elapsedThisQuestion(),
       answeredAt: now.toUtc(),
       inputDevice: device == null
           ? _inputThisQuestion
@@ -306,7 +329,7 @@ class SessionController extends ChangeNotifier {
       _timeoutTimer?.cancel();
       _correctionTimer = createTimer(delay, _endCorrection);
     } else {
-      _questionStartedAt = clock();
+      _questionStartedMs = _monotonicMs();
       _scheduleTimeout();
     }
     notifyListeners();
@@ -329,7 +352,7 @@ class SessionController extends ChangeNotifier {
       score: _state.score,
       currentStreak: _state.currentStreak,
     );
-    _questionStartedAt = clock();
+    _questionStartedMs = _monotonicMs();
     _scheduleTimeout();
     notifyListeners();
   }
@@ -370,7 +393,6 @@ class SessionController extends ChangeNotifier {
     _timeoutTimer?.cancel();
     _correctionTimer?.cancel();
     _state = SessionState.initial();
-    _questionStartedAt = null;
     _lastLevelUpdates = null;
     _persistenceFailed = false;
     _failedWrite = null;

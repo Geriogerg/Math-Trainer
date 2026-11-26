@@ -46,6 +46,7 @@ import 'package:math_core/sync/session_upload_queue.dart';
 import 'package:math_core/persistence/session_repository.dart';
 import 'package:math_core/persistence/theme_mode_store.dart';
 import 'package:math_core/persistence/type_selection_store.dart';
+import 'package:math_core/sync/upload_attempt_log.dart';
 import 'core/sharing/link_sharer.dart';
 import 'core/state/duel_controller.dart';
 import 'core/state/session_controller.dart';
@@ -70,6 +71,7 @@ import 'infrastructure/effects/game_sound_factory.dart';
 import 'infrastructure/persistence/database.dart';
 import 'infrastructure/persistence/persistent_storage.dart';
 import 'infrastructure/persistence/shared_preferences_abandoned_guest_store.dart';
+import 'infrastructure/persistence/shared_preferences_upload_attempt_log.dart';
 import 'infrastructure/persistence/shared_preferences_beta_code_store.dart';
 import 'infrastructure/web/boot_sign_in.dart';
 import 'infrastructure/persistence/shared_preferences_effect_settings_store.dart';
@@ -99,6 +101,7 @@ class AppEnvironment {
     this.challengeStatsStore = const SharedPreferencesChallengeStatsStore(),
     this.themeModeStore = const SharedPreferencesThemeModeStore(),
     this.abandonedGuestStore = const SharedPreferencesAbandonedGuestStore(),
+    this.uploadAttemptLog = const SharedPreferencesUploadAttemptLog(),
     this.uploadClient,
     this.uploadQueue,
     this.serverLevelsAhead,
@@ -165,6 +168,10 @@ class AppEnvironment {
   /// Guests this device left for another account (`AuthGate`), whose
   /// hidden games go after 30 days.
   final AbandonedGuestStore abandonedGuestStore;
+
+  /// Server failures per stored session (Phase 6a): a session the server
+  /// keeps failing on is set aside instead of blocking the queue.
+  final UploadAttemptLog uploadAttemptLog;
 
   /// `null` when the build has no `SERVER_URL` (server not deployed yet):
   /// sessions stay local, pending, until a build has one.
@@ -285,6 +292,7 @@ class AppEnvironment {
         repository: repository,
         client: client,
         playerId: playerId,
+        attempts: uploadAttemptLog,
       ),
       null => null,
     },

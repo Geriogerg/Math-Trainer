@@ -1,19 +1,22 @@
 import '../duel/duel_mode.dart';
 import '../duel/duel_run.dart';
 
-/// A friend code (plan v3.7): `MATH-` and 4 characters from the 32 easy
-/// ones (no I, O, 0, 1), as `normalize_friend_code` reads it in SQL —
-/// "math 7k2p", "7K2P" and "MATH-7K2P" are the same code. `null` when
-/// [text] cannot be one.
+/// A friend code: `MATH-` and 8 characters from the 32 easy ones (no I,
+/// O, 0, 1) in two groups — 4 until Phase 6a (review m7: a million codes
+/// were few enough to try) — as `normalize_friend_code` reads it in SQL:
+/// "math 7k2p qx4m", "7K2PQX4M" and "MATH-7K2P-QX4M" are the same code.
+/// `null` when [text] cannot be one.
 String? normalizeFriendCode(String text) {
   var raw = text.toUpperCase().replaceAll(RegExp('[^A-Z0-9]'), '');
   // The prefix only when the whole code is there: M, A, T and H are code
   // characters themselves.
-  if (raw.length == 8 && raw.startsWith('MATH')) raw = raw.substring(4);
-  return RegExp(r'^[A-HJ-NP-Z2-9]{4}$').hasMatch(raw) ? 'MATH-$raw' : null;
+  if (raw.length == 12 && raw.startsWith('MATH')) raw = raw.substring(4);
+  return RegExp(r'^[A-HJ-NP-Z2-9]{8}$').hasMatch(raw)
+      ? 'MATH-${raw.substring(0, 4)}-${raw.substring(4)}'
+      : null;
 }
 
-/// The query parameter of an invite link: `<site>/?friend=MATH-7K2P`.
+/// The query parameter of an invite link: `<site>/?friend=MATH-7K2P-QX4M`.
 const inviteLinkParameter = 'friend';
 
 /// The invite link for [code] on the site at [origin] (the page's own).
@@ -99,6 +102,10 @@ enum FriendRequestOutcome {
 abstract interface class FriendsRepository {
   /// The player's code (created on first use).
   Future<String> myCode();
+
+  /// A new code for the player: the old one, and its invite links, find
+  /// nobody any more (Phase 6a).
+  Future<String> newCode();
   Future<FriendRequestOutcome> request(String code);
   Future<List<FriendRequest>> incoming();
   Future<void> respond(String fromId, {required bool accept});

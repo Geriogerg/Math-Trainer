@@ -43,6 +43,17 @@ class FriendsController extends ChangeNotifier {
     _notify();
   }
 
+  /// A new code (the old links stop working); `false` if it failed.
+  Future<bool> newCode() async {
+    try {
+      _code = await repository.newCode();
+    } on Exception catch (_) {
+      return false;
+    }
+    _notify();
+    return true;
+  }
+
   /// A request by code; the list reloads (a mutual request makes friends).
   Future<FriendRequestOutcome> add(String code) async {
     final FriendRequestOutcome outcome;

@@ -10,6 +10,7 @@ import 'package:math_core/persistence/persisted_session.dart';
 import 'package:math_core/sync/session_upload.dart';
 import 'package:math_core/sync/session_upload_client.dart';
 import 'package:math_core/sync/session_upload_queue.dart';
+import 'package:math_core/sync/upload_attempt_log.dart';
 import 'package:test/test.dart';
 
 /// Answers from a script; records what it was sent.
@@ -210,6 +211,79 @@ void main() {
     client.gate!.complete();
     expect(identical(await first, await second), isTrue);
     expect(client.sent, ['s1', 's2']);
+  });
+
+  // Phase 6a (review m2): a session the server keeps failing on.
+  group('a session the server keeps failing on', () {
+    late DateTime now;
+    late InMemoryUploadAttemptLog attempts;
+
+    setUp(() {
+      now = DateTime.utc(2026, 12, 1, 9);
+      attempts = InMemoryUploadAttemptLog();
+      queue = SessionUploadQueue(
+        repository: repository,
+        client: client,
+        playerId: 'me',
+        attempts: attempts,
+        clock: () => now,
+        createTimer: (d, cb) {
+          final t = _FakeTimer(d, cb);
+          timers.add(t);
+          return t;
+        },
+      );
+    });
+
+    test(
+      'is set aside after 20 failures over 3 days; the next is sent',
+      () async {
+        await store('poison', DateTime.utc(2026, 11, 1));
+        await store('next', DateTime.utc(2026, 11, 2));
+        client.outcomes['poison'] = () =>
+            throw const UploadUnavailable('HTTP 503', serverAnswered: true);
+        for (var i = 0; i < 19; i++) {
+          expect((await queue.flush()).stoppedOffline, isTrue);
+          now = now.add(const Duration(hours: 4));
+        }
+        expect(client.sent.where((id) => id == 'next'), isEmpty);
+        expect((await attempts.failures('poison'))!.count, 19);
+        // 20 failures, the first 76 hours ago: set aside.
+        final run = await queue.flush();
+        expect(run, (accepted: 1, refused: 1, stoppedOffline: false));
+        expect(repository.uploadRefusal('poison'), setAsideReason);
+        expect(client.sent.last, 'next');
+        expect(await attempts.failures('poison'), isNull);
+      },
+    );
+
+    test(
+      'never for 20 failures within a day, nor for the device offline',
+      () async {
+        await store('slow', DateTime.utc(2026, 11, 1));
+        client.outcomes['slow'] = () =>
+            throw const UploadUnavailable('HTTP 503', serverAnswered: true);
+        for (var i = 0; i < 30; i++) {
+          await queue.flush();
+          now = now.add(const Duration(minutes: 30));
+        }
+        expect(repository.uploadRefusal('slow'), isNull, reason: '15 hours');
+
+        client.outcomes['slow'] = () =>
+            throw const UploadUnavailable('network');
+        for (var i = 0; i < 40; i++) {
+          await queue.flush();
+          now = now.add(const Duration(hours: 4));
+        }
+        expect(repository.uploadRefusal('slow'), isNull, reason: 'offline');
+        expect((await attempts.failures('slow'))!.count, 30);
+
+        // Accepted at last: forgotten.
+        client.outcomes.remove('slow');
+        await queue.flush();
+        expect(await attempts.failures('slow'), isNull);
+      },
+    );
   });
 
   test('dispose stops retrying', () async {

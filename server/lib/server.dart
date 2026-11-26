@@ -1,6 +1,8 @@
 /// Math Trainer's server (plan, Phase 2).
 library;
 
+import 'dart:async';
+
 import 'package:shelf/shelf.dart';
 
 import 'src/config.dart';
@@ -21,10 +23,17 @@ export 'src/session_endpoint.dart';
 export 'src/supabase_gateway.dart';
 
 /// The production handler: every route, wired to the real Supabase (or to
-/// [gateway]), behind the rate limits.
-Handler buildServerHandler(ServerConfig config, {SupabaseGateway? gateway}) {
+/// [gateway]), behind the rate limits. Abandoned duels are recorded every
+/// [sweepEvery] (and soon after a duel request), outside the requests.
+Handler buildServerHandler(
+  ServerConfig config, {
+  SupabaseGateway? gateway,
+  Duration sweepEvery = const Duration(minutes: 5),
+}) {
   final supabase = gateway ?? HttpSupabaseGateway(config);
   final limits = RateLimits();
+  final duels = DuelEndpoint(supabase, limits: limits, sweepInRequests: false);
+  Timer.periodic(sweepEvery, (_) => duels.sweepSoon());
   return buildHandler(
     config,
     limits: limits,
@@ -34,7 +43,7 @@ Handler buildServerHandler(ServerConfig config, {SupabaseGateway? gateway}) {
         requireBetaCode: config.requireBetaCode,
         limits: limits,
       ).route,
-      ...DuelEndpoint(supabase, limits: limits).routes,
+      ...duels.routes,
     ],
   );
 }

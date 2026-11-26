@@ -64,6 +64,34 @@ class _FriendsScreenState extends State<FriendsScreen> {
     if (mounted) _say('Link copied');
   }
 
+  /// A new code: the old one and its links stop working — asked first.
+  Future<void> _newCode() async {
+    final sure = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Get a new code?'),
+        content: const Text(
+          'Your current code and the links you shared stop working. Your '
+          'friends stay.',
+        ),
+        actions: [
+          AppButton.secondary(
+            label: 'Cancel',
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+          ),
+          AppButton.primary(
+            label: 'New code',
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+          ),
+        ],
+      ),
+    );
+    if (sure != true || !mounted) return;
+    if (!await _controller.newCode() && mounted) {
+      _say('Could not get a new code — try again.');
+    }
+  }
+
   Future<void> _addCode() async {
     final code = await showDialog<String>(
       context: context,
@@ -148,6 +176,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 8),
+                AppButton.secondary(label: 'New code', onPressed: _newCode),
                 if (_controller.incoming.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   Text('Requests', style: section),
@@ -242,7 +272,7 @@ class _AddCodeDialogState extends State<_AddCodeDialog> {
       controller: _field,
       autofocus: true,
       textCapitalization: TextCapitalization.characters,
-      decoration: const InputDecoration(hintText: 'MATH-7K2P'),
+      decoration: const InputDecoration(hintText: 'MATH-7K2P-QX4M'),
       onSubmitted: (text) => Navigator.of(context).pop(text),
     ),
     actions: [

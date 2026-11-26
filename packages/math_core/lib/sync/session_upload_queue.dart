@@ -4,6 +4,7 @@ import '../leveling/rules_version.dart';
 import '../persistence/session_repository.dart';
 import 'session_upload.dart';
 import 'session_upload_client.dart';
+import 'upload_attempt_log.dart';
 
 /// What one [SessionUploadQueue.flush] did.
 typedef UploadRun = ({int accepted, int refused, bool stoppedOffline});
@@ -16,12 +17,18 @@ typedef UploadRun = ({int accepted, int refused, bool stoppedOffline});
 ///
 /// A network or server failure stops the run and schedules a retry, with a
 /// growing delay; any later [flush] (after a game, at sign-in) also retries.
+/// A session the server keeps failing on (an error status, not the device
+/// offline) is set aside after [setAsideAfterFailures] failures over
+/// [setAsideAfter] (Phase 6a, review m2): marked refused on the device, so
+/// the games after it are sent.
 class SessionUploadQueue {
   SessionUploadQueue({
     required this.repository,
     required this.client,
     required this.playerId,
     Timer Function(Duration, void Function())? createTimer,
+    UploadAttemptLog? attempts,
+    DateTime Function()? clock,
     this.retryDelays = const [
       Duration(seconds: 30),
       Duration(minutes: 1),
@@ -29,7 +36,9 @@ class SessionUploadQueue {
       Duration(minutes: 5),
       Duration(minutes: 10),
     ],
-  }) : _createTimer = createTimer ?? Timer.new {
+  }) : _createTimer = createTimer ?? Timer.new,
+       attempts = attempts ?? InMemoryUploadAttemptLog(),
+       _clock = clock ?? DateTime.now {
     if (retryDelays.isEmpty) {
       throw ArgumentError.value(retryDelays, 'retryDelays', 'is empty.');
     }
@@ -38,6 +47,8 @@ class SessionUploadQueue {
   final SessionRepository repository;
   final SessionUploadClient client;
   final String playerId;
+  final UploadAttemptLog attempts;
+  final DateTime Function() _clock;
 
   /// Delay before the n-th retry in a row; the last one repeats.
   final List<Duration> retryDelays;
@@ -100,10 +111,15 @@ class SessionUploadQueue {
         outcome = await client.upload(
           SessionUpload(session: session, answers: answers),
         );
-      } on UploadUnavailable {
+      } on UploadUnavailable catch (e) {
+        if (e.serverAnswered && await _setAside(session.id)) {
+          refused++;
+          continue;
+        }
         _scheduleRetry();
         return (accepted: accepted, refused: refused, stoppedOffline: true);
       }
+      await attempts.clear(session.id);
       switch (outcome) {
         case UploadAccepted(:final syncedAt):
           await repository.markSynced(session.id, syncedAt);
@@ -120,6 +136,22 @@ class SessionUploadQueue {
     _retry?.cancel();
     _retry = null;
     return (accepted: accepted, refused: refused, stoppedOffline: false);
+  }
+
+  /// Records a failure the server answered for [sessionId]; `true` when the
+  /// session is now set aside.
+  Future<bool> _setAside(String sessionId) async {
+    final now = _clock().toUtc();
+    await attempts.recordFailure(sessionId, now);
+    final held = await attempts.failures(sessionId);
+    if (held == null ||
+        held.count < setAsideAfterFailures ||
+        now.difference(held.first) < setAsideAfter) {
+      return false;
+    }
+    await repository.markUploadRefused(sessionId, setAsideReason);
+    await attempts.clear(sessionId);
+    return true;
   }
 
   void _scheduleRetry() {

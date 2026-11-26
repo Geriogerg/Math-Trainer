@@ -4,25 +4,32 @@ import 'package:test/test.dart';
 
 void main() {
   test('codes read as the SQL reads them', () {
-    expect(normalizeFriendCode('MATH-7K2P'), 'MATH-7K2P');
-    expect(normalizeFriendCode(' math 7k2p '), 'MATH-7K2P');
-    expect(normalizeFriendCode('7k2p'), 'MATH-7K2P');
-    expect(normalizeFriendCode('MATH-MATH'), 'MATH-MATH');
-    expect(normalizeFriendCode('MATH-7K2O'), isNull);
-    expect(normalizeFriendCode('MATH-7K2'), isNull);
+    expect(normalizeFriendCode('MATH-7K2P-QX4M'), 'MATH-7K2P-QX4M');
+    expect(normalizeFriendCode(' math 7k2p qx4m '), 'MATH-7K2P-QX4M');
+    expect(normalizeFriendCode('7k2pqx4m'), 'MATH-7K2P-QX4M');
+    expect(normalizeFriendCode('MATH-MATH-MATH'), 'MATH-MATH-MATH');
+    expect(normalizeFriendCode('MATHMATH'), 'MATH-MATH-MATH');
+    expect(normalizeFriendCode('MATH-7K2P-QX4O'), isNull, reason: 'no O');
+    expect(
+      normalizeFriendCode('MATH-7K2P'),
+      'MATH-MATH-7K2P',
+      reason: 'an old 4-character code reads as an 8-character one nobody has',
+    );
+    expect(normalizeFriendCode('7K2P'), isNull, reason: 'too short');
+    expect(normalizeFriendCode('MATH-7K2P-QX4'), isNull);
     expect(normalizeFriendCode(''), isNull);
   });
 
   test('invite links carry the code', () {
     final link = inviteLink(
       Uri.parse('https://math-trainer-kjc.pages.dev/?specimen#x'),
-      'MATH-7K2P',
+      'MATH-7K2P-QX4M',
     );
     expect(
       link.toString(),
-      'https://math-trainer-kjc.pages.dev/?friend=MATH-7K2P',
+      'https://math-trainer-kjc.pages.dev/?friend=MATH-7K2P-QX4M',
     );
-    expect(link.queryParameters[inviteLinkParameter], 'MATH-7K2P');
+    expect(link.queryParameters[inviteLinkParameter], 'MATH-7K2P-QX4M');
   });
 
   test('outcomes, friends and history parse the server\'s shapes', () {

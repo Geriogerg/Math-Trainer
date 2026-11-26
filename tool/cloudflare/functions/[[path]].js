@@ -63,6 +63,7 @@ export async function onRequest({ request, env, next }) {
     'content-type': type,
     'cache-control': cacheControl(url.pathname),
     vary: 'accept-encoding',
+    'x-content-type-options': 'nosniff',
   });
   const etag = asset.headers.get('etag');
   if (etag) out.set('etag', etag);

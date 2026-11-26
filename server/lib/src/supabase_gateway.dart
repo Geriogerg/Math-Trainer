@@ -18,6 +18,20 @@ class GatewayUnavailable implements Exception {
   String toString() => 'GatewayUnavailable: $detail';
 }
 
+/// Supabase refused the call itself (PostgREST 4xx: a value the database
+/// cannot take, such as an id that is not a UUID): deciding again will not
+/// change it, so the endpoints answer 400 `badRequest` — final for the app
+/// (Phase 6a, review m2). A 503 here kept one session failing for ever.
+class GatewayRejected implements Exception {
+  const GatewayRejected(this.detail);
+  final String detail;
+  @override
+  String toString() => 'GatewayRejected: $detail';
+}
+
+/// Whether [value] is a UUID (any version): what every id column takes.
+bool isUuid(Object? value) => value is String && _uuid.hasMatch(value);
+
 /// Everything the server asks of Supabase. Tests use a fake; the real one
 /// speaks HTTP ([HttpSupabaseGateway]).
 abstract interface class SupabaseGateway {
@@ -131,7 +145,17 @@ class HttpSupabaseGateway implements SupabaseGateway {
       final start = response.body.length > 200
           ? response.body.substring(0, 200)
           : response.body;
-      throw GatewayUnavailable('rpc $name HTTP ${response.statusCode}: $start');
+      final detail = 'rpc $name HTTP ${response.statusCode}: $start';
+      // 4xx: the database refused these values — except what means "not
+      // now" (the key, a timeout, a rate limit) or a missing function (an
+      // older database: a deploy order problem, retried).
+      final status = response.statusCode;
+      if (status >= 400 &&
+          status < 500 &&
+          !const {401, 403, 404, 408, 429}.contains(status)) {
+        throw GatewayRejected(detail);
+      }
+      throw GatewayUnavailable(detail);
     }
     return response.body.isEmpty ? null : jsonDecode(response.body);
   }

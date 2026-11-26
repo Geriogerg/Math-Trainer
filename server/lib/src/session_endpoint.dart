@@ -97,6 +97,10 @@ class SessionEndpoint {
       return await store(upload, receivedAt: _clock().toUtc());
     } on GatewayUnavailable catch (e) {
       return _unavailable(e);
+    } on GatewayRejected catch (e) {
+      // ignore: avoid_print
+      print('400 on POST /v1/sessions: ${e.detail}');
+      return refused(400, 'badRequest', detail: 'refused by the database');
     }
   }
 

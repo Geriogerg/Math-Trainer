@@ -38,6 +38,17 @@ if [ -z "$url" ]; then
 fi
 command -v psql > /dev/null || { echo "psql not found: install the PostgreSQL client." >&2; exit 2; }
 
+# The password never goes on psql's command line (Phase 6a, review n3: a
+# process list shows arguments): it moves to PGPASSWORD, decoded from the
+# URL's percent-encoding, and the URL keeps the rest.
+if [[ "$url" =~ ^(postgres(ql)?://[^:/@]+):([^@]*)@(.*)$ ]]; then
+  password="${BASH_REMATCH[3]}"
+  export PGPASSWORD
+  PGPASSWORD="$(printf '%b' "${password//%/\\x}")"
+  url="${BASH_REMATCH[1]}@${BASH_REMATCH[4]}"
+  unset password
+fi
+
 # psql on Windows reads input in the console's code page otherwise.
 export PGCLIENTENCODING=UTF8
 

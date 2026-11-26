@@ -22,6 +22,9 @@ RUN cd server && dart pub get --offline \
 FROM scratch
 COPY --from=build /runtime/ /
 COPY --from=build /src/server.exe /app/server
+# Not root (Phase 6a, review n3): the server writes nothing on disk.
+# Numeric, as the image has no user database: the usual "nobody".
+USER 65534:65534
 # Configuration only from the environment (server/lib/src/config.dart).
 EXPOSE 8080
 CMD ["/app/server"]

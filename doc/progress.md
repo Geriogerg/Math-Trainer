@@ -1608,16 +1608,16 @@ owner decision, nothing to build).
 | M17 | Accessibility | 6b (6) | open |
 | M18 | Missing states around the network | 6b (5) | open |
 | M19 | Stale reference docs | 6b (8); the `CLAUDE.md` "v6 is current" sentence fixed in 6a (0) | part |
-| m1 | An answer at the buzzer can get an honest game refused | 6a (6) | open |
-| m2 | One poisoned session blocks a player's uploads for ever | 6a (6) | open |
+| m1 | An answer at the buzzer can get an honest game refused | 6a (6) | **fixed** |
+| m2 | One poisoned session blocks a player's uploads for ever | 6a (6) | **fixed** |
 | m3 | Main level rounded here, floored there | 6b (7) | open |
 | m4 | Division never on two lines | — | decided: one line, spec fixed in `doc/levels.md` v1.6 |
 | m5 | Weak spots can be 25 % of an operation | 6b (7) | open |
-| m6 | No security headers | 6a (6) | open |
-| m7 | Daily limits can be raced; short friend codes; invite link sends without asking | 6a (6) | open |
+| m6 | No security headers | 6a (6) | **fixed** (tokens still in `localStorage`: Supabase's default; the CSP is the mitigation) |
+| m7 | Daily limits can be raced; short friend codes; invite link sends without asking | 6a (6) | **fixed** |
 | m8 | Deleting an account deletes opponents' duel history; notice wording | 6a (4); notice wording with 6c (2) | **fixed** in 6a (duels kept, in-app notice says so); the published policy is 6c |
 | m9 | Wrangler state committed | 6a (0) | **fixed** (GitHub still holds the old commits by hash until its own cleanup) |
-| m10 | Abandonment sweep runs inside other players' requests | 6a (6) | open |
+| m10 | Abandonment sweep runs inside other players' requests | 6a (6) | **fixed** differently: a server timer, not `pg_cron` |
 | m11 | Trivial questions at high tiers; unbalanced duels | 6b (1), rules v9 | open |
 | m12 | Files that carry too much | when next touched | open |
 | m13 | App contracts in the core; logic twice in Dart and SQL | when next touched | open |
@@ -1630,8 +1630,8 @@ owner decision, nothing to build).
 | m20 | Pattern families that do not grow with the tier | 6b (1), rules v9 | open |
 | m21 | Subtraction T8 second number, non-monotone tiers, Tables repeat | 6b (1), rules v9 | open |
 | n1 | "Once a day" is a UTC calendar day | 6a (1) | **fixed** |
-| n2 | Staging CORS pattern too wide | 6a (6) | open |
-| n3 | Functions without `search_path`; root container; dashboard password on the command line | 6a (6) | open |
+| n2 | Staging CORS pattern too wide | 6a (6) | **fixed** in `render.yaml` (owner to check the value on Render) |
+| n3 | Functions without `search_path`; root container; dashboard password on the command line | 6a (6) | **fixed** (base image still by tag, not digest) |
 | n4 | Stale comments | 6a (7) | open |
 | n5 | Reviewer agent checks 17 rules of 18; `MSYS_NO_PATHCONV` undocumented | 6a (7) | open |
 | n6 | `default:` branches on `PatternFamily` | 6b (3) | open |
@@ -1803,3 +1803,25 @@ owner decision, nothing to build).
   under 200 ms — **met** in a warm session (59–78 ms), one cold call measured 217 ms.
 
   Counts: SQL 25 files (others unchanged).
+- **Commit 6** *(A)* — **Correctness and security details (m1, m2, m6, m7, m10, n2, n3).**
+  m1: `SessionController` times answers on a monotonic `Stopwatch` and clamps them to
+  [0, 30,000 ms] (test: a late timer records 30 s, a clock set back 0). m2: the server maps a
+  PostgREST 4xx to a final 400 `badRequest` (`GatewayRejected`; test through the real gateway
+  and a mock HTTP client: a non-UUID session id is refused after one call, a 5xx/401/404 stays
+  503); the app's queue sets a session aside after 20 failures the server answered over 3 days
+  (`UploadAttemptLog`, kept in `shared_preferences`; tests: set aside on the 20th failure after
+  76 hours and the next game sent; never within a day, never while offline). m6:
+  `tool/web/security_headers.mjs` writes `_headers` (CSP naming only this build's Supabase
+  project and server, `frame-ancestors 'none'`, `X-Frame-Options`, nosniff, a referrer and a
+  permissions policy); the Pages Function adds nosniff. m7 (migration `20261202050000_details`):
+  `friend_request` and `send_feedback` count under a per-caller advisory lock; friend codes
+  of 8 characters (`MATH-7K2P-QX4M`, every 4-character code replaced, its links dead),
+  `new_friend_code()` and a "New code" button (asked first); an invite link asks "Send a
+  friend request?" before sending. m10: the production server sweeps abandoned duels on a
+  5-minute timer and after a duel request at most once a minute, never inside one. n2: the
+  staging origin is exact in `render.yaml`. n3: `search_path` on the seven functions without
+  one (and a catalogue-wide check), the container runs as UID 65534, `dashboard.sh` passes the
+  password through `PGPASSWORD`. Tests: core queue (2), friends; app clamp, friends (New code,
+  invite asked, at launch, by the shell); server `details_test.dart` (4); SQL
+  `99l_details_test.sql`. Counts: core VM 1128, core JavaScript 902, server 103, app 452, SQL
+  26 files.

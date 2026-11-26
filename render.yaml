@@ -55,7 +55,7 @@ services:
       # Staging builds have no gate: the smoke test plays without a code.
       - key: BETA_GATE
         value: "false"
-      # The staging site, whatever suffix Cloudflare gave its name (one
-      # label only: server/lib/src/http_app.dart, originAllowed).
+      # The staging site, exactly (Phase 6a, review n2: the pattern
+      # "math-trainer-staging*" also matched names anyone can register).
       - key: ALLOWED_ORIGINS
-        value: https://math-trainer-staging*.pages.dev
+        value: https://math-trainer-staging.pages.dev

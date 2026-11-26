@@ -43,7 +43,12 @@ final class UploadRefused extends UploadOutcome {
 
 /// The upload could not be decided now; nothing changed on either side.
 class UploadUnavailable implements Exception {
-  const UploadUnavailable(this.reason);
+  const UploadUnavailable(this.reason, {this.serverAnswered = false});
+
+  /// The server answered with an error (5xx) rather than the device being
+  /// offline or the server asleep: counted against the session
+  /// (`UploadAttemptLog`, Phase 6a).
+  final bool serverAnswered;
 
   final String reason;
 
