@@ -3,29 +3,48 @@
 Competitive mental-arithmetic game in Flutter, for teens and adults. UI, code, docs and commits
 in English.
 
-**`doc/plan.md` (version 3.8) is the product plan**, and **`doc/levels.md` (v1.5) specifies the
-level system**. Both are the owner's: read them at the start of every phase; never edit them.
+**`doc/plan.md` (version 3.9) is the product plan**, and **`doc/levels.md` (v1.6) specifies the
+level system** (v1.6 is rules v9, built in Phase 6b; the code implements v1.5 until then). Both are the owner's: read them at the start of every phase; never edit them.
 This file is the working file: keep it short, update it as the project moves, keep it
 consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/decisions.md`,
 `doc/design.md`, `doc/online.md`, `doc/progress.md`. The plan wins any conflict — report it.
 
 ## Current phase
 
-**Phase 7 close-out** (`doc/plan.md` v3.8, section 7), run in **one pass**, four commits.
-Phase 7 (asynchronous duels in three rated modes, friends) is live; its outcome kept every
-provisional decision but one — an abandoned duel now counts — which commit 1 applies.
+**Phase 6a — Integrity and capacity** (`doc/plan.md` v3.9, section 7), run in **one pass**, eight
+commits. It follows the project review of 26 Nov (`doc/review-2026-11-26.md`; verdict: not ready
+for strangers) and the owner's answers to its 15 questions (plan, "Project review"). Server, SQL
+and CI only: **no visible change to the game, no change to rules or generation** (rules v9 and
+`doc/levels.md` v1.6 are Phase 6b). Every review finding is tracked by ID in `doc/progress.md`
+("Review findings") with its phase; mark the 6a ones there as they close.
 
-| # | Commit | Note |
-|---|---|---|
-| 1 | *(A)* **An abandoned duel is a loss**: a duel started but not submitted within 24 hours is recorded as a loss with the answers the server received so far; clearing the browser or switching device no longer escapes it | done |
-| 2 | *(A)* **Method in duels** uses the pattern-specific strategy, like solo games | done |
-| 3 | *(A)* **Share link** opens the phone's share sheet (Web Share API) where the browser has one, clipboard otherwise | done |
-| 4 | *(A)* **Minimum test counts** in CI for every suite (core VM, core JavaScript, app, server, SQL) | done |
+| # | Commit | Findings | Note |
+|---|---|---|---|
+| 0 | *(A)* **Repository hygiene**: `tool/cloudflare/.wrangler/` out of the index, ignored, purged from the history (mirror backup, force-push, CI and deployments re-verified); decisions of 26 Nov recorded; findings tracked | m9 | |
+| 1 | *(A)* **Duel results hold**: for the second player an unreplayable run or progress is a loss; abandonment scored after a challenge expires, no opening in its last 24 h; a run must extend its progress; challenges only to a friend or a 30-day opponent, `rematchOf` only a finished duel of the same mode, once per rolling 24 h for every chosen opponent; a run claiming more time than passed since the offer is refused; a flagged run's duel is unrated | B5, M1 (cheap part), M2, M3, n1 | |
+| 2 | *(A)* **Abuse floor**: bodies counted while read; token buckets per player and per IP; malformed tokens refused before Supabase; refusals stored as hash + truncated payload, capped per player per day; daily cap on accepted sessions | B4 | |
+| 3 | *(A)* **Solo integrity and moderation**: impossible cadence flagged or refused; a moderation table read by boards, pool and friend search; dashboard hide / unhide / ban; "Account under review" on Profile | M5 | |
+| 4 | *(A)* **Names and privacy**: reports from linked accounts only, rate-limited; reported name hidden until reviewed; look-alikes folded, folded names unique; `profiles` readable by its owner only; a deleted player's duels kept as "Deleted player" | M6, m8 | |
+| 5 | *(A)* **Capacity**: per-player game counts; boards computed once and cached ~1 min; maintained run pool, config hash; weak-spot check bounded; stored sessions slimmed (rows migrated); static files content-hashed, cached a year, the Function on HTML only; dashboard alert at 50 % of the database; measurements re-run | M7, M8, M9 | |
+| 6 | *(A)* **Correctness and security details**: times clamped to 30 s on a monotonic clock; poisoned session set aside, PostgREST 4xx → 400; security headers; advisory locks; 8-character friend codes, "New code", invite link asks first; sweep from `pg_cron`; exact staging origin; `search_path` everywhere, non-root container, dashboard password off the command line | m1, m2, m6, m7, m10, n2, n3 | |
+| 7 | *(A)* **Tests and CI**: integration job (real server + scratch Postgres: an upload and a duel per mode), a duel in the staging smoke test; no cancellation on `main`, actions pinned by commit, `permissions: contents: read`; catalogue test, SQL pin on assertions, chunked-body and non-UUID tests; dead dependencies out, `PREVIEW_BUILD` an input; stale comments and the reviewer's rule list | M12, M13, m15, m16, n4, n5 | |
 
-**New rule (plan v3.8):** every test suite in CI states how many tests it ran and fails below a
-pinned minimum — a suite that silently runs nothing turns red. **Known limit:** the free Render
-server sleeps (30–60 s before the first duel after a quiet period); a paid plan is an owner
-decision before Phase 6.
+**Exit:** each of the review's duel exploits ends in a loss or a refusal; 2,000 crafted refusals
+store under 5 MB; the main board answers under 300 ms and matchmaking under 200 ms at 10,000
+players and 1,000,000 sessions locally; the integration job is green; every pin raised.
+
+**The owner's answers that bind this phase** (plan v3.9, "Project review"): duels are fixed then
+open **rated**; the goal is to stop casual abuse (no escaping a loss, no faked time) —
+server-revealed questions come with live duels (7b); launch is sized for ~1,000 players (Render
+always-on, Supabase free with an alert at 50 %); names are unique ignoring case and look-alike
+letters, only accounts report, a reported name is hidden until the owner reviews it; the owner
+moderates from the dashboard and a hidden player sees "Account under review"; a deleted
+player's duels are kept as "Deleted player". m12 (large files) and m13 (app contracts in the
+core) are fixed when the files are next touched — each phase report says what moved.
+
+**Until Phase 6b, the conformance test reads a frozen copy of the spec** (`doc/levels.md` v1.6
+describes rules v9; `packages/math_core/test/spec/levels_v1_5.md` is what v8 implements). It
+switches back to the owner's file by itself the day `RulesVersion.current` is v9.
 
 **Phase 7's rules** (plan v3.7–v3.8; detail in `doc/decisions.md`, "Phase 7"):
 - **No live matches**: every duel is asynchronous — a player races another's recorded run,
@@ -57,9 +76,8 @@ decision before Phase 6.
   started but not submitted within 24 hours, recorded from the progress the app sends during
   play (`/v1/duels/progress`), by the next duel request (`sweepAbandoned`).
 
-Done: 0–4 (25 Nov; `doc/progress.md`, "Phase 7 close-out"). **Open: the owner confirms the
-commit 1 provisional choices (`doc/decisions.md`) and tries Share link on a phone.** Phase 7
-and Phase 4 decisions are settled (plan v3.8).
+Phase 7 and its close-out are done and their decisions settled (plan v3.8–v3.9; the
+abandoned-duel choices confirmed on 26 Nov). Still for the owner: Share link on a phone.
 Phase 3b is a data check, not a blocker (confirmed in v3.8): a report at ~300 sessions from
 10+ testers since the rules v5 release (`owner_dashboard.calibration_window`).
 
@@ -304,9 +322,9 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   `tier_references_v5.dart` (v5) and `tier_references_v6.dart` (v6) are generated (in `packages/math_core`: `dart run
   tool/tier_references.dart`) only by a change meant to alter a version's questions — never to
   make a JavaScript failure pass. The tool rewrites them all: an older file that changes is a
-  bug. v6 is `current` and played: its generation is frozen like the others' — a change is v7
-  (v6 shows the pattern: `patternQuestion` delegates to the frozen `patternQuestionV5` except
-  where it differs).
+  bug. v8 is `current` and played (v6–v8 share v6's questions): every version's generation is
+  frozen — the next change to generation is **v9, in Phase 6b** (v6 shows the pattern:
+  `patternQuestion` delegates to the frozen `patternQuestionV5` except where it differs).
 - A pattern family's Method recognises the family from the question's shape
   (`method_for.dart`): a family that grows must keep its shape recognisable at every size —
   the Method test runs every family at every tier.

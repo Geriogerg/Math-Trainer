@@ -5,6 +5,9 @@
 > from the owner. The day-to-day working rules live in `CLAUDE.md`, which must always stay
 > consistent with this plan (section 11).
 >
+> Version 3.9 — 26 November 2026: project review (`doc/review-2026-11-26.md`) and the owner's answers;
+> Phase 6 split into 6a Integrity and capacity, 6b Player experience (rules v9, `doc/levels.md` v1.6)
+> and 6c Launch; sections 2, 3.1, 4, 6.1, 6.3, 6.6, 8, 9 and 10 aligned.
 > Version 3.8 — 25 November 2026: Phase 7 outcome and close-out; sections 3.4, 4, 6.5 and 8 aligned.
 > Version 3.7 — 25 November 2026: Phase 7 (asynchronous duels, three rated modes, friends) detailed and next; mockups in
 > `doc/mockups/online.html`. Version 3.6 — 24 November 2026: Phase 4 outcome and close-out.
@@ -54,6 +57,8 @@ These hold across every phase. A feature that contradicts one of them is redesig
 
 - **The level measures skill, not effort.** It rises and falls with performance; it never decays
   with absence; it is never bought or chosen.
+- **Quitting never pays.** Leaving a Levelling game or a duel after a mistake costs at least as much
+  as finishing it.
 - **Never punish absence.** Coming back after weeks costs nothing; the level simply waits.
 - **Never show accuracy as progress.** Accuracy converges to the target by construction; progress
   is shown as level and response time.
@@ -74,7 +79,8 @@ These hold across every phase. A feature that contradicts one of them is redesig
   *Advanced* (powers, roots, percentages, integrals). Plus Tables mode and two challenges.
 - The player picks operations, 4/5/10/20 questions per operation, and Levelling or Training mode.
 - 30 s per question, ✓ to validate, a timeout counts as wrong; three timeouts in a row without a
-  key pressed end the game without counting it.
+  key pressed end the game. From rules v9 an ended or quit Levelling game counts once it has one
+  answer, its unanswered questions as timeouts (`doc/levels.md` section 3).
 - Result screen with Play again (same settings, new seed) and Home.
 
 ### 3.2 Levels
@@ -95,39 +101,25 @@ Supabase accounts (anonymous-first since Phase 1, email linking), player name, P
 tab with overall level, 30-day curve, per-operation level and average time, recent games.
 Day and night themes. Tabs: Play, Online, Profile, Ranks.
 
-## 4. Current state (25 November 2026, after Phase 7)
+## 4. Current state (26 November 2026, after Phase 7 and the project review)
 
-Since the Redesign: new level system (rules v3–v8), pattern questions and Method, weak spots and
-drills, staging, and online play (asynchronous duels in three rated modes, friends). The list below
-is the state after the Redesign phase.
+- **Done:** Phases 0, 1, 2, 3a, 3a.1, 4 (with close-out), 5, 5.1, 5.2, the Redesign, Levels,
+  Patterns and Method, and 7 (with close-out). Rules v2–v8 replayable; v8 current.
+- **The game:** Basics / Advanced / Challenges home, Training and Levelling, levels 0–100 in ten
+  tiers, pattern questions and Method, Tables mode, Tips, weak spots and drills, asynchronous duels
+  in three rated modes, friends by code and link, three duel boards plus the level boards.
+- **Platform:** CI (VM and JavaScript, weekly Android compile, pinned test counts), production on
+  `math-trainer-kjc.pages.dev` behind the beta gate, staging running with its own Supabase project,
+  Dart server on Render (free plan, sleeps), SQL migrations from CI, owner dashboard.
+- **Tests (review, commit `77f063c`):** core 1,116 (VM) / 890 (JavaScript), app 447, server 68,
+  tooling 10, SQL 20 files; coverage core 95.5 %, app 86.8 %, server 86.9 %. No secret in the
+  repository or its history. Web build: `main.dart.js` 0.77 MB brotli; first visit about 2.9 MB.
+- The repository is **private** since 20 November. Web-only: mobile development is paused.
 
-
-- Phases 0, 1, 2, 3a and 5 done: CI (VM and JavaScript, weekly Android compile), preview on
-  Cloudflare Pages (`math-trainer-kjc.pages.dev`), anonymous-first accounts, beta gate, placement
-  and type placement, continuous levels, monorepo with `packages/math_core`, Dart server on Render
-  with replay validation, leaderboard, SQL migrations applied by CI, owner dashboard, digit
-  typeface, component kit, operator icons, sound, haptics, home-screen install.
-- Also done: early sign-in, server-side gate, strategy detector and structural features (unused
-  by the app), staging pipeline (waiting on its setup), duel configuration and Glicko-2 (no UI),
-  legal drafts in `doc/legal/`.
-- Redesign shipped: Basics / Advanced / Challenges home, setup page, Training and Levelling modes,
-  30 s timer, 4/5/10/20 questions per operation, integrals, Get the count, Chain operations.
-  Main level = the four basic operations only.
-- Tests: core 673 (VM) / 646 (JavaScript), app 372, server 36, plus tooling and SQL tests.
-- Gate shown at 15–17 s on slow 4G; first question estimated 18–20 s, not yet measured live.
-- The repository is **private** since 20 November.
-- Web-only: mobile development is paused.
-
-| Weakness | Why it matters | Fixed in |
-|---|---|---|
-| Login required before playing | Most first-time players leave before one question | Phase 1 |
-| One timestamp per game, not per answer | Blocks spaced repetition and fatigue analysis | Phase 0 |
-| Everyone starts at level 1 | An adult's first games are trivially easy | Phase 1 |
-| Measures but does not teach | Drilling alone plateaus; players stop improving, then leave | Phases 0 and 4 |
-| Level constants are guesses | The leaderboard would rank on unvalidated numbers | Phase 3b |
-| Stock components, generic name | Looks like a template; the name cannot be found or protected | Phase 5 |
-| No CI | Nothing checks the repo on a clean machine | Phase 0 |
-| `δ` possibly not widened when `n_min` went 8 → 4 | Levels jitter more than designed | Phase 0 |
+**Review verdict (26 November): not ready to open to strangers.** The engineering base is sound;
+the launch surface is not. Five blockers (legal pages, unconfirmed accounts and no CAPTCHA, no
+password recovery, no abuse protection on the server, a duel loss escapable by one request) and
+nineteen majors. Every finding is assigned to Phase 6a, 6b or 6c below.
 
 ## 5. Strategy: web-first, mobile-ready
 
@@ -169,7 +161,7 @@ runtime.
   about one second; correct answers keep the fast flow. The result screen lists the mistakes with
   their answers.
 - **Fact fluency.** Fluent mental math rests on a few hundred facts retrieved without computing:
-  bonds to 10 and 100, tables to 12 × 12, squares to 25², friendly percentages. Each fact is
+  bonds within 20 and complements to 100, tables to 20 × 20, squares to 30², friendly percentages (Phase 4). Each fact is
   tracked by its own latency and errors, and slow facts come back more often (spaced repetition).
 - **Strategies, not just answers.** A detector picks the best move for a generated exercise and
   shows it as a one-line tip after an error or a slow answer:
@@ -231,12 +223,20 @@ notation, layout and durations. Identity comes from four levers.
   and local history. Done through a database function that deletes only the caller's own
   account, so no service key ever reaches the app.
 - **Abuse protection**: Supabase's built-in rate limit on anonymous sign-ins until the public
-  launch; CAPTCHA or Turnstile from Phase 6.
+  launch; rate limits and bounded requests on our server (Phase 6a); Turnstile on anonymous
+  sign-in and sign-up (Phase 6c).
+- **Password recovery**: "Forgot password?" with a recovery email and a set-password screen
+  (Phase 6c). Without it a forgotten password loses the account.
 - **Stale anonymous players** are cleaned up only once the server knows their activity (Phase 2).
   Deleting them earlier risks deleting someone who still plays.
 - **Email confirmation with a real SMTP sender** needs a sending domain, so it arrives with the
-  domain in Phase 6. Until then, linked emails are unconfirmed — acceptable for an invite-only
-  audience, not for a public one.
+  domain in Phase 6c. Until then, linked emails are unconfirmed — acceptable for an invite-only
+  audience, not for a public one. **From 6c, an unconfirmed account counts as a guest** for boards,
+  duels and friends.
+- **Minimum age 15** (France's age of digital consent): an "I am 15 or older" box at account
+  creation, stated in the privacy policy (owner decision, 26 November).
+- **Deleting an account keeps the opponents' history**: past duels stay, the player shown as
+  "Deleted player"; nothing else of theirs remains.
 
 ### 6.4 Rankings
 
@@ -266,13 +266,17 @@ Live duels and tournaments: Phase 7b, when the player numbers allow it.
 
 ### 6.6 Business and legal
 
-- **No ads, payments or third-party analytics before online play ships.** Usage numbers come from
+- **No ads, payments or third-party analytics at launch**; decided three months after it, on
+  retention data (owner decision, 26 November). Usage numbers come from
   the server's own tables. Monetisation is decided on retention data; candidates that do not
   distort the ranking: ad removal, detailed statistics, cosmetic themes. **Never** a paywall on an
   exercise type — it would make the overall ranking a ranking of subscribers.
-- **Public launch requires** a privacy policy, a legal notice (French publisher), in-app account
-  deletion, email confirmation with a real sender. Teen users: France sets the age of digital
-  consent at 15 — check what applies before opening public sign-ups.
+- **Public launch requires** a privacy policy and a legal notice, **in French and English**, in-app
+  account deletion, email confirmation with a real sender, a minimum age of 15, and a professional
+  review of the legal pages. As a private publisher the owner may give the host's details in the
+  legal notice instead of a home address (the host keeps the owner's identity).
+- **Interface language:** English at launch, every string in one place; **French right after
+  launch** (owner decision, 26 November).
 - **Stores, later**: Google Play requires a 12-tester, 14-day closed test for a new personal
   account; Apple requires in-app account deletion and a build signed on a Mac (cloud build
   service).
@@ -290,8 +294,8 @@ strategies. Each is reconsidered after Phase 7 against the principles of section
 ## 7. Roadmap
 
 ```
-P0 ─ P1 ─ P2 ─ P3a Build beta ─ 3a.1 Close-out ─ invitations ─┬─ beta runs 2–3 weeks ─┬─ P3b Calibrate ─ P4 Learning ─ P6 Public ─ P7 Online
-                                                                └─ P5 Identity ─────────┘
+P0 ─ P1 ─ P2 ─ P3a ─ 3a.1 ─ P5 ─ Redesign ─ Levels ─ Patterns ─ P4 Learning ─ P7 Online ─ Review ─ P6a Integrity ─ P6b Experience ─ P6c Launch ─ P7b Live
+P3b: a data check, run when the dashboard reaches its threshold (not a blocker).
 P8 Return to mobile: whenever mobile development is possible again (independent of P6 and P7).
 ```
 
@@ -978,23 +982,6 @@ tier tables and examples of `doc/levels.md` are checked by a test that reads the
 each example must be a question its tier can generate, and each tier's digit counts must match.
 A spec change then breaks a test instead of drifting silently.
 
-### Phase 6 — Public web launch
-
-**Entry:** Phases 3a, 3b, 4, 5, 5.1, 5.2, the Redesign, the Levels phase and the Patterns and Method phase done (staging running); name chosen; domain bought;
-legal drafts reviewed.
-
-**Environments after launch:** production = the domain (Cloudflare Pages project and current
-Supabase project); the old `math-trainer-kjc.pages.dev` address redirects to the domain; staging
-stays on `math-trainer-staging*.pages.dev` with its own Supabase project; the read-only production
-check moves to the domain and is rethought for an ungated page.
-
-1. *(A)* Production deployment on the domain, separate from preview.
-2. *(A)* Privacy policy and legal notice pages, linked in the app.
-3. *(A)* CAPTCHA or Turnstile on anonymous sign-in and sign-up.
-4. *(A)* Email confirmation on, with a real SMTP sender on the domain and the site URL set.
-5. *(A)* Beta gate removed; abuse protections verified.
-6. *(C)* Launch checklist run on a phone from a fresh browser.
-
 ### Phase 7 — Online play: asynchronous duels and friends (one pass)
 
 **Goal:** players compete against each other and their friends, even when few are online at once.
@@ -1128,6 +1115,155 @@ a pinned minimum, so a suite that silently runs nothing turns red.
    clipboard otherwise.
 4. *(A)* **Minimum test counts** in CI for every suite (core VM, core JavaScript, app, server, SQL).
 
+### Project review (26 November)
+
+A full review at commit `77f063c`, written to `doc/review-2026-11-26.md`. Every suite green, the
+pure core really pure, generation deterministic, row-level security everywhere, no secret in the
+history. **Verdict: not ready for strangers.** Finding IDs (B = blocker, M = major, m = minor,
+n = nit) are used below; each is fixed in the phase named.
+
+**Owner answers to the review's questions (26 November):**
+
+| # | Question | Decision |
+|---|---|---|
+| 1 | Quitting a Levelling game (M4) | Counts once it has one answer; unanswered questions are timeouts. Rules v9. |
+| 2 | Duels at launch (B5, M1–M3) | Fix first, then open **rated**. |
+| 3 | Cheating resistance (M1) | Stop casual abuse now: no escaping a loss, no faked time. Server-revealed, server-timed questions come with live duels (7b). |
+| 4 | Paid plans (M9) | Launch sized for ~1,000 players. Render always-on from launch; Supabase free with an alert at 50 % of the database, once stored sessions are slimmed; static files content-hashed. |
+| 5 | Minimal text (M16) | Relaxed for strangers: one line under each control, level change explained on the result, a first-run card, a rules sheet before rated duels. |
+| 6 | Question pools (M10) | Widened and de-duplicated: `doc/levels.md` v1.6. |
+| 7 | Age and legal (B1) | Minimum 15 with a declaration at account creation; legal pages in French and English; host's details in the legal notice. Professional review kept. |
+| 8 | Names (M6) | Unique (ignoring case and look-alike letters); only accounts report; a reported name is hidden until the owner reviews it, within 48 h. |
+| 9 | Moderation (M5) | The owner decides from the dashboard; a hidden player leaves boards, pool and friend search, and their Profile says "Account under review". |
+| 10 | Old rules (m14) | v2–v6 retired 30 days after v9 ships (Phase 6c). |
+| 11 | Spec readings (m4, m5) | Division stays on one line (spec fixed); weak spots at most ⌊n/5⌋ per operation, strictly 20 %. |
+| 12 | French (m18) | Strings in one place in 6b; English at launch; French right after. |
+| 13 | Deleted accounts (m8) | Duels kept, shown as "Deleted player". |
+| 14 | `doc/plan.md` fixes | Done in v3.9. |
+| 15 | Still provisional | Abandoned-duel choices confirmed; Latin letters only for names at launch; no ads, payments or analytics at launch (decide three months after); live duels in 7b. |
+
+**Not scheduled as commits:** m12 (large files) and m13 (app contracts in the core) are fixed when
+the files are next touched; each phase report says what moved.
+
+### Phase 6a — Integrity and capacity (one pass)
+
+**Goal:** results that hold and a server that survives strangers. Server, SQL and CI; no visible
+change to the game. **Entry:** now; needs nothing from the owner.
+
+0. *(A)* **Repository hygiene (m9).** Remove `tool/cloudflare/.wrangler/` from the index and ignore
+   it; purge it from the history (mirror backup first, then force-push; CI and deployments
+   re-verified). Decisions of 26 November recorded; each review finding tracked by ID in
+   `doc/progress.md` with its phase.
+1. *(A)* **Duel results hold (B5, M2, M3, M1 cheap part, n1).**
+   - For the second player, a run or progress that does not replay is a **loss** with what was
+     received; `void` only for server faults and a challenger's own first run.
+   - An abandoned duel is scored even after its challenge expires; a challenge cannot be opened in
+     its last 24 hours.
+   - Once progress exists, only a run that **extends it** (same answers and times) is accepted.
+   - Challenges only to a friend or an opponent of the last 30 days; `rematchOf` only for a
+     finished duel of the same mode; the once-a-day rating rule applies to **every** duel reached
+     through a chosen opponent, over a rolling 24 hours.
+   - A run claiming more time than has passed since the offer (plus a margin) is refused. A flagged
+     run's duel is recorded **unrated**.
+2. *(A)* **Abuse floor (B4).** Bodies counted while read and cut at the cap; token buckets per player
+   and per IP; malformed tokens refused before any call to Supabase; refused uploads stored as a
+   hash and a truncated payload, capped per player per day; a daily cap on accepted sessions.
+3. *(A)* **Solo integrity and moderation (M5).** A session created before the previous one could
+   end, or received sooner than its own total time, is flagged or refused; a moderation table read
+   by every board, the duel pool and friend search; dashboard commands to hide, unhide and ban;
+   "Account under review" on Profile.
+4. *(A)* **Names and privacy (M6, m8).** Reports from linked accounts only, rate-limited; a reported
+   name hidden for that player until reviewed; look-alike letters folded; unique folded names
+   (existing duplicates resolved, recorded as provisional); `profiles` readable by its owner only;
+   a deleted player's duels kept as "Deleted player".
+5. *(A)* **Capacity (M7, M8, M9).** Per-player completed-game counts; each board computed once per
+   call and cached about a minute; a maintained run pool and a config hash for matchmaking; the
+   weak-spot check bounded (schedule state per player or last N games); **stored sessions slimmed
+   to seed, config, answers and times** (questions are regenerated), existing rows migrated; static
+   files content-hashed and cached for a year, the Pages Function only on HTML; a dashboard alert
+   at 50 % of the database. The review's measurements re-run at 1,000 and 10,000 players.
+6. *(A)* **Correctness and security details (m1, m2, m6, m7, m10, n2, n3).** Answer times clamped to
+   30 s on a monotonic clock; a session failing N times over several days set aside, PostgREST 4xx
+   mapped to 400; security headers (CSP, `frame-ancestors 'none'`, `nosniff`, referrer policy);
+   advisory locks on daily limits; friend codes of 8 characters with "New code"; an invite link
+   asks before sending a request; abandonment sweep from `pg_cron`; exact staging origin;
+   `search_path` on every function, a non-root container, the dashboard password out of the
+   command line.
+7. *(A)* **Tests and CI (M12, M13, m15, m16, n4, n5).**
+   - One CI job runs the real server against the scratch Postgres and plays a session upload and a
+     duel in each mode; the staging smoke test plays a duel.
+   - No cancellation of runs on `main`; third-party actions pinned by commit; `permissions:
+     contents: read`.
+   - A catalogue test: every table has row-level security, no `security definer` function callable
+     by players unless listed. SQL pins count assertions, not files. Tests for a chunked oversize
+     body and a non-UUID id.
+   - Dead dependencies removed; `PREVIEW_BUILD` an input, off in production; stale comments and
+     the reviewer agent's rule list fixed.
+
+**Exit:** the review's duel exploits each end in a loss or a refusal; 2,000 crafted refusals store
+under 5 MB; the main board answers under 300 ms and matchmaking under 200 ms at 10,000 players and
+1,000,000 sessions locally; the integration job is green; every pin raised.
+
+### Phase 6b — Player experience (one pass)
+
+**Goal:** what a stranger meets in the first ten minutes. **Entry:** Phase 6a done. Rules v9 from
+`doc/levels.md` v1.6.
+
+1. *(A)* **Rules v9 generation (M10, m11, m20, m21).** At least 12 distinct questions per tier; no
+   repeat within a game or duel while the pool allows, never two in a row; uniform draws; no
+   trivial factors above T0; the new Powers, Roots and Integrals tables; Swap, round-number
+   division, round cube roots and from-zero integrals sized by tier; both lengths at T8; the
+   lower-bound size test. Level targets rechecked by simulation.
+2. *(A)* **Quitting counts (M4).** Rules v9 level update: a Levelling game with one answer counts,
+   unanswered questions as timeouts, however it ends. Server replay, simulation of a "quit after a
+   mistake" player.
+3. *(A)* **Method quality (M11, n6).** The rules of `doc/levels.md` section 9 v1.6; exhaustive
+   switches on `PatternFamily`; pinned word-for-word examples.
+4. *(C)* **Explained, not wordy (M15, M16, m17).** One line under each Home and setup control; the
+   result shows "12 → 12" with the change in hundredths and its reason; a first-run card; a rules
+   sheet before a rated duel (format, "leaving counts as a loss", Start / Cancel); rules on first
+   open of Get the count and Chain operations; Sign out confirmed; pending uploads visible.
+5. *(C)* **Network and devices (M14, M15, M18).** Server levels fetched right after sign-in; "history
+   from other devices is not shown here"; a sign-in hint for a level-0 guest; a 15–20 s timeout on
+   every Supabase call; Cancel and "Waking the server…" while finding an opponent; a notice when an
+   unfinished duel was sent; a loader watchdog with Reload; a catch-all at start; failures shown on
+   friend actions.
+6. *(C)* **Accessibility (M17).** Semantics on; a live region for question, feedback and timer;
+   spoken labels per exercise type; outlines at 3:1; body text 15–16 px; viewport meta; guideline
+   tests on Online, duel, Friends and Ranks.
+7. *(A)* **Strings and consistency (m3, m5, m18).** Every string in one place (English only); levels
+   shown as whole parts everywhere; weak spots ⌊n/5⌋ per operation; terms unified (game, Ranks,
+   seconds).
+8. *(A)* **Docs (M19, m19).** `doc/architecture.md` regenerated; stale parts of `doc/online.md`
+   rewritten; README numbers replaced by a pointer to the CI pins; superseded and confirmed
+   entries marked in `doc/decisions.md`; `CLAUDE.md` aligned.
+
+**Exit:** no repeated question in a 10-question game at any tier; quitting after a mistake costs
+levels; the Method examples of the review read correctly; a first-time player on a phone
+understands Home, a game result and a duel without help; a screen reader can play a game.
+
+### Phase 6c — Public launch
+
+**Entry:** Phases 6a and 6b done; owner prerequisites: name confirmed and domain bought, legal pages
+filled and reviewed, an email service connected to the domain, a Turnstile key, the Render
+always-on plan.
+
+1. *(A)* Name as a single setting (title, manifest, icons, preview image).
+2. *(A)* Privacy policy and legal notice as in-app screens, French and English, linked from the
+   gate, Profile and the save form; duels, friends and the stored per-answer data described; the
+   "I am 15 or older" box at account creation (B1).
+3. *(A)* Turnstile on anonymous sign-in and sign-up; email confirmation on, sent from the domain; an
+   unconfirmed account treated as a guest (B2).
+4. *(A)* "Forgot password?" with recovery email and set-password screen (B3).
+5. *(A)* Error reporting to our own server.
+6. *(A)* Production on the domain, the old address redirecting; staging unchanged; the production
+   smoke test rethought for an ungated site; rules v2–v6 retired 30 days after v9.
+7. *(A)* Capacity report and launch checklist in `doc/`.
+8. *(C)* Gate removed; checklist run on a phone from a fresh browser.
+
+**Exit:** a stranger opens the domain on a phone, plays at once, creates a confirmed account,
+recovers a forgotten password, plays a rated duel, and finds the legal pages in both languages.
+
 ### Phase 7b — Live duels and tournaments (later)
 
 Live duels only when the dashboard shows enough players online together for queues under ~20 s
@@ -1161,15 +1297,18 @@ name and domain, ads or payments) are prepared but not applied until the owner c
 | ~~Server host and budget~~ — decided: Render free plan | Phase 2 |
 | ~~Brotli preview host~~ — decided: Cloudflare Pages | Phase 3a |
 | ~~Input device, app version, timeout stored~~ — decided: yes | Phase 3a.1 |
-| Wider name alphabets (bigger bundled font) | Before Phase 6 |
+| ~~Wider name alphabets~~ — decided: Latin letters only at launch | Phase 6 |
 | New level constants | Phase 3b, commit 1 |
 | ~~Server-side gate enforcement~~ — done in Phase 5.1 | Phase 5.1 |
 | Production on the current Supabase project, a new one for staging | Phase 5.2 |
 | ~~Phase 5 provisional choices~~ — see Phase 5 outcome | Phase 5 |
-| App name and domain | Phase 6 |
+| App name and domain | Phase 6c |
+| ~~Review questions~~ — decided 26 November (see Project review) | Phase 6a |
+| ~~Minimum age~~ — decided: 15, declared at account creation | Phase 6c |
+| Email service and Turnstile key | Phase 6c |
 | Opening live duels | Phase 7b |
-| Paid server plan (no cold start) | Before Phase 6 |
-| Ads, payments, analytics | After Phase 7 |
+| ~~Paid server plan~~ — decided: Render always-on at launch (buy before 6c); Supabase free with a 50 % alert | Phase 6c |
+| Ads, payments, analytics — none at launch | Three months after launch |
 
 Any gap Claude Code fills with its own choice is listed in the phase report and confirmed by the
 owner. Silence never turns a guess into the product.
@@ -1187,7 +1326,10 @@ owner. Silence never turns a guess into the product.
 | Unconfirmed emails during the beta | Invite-only audience; confirmation with the domain in P6 |
 | Not enough players online for duels | Ghost duels first; live duels only on measured concurrency |
 | Cheating in solo rankings | Server replay, timing flags; robust ratings come from duels |
-| Teen users and consent rules | Check before public sign-ups (P6) |
+| Teen users and consent rules | Minimum age 15, declared; legal review (P6c) |
+| Duel results gamed by crafted requests | Phase 6a: no escaping a loss, no faked time; server-timed questions with live duels (7b) |
+| Free database filled by stored sessions | Slimmed sessions and a 50 % alert (P6a) |
+| A stranger does not understand the game | One line per control, explained results, first-run card (P6b) |
 | First iOS build on unknown ground | Budget time in P8; cloud Mac build service |
 | A single developer's bandwidth | Strict phase order; checkpoints kept few |
 
@@ -1198,7 +1340,9 @@ owner. Silence never turns a guess into the product.
   server by hand after any change to the server or the core.
 - Keep 10–20 testers playing; watch Beta progress in the dashboard report.
 - Confirm the digit typeface (Phase 5 picked Space Grotesk provisionally).
-- Choose the app name before Phase 6; the domain, SMTP sender and store listings depend on it.
+- **Before Phase 6c:** confirm the name and check it (domain, both stores, INPI and EUIPO), buy the
+  domain; fill the legal pages and get them reviewed; open an email service account and connect it
+  to the domain; create a Turnstile key; buy Render's always-on plan.
 - Play the preview URL on a phone at every checkpoint.
 
 ## 11. Keeping CLAUDE.md aligned with this plan

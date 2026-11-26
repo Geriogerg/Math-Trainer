@@ -59,3 +59,8 @@ smoke-failure.png
 
 # The owner dashboard's database connection (password inside).
 /tool/dashboard/connection.txt
+
+# Wrangler's local state and cache (written by a local `wrangler pages dev`
+# or deploy): machine-specific, never source. Purged from the history on
+# 26 Nov 2026 (review finding m9).
+.wrangler/

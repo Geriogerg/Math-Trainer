@@ -42,7 +42,15 @@ import 'package:test/test.dart';
 /// counts) is drawn, and every column of it takes values drawn in that
 /// column. Reads a file: VM only.
 void main() {
-  final spec = File('../../doc/levels.md').readAsStringSync();
+  // `doc/levels.md` v1.6 (26 Nov) specifies rules v9, which Phase 6b
+  // implements. Until v9 is `current`, v8 is checked against the spec it
+  // implements: v1.5, frozen beside this test (provisional,
+  // `doc/decisions.md`, "Phase 6a"). The day `current` is v9 this reads the
+  // owner's file again by itself; Phase 6b deletes the copy.
+  final specPath = RulesVersion.current.number >= 9
+      ? '../../doc/levels.md'
+      : 'test/spec/levels_v1_5.md';
+  final spec = File(specPath).readAsStringSync();
   final tiers = _tables(_section(spec, '## 5. ', '## 5b. '));
   final section5b = _section(spec, '## 5b. ', '## 6. ');
   final families = _tables(section5b);

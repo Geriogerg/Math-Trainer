@@ -1574,3 +1574,76 @@ core JavaScript 890, tooling 10, server 68, app 447, SQL 20 files. Live: the sit
 passed — the new counts work on Actions), the server on `a3882c6` (the last server and core
 change; `server_check.sh`: up to date). Not verified here: a real share sheet (needs a phone),
 an abandoned duel recorded live (needs 24 hours).
+
+## Review findings (review of 26 Nov 2026, `doc/review-2026-11-26.md`)
+
+Every finding by ID, with the phase that fixes it (plan v3.9, "Project review" and Phases
+6a–6c). **State**: `open`, `fixed` (with the commit and its evidence in the Phase 6a section
+below), `part` (the part of this phase done, the rest in the phase named), or `decided` (an
+owner decision, nothing to build).
+
+| ID | Finding, in short | Phase | State |
+|---|---|---|---|
+| B1 | No publishable legal surface; age rule | 6c | open (age decided: 15) |
+| B2 | Email confirmation off, no CAPTCHA | 6c | open |
+| B3 | No password recovery | 6c | open |
+| B4 | No abuse protection on the server | 6a (2) | open |
+| B5 | A duel's second player escapes any loss | 6a (1) | open |
+| M1 | Duel answers known before play, times self-declared, flagged runs rated | 6a (1) cheap part; 7b server-timed questions | open |
+| M2 | A duel replayable with full knowledge | 6a (1) | open |
+| M3 | Rated duels aimed at a chosen player; daily rule bypassed | 6a (1) | open |
+| M4 | Quitting bad Levelling games never costs a level | 6b (2), rules v9 | open |
+| M5 | Solo sessions fabricated in bulk; no way to remove a cheater | 6a (3) | open |
+| M6 | Names: weak filter, no uniqueness, abusable hiding, `profiles` world-readable | 6a (4) | open |
+| M7 | The main leaderboard does not scale | 6a (5) | open |
+| M8 | Matchmaking and the weak-spot check grow with history | 6a (5) | open |
+| M9 | Free-plan capacity: stored sessions, Pages Function quota, sleeping server | 6a (5); always-on plan bought before 6c | open |
+| M10 | Tiny question pools, repeats | 6b (1), rules v9 | open |
+| M11 | Method explanations true but wrong as teaching | 6b (3) | open |
+| M12 | Server ↔ Supabase boundary untested; no duel end to end | 6a (7) | open |
+| M13 | A push can cancel a production deployment | 6a (7) | open |
+| M14 | Empty account on a new device | 6b (5) | open |
+| M15 | Rated duel on one tap, no cancel while waiting | 6b (4, 5) | open |
+| M16 | Nothing explained to a newcomer | 6b (4) | open |
+| M17 | Accessibility | 6b (6) | open |
+| M18 | Missing states around the network | 6b (5) | open |
+| M19 | Stale reference docs | 6b (8); the `CLAUDE.md` "v6 is current" sentence fixed in 6a (0) | part |
+| m1 | An answer at the buzzer can get an honest game refused | 6a (6) | open |
+| m2 | One poisoned session blocks a player's uploads for ever | 6a (6) | open |
+| m3 | Main level rounded here, floored there | 6b (7) | open |
+| m4 | Division never on two lines | — | decided: one line, spec fixed in `doc/levels.md` v1.6 |
+| m5 | Weak spots can be 25 % of an operation | 6b (7) | open |
+| m6 | No security headers | 6a (6) | open |
+| m7 | Daily limits can be raced; short friend codes; invite link sends without asking | 6a (6) | open |
+| m8 | Deleting an account deletes opponents' duel history; notice wording | 6a (4); notice wording with 6c (2) | open |
+| m9 | Wrangler state committed | 6a (0) | open |
+| m10 | Abandonment sweep runs inside other players' requests | 6a (6) | open |
+| m11 | Trivial questions at high tiers; unbalanced duels | 6b (1), rules v9 | open |
+| m12 | Files that carry too much | when next touched | open |
+| m13 | App contracts in the core; logic twice in Dart and SQL | when next touched | open |
+| m14 | Seven replayable rules versions | 6c (6): v2–v6 retired 30 days after v9 | open |
+| m15 | Dead dependencies; `PREVIEW_BUILD` always on | 6a (7) | open |
+| m16 | Test gaps (SQL pin counts files, no catalogue test, two server cases) | 6a (7) | open |
+| m17 | Smaller friction (sign-out, pending uploads, rules of two modes, terms) | 6b (4, 7) | open |
+| m18 | No localisation mechanism | 6b (7): strings in one place, English at launch | open |
+| m19 | `doc/decisions.md` unmarked superseded entries; legal README gap | 6b (8); the notice gap with 6c (2) | open |
+| m20 | Pattern families that do not grow with the tier | 6b (1), rules v9 | open |
+| m21 | Subtraction T8 second number, non-monotone tiers, Tables repeat | 6b (1), rules v9 | open |
+| n1 | "Once a day" is a UTC calendar day | 6a (1) | open |
+| n2 | Staging CORS pattern too wide | 6a (6) | open |
+| n3 | Functions without `search_path`; root container; dashboard password on the command line | 6a (6) | open |
+| n4 | Stale comments | 6a (7) | open |
+| n5 | Reviewer agent checks 17 rules of 18; `MSYS_NO_PATHCONV` undocumented | 6a (7) | open |
+| n6 | `default:` branches on `PatternFamily` | 6b (3) | open |
+
+## Phase 6a — Integrity and capacity (plan v3.9)
+
+- **Commit 0** *(A)* — **Repository hygiene (m9); the review's decisions recorded.** Plan v3.9
+  and `doc/levels.md` v1.6 (the owner's) and the review committed; CLAUDE.md's Current phase is
+  6a, and its "v6 is `current`" sentence is fixed (v8 is; the next generation change is v9, in
+  6b). `tool/cloudflare/.wrangler/` (46 files) removed from the index and ignored
+  (`.wrangler/`). The owner's 15 answers recorded in `doc/decisions.md` ("Project review").
+  **`doc/levels.md` v1.6 broke the spec-conformance test** (it reads the owner's file and draws
+  under `RulesVersion.current`, still v8, and the phase must not touch generation): until v9 is
+  current the test reads `packages/math_core/test/spec/levels_v1_5.md`, the spec as committed
+  before v1.6 — provisional, `doc/decisions.md` "Phase 6a". 190 conformance tests pass as before.

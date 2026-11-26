@@ -1954,7 +1954,7 @@ fails below a pinned minimum (close-out commit 4). Known limit: the free Render 
 (30–60 s before the first duel after a quiet period); a paid plan is an owner decision before
 Phase 6.
 
-**Close-out, commit 1 (plan v3.8): an abandoned duel is a loss** — provisional. The app sends
+**Close-out, commit 1 (plan v3.8): an abandoned duel is a loss** — confirmed (plan v3.9, 26 Nov). The app sends
 its run as it stands after every answer and round (`POST /v1/duels/progress`, stored as sent,
 replayed only at the end); the server records a duel started but not submitted within 24 hours
 — a pool or practice duel from when it was handed out, a challenge from when the friend opened
@@ -1965,3 +1965,54 @@ counts them). A progress that no longer replays voids the duel instead. The free
 clock: every duel request (find, open, run) first records up to 3 abandoned duels — a player who
 comes back late finds the loss already there; a run sent after it gets the recorded verdict. A
 challenge whose challenger never played within 24 hours is void (no run to lose against).
+
+## Project review: the owner's decisions of 26 November (plan v3.9) — decided
+
+The review (`doc/review-2026-11-26.md`) ended with 15 questions; the owner answered them in
+plan v3.9 ("Project review"). Recorded here so that later entries can point at them; the plan
+is the source.
+
+1. **Quitting a Levelling game (M4)**: counts once it has one answer, unanswered questions as
+   timeouts. Rules v9 (Phase 6b).
+2. **Duels at launch (B5, M1–M3)**: fixed first (Phase 6a), then opened **rated**.
+3. **Cheating resistance (M1)**: stop casual abuse now — no escaping a loss, no faked time.
+   Server-revealed, server-timed questions come with live duels (Phase 7b).
+4. **Paid plans (M9)**: launch sized for ~1,000 players; Render always-on from launch; Supabase
+   free with an alert at 50 % of the database once stored sessions are slimmed; static files
+   content-hashed.
+5. **Minimal text (M16)**: relaxed for strangers (Phase 6b).
+6. **Question pools (M10)**: widened and de-duplicated, `doc/levels.md` v1.6 (rules v9).
+7. **Age and legal (B1)**: minimum 15, declared at account creation; legal pages in French and
+   English; the host's details in the legal notice; professional review kept.
+8. **Names (M6)**: unique, ignoring case and look-alike letters; only accounts report; a
+   reported name is hidden until the owner reviews it, within 48 h.
+9. **Moderation (M5)**: the owner decides from the dashboard; a hidden player leaves boards,
+   pool and friend search, and their Profile says "Account under review".
+10. **Old rules (m14)**: v2–v6 retired 30 days after v9 ships (Phase 6c).
+11. **Spec readings (m4, m5)**: division stays on one line (spec fixed); weak spots at most
+    ⌊n/5⌋ per operation.
+12. **French (m18)**: strings in one place in 6b; English at launch; French right after.
+13. **Deleted accounts (m8)**: duels kept, shown as "Deleted player".
+14. **Plan fixes**: done in v3.9.
+15. **Still provisional**: the abandoned-duel choices are **confirmed** (the entry "Close-out,
+    commit 1" under Phase 7 above); Latin letters only for names at launch; no ads, payments or
+    analytics at launch; live duels in 7b.
+
+## Phase 6a: integrity and capacity (plan v3.9) — provisional choices
+
+Each choice below fills a gap the plan leaves; the owner confirms or reverses it in the phase
+report.
+
+**Commit 0 — the conformance test reads a frozen spec until rules v9.**
+`levels_spec_conformance_test.dart` reads `doc/levels.md` and draws every example under
+`RulesVersion.current`. The owner's v1.6 describes rules v9 (new Powers, Roots and Integrals
+tables), which Phase 6b builds; Phase 6a must not touch generation. With v1.6 in place the test
+cannot even load, which would turn the core suite red and stop every deploy of this phase.
+Options: (a) skip the test until 6b — a skipped suite hides a real drift of v8 and drops the
+count under its pin; (b) implement v9 now — against the phase's scope; (c) check v8 against the
+spec it implements. **Chosen: (c).** `packages/math_core/test/spec/levels_v1_5.md` is
+`doc/levels.md` as committed before v1.6, byte for byte; the test reads it while
+`RulesVersion.current` is below 9 and the owner's file from v9 on, with no further edit. The
+190 conformance tests run as before. Phase 6b deletes the copy with the commit that makes v9
+current. This is not "editing the test to fit the code": the test still fails if v8 drifts from
+its spec, and it will fail in 6b until v9 matches v1.6.
