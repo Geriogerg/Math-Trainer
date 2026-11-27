@@ -353,6 +353,10 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 - **A duel is asked for only once the server is awake** (`DuelFlowScreen`: `/health`, then
   `find`/`open`). Cancel exists only during the wake: after `find` the server may have made the
   duel, and one left 24 hours is a loss.
+- **The smoke test reads the app's words** (`tool/smoke/preview_smoke.mjs`: "Play Basics",
+  "Start", "Game complete", Profile's "1.2 s", "Delete my data"…): a change of wording breaks
+  staging's smoke, and production then keeps the previous build (6b commit 7). Grep the smoke
+  for any text you change.
 - **Every word a player reads is in `app/lib/presentation/strings/`** (6b commit 7):
   `strings.<area>.<name>`, English; `strings_in_one_place_test.dart` fails on a word-holding
   literal anywhere else in `lib/presentation/`. Players read "game" (not session), "Ranks",

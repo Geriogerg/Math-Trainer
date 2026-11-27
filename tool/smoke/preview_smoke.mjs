@@ -311,6 +311,26 @@ async function waitForText(text, timeoutMs = 30000, { exact = false, scroll = fa
   await fail(`"${text}" never appeared`);
 }
 
+/// Like waitForText, for a regular expression ([source]) in any node's label
+/// or text.
+async function waitForPattern(source, timeoutMs = 30000) {
+  const end = Date.now() + timeoutMs;
+  while (Date.now() < end) {
+    const hit = await evaluate(`(() => {
+      const re = new RegExp(${JSON.stringify(source)});
+      for (const el of document.querySelectorAll('flt-semantics, flt-semantics *')) {
+        for (const t of [el.getAttribute('aria-label') || '', el.textContent || '']) {
+          if (re.test(t)) return true;
+        }
+      }
+      return false;
+    })()`);
+    if (hit) return;
+    await sleep(300);
+  }
+  await fail(`nothing matching /${source}/ appeared`);
+}
+
 async function click({ x, y }) {
   for (const type of ['mouseMoved', 'mousePressed', 'mouseReleased']) {
     await send('Input.dispatchMouseEvent', { type, x, y, button: 'left', clickCount: 1 });
@@ -490,7 +510,10 @@ await enableSemantics();
 }
 await tapText('Profile', 60000, { exact: true });
 if ((await guestId()) !== id) await fail('a reload changed the player');
-await waitForText(' ms'); // "Level 1 · 1234 ms" — an operation with answers
+// An operation with answers shows its mean time: "1.2 s" since Phase 6b commit 7
+// ("1234 ms" before — kept, for a deploy in between).
+// No backslash in the pattern: it goes through a string, then the page.
+await waitForPattern('([0-9][.][0-9] s|[0-9] ms)($|[^A-Za-z])');
 
 // The whole online path, when the build has a server: the game is uploaded,
 // the server replays and validates it, and only then writes the player's

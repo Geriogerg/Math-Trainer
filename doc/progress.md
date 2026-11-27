@@ -2063,3 +2063,8 @@ changes what a v9 game draws).
   → `session_builders.dart`, as `part` files (nothing private became public; no behaviour
   changed: app 512 green, analyze clean). m13 (app contracts in the core) untouched: 6b changed
   none of those interfaces.
+- **Smoke fix** — commit 7 changed Profile's per-operation time from "1234 ms" to "1.2 s", and
+  the staging smoke test still waited for " ms": staging failed, so production kept commit 6
+  (seen: the site served 3846808 an hour after commit 7). The smoke now waits for either form
+  (`waitForPattern`, a pattern without backslashes — they would not survive the string into
+  the page). LESSON: a change of wording must be checked against `tool/smoke/` too.
