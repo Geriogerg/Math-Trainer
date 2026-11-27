@@ -108,8 +108,8 @@ class EnglishLegalTexts implements LegalTexts {
         'Service providers process it for us, under contract: Supabase '
             '(accounts and database, ⟦dataRegion⟧), Render (the game’s '
             'server, United States) and Cloudflare (delivering the site, the '
-            'robot check). Emails (the link that confirms your address) are '
-            'sent by Supabase. '
+            'robot check). Emails (the links that confirm your address or set '
+            'a new password) are sent by Supabase. '
             'Transfers outside the European Union rely on the EU–US Data '
             'Privacy Framework or the European Commission’s standard '
             'contractual clauses.',
@@ -300,8 +300,9 @@ class FrenchLegalTexts implements LegalTexts {
         'Des prestataires les traitent pour nous, sous contrat : Supabase '
             '(comptes et base de données, ⟦dataRegion⟧), Render (le serveur '
             'du jeu, États-Unis) et Cloudflare (la distribution du site, la '
-            'vérification anti-robot). Les e-mails (le lien qui confirme votre '
-            'adresse) sont envoyés par Supabase. Les '
+            'vérification anti-robot). Les e-mails (les liens qui confirment '
+            'votre adresse ou fixent un nouveau mot de passe) sont envoyés par '
+            'Supabase. Les '
             'transferts hors de l’Union européenne reposent sur le cadre de '
             'protection des données UE–États-Unis ou sur les clauses '
             'contractuelles types de la Commission européenne.',

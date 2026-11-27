@@ -51,7 +51,7 @@ control, 15 s on Supabase calls, Cancel only while the server wakes, edges at 3:
 the terms (game, Ranks, seconds, Practice). m11 and m21 go to the Phase 3b data check; m13
 stays debt. Phase 6d (French) follows the launch.
 
-Done: 0–3 (27 Nov; `doc/progress.md`, "Phase 6c build"). Next: commit 4.
+Done: 0–4 (27 Nov; `doc/progress.md`, "Phase 6c build"). Next: commit 5.
 
 **Phase 7's rules** (plan v3.7–v3.8; detail in `doc/decisions.md`, "Phase 7"):
 - **No live matches**: every duel is asynchronous — a player races another's recorded run,
@@ -365,6 +365,9 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   browser).
 - **Email templates are generated** (`supabase/templates/`, from `Brand` by the brand tool):
   the owner pastes them into Supabase; never edit them by hand.
+- **An email's link is read from the address before `Supabase.initialize`** (`authLinkFrom`,
+  `AppEnvironment.authLink`, 6c commit 4): recovery → the gate asks for a new password;
+  confirmed or failed → said once. Supabase's client clears the address while it starts.
 - **Every Supabase call has a 15 s limit** (`TimeLimitedClient`, given to `Supabase.initialize`
   in `composition_root.dart`): it fails as an offline call does. The Dart server's clients keep
   their own limits (duels 90 s: the free server wakes in about a minute).

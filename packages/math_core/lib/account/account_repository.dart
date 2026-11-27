@@ -41,6 +41,16 @@ abstract class AccountRepository {
   /// network unavailable).
   Future<Account> signIn({required String email, required String password});
 
+  /// "Forgot password?" (Phase 6c commit 4, review B3): emails [email] a link
+  /// that signs the player in to set a new password. Says nothing about
+  /// whether an account exists. Throws an `AccountException` on failure
+  /// (`rateLimited`, `invalidInput`, `network`, `humanCheck`).
+  Future<void> requestPasswordReset({required String email});
+
+  /// Sets the signed-in account's password (after a recovery link). Throws
+  /// an `AccountException` on failure (`weakPassword`, `network`).
+  Future<void> setPassword({required String password});
+
   /// Creates an anonymous player and signs them in (plan, section 6.3:
   /// anonymous-first). Needs the network once; the session is then
   /// persisted locally like any other. Throws an `AccountException` on

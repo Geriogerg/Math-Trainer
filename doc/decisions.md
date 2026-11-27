@@ -2701,3 +2701,19 @@ report. What needs the owner's inputs is behind a switch or a visible placeholde
   confirms at insert unless a test says otherwise (real Supabase leaves it null).
 - **The emails' wording** (templates): short, English, the name from `Brand`; French with
   6d. Subjects are on each file's first line, for the owner to paste.
+
+**Commit 4 — "Forgot password?" (B3).**
+
+- **The link is read from the address at start** (`authLinkFrom`, before
+  `Supabase.initialize` consumes it), not from the client's `passwordRecovery` event: the
+  event fires during initialisation, before any screen listens, and the auth stream replays
+  only its latest event. The address is certain and testable.
+- **The new password is asked at once, full screen**, over the game the link opened;
+  leaving it keeps the old password (the account stays signed in: the link already proved
+  the address). A recovery link on a guest's session (impossible from the app; a stale
+  link) does nothing.
+- **"Forgot password?" says the same whatever the address**: Supabase answers alike, and
+  the screen never says whether an account exists.
+- **Supabase's built-in sender until the owner's**: it works now, limited to a few emails an
+  hour for the whole project — enough for the beta, not for a launch (the switch-on brings
+  the owner's sender).

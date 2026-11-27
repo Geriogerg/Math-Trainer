@@ -64,6 +64,27 @@ class AccountStrings {
       'minutes.';
   final startUnknown = 'The game could not start. Try again.';
 
+  // Forgot password (Phase 6c commit 4, review B3).
+  final forgotPassword = 'Forgot password?';
+  final resetTitle = 'Reset your password';
+  final resetDetail =
+      'Enter the email of your account: a link to set a new password will be '
+      'sent to it.';
+  final sendLink = 'Send the link';
+  String resetSent(String email) =>
+      'If an account uses $email, a link is on its way. Open it on this '
+      'device or another: it brings you back here to set a new password.';
+  final resetMissing = 'Enter your email.';
+  final newPasswordTitle = 'Set a new password';
+  final newPasswordDetail =
+      'You opened a password link: choose a new password for this account.';
+  final newPassword = 'New password';
+  final newPasswordMissing = 'Enter a new password.';
+  final passwordChanged = 'Password changed.';
+  final emailConfirmed = 'Email confirmed: your progress is saved.';
+  final linkFailed =
+      'That link has expired or was used already. Ask for a new one.';
+
   // Email confirmation (Phase 6c commit 3): the link waits in the inbox.
   final checkInbox = 'Check your inbox';
   String linkSent(String email) =>

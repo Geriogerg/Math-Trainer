@@ -93,6 +93,7 @@ import 'infrastructure/persistence/shared_preferences_hints_store.dart';
 import 'infrastructure/web/page_reload.dart' as web;
 import 'core/security/human_check.dart';
 import 'infrastructure/web/human_check.dart';
+import 'core/state/auth_link.dart';
 
 part 'session_builders.dart';
 
@@ -136,6 +137,7 @@ class AppEnvironment {
     this.hints,
     this.levelsRefresh,
     this.reloadPage,
+    this.authLink,
   });
 
   final SessionRepository repository;
@@ -280,6 +282,11 @@ class AppEnvironment {
   /// (plan v4.1).
   final void Function()? reloadPage;
 
+  /// What an email's link brought the player back with (Phase 6c commits 3
+  /// and 4), read from the address before Supabase's client consumed it;
+  /// `null` for a plain visit. The gate acts on it once.
+  final AuthLink? authLink;
+
   AppEnvironment forPlayer(String playerId) => AppEnvironment(
     repository: repository,
     playerId: playerId,
@@ -310,6 +317,7 @@ class AppEnvironment {
     unfinishedGameStore: unfinishedGameStore,
     hints: hints,
     reloadPage: reloadPage,
+    authLink: authLink,
     levelsRefresh: LevelsRefresh(),
     duelQueue: switch (duelClient) {
       final client? => DuelRunQueue(
@@ -492,6 +500,8 @@ Future<AppEnvironment> buildAppEnvironment() async {
   // The page may have signed in while the files downloaded (Phase 5.1
   // commit 1): its session must be in storage before the client reads it.
   await waitForBootSignIn();
+  // Before the client reads (and clears) the address: an email's link.
+  final authLink = kIsWeb ? authLinkFrom(Uri.base) : null;
   await Supabase.initialize(
     url: _supabaseUrl,
     publishableKey: _supabasePublishableKey,
@@ -574,5 +584,6 @@ Future<AppEnvironment> buildAppEnvironment() async {
     unfinishedGameStore: unfinishedGames,
     hints: const SharedPreferencesHintsStore(),
     reloadPage: web.reloadPage,
+    authLink: authLink,
   );
 }

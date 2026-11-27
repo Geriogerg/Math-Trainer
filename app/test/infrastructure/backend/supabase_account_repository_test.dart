@@ -279,6 +279,86 @@ void main() {
     });
   });
 
+  // Phase 6c commit 4 (review B3).
+  group('forgot password', () {
+    test('the recovery email: to the site, with the token', () async {
+      final client = SupabaseTestClient(
+        authHandler: (request) async => request.url.path == '/auth/v1/recover'
+            ? http.Response(
+                '{}',
+                200,
+                headers: {'content-type': 'application/json'},
+              )
+            : null,
+      );
+      addTearDown(client.client.dispose);
+      client.emitInitialSessionWithoutUser();
+      final repo = SupabaseAccountRepository(
+        client.client,
+        humanCheck: _Check('turnstile-token'),
+        siteUrl: Uri.parse('https://site.example/x'),
+      );
+      await repo.requestPasswordReset(email: 'me@test.com');
+      final recover = client.authRequests.single;
+      expect(recover.url.path, '/auth/v1/recover');
+      expect(
+        recover.url.queryParameters['redirect_to'],
+        'https://site.example/',
+      );
+      final body = jsonDecode(recover.body) as Map<String, Object?>;
+      expect(body['email'], 'me@test.com');
+      expect(body['gotrue_meta_security'], {
+        'captcha_token': 'turnstile-token',
+      });
+    });
+
+    test('the new password, then a weak one refused', () async {
+      var weak = false;
+      final client = SupabaseTestClient(
+        authHandler: (request) async =>
+            request.method == 'PUT' && request.url.path == '/auth/v1/user'
+            ? (weak
+                  ? http.Response(
+                      jsonEncode({
+                        'code': 422,
+                        'error_code': 'weak_password',
+                        'msg': 'weak',
+                      }),
+                      422,
+                      headers: {'content-type': 'application/json'},
+                    )
+                  : http.Response(
+                      jsonEncode(
+                        anonymousSessionJson()['user']! as Map<String, Object?>,
+                      ),
+                      200,
+                      headers: {'content-type': 'application/json'},
+                    ))
+            : null,
+      );
+      addTearDown(client.client.dispose);
+      await client.signIn();
+      final repo = SupabaseAccountRepository(client.client);
+      await repo.setPassword(password: 'long-enough-now');
+      final put = client.authRequests.lastWhere((r) => r.method == 'PUT');
+      expect(
+        (jsonDecode(put.body) as Map<String, Object?>)['password'],
+        'long-enough-now',
+      );
+      weak = true;
+      await expectLater(
+        repo.setPassword(password: 'x'),
+        throwsA(
+          isA<AccountException>().having(
+            (e) => e.failure,
+            'failure',
+            AccountFailure.weakPassword,
+          ),
+        ),
+      );
+    });
+  });
+
   group('deleteAccount', () {
     test('calls delete_my_account as the signed-in user', () async {
       final client = SupabaseTestClient(

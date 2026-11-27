@@ -8,6 +8,7 @@ import 'package:math_core/account/profile_repository.dart';
 import '../../core/state/account_form_controller.dart';
 import 'package:math_trainer/presentation/strings/account_messages.dart';
 import '../theme/app_theme.dart';
+import 'password_screens.dart';
 
 /// Sign in to an existing email account. For a guest, a clear warning
 /// first (plan, section 6.3): the account replaces the guest on this
@@ -171,6 +172,23 @@ class _SignInScreenState extends State<SignInScreen> {
                     ),
                   ),
                 ],
+                const SizedBox(height: 8),
+                // Phase 6c commit 4 (review B3): without it a forgotten
+                // password lost the account.
+                AppButton.secondary(
+                  onPressed: busy
+                      ? null
+                      : () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => ForgotPasswordScreen(
+                              accountRepository: widget.accountRepository,
+                              profileRepository: widget.profileRepository,
+                              initialEmail: _email.text.trim(),
+                            ),
+                          ),
+                        ),
+                  label: strings.account.forgotPassword,
+                ),
               ],
             );
           },

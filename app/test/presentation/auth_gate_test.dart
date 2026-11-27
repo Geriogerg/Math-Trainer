@@ -23,6 +23,7 @@ import 'package:math_trainer/presentation/theme/app_theme.dart';
 import '../fake_account_repository.dart';
 import '../fake_profile_repository.dart';
 import 'kit_finders.dart';
+import 'package:math_trainer/core/state/auth_link.dart';
 
 /// Controllable — unlike `FakeAccountRepository`
 /// (`test/fake_account_repository.dart`), which starts signed in and only
@@ -52,6 +53,20 @@ class _ControllableAccountRepository implements AccountRepository {
   @override
   Future<void> resendConfirmation({required String email}) =>
       throw UnimplementedError();
+
+  final resetCalls = <String>[];
+  final passwords = <String>[];
+  AccountException? passwordError;
+
+  @override
+  Future<void> requestPasswordReset({required String email}) async =>
+      resetCalls.add(email);
+
+  @override
+  Future<void> setPassword({required String password}) async {
+    if (passwordError case final e?) throw e;
+    passwords.add(password);
+  }
 
   @override
   Future<Account> signIn({
@@ -138,6 +153,7 @@ void main() {
     _ControllableAccountRepository accountRepository, {
     BetaCodeRepository? betaCodes,
     BetaCodeStore? betaCodeStore,
+    AuthLink? authLink,
   }) async {
     final environment = AppEnvironment(
       repository: InMemorySessionRepository(),
@@ -146,6 +162,7 @@ void main() {
       profileRepository: FakeProfileRepository(),
       betaCodes: betaCodes,
       betaCodeStore: betaCodeStore ?? _MemoryBetaStore(),
+      authLink: authLink,
     );
     await tester.pumpWidget(
       MaterialApp(
@@ -188,6 +205,47 @@ void main() {
       expect(find.byType(TextField), findsNothing);
     },
   );
+
+  // Phase 6c commit 4 (review B3): a recovery link signs the account in;
+  // the gate asks for the new password at once.
+  testWidgets('a recovery link: "Set a new password", then said', (
+    tester,
+  ) async {
+    final accountRepository = _ControllableAccountRepository();
+    await pumpGate(tester, accountRepository, authLink: AuthLink.recovery);
+    await tester.pump();
+    accountRepository.resolveSession(
+      const Account(id: 'returning', email: 'r@test.com'),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Set a new password'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'a-new-password');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    expect(accountRepository.passwords, ['a-new-password']);
+    expect(find.text('Password changed.'), findsOneWidget);
+    expect(find.text('Basics'), findsOneWidget);
+  });
+
+  testWidgets('a confirmation link and a dead one are said once', (
+    tester,
+  ) async {
+    for (final (link, words) in [
+      (AuthLink.confirmed, 'Email confirmed: your progress is saved.'),
+      (AuthLink.failed, 'That link has expired or was used already.'),
+    ]) {
+      final accountRepository = _ControllableAccountRepository();
+      await pumpGate(tester, accountRepository, authLink: link);
+      await tester.pump();
+      accountRepository.resolveSession(
+        const Account(id: 'returning', email: 'r@test.com'),
+      );
+      await tester.pumpAndSettle();
+      expect(find.textContaining(words), findsOneWidget, reason: '$link');
+      expect(find.text('Set a new password'), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    }
+  });
 
   testWidgets('a returning player gets their account back, never a guest', (
     tester,

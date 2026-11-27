@@ -123,5 +123,16 @@ Map<String, String> emailTemplates() {
       button: 'Confirm my email',
       otherwise: 'Not you? Ignore this email: nothing changes.',
     ),
+    // Phase 6c commit 4 (review B3).
+    'recovery.html': page(
+      template: 'Reset password',
+      subject: 'Set a new password for ${Brand.name}',
+      heading: 'Set a new password',
+      lead:
+          'Someone asked to reset the password of your $name account. Open '
+          'the link to choose a new one:',
+      button: 'Set a new password',
+      otherwise: 'Not you? Ignore this email: your password stays as it is.',
+    ),
   };
 }

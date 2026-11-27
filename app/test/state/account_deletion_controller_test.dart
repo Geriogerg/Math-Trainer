@@ -38,6 +38,14 @@ class _Accounts implements AccountRepository {
       throw UnimplementedError();
 
   @override
+  Future<void> requestPasswordReset({required String email}) =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> setPassword({required String password}) =>
+      throw UnimplementedError();
+
+  @override
   Future<Account> signIn({required String email, required String password}) =>
       throw UnimplementedError();
 

@@ -1586,7 +1586,7 @@ owner decision, nothing to build).
 |---|---|---|---|
 | B1 | No publishable legal surface; age rule | 6c | **part** (6c commit 2): both pages in-app, French and English, linked from the gate, Profile and the save form; "I am 15 or older" required and kept; the owner's details and the professional review left (switch-on) |
 | B2 | Email confirmation off, no CAPTCHA | 6c | **part** (6c commit 3): Turnstile built (staging on with the test key), confirmation ready (redirect, implicit flow, Check your inbox, templates), unconfirmed accounts guests everywhere; switched on with the owner's key and sender (switch-on) |
-| B3 | No password recovery | 6c | open |
+| B3 | No password recovery | 6c | **fixed** (6c commit 4): Forgot password?, the recovery link in any browser, Set a new password; Supabase's built-in sender until the owner's (switch-on) |
 | B4 | No abuse protection on the server | 6a (2) | **fixed** |
 | B5 | A duel's second player escapes any loss | 6a (1) | **fixed** |
 | M1 | Duel answers known before play, times self-declared, flagged runs rated | 6a (1) cheap part; 7b server-timed questions | **part**: no faked time, flagged runs earn nothing; answers still known to a modified client until 7b |
@@ -2177,3 +2177,20 @@ placeholder; the phase report lists each with the exact value or action needed.
   saved while pending; the templates). Run locally: SQL 28 files, 582 assertions;
   integration 7 of 7 (scratch Postgres, the shim, the server); server 106; app 533;
   analyze clean.
+- **Commit 4** *(A)* — **"Forgot password?" (B3).** Sign in has "Forgot password?": the
+  account's email, then "Send the link" (`resetPasswordForEmail`, to the site, with the
+  Turnstile token when the build has a key) and "If an account uses …, a link is on its way"
+  — never whether it exists. The link signs the account in wherever it is opened (the
+  implicit flow of commit 3); the app reads what the link brought from the address before
+  Supabase's client clears it (`authLinkFrom`: recovery, confirmed, failed;
+  `AppEnvironment.authLink`, carried by `forPlayer`) and the gate acts once: "Set a new
+  password" (`updateUser`), then "Password changed."; a confirmation link says "Email
+  confirmed: your progress is saved."; an expired or used link says so. The recovery email
+  (`supabase/templates/recovery.html`) is generated from `Brand` like the others. Works now
+  with Supabase's built-in sender (its own hourly limit applies) once the site's address is
+  an allowed redirect of the project (owner step). The policy says the emails also set a
+  new password. Tests: the link parser (recovery, three confirmation types, an expired link,
+  none), the gate (a recovery link opens Set a new password, saves, says so; a confirmation
+  and a dead link said), the repository (the recover call with its redirect and token; the
+  new password; a weak one refused), Sign in → Forgot password? → the link sent. Run
+  locally: app 539, analyze clean.

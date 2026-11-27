@@ -12,6 +12,9 @@ import 'app_shell.dart';
 import 'beta_gate_screen.dart';
 import 'sign_in_screen.dart';
 import 'start_error_view.dart';
+import '../../core/state/auth_link.dart';
+import '../strings/strings.dart';
+import 'password_screens.dart';
 
 /// The app's entry gate — **anonymous-first** (plan, section 6.3; Phase 1
 /// commit 4). Nobody fills a form to play: when no session exists, the gate
@@ -59,6 +62,9 @@ class _AuthGateState extends State<AuthGate> {
 
   /// Set while the beta gate asks this device for a code.
   BetaGateController? _gate;
+
+  /// The email link of this start (`AppEnvironment.authLink`) acted on.
+  bool _linkHandled = false;
 
   AccountRepository get _accounts => widget.environment.accountRepository;
 
@@ -108,6 +114,7 @@ class _AuthGateState extends State<AuthGate> {
       return;
     }
     setState(() => _playerEnvironment = playerEnvironment);
+    _handleLink(account);
     // Whatever was played offline (or before a server existed) goes now;
     // then the server's levels replace the local ones if they differ (Phase
     // 6b commit 5: a new device shows them at once), and are read ahead of
@@ -137,6 +144,40 @@ class _AuthGateState extends State<AuthGate> {
       repository: widget.environment.repository,
       now: DateTime.now().toUtc(),
     ).ignore();
+  }
+
+  /// What an email's link brought (Phase 6c commits 3 and 4), once, after
+  /// the first screen: a recovery link asks for the new password, a
+  /// confirmation says the progress is saved, a dead link says so.
+  void _handleLink(Account account) {
+    final link = widget.environment.authLink;
+    if (link == null || _linkHandled) return;
+    _linkHandled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      void say(String text) => ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(text)));
+      switch (link) {
+        case AuthLink.recovery:
+          // A recovery link signs an email account in; a guest has no
+          // password to set.
+          if (account.isAnonymous) return;
+          final changed = await Navigator.of(context).push<bool>(
+            MaterialPageRoute(
+              builder: (_) => SetPasswordScreen(
+                accountRepository: _accounts,
+                profileRepository: widget.environment.profileRepository,
+              ),
+            ),
+          );
+          if (changed == true && mounted) say(strings.account.passwordChanged);
+        case AuthLink.confirmed:
+          say(strings.account.emailConfirmed);
+        case AuthLink.failed:
+          say(strings.account.linkFailed);
+      }
+    });
   }
 
   /// The beta gate first, unless the build has none or this device passed

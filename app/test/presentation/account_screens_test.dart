@@ -41,6 +41,20 @@ class _Accounts implements AccountRepository {
     resent.add(email);
   }
 
+  final resetCalls = <String>[];
+  final passwords = <String>[];
+  AccountException? passwordError;
+
+  @override
+  Future<void> requestPasswordReset({required String email}) async =>
+      resetCalls.add(email);
+
+  @override
+  Future<void> setPassword({required String password}) async {
+    if (passwordError case final e?) throw e;
+    passwords.add(password);
+  }
+
   @override
   Future<Account> signIn({
     required String email,
@@ -99,6 +113,31 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'Save'));
     await tester.pumpAndSettle();
   }
+
+  // Phase 6c commit 4 (review B3).
+  testWidgets('Sign in → Forgot password? → the link sent, nothing said '
+      'about the account', (tester) async {
+    final accounts = _Accounts();
+    await pumpPushed(
+      tester,
+      SignInScreen(
+        accountRepository: accounts,
+        profileRepository: FakeProfileRepository(),
+        isGuest: false,
+        initialEmail: 'me@test.com',
+      ),
+    );
+    await tester.tap(find.text('Forgot password?'));
+    await tester.pumpAndSettle();
+    expect(find.text('Reset your password'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, 'Send the link'));
+    await tester.pumpAndSettle();
+    expect(accounts.resetCalls, ['me@test.com']);
+    expect(
+      find.textContaining('If an account uses me@test.com'),
+      findsOneWidget,
+    );
+  });
 
   // Phase 6c commit 3 (review B2): with confirmation on, the form becomes
   // "Check your inbox" — send the link again, Done.

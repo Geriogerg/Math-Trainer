@@ -150,6 +150,39 @@ class AccountFormController extends ChangeNotifier {
     return SaveProgressOutcome.saved;
   }
 
+  /// "Forgot password?" (Phase 6c commit 4): the recovery link to [email];
+  /// `true` once sent — whether an account exists is never said.
+  Future<bool> requestPasswordReset({required String email}) async {
+    if (!_begin(
+      email.trim().isEmpty ? AccountFormProblem.missingFields : null,
+    )) {
+      return false;
+    }
+    try {
+      await accounts.requestPasswordReset(email: email.trim());
+    } on AccountException catch (e) {
+      _end(e);
+      return false;
+    }
+    _end();
+    return true;
+  }
+
+  /// The new password after a recovery link; `true` once set.
+  Future<bool> setPassword({required String password}) async {
+    if (!_begin(password.isEmpty ? AccountFormProblem.missingFields : null)) {
+      return false;
+    }
+    try {
+      await accounts.setPassword(password: password);
+    } on AccountException catch (e) {
+      _end(e);
+      return false;
+    }
+    _end();
+    return true;
+  }
+
   /// Signs in to an existing account. For a guest this replaces the guest
   /// on this browser (their games stay on the device, unshown, never
   /// merged) — the screen warns before calling it. `true` on success.

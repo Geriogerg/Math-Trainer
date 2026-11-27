@@ -162,6 +162,30 @@ class SupabaseAccountRepository implements AccountRepository {
     }
   }
 
+  /// Supabase says nothing about whether the address has an account; the
+  /// link lands on the site, where `authLinkFrom` reads it.
+  @override
+  Future<void> requestPasswordReset({required String email}) async {
+    try {
+      await _client.auth.resetPasswordForEmail(
+        email,
+        redirectTo: _redirect,
+        captchaToken: await _captcha(),
+      );
+    } on AuthException catch (e) {
+      throw _toAccountException(e);
+    }
+  }
+
+  @override
+  Future<void> setPassword({required String password}) async {
+    try {
+      await _client.auth.updateUser(UserAttributes(password: password));
+    } on AuthException catch (e) {
+      throw _toAccountException(e);
+    }
+  }
+
   @override
   Future<Account> signInAnonymously() async {
     try {

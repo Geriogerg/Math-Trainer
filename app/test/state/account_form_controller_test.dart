@@ -39,6 +39,20 @@ class _Accounts implements AccountRepository {
   Future<void> resendConfirmation({required String email}) async =>
       resendCalls.add(email);
 
+  final resetCalls = <String>[];
+  final passwords = <String>[];
+  AccountException? passwordError;
+
+  @override
+  Future<void> requestPasswordReset({required String email}) async =>
+      resetCalls.add(email);
+
+  @override
+  Future<void> setPassword({required String password}) async {
+    if (passwordError case final e?) throw e;
+    passwords.add(password);
+  }
+
   @override
   Future<Account> signIn({
     required String email,
