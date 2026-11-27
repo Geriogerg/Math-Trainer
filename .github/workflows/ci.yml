@@ -173,7 +173,7 @@ jobs:
           cache: true
       - run: flutter pub get
       - name: All app tests
-        run: bash ../tool/ci/test_count.sh "App" 517 -- flutter test --reporter expanded
+        run: bash ../tool/ci/test_count.sh "App" 521 -- flutter test --reporter expanded
       - name: Analyzer
         # Infos are fatal too: the tree has zero notices since the
         # material_ui migration (Phase 1 commit 0).
@@ -398,6 +398,9 @@ jobs:
           server-url: ${{ vars.SERVER_URL }}
           beta-gate: ${{ vars.BETA_GATE }}
           base-href: ${{ vars.PREVIEW_HOST == 'cloudflare' && '/' || format('/{0}/', github.event.repository.name) }}
+          # The link preview's full address (Phase 6c commit 1): the domain
+          # once SITE_URL is set (switch-on), the Pages address until then.
+          site-url: ${{ vars.SITE_URL || (vars.PREVIEW_HOST == 'cloudflare' && vars.PREVIEW_URL) || '' }}
       - name: Upload the site (Cloudflare Pages)
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.PREVIEW_HOST == 'cloudflare'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

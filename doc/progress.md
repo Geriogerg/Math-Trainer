@@ -2103,3 +2103,17 @@ placeholder; the phase report lists each with the exact value or action needed.
   mode, the reminder's link, Reload on `appOutdated`, the client's declaration, schema v14,
   the counts in words, `forPlayer` keeps the reload). Run locally: core VM 1312, JavaScript 1037, server 106, app 517 (6 result goldens re-rendered
   and read, the Online goldens for the reminder), analyze clean; pins raised.
+- **Commit 1** *(A)* — **The name as a single setting.** `Brand`
+  (`app/lib/presentation/strings/brand.dart`: name, short name, one-line description) is the
+  only place the name is written: the app's title, its strings (the account strings, the
+  share sheet, the start errors), and — through `tool/brand/write_brand_test.dart` — the
+  page's head (title, description, Safari's home-screen title, the link preview's Open Graph
+  and Twitter tags, between brand markers), the loading screen's title and spoken label, the
+  manifest's words, and a new link-preview image `web/preview.png` (1200 × 630: the four
+  basics' operator icons and the name, dark theme). CI gives the build its address
+  (`SITE_URL`: the repository variable once the domain exists, the Pages address until then)
+  so `boot_config.mjs` writes the image's full address and `og:url`. The icons carry no name
+  (unchanged). Tests: `brand_test.dart` (4: the page as generated and the name nowhere else in
+  it, the manifest, the image's size, no literal of the name in `lib/` outside `Brand`). Run
+  locally: app 521, analyze clean; `boot_config.mjs` checked on a copy of the page (absolute
+  image and `og:url` written).

@@ -51,7 +51,7 @@ control, 15 s on Supabase calls, Cancel only while the server wakes, edges at 3:
 the terms (game, Ranks, seconds, Practice). m11 and m21 go to the Phase 3b data check; m13
 stays debt. Phase 6d (French) follows the launch.
 
-Done: 0 (27 Nov; `doc/progress.md`, "Phase 6c build"). Next: commit 1.
+Done: 0–1 (27 Nov; `doc/progress.md`, "Phase 6c build"). Next: commit 2.
 
 **Phase 7's rules** (plan v3.7–v3.8; detail in `doc/decisions.md`, "Phase 7"):
 - **No live matches**: every duel is asynchronous — a player races another's recorded run,
@@ -287,6 +287,8 @@ python -P -E tool/fonts/instance_inter.py <Inter[opsz,wght].ttf> app/assets/font
 node tool/web/boot_config.mjs app/build/web app/dart_defines.json  # after a local release build
 SMOKE_TRACE=1 node tool/smoke/preview_smoke.mjs <url> [chrome]  # + request waterfall
 # app/: flutter test tool/icons/render_web_icons_test.dart  # favicon + web app icons from OperatorIconPainter
+# app/: flutter test tool/brand/write_brand_test.dart  # the name (Brand) into index.html, manifest, preview.png
+node tool/perf/semantics_cost.mjs <build on> <build off> [browser] [runs]  # semantics cost, low-end phone profile
 ```
 
 `app/dart_defines.json` (not versioned) holds the Supabase URL and public key; in CI they come from
@@ -360,6 +362,11 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   "Start", "Game complete", Profile's "1.2 s", "Delete my data"…): a change of wording breaks
   staging's smoke, and production then keeps the previous build (6b commit 7). Grep the smoke
   for any text you change.
+- **The name is `Brand`** (`presentation/strings/brand.dart`, 6c commit 1): the app reads it,
+  and `tool/brand/write_brand_test.dart` writes it into `web/index.html` (head block, loading
+  screen), `web/manifest.json` and `web/preview.png`; `brand_test.dart` fails while they
+  differ or a literal of the name sits elsewhere in `lib/`. CI's `SITE_URL` makes the preview
+  image's address absolute.
 - **Every word a player reads is in `app/lib/presentation/strings/`** (6b commit 7):
   `strings.<area>.<name>`, English; `strings_in_one_place_test.dart` fails on a word-holding
   literal anywhere else in `lib/presentation/`. Players read "game" (not session), "Ranks",

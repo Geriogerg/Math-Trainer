@@ -21,6 +21,12 @@ inputs:
   base-href:
     description: Where the site is served from.
     required: true
+  site-url:
+    description: >-
+      The site's https origin, for the link preview's image (Phase 6c
+      commit 1); empty keeps it relative.
+    required: false
+    default: ''
   preview-build:
     description: >-
       "true" keeps the owner's preview tools (the typeface specimen) in the
@@ -43,12 +49,14 @@ runs:
         SERVER_URL: ${{ inputs.server-url }}
         BETA_GATE: ${{ inputs.beta-gate }}
         PREVIEW_BUILD: ${{ inputs.preview-build }}
+        SITE_URL: ${{ inputs.site-url }}
       run: |
         clean() { printf '%s' "$1" | tr -d '[:space:]'; }
         jq -n --arg url "$(clean "$SUPABASE_URL")" --arg key "$(clean "$SUPABASE_PUBLISHABLE_KEY")" \
           --arg server "$(clean "$SERVER_URL")" --arg gate "$(clean "$BETA_GATE")" \
           --arg version "${GITHUB_SHA::7}" --arg preview "$(clean "$PREVIEW_BUILD")" \
-          '{SUPABASE_URL: $url, SUPABASE_PUBLISHABLE_KEY: $key, SERVER_URL: $server, BETA_GATE: $gate, APP_VERSION: $version, PREVIEW_BUILD: $preview}' \
+          --arg site "$(clean "$SITE_URL")" \
+          '{SUPABASE_URL: $url, SUPABASE_PUBLISHABLE_KEY: $key, SERVER_URL: $server, BETA_GATE: $gate, APP_VERSION: $version, PREVIEW_BUILD: $preview, SITE_URL: $site}' \
           > dart_defines.json
     - name: Web build
       # --no-web-resources-cdn: CanvasKit comes from the site, never from

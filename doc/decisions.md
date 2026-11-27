@@ -2611,3 +2611,24 @@ report. What needs the owner's inputs is behind a switch or a visible placeholde
   cheap Android phone is in the owner's checklist. A first run of 5 visits, taken while other
   work loaded the machine, varied from 3 to 25 s and was discarded. `SEMANTICS_ALWAYS` stays
   as a build switch (default on): the fallback, should a real phone disagree.
+
+**Commit 1 — the name as a single setting.**
+
+- **`Brand` is Dart, the web files are generated from it** (a tool, like the icons), and a
+  test fails while they differ — rather than a JSON file read by both the build and the
+  app: the app needs the name as a compile-time constant in its strings, and a generated,
+  checked-in page is what Cloudflare serves without a build step of its own. Changing the
+  name: edit `Brand`, run `flutter test tool/brand/write_brand_test.dart`, commit (switch-on
+  commit 7).
+- **It lives in `presentation/strings/`**: the name is a word players read; the strings
+  guard already covers that folder, and the brand test forbids the name as a literal
+  anywhere else in `lib/`.
+- **The link preview**: Open Graph and Twitter tags with an image of the operator family and
+  the name; its address is absolute only when the build knows the site's address
+  (`SITE_URL`), because most unfurlers ignore a relative one — production gets the Pages
+  address now, the domain after the switch-on (the repository variable `SITE_URL`).
+- **The short name equals the name** ("Math Trainer", 12 characters, fits under an icon);
+  a longer confirmed name gets its own short form here.
+- **The old address's redirect page** (`tool/preview_redirect/`, GitHub Pages, off since
+  the repository went private) still says "Math Trainer has moved": it is published only by
+  the switch-on's redirect step, which writes its text then.

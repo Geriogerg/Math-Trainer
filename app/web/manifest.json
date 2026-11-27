@@ -10,7 +10,10 @@
     "orientation": "portrait-primary",
     "background_color": "#101528",
     "theme_color": "#101528",
-    "categories": ["games", "education"],
+    "categories": [
+        "games",
+        "education"
+    ],
     "prefer_related_applications": false,
     "icons": [
         {

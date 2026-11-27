@@ -1,8 +1,10 @@
+import 'brand.dart';
+
 /// Signing in, saving progress, the beta gate, a start that fails.
 class AccountStrings {
   const AccountStrings();
 
-  final appName = 'Math Trainer';
+  final appName = Brand.name;
   final email = 'Email';
   final password = 'Password';
   final showPassword = 'Show password';
@@ -48,7 +50,7 @@ class AccountStrings {
   final couldNotStart = "Couldn't start";
   final tryAgain = 'Try again';
   final startOffline =
-      'No connection. Math Trainer needs the internet the first time it '
+      'No connection. ${Brand.name} needs the internet the first time it '
       'opens; after that it also plays offline.';
   final startRateLimited =
       'Too many new players from this network right now. Try again in a few '

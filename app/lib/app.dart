@@ -6,6 +6,7 @@ import 'composition_root.dart';
 import 'package:math_core/persistence/theme_mode_store.dart';
 import 'presentation/screens/auth_gate.dart';
 import 'presentation/theme/app_theme.dart';
+import 'presentation/strings/brand.dart';
 
 class MathTrainerApp extends StatefulWidget {
   const MathTrainerApp({super.key, required this.environment});
@@ -59,7 +60,7 @@ class _MathTrainerAppState extends State<MathTrainerApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Math Trainer',
+      title: Brand.name,
       theme: buildLightTheme(),
       darkTheme: buildDarkTheme(),
       themeMode: _themeMode,
