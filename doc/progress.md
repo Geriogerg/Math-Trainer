@@ -1599,7 +1599,7 @@ owner decision, nothing to build).
 | M8 | Matchmaking and the weak-spot check grow with history | 6a (5) | **fixed** |
 | M9 | Free-plan capacity: stored sessions, Pages Function quota, sleeping server | 6a (5); always-on plan bought before 6c | **part**: hashed assets, the 50 % alert, storage measured (1.5 KB a game, not 5); sessions not slimmed (it would grow them); Render always-on is the owner's purchase (6c) |
 | M10 | Tiny question pools, repeats | 6b (1), rules v9 | **fixed** (≥ 12 a tier, 0 % repeats in 10-question games) |
-| M11 | Method explanations true but wrong as teaching | 6b (3) | open |
+| M11 | Method explanations true but wrong as teaching | 6b (3) | **fixed** (every example of the review reads correctly; 137 pinned Methods; a size limit and a family-strategy test on every v9 question) |
 | M12 | Server ↔ Supabase boundary untested; no duel end to end | 6a (7) | **part**: the integration job plays it; the staging smoke test plays no duel yet |
 | M13 | A push can cancel a production deployment | 6a (7) | **fixed** |
 | M14 | Empty account on a new device | 6b (5) | open |
@@ -1619,7 +1619,7 @@ owner decision, nothing to build).
 | m9 | Wrangler state committed | 6a (0) | **fixed** (GitHub still holds the old commits by hash until its own cleanup) |
 | m10 | Abandonment sweep runs inside other players' requests | 6a (6) | **fixed** differently: a server timer, not `pg_cron` |
 | m11 | Trivial questions at high tiers; unbalanced duels | 6b (1), rules v9 | **part**: no trivial factor above T0, round division's quotient ≥ 10 and sized; duels not balanced by effort (not in spec v1.6) |
-| m12 | Files that carry too much | when next touched | open |
+| m12 | Files that carry too much | when next touched | **part**: `duel_endpoint.dart` (6b commit 0) and `method_for.dart` (6b commit 3) split; `profile_screen.dart`, `play_tab.dart`, `composition_root.dart` still large |
 | m13 | App contracts in the core; logic twice in Dart and SQL | when next touched | open |
 | m14 | Seven replayable rules versions | 6c (6): v2–v6 retired 30 days after v9 | open |
 | m15 | Dead dependencies; `PREVIEW_BUILD` always on | 6a (7) | **fixed** (`structural_features.dart` kept: the Dart half of a parity pair) |
@@ -1634,7 +1634,7 @@ owner decision, nothing to build).
 | n3 | Functions without `search_path`; root container; dashboard password on the command line | 6a (6) | **fixed** (base image still by tag, not digest) |
 | n4 | Stale comments | 6a (7) | **fixed** |
 | n5 | Reviewer agent checks 17 rules of 18; `MSYS_NO_PATHCONV` undocumented | 6a (7) | **fixed** |
-| n6 | `default:` branches on `PatternFamily` | 6b (3) | open |
+| n6 | `default:` branches on `PatternFamily` | 6b (3) | **fixed** (one exhaustive switch) |
 
 ## Phase 6a — Integrity and capacity (plan v3.9)
 
@@ -1951,3 +1951,34 @@ changes what a v9 game draws).
   core (quit rule 4, validation v8/v9, copyWith, simulation 2), app (controller v9
   timeouts and ✕, v8 kept; the kept game: ids, cleared when stored, a closed tab stored with
   its 7 timeouts, never twice, v8 no level, unreadable dropped).
+- **Commit 3** *(A)* — **Method quality (M11, n6).** `doc/levels.md` v1.6 section 9's rules:
+  near a base from the nearest power of 10; compensation and rounding the subtrahend only for
+  a number of two digits or more within 3 of a one-significant-digit number, never onto the
+  minuend (`offersMethod`; the detector unchanged — weak spots key on it); no step restating
+  the question (single-digit sums by make 10, a near double or counting on; × 1 and × 10 the
+  fact); long division in parts each divisible at sight; percentages built from 50 %, 25 %,
+  10 %, 5 %, 1 % (and 100 %), swapped when a part would not be whole — never p × base ÷ 100
+  under v9; names that match their lines (`MethodFallback`, the app's `fallbackLabel`).
+  **n6**: one exhaustive switch on `PatternFamily`, no `default`. **m12 (part)**:
+  `method_for.dart` split into four `part` files. **The review's examples, before → after**:
+
+  | Question | Before | After |
+  |---|---|---|
+  | 1 009 × 16 (near a base) | (100 + 909) × 16 = 1600 + 14544 | (1000 + 9) × 16 = 16000 + 144 = 16144 |
+  | 7 + 2 | Round up, give back: 2 + 10 − 3 = 12 − 3 | Count on: 7 + 1 + 1 = 9 |
+  | 4 157 + 9 449 | Round up, give back: 4157 + 9450 − 1 | Place value: (4000 + 9000) + (157 + 449) = 13000 + 606 |
+  | 47 + 68 (spec: yes) | 47 + 70 − 2 = 117 − 2 | the same |
+  | 10 − 7 | Round what you take away: 10 − 10 + 3 = 0 + 3 | Think of the addition: 7 + 3 = 10, 10 − 7 = 3 |
+  | 5 104 ÷ 4 | (4000 + 1104) ÷ 4 = 1000 + 276 | 4000 ÷ 4 + 1000 ÷ 4 + 104 ÷ 4 = 1000 + 250 + 26 |
+  | 2 082 ÷ 6 (label) | "Think of the multiplication": (1800 + 282) ÷ 6 | "Split the dividend": 1800 ÷ 6 + 282 ÷ 6 = 300 + 47 |
+  | 2³ (label) | "From the nearest ten": 2² × 2 | "Multiply it out": 2² × 2 = 4 × 2 |
+  | 64 % of 175 | 64 × 175 ÷ 100 = 11200 ÷ 100 | Swap, then build: 175 % of 64 = 64 + 50 % of 64 + 25 % of 64 = 64 + 32 + 16 |
+  | 35 % of 140 | 35 × 140 ÷ 100 = 4900 ÷ 100 | Build: 25 % of 140 + 10 % of 140 = 35 + 14 |
+
+  Tests: `method_v9_test.dart` (every family at every tier v9 draws it: its own strategy, every
+  line true, no number beyond the question's size + 1; every v9 standard question likewise,
+  a named fallback, never p × base ÷ 100; the guards; the examples word for word),
+  `method_pins_test.dart` (137 pins, every family and every operation's fallback in every
+  band), `method_test.dart` updated (the old 2 082 ÷ 6 layout, × 1 and × 10 one line, the
+  strategy only where `offersMethod`). `tool/method_examples.dart` prints the review's
+  examples; `tool/method_pins.dart` regenerates the pins.

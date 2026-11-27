@@ -48,7 +48,7 @@ line; weak spots at most ⌊n/5⌋ per operation; strings in one place, English 
 right after. m12 (large files) and m13 (app contracts in the core) are fixed when the files are
 next touched — the phase report says what moved.
 
-Done: 0–2 (27 Nov; `doc/progress.md`, "Phase 6b"). Next: commit 3.
+Done: 0–3 (27 Nov; `doc/progress.md`, "Phase 6b"). Next: commit 4.
 
 **Phase 7's rules** (plan v3.7–v3.8; detail in `doc/decisions.md`, "Phase 7"):
 - **No live matches**: every duel is asynchronous — a player races another's recorded run,
@@ -362,8 +362,13 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   tier or family and kept (`standardSpaceV9`, `familySpaceV9`). `tool/question_pools.dart`
   prints the pools (distinct questions per tier, repeats, skipped families) for v8 and v9.
 - A pattern family's Method recognises the family from the question's shape
-  (`method_for.dart`): a family that grows must keep its shape recognisable at every size —
-  the Method test runs every family at every tier.
+  (`method_for.dart` and its `part` files — blocks, families, fallbacks): a family that grows
+  must keep its shape recognisable at every size — the Method test runs every family at every
+  tier. **A Method must make the question easier** (spec v1.6 section 9, Phase 6b commit 3):
+  the guards are `offersMethod`, never the detector (`bestStrategy` keys weak spots); a
+  fallback names what its lines do (`MethodFallback`, the app's `fallbackLabel`). The 137
+  pinned Methods (`test/method/method_pins.dart`, `tool/method_pins.dart`) are what players
+  read: regenerate only for a change meant to alter one, and read the diff.
 - Pattern families are never stored: `replaySessionPatterns` recomputes them from the session.
 - **Duel names are stored or sent**: `DuelMode`, `DuelKind`, `DuelRunProblem`,
   `FriendRequestOutcome`, `DuelRulesVersion.number` — never rename one. A duel's content,

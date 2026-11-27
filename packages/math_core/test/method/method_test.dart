@@ -14,8 +14,16 @@ import 'package:math_core/tiers/tier.dart';
 import 'package:math_core/tiers/tier_content.dart';
 import 'package:test/test.dart';
 
-/// A question whose answer is already on the screen (2¹): one line.
-bool _trivial(Exercise e) => e is PowerExercise && e.exponent == 1;
+/// A question whose answer is already on the screen (2¹), or the fact
+/// itself (× 1, × 10 — writing 1 × 5 again would restate it, spec v1.6
+/// section 9): one line.
+bool _trivial(Exercise e) => switch (e) {
+  PowerExercise(:final exponent) => exponent == 1,
+  ArithmeticExercise(:final operationType, :final operandA, :final operandB)
+      when operationType == OperationType.multiplication =>
+    const [0, 1, 10].contains(operandA) || const [0, 1, 10].contains(operandB),
+  _ => false,
+};
 
 void _expectSound(Method method, Exercise e, {String reason = ''}) {
   final problems = methodProblems(method, e);
@@ -94,9 +102,11 @@ void main() {
           final method = methodFor(q);
           expect(method.family, isNull);
           final move = bestStrategy(q);
-          final belowZero =
-              move is SubtractViaRoundMove && move.minuend < move.rounded;
-          expect(method.strategy, belowZero ? null : move?.strategy);
+          // Spec v1.6: only where it makes the question easier.
+          expect(
+            method.strategy,
+            move != null && offersMethod(move) ? move.strategy : null,
+          );
           if (method.isFallback) {
             fallbacks++;
           } else {
@@ -178,9 +188,11 @@ void main() {
         text(SquareRootExercise(radicand: 7569)),
         '80^2 < 7569 < 90^2\n7^2 = 49\n85^2 = 7225 < 7569\n√7569 = 87',
       );
+      // Spec v1.6: the dividend in parts, each divided (was "(1800 + 282)
+      // ÷ 6").
       expect(
         text(_a(2082, 6, OperationType.division)),
-        '= (1800 + 282) ÷ 6\n= 300 + 47\n= 347',
+        '= 1800 ÷ 6 + 282 ÷ 6\n= 300 + 47\n= 347',
       );
       expect(text(_a(28, 4, OperationType.division)), '4 × 7 = 28\n28 ÷ 4 = 7');
       expect(
