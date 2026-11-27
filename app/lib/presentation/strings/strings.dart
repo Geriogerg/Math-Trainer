@@ -31,6 +31,12 @@ import 'french/profile_fr.dart';
 import 'french/account_fr.dart';
 import 'french/online_fr.dart';
 import 'french/ranks_fr.dart';
+import 'labels_strings.dart';
+import 'spoken_strings.dart';
+import 'tip_strings.dart';
+import 'french/labels_fr.dart';
+import 'french/spoken_fr.dart';
+import 'french/tips_fr.dart';
 
 export 'account_strings.dart';
 export 'common_strings.dart';
@@ -39,6 +45,9 @@ export 'home_strings.dart';
 export 'online_strings.dart';
 export 'profile_strings.dart';
 export 'ranks_strings.dart';
+export 'labels_strings.dart';
+export 'spoken_strings.dart';
+export 'tip_strings.dart';
 export '../../core/state/language.dart' show AppLanguage;
 
 /// The app's words in one language: one class per area.
@@ -51,6 +60,9 @@ class AppStrings {
     required this.account,
     required this.online,
     required this.ranks,
+    required this.labels,
+    required this.spoken,
+    required this.tips,
   });
 
   final CommonStrings common;
@@ -60,6 +72,15 @@ class AppStrings {
   final AccountStrings account;
   final OnlineStrings online;
   final RanksStrings ranks;
+
+  /// The tables: operations, Method names, messages, duel words (6d).
+  final LabelStrings labels;
+
+  /// What a screen reader says for a prompt.
+  final SpokenStrings spoken;
+
+  /// The Tips page's words.
+  final TipStrings tips;
 }
 
 /// English.
@@ -71,6 +92,9 @@ const englishStrings = AppStrings(
   account: EnglishAccountStrings(),
   online: EnglishOnlineStrings(),
   ranks: EnglishRanksStrings(),
+  labels: EnglishLabelStrings(),
+  spoken: EnglishSpokenStrings(),
+  tips: EnglishTipStrings(),
 );
 
 /// French (Phase 6d).
@@ -82,6 +106,9 @@ const frenchStrings = AppStrings(
   account: FrenchAccountStrings(),
   online: FrenchOnlineStrings(),
   ranks: FrenchRanksStrings(),
+  labels: FrenchLabelStrings(),
+  spoken: FrenchSpokenStrings(),
+  tips: FrenchTipStrings(),
 );
 
 /// The words of [language].

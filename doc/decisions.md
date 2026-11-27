@@ -2801,3 +2801,16 @@ report. The owner's rules: "tu", short and direct like the English; 2 468 in bot
   interfaces.
 - **The loading screen decides alone** (stored choice, else `navigator.language`), with the
   same rule as the app, so the first screen a French visitor sees is French too.
+
+**Commit 3 — the tables in French.**
+
+- **Tips keyed by an enum** (`TipId`, 54) rather than a parallel list per language: an
+  exhaustive switch makes a missing translation a compile error, as the owner's rule asks;
+  a list would only fail a test. The ids are not stored.
+- **The Method's names in French follow what the lines do**, as in English ("Arrondir,
+  puis rendre", "Différence de carrés", "Règle des puissances"); the infinitive, as French
+  recipe steps are written.
+- **Method lines stay arithmetic** (plan v4.2), with the language's separators: "37,5 %",
+  "de", the thin space — through `GameStrings.percent` and `percentOf`.
+- **"égale"** in what a screen reader says after a mistake ("Faux. 47 fois 8 égale 376."):
+  "font" would not agree with "la racine carrée de 169".

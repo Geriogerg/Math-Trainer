@@ -4,21 +4,18 @@ import 'package:math_core/duel/duel_rating.dart';
 import 'package:math_core/duel/duel_run.dart';
 
 import '../number_format.dart';
+import 'strings.dart';
 
 /// Duels left unfinished on this device, sent when the app came back
 /// (Phase 6b commit 5): said once.
-String unfinishedDuelsSentText(List<DuelMode> modes) => modes.length == 1
-    ? 'Your unfinished ${duelModeLabel(modes.single)} duel was sent: what '
-          'you had not played counts as missed.'
-    : '${modes.length} unfinished duels were sent: what you had not played '
-          'counts as missed.';
+String unfinishedDuelsSentText(List<DuelMode> modes) =>
+    strings.labels.unfinishedDuelsSent(
+      modes.length == 1 ? duelModeLabel(modes.single) : null,
+      modes.length,
+    );
 
 /// The modes as the Online tab names them (`doc/mockups/online.html`).
-String duelModeLabel(DuelMode mode) => switch (mode) {
-  DuelMode.basics => 'Basics',
-  DuelMode.advanced => 'Advanced',
-  DuelMode.count => 'Get the count',
-};
+String duelModeLabel(DuelMode mode) => strings.labels.duelMode(mode);
 
 /// A rating as shown: whole points, grouped ("1 542"), " ?" while
 /// provisional (plan v3.7: the first 10 rated duels).
@@ -28,16 +25,12 @@ String ratingText(double rating, {required bool provisional}) =>
 /// The opponent's lane label: their name, "Practice" for a simulated
 /// opponent (plan v3.7), "Player" for a player with no public name.
 String opponentLabel(DuelOffer offer) => switch (offer.opponent) {
-  null => 'Practice',
-  final o => o.name ?? 'Player',
+  null => strings.labels.practiceOpponent,
+  final o => o.name ?? strings.labels.unnamedPlayer,
 };
 
 /// Won / Lost / Draw, from the player's Glicko score.
-String resultWord(double result) => result == 1
-    ? 'Won'
-    : result == 0
-    ? 'Lost'
-    : 'Draw';
+String resultWord(double result) => strings.labels.result(result);
 
 /// A score's headline: "7 / 8" (questions) or "3" (distance to the
 /// targets), and its time in whole seconds.

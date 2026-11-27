@@ -2,17 +2,15 @@ import 'package:math_core/duel/duel_mode.dart';
 import 'package:math_core/friends/friends.dart';
 
 import '../online_strings.dart';
+import 'labels_fr.dart';
 
 /// [OnlineStrings] en français (Phase 6d).
 class FrenchOnlineStrings implements OnlineStrings {
   const FrenchOnlineStrings();
 
   /// Les modes comme l'onglet En ligne les nomme.
-  static String _mode(DuelMode mode) => switch (mode) {
-    DuelMode.basics => 'Bases',
-    DuelMode.advanced => 'Avancé',
-    DuelMode.count => 'Le compte est bon',
-  };
+  static String _mode(DuelMode mode) =>
+      const FrenchLabelStrings().duelMode(mode);
 
   @override
   final tabPlay = 'Jouer';

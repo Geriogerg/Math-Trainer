@@ -2286,3 +2286,17 @@ every screen checked at 360 px in French.
   store, the words switching, the whole app switched from Profile and back (state kept,
   saved, Material's words French); the policy's button names per language. Run locally: app
   545, analyze clean.
+- **Commit 3** *(A)* — **The tables in French.** Three more areas, each an interface with
+  English and French classes: `labels` (operation names; the Method's names — 49 families,
+  7 strategies, 25 fallbacks, the operations' fallbacks; account failures and name
+  problems; why a game is not ranked; the duels' words: modes, practice opponent, won /
+  lost / draw, unfinished duels sent), `spoken` (what a screen reader says: "47 fois 8",
+  "12 au carré", "37,5 pour cent de 64", "l’intégrale de 0 à 3 de …, d x") and `tips` (54 tips
+  keyed by `TipId` — an exhaustive switch, so a missing French tip does not compile; their
+  worked examples translated where they hold words or decimals: "37,5 % de 64", "de 0 à 4").
+  The older top-level functions (`exerciseTypeLabel`, `patternFamilyLabel`,
+  `describeAccountFailure`, `uploadRefusalText`, `duelModeLabel`, `spokenPrompt`…) keep
+  their names and read the areas, so no screen changed. The rules sheets were in commit 2's
+  areas. Tests: French spoken prompts, names and messages, a tip, the percentage prompt
+  "37,5 % de 64" in the digit face; the Tips goldens re-rendered (thin-space groups in
+  examples). Run locally: app 548, analyze clean.

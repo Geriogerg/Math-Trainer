@@ -1,16 +1,10 @@
 import 'package:math_core/models/exercise_type.dart';
 
-String exerciseTypeLabel(ExerciseType type) => switch (type) {
-  ExerciseType.addition => 'Addition',
-  ExerciseType.subtraction => 'Subtraction',
-  ExerciseType.multiplication => 'Multiplication',
-  ExerciseType.division => 'Division',
-  ExerciseType.power => 'Powers',
-  // Square and cube roots since the Levels phase (`doc/levels.md`).
-  ExerciseType.squareRoot => 'Roots',
-  ExerciseType.percentage => 'Percentages',
-  ExerciseType.integral => 'Integrals',
-};
+import 'strings.dart';
+
+/// An operation's name, in the interface's language (`LabelStrings`).
+String exerciseTypeLabel(ExerciseType type) =>
+    strings.labels.exerciseType(type);
 
 /// The operation as a symbol (Redesign phase: the setup page's title, "+ ×").
 /// The true minus, times and divide signs (`doc/design.md`).
