@@ -5,10 +5,8 @@ import '../leveling/level.dart';
 import '../models/exercise.dart';
 import '../models/exercise_type.dart';
 import '../patterns/pattern_family.dart';
-import '../patterns/pattern_questions.dart';
-import '../weak_spots/facts.dart';
 import '../weak_spots/item.dart';
-import 'draw.dart';
+import 'game_draws.dart';
 import 'tier.dart';
 import 'tier_content.dart';
 
@@ -36,14 +34,31 @@ import 'tier_content.dart';
 /// a new question of its family at the tier's size ([patternQuestion]).
 /// Nothing is drawn for them when there are none. The caller checks the
 /// items belong to the tier (`weakSpotProblem`); never with reviews.
+///
+/// Each question is drawn by [draws]: [content], one question on its own,
+/// under rules v2–v8 ([ContentDraws]); from rules v9 the game's own memory
+/// ([DrawsV9]: no repeat, never two in a row) — the placement of reviews
+/// and weak spots on the stream is the same.
 class TieredGameGenerator implements ExerciseGenerator {
+  /// Exactly one of [content] (rules v2–v8) and [draws] (v9 on).
   TieredGameGenerator({
     required List<ExerciseType> sequence,
     required Map<ExerciseType, Level> levels,
-    required this.content,
+    TierContent? content,
+    GameDraws? draws,
     required this.withReviews,
     List<Item> weakSpots = const [],
-  }) : _sequence = List.unmodifiable(sequence),
+  }) : draws =
+           draws ??
+           ContentDraws(
+             content ??
+                 (throw ArgumentError.value(
+                   content,
+                   'content',
+                   'or draws is needed.',
+                 )),
+           ),
+       _sequence = List.unmodifiable(sequence),
        _tiers = {
          for (final type in sequence.toSet())
            type: Tier.of(
@@ -57,6 +72,9 @@ class TieredGameGenerator implements ExerciseGenerator {
        } {
     if (sequence.isEmpty) {
       throw ArgumentError.value(sequence, 'sequence', 'must not be empty.');
+    }
+    if (content != null && draws != null) {
+      throw ArgumentError.value(draws, 'draws', 'not with content.');
     }
     for (final type in sequence) {
       _remaining[type] = (_remaining[type] ?? 0) + 1;
@@ -77,8 +95,8 @@ class TieredGameGenerator implements ExerciseGenerator {
     }
   }
 
-  /// How one question is drawn: its rules' content.
-  final TierContent content;
+  /// How each question is drawn: its rules' content, or v9's memory.
+  final GameDraws draws;
 
   /// 30 % review questions from the tier below (rules v2–v4).
   final bool withReviews;
@@ -128,17 +146,17 @@ class TieredGameGenerator implements ExerciseGenerator {
       switch (item) {
         case FactItem():
           _lastFamily = null;
-          return drawOne(random, formsAt(item, tier));
+          return draws.fact(item, tier, random);
         case SkillItem(:final family):
           _lastFamily = family;
-          return patternQuestion(family, tier, random);
+          return draws.skill(family, tier, random);
       }
     }
     _lastWeakSpot = null;
     if (review) _reviewsLeft[type] = reviews - 1;
     final drawn = review ? tier.below! : tier;
     _lastTier = drawn;
-    final question = content(type, drawn, random);
+    final question = draws.question(type, drawn, random);
     _lastFamily = question.family;
     return question.exercise;
   }

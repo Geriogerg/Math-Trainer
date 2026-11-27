@@ -160,13 +160,14 @@ void main() {
   });
   group('rules v5 (doc/levels.md v1.4, section 2): no review questions', () {
     /// A game of [perOperation] questions of each of [levels]' operations
-    /// under the current rules, from [seed]: each question with the tier it
-    /// was drawn from.
+    /// under [rules] (the current ones by default), from [seed]: each
+    /// question with the tier it was drawn from.
     List<(Exercise, Tier)> game(
       int seed,
       Map<ExerciseType, Level> levels,
-      int perOperation,
-    ) {
+      int perOperation, {
+      RulesVersion rules = RulesVersion.current,
+    }) {
       final sequence = shuffledTypeSequence(
         types: levels.keys.toSet(),
         perOperation: perOperation,
@@ -174,7 +175,7 @@ void main() {
       );
       final generator =
           gameExerciseGenerator(
-                rulesVersion: RulesVersion.current,
+                rulesVersion: rules,
                 enabledTypes: levels.keys.toSet(),
                 levels: levels,
                 typeSequence: sequence,
@@ -186,17 +187,19 @@ void main() {
       ];
     }
 
-    test('v5 to v8 (current) have no reviews', () {
-      expect(RulesVersion.current, RulesVersion.v8);
-      final generator =
-          gameExerciseGenerator(
-                rulesVersion: RulesVersion.v5,
-                enabledTypes: {ExerciseType.addition},
-                levels: {ExerciseType.addition: Level.whole(50)},
-                typeSequence: const [ExerciseType.addition],
-              )
-              as TieredGameGenerator;
-      expect(generator.withReviews, isFalse);
+    test('v5 to v9 (current) have no reviews', () {
+      expect(RulesVersion.current, RulesVersion.v9);
+      for (final rules in [RulesVersion.v5, RulesVersion.v9]) {
+        final generator =
+            gameExerciseGenerator(
+                  rulesVersion: rules,
+                  enabledTypes: {ExerciseType.addition},
+                  levels: {ExerciseType.addition: Level.whole(50)},
+                  typeSequence: const [ExerciseType.addition],
+                )
+                as TieredGameGenerator;
+        expect(generator.withReviews, isFalse, reason: rules.name);
+      }
     });
 
     test('every question of every game comes from the tier of its '
@@ -233,12 +236,18 @@ void main() {
       }
     });
 
-    test("levels 10–19: no power above 2⁶, none above T1's largest (15² "
-        '= 225) — every hundredth of the band, a game of 20 powers each', () {
+    test("rules v8, levels 10–19: no power above 2⁶, none above T1's "
+        'largest (15² = 225) — every hundredth of the band, a game of 20 '
+        'powers each', () {
       var powersOf2 = 0;
       for (var hundredths = 1000; hundredths < 2000; hundredths++) {
         final levels = {ExerciseType.power: Level.fromHundredths(hundredths)};
-        for (final (e, _) in game(hundredths, levels, 20)) {
+        for (final (e, _) in game(
+          hundredths,
+          levels,
+          20,
+          rules: RulesVersion.v8,
+        )) {
           final power = e as PowerExercise;
           if (power.base == 2) {
             powersOf2++;
@@ -253,6 +262,19 @@ void main() {
       }
       // The band does draw powers of 2 (standard 2¹–2⁶ and the family).
       expect(powersOf2, greaterThan(1000));
+    });
+
+    test("rules v9, levels 10–19: spec v1.6's T1 — squares 11–16, 2⁴–2⁷, "
+        "3³, 4³ — nothing above 16² = 256, every hundredth of the band", () {
+      final seen = <Exercise>{};
+      for (var hundredths = 1000; hundredths < 2000; hundredths += 7) {
+        final levels = {ExerciseType.power: Level.fromHundredths(hundredths)};
+        for (final (e, _) in game(hundredths, levels, 20)) {
+          expect(e.correctAnswer, lessThanOrEqualTo(256), reason: '$e');
+          seen.add(e);
+        }
+      }
+      expect(seen, hasLength(12), reason: 'every question of T1, no family');
     });
   });
 }

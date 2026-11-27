@@ -559,7 +559,12 @@ SessionController _controllerFor(
   // Only a Levelling game re-asks weak spots, only from each operation's
   // current tier (`chooseWeakSpots`).
   final weakSpots = kind == SessionKind.game
-      ? chooseWeakSpots(due: due, sequence: typeSequence, levels: levels)
+      ? chooseWeakSpots(
+          due: due,
+          sequence: typeSequence,
+          levels: levels,
+          rules: rulesVersion,
+        )
       : const <Item>[];
   return SessionController(
     config: SessionConfig(

@@ -11,7 +11,7 @@ import 'package:math_core/models/exercise.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/models/operation_type.dart';
 import 'package:math_core/patterns/pattern_family.dart';
-import 'package:math_core/patterns/pattern_questions.dart';
+import 'package:math_core/patterns/pattern_spaces_v9.dart';
 import 'package:math_core/tiers/fluent_time.dart';
 import 'package:math_core/tiers/tier.dart';
 import 'package:math_core/tiers/tiered_game_generator.dart';
@@ -27,14 +27,20 @@ import 'package:test/test.dart';
 ///   time; each example is a question its tier draws; the digit counts its
 ///   content names are the ones it draws, and the heading's "up to N
 ///   digits" is the most it draws.
-/// - Section 5b, under rules v5 (spec v1.4): each operation's families in
-///   the spec's order, each from its tier; each example is a question its
-///   family draws (left of "→" at its first tier, right of it at T9, others
-///   at some tier). The size table, row by row: each entry is the largest
-///   size its band draws, and the band never draws a lower band's size. The
-///   hard limit, for every other family at T0–T8: no number shown or
-///   answered with more significant digits than the standard questions of
-///   its tier or the next.
+/// - Section 5b, under the current rules (v9, spec v1.6): each operation's
+///   families in the spec's order, each from its tier; each example is a
+///   question its family draws (left of "→" at its first tier, right of it
+///   at T9, others at some tier). The size table, row by row: each entry is
+///   the largest size its band draws, and the band never draws a lower
+///   band's size (unless the entry names its own smallest, "(20–90)³");
+///   a row-wide condition ("quotient never below 10") holds at every tier;
+///   "mirror of powers of 2, two tiers later" is read from the Powers of 2
+///   row. The hard limit, for every other family at T0–T8: no number shown
+///   or answered with more significant digits than the standard questions
+///   of its tier or the next. **Families grow** (v1.6): a family's median
+///   answer never decreases from one tier where it is drawn to the next,
+///   and — outside the size table — grows at least every two tiers until it
+///   reaches its last size.
 ///
 /// "A question it draws" is decided by sampling: exact when the sample
 /// holds every question there is (its second half found none new);
@@ -42,15 +48,9 @@ import 'package:test/test.dart';
 /// counts) is drawn, and every column of it takes values drawn in that
 /// column. Reads a file: VM only.
 void main() {
-  // `doc/levels.md` v1.6 (26 Nov) specifies rules v9, which Phase 6b
-  // implements. Until v9 is `current`, v8 is checked against the spec it
-  // implements: v1.5, frozen beside this test (provisional,
-  // `doc/decisions.md`, "Phase 6a"). The day `current` is v9 this reads the
-  // owner's file again by itself; Phase 6b deletes the copy.
-  final specPath = RulesVersion.current.number >= 9
-      ? '../../doc/levels.md'
-      : 'test/spec/levels_v1_5.md';
-  final spec = File(specPath).readAsStringSync();
+  // The owner's file (Phase 6b commit 1: the frozen v1.5 copy Phase 6a read
+  // while v8 was current is gone).
+  final spec = File('../../doc/levels.md').readAsStringSync();
   final tiers = _tables(_section(spec, '## 5. ', '## 5b. '));
   final section5b = _section(spec, '## 5b. ', '## 6. ');
   final families = _tables(section5b);
@@ -64,7 +64,7 @@ void main() {
   final familySamples = <(PatternFamily, Tier), _Sample>{};
   _Sample familySample(PatternFamily family, Tier tier) =>
       familySamples[(family, tier)] ??= _Sample.of(
-        (r) => patternQuestion(family, tier, r),
+        (r) => _familyAt(family, tier, r),
         draws: 10000,
       );
 
@@ -150,9 +150,10 @@ void main() {
         test('${family.name}: from its tier, its examples drawn', () {
           final [name, examples, from] = rows[i];
           expect(family.from.label, from, reason: name);
-          for (final (text, where) in _familyExamples(examples)) {
+          for (final (text, at) in _familyExamples(examples)) {
             final example = _parse(type, text);
             expect(example.type, type, reason: text);
+            final where = _exampleConflicts.containsKey(text) ? _At.any : at;
             final tiers = switch (where) {
               _At.first => [family.from],
               _At.last => [Tier.t9],
@@ -184,7 +185,9 @@ void main() {
     for (final [name, sizes] in sizeRows) {
       final (family, measure) = _sizeFamilies[name]!;
       test('$name (${family.name}): $sizes', () {
-        final bands = _bands(sizes, measure);
+        final bands = sizes.startsWith('mirror of powers of 2')
+            ? _mirrorBands(sizeRows)
+            : _bands(sizes, measure);
         expect(family.from, bands.first.from, reason: 'first entry');
         final limits = <int, int>{};
         for (final (k, band) in bands.indexed) {
@@ -194,8 +197,18 @@ void main() {
           for (final tier in Tier.values.sublist(band.from.index, end)) {
             final seen = <int, (int, int)>{};
             for (var seed = 0; seed < _seeds; seed++) {
-              final e = patternQuestion(family, tier, Random(seed));
-              final (key, value) = measure.of(e);
+              final e = _familyAt(family, tier, Random(seed));
+              if (sizes.contains('quotient never below 10')) {
+                final d = e as ArithmeticExercise;
+                expect(
+                  d.operandA ~/ d.operandB,
+                  greaterThanOrEqualTo(10),
+                  reason: '${tier.label}: $e',
+                );
+              }
+              final measured = measure.of(e);
+              if (measured == null) continue;
+              final (key, value) = measured;
               final (low, high) = seen[key] ?? (value, value);
               seen[key] = (min(low, value), max(high, value));
               if (band.only5 && e is ArithmeticExercise) {
@@ -211,8 +224,11 @@ void main() {
               if (band.low != null) {
                 expect(low, band.low, reason: '$reason: smallest');
               }
-              // Never a lower band's size, for what this entry grows.
-              if (band.limits.containsKey(key) && previous[key] != null) {
+              // Never a lower band's size, for what this entry grows —
+              // unless it names its own smallest.
+              if (band.low == null &&
+                  band.limits.containsKey(key) &&
+                  previous[key] != null) {
                 expect(
                   low,
                   greaterThan(previous[key]!),
@@ -242,7 +258,7 @@ void main() {
           var most = 0;
           Exercise? largest;
           for (var seed = 0; seed < _seeds; seed++) {
-            final e = patternQuestion(family, tier, Random(seed));
+            final e = _familyAt(family, tier, Random(seed));
             final size = _significantOf(e);
             if (size > most) (most, largest) = (size, e);
           }
@@ -255,6 +271,65 @@ void main() {
       });
     }
   });
+
+  group('section 5b, families grow (v1.6): the median answer never '
+      'decreases from a tier where the family is drawn to the next, and — '
+      'outside the size table — grows at least every two tiers until it '
+      'reaches its last size', () {
+    final sized = {for (final (f, _) in _sizeFamilies.values) f};
+    for (final family in PatternFamily.values) {
+      test(family.name, () {
+        final tiers = [
+          for (final t in Tier.values.skip(family.from.index))
+            if (familiesAtV9(family.type, t).contains(family)) t,
+        ];
+        if (tiers.isEmpty) return; // Skipped everywhere (fewer than 4).
+        final medians = {for (final t in tiers) t: _medianAnswer(family, t)};
+        for (var i = 0; i + 1 < tiers.length; i++) {
+          expect(
+            medians[tiers[i + 1]],
+            greaterThanOrEqualTo(medians[tiers[i]]!),
+            reason: '${tiers[i].label} → ${tiers[i + 1].label}: $medians',
+          );
+        }
+        if (sized.contains(family)) return; // Its bands are the spec's.
+        final last = medians[tiers.last]!;
+        for (final t in tiers) {
+          if (t.index + 2 > 9 || medians[t]! >= last) continue;
+          final twoOn = medians[Tier.values[t.index + 2]];
+          if (twoOn == null) continue;
+          expect(
+            twoOn,
+            greaterThan(medians[t]!),
+            reason: '${t.label} → T${t.index + 2}: $medians',
+          );
+        }
+      });
+    }
+  });
+}
+
+/// A question of [family] at [tier] as the current rules draw it (v9: its
+/// space, nothing yet asked).
+Exercise _familyAt(PatternFamily family, Tier tier, Random random) =>
+    familySpaceV9(family, tier).draw(random, const {});
+
+/// The median answer of [family] at [tier]: every question of a listed
+/// space, 2,001 draws of a larger one.
+int _medianAnswer(PatternFamily family, Tier tier) {
+  final space = familySpaceV9(family, tier);
+  final List<int> answers;
+  if (space.approximateDistinct <= 30000) {
+    answers = [for (final q in space.questions) q.correctAnswer];
+  } else {
+    final random = Random(1);
+    answers = [
+      for (var i = 0; i < 2001; i++)
+        _familyAt(family, tier, random).correctAnswer,
+    ];
+  }
+  answers.sort();
+  return answers[answers.length ~/ 2];
 }
 
 /// Seeds per family and tier for the size checks: each question from its
@@ -266,6 +341,16 @@ const _seeds = 3000;
 /// Where a family's example must be drawn: "A → B" is A at the family's
 /// first tier and B at T9 (the largest size); a plain example at any tier.
 enum _At { first, last, any }
+
+/// Examples the spec contradicts elsewhere, checked at any tier instead —
+/// each reported to the owner (`doc/decisions.md`, "Phase 6b", commit 1).
+/// Once the spec is fixed the key no longer matches, and the example is
+/// checked as written again.
+const _exampleConflicts = {
+  // v1.6's size table extends the family to b ≤ 50 at T7 and b ≤ 100 at T9;
+  // its family-table example still ends at b = 25 (the v1.4 size).
+  '∫₀²⁵ 2x dx': 'size table: T9 b ≤ 100',
+};
 
 List<(String, _At)> _familyExamples(String cell) => [
   for (final text in cell.split(', '))
@@ -296,9 +381,14 @@ enum _Measure {
   squareBase,
 
   /// The upper bound of an integral from 0.
-  upperBound;
+  upperBound,
 
-  (int, int) of(Exercise e) => switch ((this, e)) {
+  /// The root of a round cube (∛8 000 → 20); other questions of the family
+  /// (∛1 331) are not measured.
+  roundCubeRoot;
+
+  /// What this measures on [e]; `null` when it does not apply to it.
+  (int, int)? of(Exercise e) => switch ((this, e)) {
     (digits, ArithmeticExercise(:final operandA)) => (0, _digits(operandA)),
     (digits, PercentageExercise(:final base)) => (0, _digits(base)),
     (exponentOf2, PowerExercise(:final base, :final exponent)) when base == 2 =>
@@ -316,12 +406,26 @@ enum _Measure {
     (upperBound, IntegralExercise(:final lower, :final upper))
         when lower == 0 =>
       (0, upper),
+    (roundCubeRoot, SquareRootExercise(:final index, :final correctAnswer))
+        when index == 3 =>
+      correctAnswer % 10 == 0 ? (0, correctAnswer) : null,
     _ => throw StateError('$name does not measure $e'),
   };
 
   /// An entry's limits, per key.
   Map<int, int> limitsIn(String text) => switch (this) {
-    digits => {0: int.parse(RegExp(r'(\d+)[- ]digit').firstMatch(text)![1]!)},
+    digits => {
+      0: switch (RegExp(r'(\d+)[- ]digit').firstMatch(text)) {
+        final m? => int.parse(m[1]!),
+        // "bases 125, 250, 500 (36 % of 250)": the largest named.
+        null => _digits(
+          RegExp(r'\d[\d ]*\d|\d')
+              .allMatches(text.split('(').first)
+              .map((m) => _number(m[0]!.trim()))
+              .reduce(max),
+        ),
+      },
+    },
     exponentOf2 => {
       0: _script(
         RegExp('2([$_superscripts]+)').firstMatch(text)![1]!,
@@ -335,6 +439,7 @@ enum _Measure {
     radicand => {0: _number(_roots(text).last)},
     squareBase => {0: int.parse(RegExp('([0-9]+)²').firstMatch(text)![1]!)},
     upperBound => {0: int.parse(RegExp(r'b ≤ (\d+)').firstMatch(text)![1]!)},
+    roundCubeRoot => {0: _cubeRanges(text).map((r) => r.$2).reduce(max)},
   };
 }
 
@@ -355,7 +460,43 @@ final _sizeFamilies = <String, (PatternFamily, _Measure)>{
   '∫₀ᵇ 2x dx': (PatternFamily.twoXFromZero, _Measure.upperBound),
   '∫₀ᵇ 3x² dx': (PatternFamily.threeXSquaredFromZero, _Measure.upperBound),
   '∫₀ᵇ 4x³ dx': (PatternFamily.fourXCubedFromZero, _Measure.upperBound),
+  'Swap (v9)': (PatternFamily.swap, _Measure.digits),
+  'Round-number division (v9)': (PatternFamily.roundDivision, _Measure.digits),
+  '∛ of round cubes (v9)': (
+    PatternFamily.cubeRootsRepunitAndRound,
+    _Measure.roundCubeRoot,
+  ),
 };
+
+/// The ranges of round cubes an entry writes: "(20–90)³ and (200–500)³".
+List<(int, int)> _cubeRanges(String text) => [
+  for (final m in RegExp(r'\((\d+)–(\d+)\)³').allMatches(text))
+    (int.parse(m[1]!), int.parse(m[2]!)),
+];
+
+/// "mirror of powers of 2, two tiers later": the Powers of 2 row's bands,
+/// two tiers on, each up to the square root of its largest even power.
+List<_Band> _mirrorBands(List<List<String>> rows) {
+  final powers = rows.firstWhere((r) => r[0] == 'Powers of 2')[1];
+  return [
+    for (final band in _bands(powers, _Measure.exponentOf2))
+      if (band.from.index + 2 <= 9)
+        (
+          from: Tier.values[band.from.index + 2],
+          limits: {0: _powerOf2(band.limits[0]! ~/ 2 * 2)},
+          low: null,
+          only5: false,
+        ),
+  ];
+}
+
+int _powerOf2(int exponent) {
+  var p = 1;
+  for (var i = 0; i < exponent; i++) {
+    p *= 2;
+  }
+  return p;
+}
 
 /// One entry of a size-table row: from its tier up to the next entry's.
 /// [low]: the smallest it draws, when the entry names it ("√64 to
@@ -363,19 +504,21 @@ final _sizeFamilies = <String, (PatternFamily, _Measure)>{
 typedef _Band = ({Tier from, Map<int, int> limits, int? low, bool only5});
 
 /// "T2: 2-digit × 5 · T4: 3-digit · T6: 4-digit".
+/// Entries without a tier ("quotient never below 10") are conditions on
+/// the whole row, checked by the row's test.
 List<_Band> _bands(String sizes, _Measure measure) => [
   for (final entry in sizes.split(' · '))
-    () {
-      final m = RegExp(r'^T(\d): (.+)$').firstMatch(entry.trim())!;
-      return (
+    if (RegExp(r'^T(\d): (.+)$').firstMatch(entry.trim()) case final m?)
+      (
         from: Tier.values[int.parse(m[1]!)],
         limits: measure.limitsIn(m[2]!),
         low: RegExp('^√[0-9 ]+ to √').hasMatch(m[2]!)
             ? _number(_roots(m[2]!).first)
+            : measure == _Measure.roundCubeRoot
+            ? _cubeRanges(m[2]!).map((r) => r.$1).reduce(min)
             : null,
         only5: m[2]!.contains('× 5'),
-      );
-    }(),
+      ),
 ];
 
 /// The radicands an entry writes ("√64 to √1 024").

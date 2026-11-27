@@ -10,9 +10,11 @@ import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/patterns/pattern_family.dart';
 import 'package:math_core/patterns/pattern_questions.dart';
 import 'package:math_core/patterns/pattern_questions_v4.dart';
+import 'package:math_core/patterns/pattern_spaces_v9.dart';
 import 'package:math_core/persistence/exercise_codec.dart';
 import 'package:math_core/tiers/tier.dart';
 import 'package:math_core/tiers/tier_content.dart';
+import 'package:math_core/tiers/tiered_game_generator.dart';
 
 /// Rules v2's pinned cases (`tool/tier_references.dart` writes their
 /// output on the VM; `tier_determinism_test.dart` checks it on VM and
@@ -136,5 +138,46 @@ String familySequenceV6(int seed) {
       for (final tier in Tier.values.skip(family.from.index))
         for (var i = 0; i < 2; i++)
           describe(patternQuestion(family, tier, random)),
+  ].join(' ');
+}
+
+/// Rules v9's pinned cases (`test/tiers/tier_references_v9.dart`): at every
+/// tier, a 10-question game of [type] (one game's memory: no repeats), each
+/// question with its family when it is a pattern question.
+String gameSequenceV9(ExerciseType type, int seed) {
+  final random = Random(seed);
+  return [
+    for (final tier in Tier.values)
+      () {
+        final generator =
+            gameExerciseGenerator(
+                  rulesVersion: RulesVersion.v9,
+                  enabledTypes: {type},
+                  levels: {type: Level.whole(10 * tier.index)},
+                  typeSequence: List.filled(10, type),
+                )
+                as TieredGameGenerator;
+        return [
+          for (var i = 0; i < 10; i++)
+            () {
+              final e = generator.next(random);
+              final family = generator.lastFamily;
+              return '${describe(e)}${family == null ? '' : '/${family.name}'}';
+            }(),
+        ].join(' ');
+      }(),
+  ].join(' | ');
+}
+
+/// Two questions of every pattern family at every tier from its first, as
+/// v9's spaces draw them (nothing asked yet), from [seed] — skipped tiers
+/// included: the space is what the size checks read.
+String familySequenceV9(int seed) {
+  final random = Random(seed);
+  return [
+    for (final family in PatternFamily.values)
+      for (final tier in Tier.values.skip(family.from.index))
+        for (var i = 0; i < 2; i++)
+          describe(familySpaceV9(family, tier).draw(random, const {})),
   ].join(' ');
 }

@@ -1,6 +1,7 @@
 import '../leveling/level.dart';
 import '../leveling/rules_version.dart';
 import '../models/exercise_type.dart';
+import '../tiers/game_draws.dart';
 import '../tiers/tier_content.dart';
 import '../tiers/tiered_game_generator.dart';
 import '../weak_spots/item.dart';
@@ -13,8 +14,10 @@ import 'exercise_generator.dart';
 /// replay and a duel draw with the same one. Throws for rules v1, retired
 /// (`doc/levels.md`, section 4), and for a type sequence naming an
 /// operation the game does not play (rule 13). [weakSpots] (rules v7
-/// only): the items to re-ask, checked by `weakSpotProblem` — any other
-/// rules, or a breach, throws.
+/// on): the items to re-ask, checked by `weakSpotProblem` under the game's
+/// rules — any other rules, or a breach, throws. From rules v9 the
+/// generator keeps the game's memory (`DrawsV9`): one generator per game,
+/// never shared.
 ExerciseGenerator gameExerciseGenerator({
   required RulesVersion rulesVersion,
   required Set<ExerciseType> enabledTypes,
@@ -30,7 +33,8 @@ ExerciseGenerator gameExerciseGenerator({
         'has no weak spots (rules v7 on).',
       );
     }
-    if (weakSpotProblem(weakSpots, typeSequence, levels) case final p?) {
+    if (weakSpotProblem(weakSpots, typeSequence, levels, rulesVersion)
+        case final p?) {
       throw ArgumentError.value(weakSpots, 'weakSpots', p);
     }
   }
@@ -84,6 +88,15 @@ ExerciseGenerator gameExerciseGenerator({
       sequence: typeSequence,
       levels: levels,
       content: patternedContentV6,
+      withReviews: false,
+      weakSpots: weakSpots,
+    ),
+    // `doc/levels.md` v1.6: the spaces of distinct questions, drawn without
+    // repeats by the game's own memory.
+    RulesVersion.v9 => TieredGameGenerator(
+      sequence: typeSequence,
+      levels: levels,
+      draws: DrawsV9(weakSpots: weakSpots),
       withReviews: false,
       weakSpots: weakSpots,
     ),

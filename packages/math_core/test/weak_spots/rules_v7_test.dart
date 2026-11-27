@@ -134,7 +134,7 @@ void main() {
         seed: seed,
       );
       final items = [sevenEight, sixNine, bond];
-      expect(weakSpotProblem(items, sequence, levels), isNull);
+      expect(weakSpotProblem(items, sequence, levels, RulesVersion.v7), isNull);
       final generator =
           gameExerciseGenerator(
                 rulesVersion: RulesVersion.v7,

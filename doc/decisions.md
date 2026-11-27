@@ -2227,3 +2227,70 @@ report.
   rated, start ratings), `duel_json.dart` (the decided answer, JSON reading);
   `duel_endpoint.dart` keeps the HTTP surface (routes, authentication, body) and the
   constructor the tests use. No behaviour changed but the catch-up.
+
+**Commit 1 — rules v9 generation (M10, m11, m20, m21; m5).** The spec (`doc/levels.md` v1.6)
+fixes the tables and the rules; these are the readings and gaps.
+
+- **How "no repeat" is kept without rejection sampling (rule 10).** Every tier's standard
+  questions and every family at every tier is a space of distinct questions (`QuestionSpace`):
+  listed when it holds at most 30,000, drawn number by number above (the long sums from T3).
+  A listed space draws an index among the questions the game has not asked; a drawn one, on
+  the one-in-a-million question already asked, steps to the next in a fixed order. One
+  memory per operation per game (`OperationDraws`) covers standard, pattern and weak-spot
+  questions together: a weak spot's fact is never drawn as another question of the game.
+- **"While the tier still has unused questions"** is read as the whole tier, not the source:
+  when the drawn family has nothing left unasked, another family with something left is drawn,
+  else a standard question (and the reverse). Only a tier used up repeats — never twice in a
+  row. The price: where the only family is small (roots T3: 4 questions; integrals T1: 4) the
+  pattern share falls from 40 % to about 30 %.
+- **"Uniform over distinct questions"** is exact in every listed space — all of the small
+  pools, where a question could be frequent: 9 + 1 is 1 in 25 of T0 addition (was 11 %),
+  2⁵ 1 in 12 of T1 powers (was 25 %). Literally, it also makes a small form of a tier rare:
+  the 20 crossing-10 facts (8 + 7) are 2.4 % of T1 standard addition, beside 810 sums of a
+  2-digit and a 1-digit number (v8 gave each form half); teens − 1-digit 9 % of T1
+  subtraction; 11–19 × 11–19 14 % of T5 multiplication. Kept literal; the other reading
+  (each form of a row an equal share, uniform within it) would make each of the 20 facts
+  40 times as likely as a 47 + 8 — the favouring the rule forbids. **In a drawn space** (the
+  long sums) every question is below one in 10⁵ either way; there each form of the row gets
+  an equal share, so every size it names stays in the mix: 7 + 7 is a third of T8 (by count
+  it would be 0.8 %, and the spec's own T8 example, 4 736 285 + 2 948 617, would hardly ever
+  be drawn).
+- **Within a family, uniform too**: v5 drew a form first — `× 99` was half of `× 9s` at T5,
+  each of 99 %, 101 %, 125 %, 200 % a quarter of its family. Now each question counts once:
+  `× 99` is 9 % of `× 9s` at T5, 200 % of n most of "99 %, 101 %, 125 %, 200 %". Owner's rule
+  as written; to revisit if the families feel lopsided.
+- **No trivial factor above T0**: also 1 % at T6 and T9 ("any whole percentage" does not list
+  it); quotient 1 (8 ÷ 8) dropped with × 1 (division mirrors multiplication).
+- **T7 integrals offered 8 questions** (4x³ from 0 or 1, b 2–5): the upper bound now goes to 7
+  (12 questions, the spec's minimum). The row names no bound.
+- **Families skipped (fewer than 4 questions)**, with v8's band edges kept: powers of 2 at
+  T1–T6 (two a band), √ of powers of 2 everywhere (v1.6's row mirrors powers of 2 two tiers
+  later: one to three questions a band), ∫₀ᵇ 3x² at T4–T5 and ∫₀ᵇ 4x³ at T7–T9 (three or two),
+  repunits at T6. Each of these questions is also standard content at the same tier (2⁴–2⁷
+  at T1, √64 at T0, 3x² from 0 at T4, 4x³ at T7), so nothing is lost; repunits would have
+  vanished everywhere, so they take 11² (T7–T8) and 11⁵, 111³ (T9) within the hard limit.
+  **To the owner**: v1.6's √ row ("mirror of powers of 2, two tiers later") reads like v1.4's,
+  as does the line "Changing the generation is a new rules version (v4)" — v1.5's edits
+  ("T3: √64 to √1 024 · T5: up to √65 536"; "v4, v5 at v1.4, v6 at v1.5") seem lost. Under
+  either √ row the family has three questions a band at most, so it is skipped either way.
+- **Families grow** (v1.6's lower bound): the test reads "size" as the median answer.
+  Outside the size table a family must grow at least every two tiers until it reaches its T9
+  size; families that stayed the same over three tiers (× 11, × 25, difference of squares,
+  doubling and halving, × 9s, ÷ 25, halving chains, √ of squares ending in 25, ∫ difference of
+  squares) now grow tier by tier — the top of their range rises. Size-table families follow
+  their bands (several hold three tiers: the spec's).
+- **Spec conflict, reported**: the family table still ends ∫₀ᵇ 2x at "∫₀²⁵ 2x dx" (v1.4's T5
+  size) while v1.6's size table takes it to b ≤ 50 at T7 and b ≤ 100 at T9; the code follows
+  the size table, and the conformance test checks that one example at any tier
+  (`_exampleConflicts`), until the spec is fixed.
+- **Weak spots** (m5, moved here from commit 7 because it changes what a v9 game draws): at
+  most ⌊n/5⌋ per operation — none with 4 questions an operation (so a main game of 4 × 4
+  questions holds none), 1 of 5, 2 of 10, 4 of 20. A v9 weak spot must belong to v9's tier;
+  the fact catalogue's home tiers stay v8's (practice games replay with them).
+- **Duels** draw under the game rules they store: a new duel is v9 (no question twice);
+  v8 duels replay as they were. No new `DuelRulesVersion`. An app opened before this deploy
+  and never reloaded cannot read a v9 duel — it shows an error until the page is reloaded (a
+  duel left that way would be lost after 24 hours, as any). Not guarded: the app reloads on
+  its next visit, and the window is one deploy.
+- **Practice games** (Weak spots, Drill) keep their generators: v9 is about Levelling,
+  Training and duels.

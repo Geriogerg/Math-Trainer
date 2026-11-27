@@ -93,7 +93,8 @@ class LevelRules {
     RulesVersion.v5 ||
     RulesVersion.v6 ||
     RulesVersion.v7 ||
-    RulesVersion.v8 => v3,
+    RulesVersion.v8 ||
+    RulesVersion.v9 => v3,
   };
 
   /// A correct answer slower than the fluent time, within 30 s, in percent

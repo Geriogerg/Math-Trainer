@@ -175,7 +175,8 @@ void main() {
     expect(duelTierFor(3000), Tier.t9);
     expect(
       DuelConfig.forRating(mode: DuelMode.advanced, seed: 1, rating: 1500),
-      _duel(DuelMode.advanced, 1, 4),
+      // A new duel draws under the current game rules (v9 from Phase 6b).
+      DuelConfig(mode: DuelMode.advanced, seed: 1, difficulty: 4),
     );
   });
 
@@ -190,7 +191,7 @@ void main() {
     expect(() => countBandOperations(3), throwsArgumentError);
     expect(
       DuelConfig.forRating(mode: DuelMode.count, seed: 1, rating: 1300),
-      _duel(DuelMode.count, 1, 1),
+      DuelConfig(mode: DuelMode.count, seed: 1, difficulty: 1),
     );
   });
 
@@ -325,4 +326,64 @@ void main() {
       throwsStateError,
     );
   });
+
+  // Rules v9 (Phase 6b commit 1): a new duel draws under the game rules it
+  // stores, v9 from now on — no question twice in a duel. Recorded on the VM
+  // when v9 became current; never regenerate (every stored v9 duel would
+  // change), and v8's pins above stay as they were.
+  const pinnedQuestionsV9 = {
+    (DuelMode.basics, 1, 4): [
+      'addition 8781 634 = 9415',
+      'subtraction 4784 451 = 4333',
+      'addition 1376 759 = 2135',
+      'division 868 4 = 217',
+      'division 8216 2 = 4108',
+      'multiplication 989 5 = 4945',
+      'subtraction 10000 3271 = 6729',
+      'multiplication 96 8 = 768',
+    ],
+    (DuelMode.basics, 20261127, 0): [
+      'division 16 2 = 8',
+      'subtraction 9 3 = 6',
+      'multiplication 3 3 = 9',
+      'subtraction 3 2 = 1',
+      'addition 3 3 = 6',
+      'multiplication 1 7 = 7',
+      'addition 1 9 = 10',
+      'division 40 5 = 8',
+    ],
+    (DuelMode.advanced, 7, 1): [
+      'power 4 3 = 64',
+      'power 2 7 = 128',
+      'squareRoot 361 = 19',
+      'percentage 20 40 = 8',
+      'integral 0 8 0 2 0 0 = 64',
+      'squareRoot 121 = 11',
+      'integral 0 4 0 2 0 0 = 16',
+      'percentage 25 100 = 25',
+    ],
+    (DuelMode.advanced, 1763510400, 9): [
+      'integral 2 5 0 -2 0 0 5 = 3072',
+      'squareRoot 28900 = 170',
+      'percentage 45 900 = 405',
+      'squareRoot 16900 = 130',
+      'percentage 28 625 = 175',
+      'power 134 2 = 17956',
+      'power 133 2 = 17689',
+      'integral 2 4 0 0 9 8 = 648',
+    ],
+  };
+  for (final MapEntry(key: (mode, seed, tier), value: expected)
+      in pinnedQuestionsV9.entries) {
+    test('rules v9: ${mode.name} at T$tier, seed $seed — pinned', () {
+      final config = DuelConfig(
+        mode: mode,
+        seed: seed,
+        difficulty: tier,
+        rulesVersion: RulesVersion.v9,
+      );
+      expect(_lines(config), expected);
+      expect(config, DuelConfig.fromJson(config.toJson()));
+    });
+  }
 }

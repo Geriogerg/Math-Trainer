@@ -11,6 +11,7 @@ void main() {
     expect(RulesVersion.v6.number, 6);
     expect(RulesVersion.v7.number, 7);
     expect(RulesVersion.v8.number, 8);
+    expect(RulesVersion.v9.number, 9);
     expect(RulesVersion.of(1), RulesVersion.v1);
     expect(RulesVersion.of(2), RulesVersion.v2);
     expect(RulesVersion.of(3), RulesVersion.v3);
@@ -19,12 +20,13 @@ void main() {
     expect(RulesVersion.of(6), RulesVersion.v6);
     expect(RulesVersion.of(7), RulesVersion.v7);
     expect(RulesVersion.of(8), RulesVersion.v8);
+    expect(RulesVersion.of(9), RulesVersion.v9);
     expect(() => RulesVersion.of(0), throwsArgumentError);
-    expect(() => RulesVersion.of(9), throwsArgumentError);
+    expect(() => RulesVersion.of(10), throwsArgumentError);
   });
 
-  test('new games play v8; v2 to v8 are replayed; only v1 is retired', () {
-    expect(RulesVersion.current, RulesVersion.v8);
+  test('new games play v9; v2 to v9 are replayed; only v1 is retired', () {
+    expect(RulesVersion.current, RulesVersion.v9);
     expect(RulesVersion.replayed, [
       RulesVersion.v2,
       RulesVersion.v3,
@@ -33,10 +35,21 @@ void main() {
       RulesVersion.v6,
       RulesVersion.v7,
       RulesVersion.v8,
+      RulesVersion.v9,
     ]);
     expect(
       [for (final v in RulesVersion.values) v.retired],
-      [true, false, false, false, false, false, false, false],
+      [true, false, false, false, false, false, false, false, false],
     );
+  });
+
+  test('rules v9 draws without repeats; v2 to v8 do not; the schedule and '
+      'weak spots carry over', () {
+    expect(
+      [for (final v in RulesVersion.values) v.drawsWithoutRepeats],
+      [false, false, false, false, false, false, false, false, true],
+    );
+    expect(RulesVersion.v9.slowFactsEnterSchedule, isTrue);
+    expect(RulesVersion.v9.hasWeakSpots, isTrue);
   });
 }

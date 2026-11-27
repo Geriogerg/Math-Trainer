@@ -1598,7 +1598,7 @@ owner decision, nothing to build).
 | M7 | The main leaderboard does not scale | 6a (5) | **fixed** |
 | M8 | Matchmaking and the weak-spot check grow with history | 6a (5) | **fixed** |
 | M9 | Free-plan capacity: stored sessions, Pages Function quota, sleeping server | 6a (5); always-on plan bought before 6c | **part**: hashed assets, the 50 % alert, storage measured (1.5 KB a game, not 5); sessions not slimmed (it would grow them); Render always-on is the owner's purchase (6c) |
-| M10 | Tiny question pools, repeats | 6b (1), rules v9 | open |
+| M10 | Tiny question pools, repeats | 6b (1), rules v9 | **fixed** (≥ 12 a tier, 0 % repeats in 10-question games) |
 | M11 | Method explanations true but wrong as teaching | 6b (3) | open |
 | M12 | Server ↔ Supabase boundary untested; no duel end to end | 6a (7) | **part**: the integration job plays it; the staging smoke test plays no duel yet |
 | M13 | A push can cancel a production deployment | 6a (7) | **fixed** |
@@ -1612,13 +1612,13 @@ owner decision, nothing to build).
 | m2 | One poisoned session blocks a player's uploads for ever | 6a (6) | **fixed** |
 | m3 | Main level rounded here, floored there | 6b (7) | open |
 | m4 | Division never on two lines | — | decided: one line, spec fixed in `doc/levels.md` v1.6 |
-| m5 | Weak spots can be 25 % of an operation | 6b (7) | open |
+| m5 | Weak spots can be 25 % of an operation | 6b (1), rules v9 (moved from 7: it changes what a game draws) | **fixed** (⌊n/5⌋) |
 | m6 | No security headers | 6a (6) | **fixed** (tokens still in `localStorage`: Supabase's default; the CSP is the mitigation) |
 | m7 | Daily limits can be raced; short friend codes; invite link sends without asking | 6a (6) | **fixed** |
 | m8 | Deleting an account deletes opponents' duel history; notice wording | 6a (4); notice wording with 6c (2) | **fixed** in 6a (duels kept, in-app notice says so); the published policy is 6c |
 | m9 | Wrangler state committed | 6a (0) | **fixed** (GitHub still holds the old commits by hash until its own cleanup) |
 | m10 | Abandonment sweep runs inside other players' requests | 6a (6) | **fixed** differently: a server timer, not `pg_cron` |
-| m11 | Trivial questions at high tiers; unbalanced duels | 6b (1), rules v9 | open |
+| m11 | Trivial questions at high tiers; unbalanced duels | 6b (1), rules v9 | **part**: no trivial factor above T0, round division's quotient ≥ 10 and sized; duels not balanced by effort (not in spec v1.6) |
 | m12 | Files that carry too much | when next touched | open |
 | m13 | App contracts in the core; logic twice in Dart and SQL | when next touched | open |
 | m14 | Seven replayable rules versions | 6c (6): v2–v6 retired 30 days after v9 | open |
@@ -1627,8 +1627,8 @@ owner decision, nothing to build).
 | m17 | Smaller friction (sign-out, pending uploads, rules of two modes, terms) | 6b (4, 7) | open |
 | m18 | No localisation mechanism | 6b (7): strings in one place, English at launch | open |
 | m19 | `doc/decisions.md` unmarked superseded entries; legal README gap | 6b (8); the notice gap with 6c (2) | open |
-| m20 | Pattern families that do not grow with the tier | 6b (1), rules v9 | open |
-| m21 | Subtraction T8 second number, non-monotone tiers, Tables repeat | 6b (1), rules v9 | open |
+| m20 | Pattern families that do not grow with the tier | 6b (1), rules v9 | **fixed** (the size rows, and a median growth test on every family) |
+| m21 | Subtraction T8 second number, non-monotone tiers, Tables repeat | 6b (1), rules v9 | **part**: both lengths at T8; Tables mode never asks a fact twice in a row (across passes too); monotonicity left to the Phase 3b data check (the review's own advice) |
 | n1 | "Once a day" is a UTC calendar day | 6a (1) | **fixed** |
 | n2 | Staging CORS pattern too wide | 6a (6) | **fixed** in `render.yaml` (owner to check the value on Render) |
 | n3 | Functions without `search_path`; root container; dashboard password on the command line | 6a (6) | **fixed** (base image still by tag, not digest) |
@@ -1892,3 +1892,45 @@ changes what a v9 game draws).
   end as `created_at`. How many games production refused this way: not read (the database is
   the owner's) — the phase report gives the query. Run locally: core VM 1129, server 104,
   SQL 27 files, integration 7 of 7 (the split server against every migration).
+- **Commit 1** *(A)* — **Rules v9 generation (M10, m11, m20, m21; m5).** `RulesVersion.v9`
+  current (`replayed` 2–9; the server lists 9 once deployed). **Question spaces**
+  (`tiers/question_space.dart`): every tier's standard questions (`standard_v9.dart`, spec
+  v1.6 section 5 as written) and every family at every tier (`pattern_spaces_v9.dart`) are
+  spaces of distinct questions — listed up to 30,000 (exactly uniform, commutative forms
+  once), drawn number by number above (the long sums from T3: each form of a row an equal
+  share). **One memory per operation per game** (`OperationDraws`, `DrawsV9`): no question
+  twice while the tier has unused ones — across standard, pattern and weak-spot questions —
+  never twice in a row; rejection-free (an index among the unused; the next tuple in a
+  fixed order on the rare repeat of a huge space). `TieredGameGenerator` draws through a
+  `GameDraws` strategy: v2–v8 through `ContentDraws` — their pinned references unchanged
+  byte for byte. Tables: Powers T0–T2 and T6, Roots T0–T2 and T4–T7, Integrals T1, T4 (and
+  T7's bound to 7: 8 questions were under the minimum); no × 1, ÷ 1, exponent 1, 1 % (but
+  T4) above T0; both lengths at T8. Families: Swap, round-number division, round cube roots,
+  from-zero integrals sized by v1.6's table; √ of powers of 2 mirrors powers of 2; the
+  plateauing families grow tier by tier; repunits widened; uniform within a family; a family
+  under 4 questions skipped at that tier. **Weak spots** under v9: from v9's tier
+  (`belongsTo(item, tier, rules)`), ⌊n/5⌋ per operation (m5). **Duels** draw v9 (no repeat in
+  a duel; 4 v9 duels pinned, v8's pins unchanged). **The spec test reads the live
+  `doc/levels.md`**; `test/spec/levels_v1_5.md` deleted; the test now also reads v1.6's new
+  size rows (Swap, round division, round cubes, the √ mirror, the row-wide "quotient never
+  below 10") and checks **families grow** (median answer, every family). One spec conflict
+  found and reported (∫₀²⁵ 2x dx as the family's largest example against a size table going
+  to b ≤ 100). New: `test/tiers/rules_v9_test.dart` (12: ≥ 12 per tier, no repeat in 24,000
+  ten-question games, a 40-question game uses all 12 T0 powers before a repeat and never two
+  in a row, 9 + 1 at 1/25, 2⁵ at 1/12, no trivial factor, both lengths at T8, the skip list,
+  skipped families never drawn, a weak spot's fact never repeated, cross-source no repeat,
+  determinism, no repeat in 4,000 duels); Tables mode never the same fact twice in a row across
+  passes (m21); `tier_references_v9.dart` (VM and JavaScript);
+  `tool/question_pools.dart`. **Simulation**: v9's level update is v3's — the four targets
+  still met (stall 65.3 / 63.8 / 64.0 / 64.2 %, slow 4 +1.56, full caps, worst −3); pattern
+  share ~40 %, 30 % where the only family is tiny (roots T3, integrals T1); weak spots never
+  above 20 % of an operation, never off tier.
+
+  | Repeat in a 10-question game, % (v8 → v9) | T0 | T1 | T2 | T3 | T4 |
+  |---|---|---|---|---|---|
+  | Powers | 100 → 0 | 100 → 0 | 100 → 0 | 96 → 0 | 96 → 0 |
+  | Roots | 100 → 0 | 100 → 0 | 100 → 0 | 95 → 0 | 96 → 0 |
+  | Integrals | 58 → 0 | 100 → 0 | 92 → 0 | 77 → 0 | 100 → 0 |
+  | Addition | 93 → 0 | 33 → 0 | 6 → 0 | 0 → 0 | 0 → 0 |
+
+  (Every operation at every tier: 0 % under v9; the full table is `tool/question_pools.dart`.)

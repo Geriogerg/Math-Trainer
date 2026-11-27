@@ -119,11 +119,19 @@ void main() {
         'exists — its first tier included — and none from a lower tier', () {
       for (final type in ExerciseType.values) {
         for (final tier in Tier.values) {
-          final served = sharesServed(type, tier, games: 400);
+          final served = sharesServed(
+            type,
+            tier,
+            rules: RulesVersion.v6,
+            games: 400,
+          );
           final reason = '${type.name} ${tier.label}';
           expect(
             served.patterns,
-            closeTo(patternShareExpected(type, tier), 0.02),
+            closeTo(
+              patternShareExpected(type, tier, rules: RulesVersion.v6),
+              0.02,
+            ),
             reason: reason,
           );
           expect(served.lowerTier, 0, reason: reason);
@@ -132,7 +140,11 @@ void main() {
       // The first tier with families (T1 for addition): 40 %, no longer
       // diluted by reviews from a tier without families.
       expect(
-        patternShareExpected(ExerciseType.addition, Tier.t1),
+        patternShareExpected(
+          ExerciseType.addition,
+          Tier.t1,
+          rules: RulesVersion.v6,
+        ),
         closeTo(0.4, 1e-9),
       );
     });
@@ -201,6 +213,55 @@ void main() {
         weakSpotsServed(ExerciseType.multiplication, Tier.t1).weakSpots,
         greaterThan(0.1),
       );
+    });
+  });
+
+  group('rules v9 (doc/levels.md v1.6, Phase 6b commit 1)', () {
+    test("v9's level update is v3's: the four targets still met", () {
+      final v9 = LevelRules.of(RulesVersion.v9);
+      expect(v9, same(LevelRules.v3));
+      for (final t in targetsFor(v9)) {
+        expect(t.met, isTrue, reason: '${t.target}: ${t.measured}');
+      }
+    });
+
+    test('pattern questions: about 2 in 5 where a family is drawn — less '
+        'where the only family is small and used up (roots T3, integrals '
+        'T1: the tier counts, not the source) — none where none is; never '
+        'a lower tier', () {
+      for (final type in ExerciseType.values) {
+        for (final tier in Tier.values) {
+          final served = sharesServed(
+            type,
+            tier,
+            rules: RulesVersion.v9,
+            games: 300,
+          );
+          final reason = '${type.name} ${tier.label}';
+          if (patternShareExpected(type, tier, rules: RulesVersion.v9) == 0) {
+            expect(served.patterns, 0, reason: reason);
+          } else {
+            expect(
+              served.patterns,
+              inInclusiveRange(0.25, 0.44),
+              reason: reason,
+            );
+          }
+          expect(served.lowerTier, 0, reason: reason);
+        }
+      }
+    });
+
+    test('weak spots: never above 20 % of an operation, never off the '
+        'current tier', () {
+      for (final type in ExerciseType.values) {
+        for (final tier in Tier.values) {
+          final w = weakSpotsServed(type, tier, games: 120);
+          final reason = '${type.name} ${tier.label}';
+          expect(w.offTier, 0, reason: reason);
+          expect(w.maxInGame, lessThanOrEqualTo(0.2), reason: reason);
+        }
+      }
     });
   });
 }

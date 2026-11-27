@@ -48,7 +48,7 @@ line; weak spots at most ⌊n/5⌋ per operation; strings in one place, English 
 right after. m12 (large files) and m13 (app contracts in the core) are fixed when the files are
 next touched — the phase report says what moved.
 
-Done: 0 (27 Nov; `doc/progress.md`, "Phase 6b"). Next: commit 1.
+Done: 0, 1 (27 Nov; `doc/progress.md`, "Phase 6b"; 1 committed, pushed with 2). Next: commit 2.
 
 **Phase 7's rules** (plan v3.7–v3.8; detail in `doc/decisions.md`, "Phase 7"):
 - **No live matches**: every duel is asynchronous — a player races another's recorded run,
@@ -95,11 +95,12 @@ abandoned-duel choices confirmed on 26 Nov). Still for the owner: Share link on 
 Phase 3b is a data check, not a blocker (confirmed in v3.8): a report at ~300 sessions from
 10+ testers since the rules v5 release (`owner_dashboard.calibration_window`).
 
-**Weak spots** (Phase 4, rules v7–v8; detail in `doc/decisions.md`, "Phase 4"): facts and
+**Weak spots** (Phase 4, rules v7–v9; detail in `doc/decisions.md`, "Phase 4"): facts and
 skills, five boxes counted in games (due after 1, 2, 4, 8, 16), rebuilt from stored answers
 (`scheduleFromHistory`); Levelling games re-ask at most ⌊N/5⌋ due items, **only from the
-operation's current tier**; Weak spots and Drill games are practice kinds (uploaded, never move
-levels, never ranked).
+operation's current tier**, and per operation ⌈n/5⌉ (v7–v8) or **⌊n/5⌋ (v9)** —
+`belongsTo` and `weakSpotOperationCap` take the rules; Weak spots and Drill games are
+practice kinds (uploaded, never move levels, never ranked).
 
 **The level system** (`doc/levels.md`; constants: `LevelRules.of`)
 - **Levels 0–100**, integer hundredths, shown whole; everyone started at 0 at the transition
@@ -110,7 +111,11 @@ levels, never ranked).
   (spec 5b, 49 `PatternFamily`): 2 in 5 where a family is available; from v5 **sized by tier**
   (`patternQuestion(family, tier, r)`: spec 5b's size table, and a hard limit of the standard
   questions of the tier or the next). Every mistake of a game gets a **Method** (spec 9,
-  `methodFor`).
+  `methodFor`). **From rules v9** (spec v1.6) every tier and every family at every tier is a
+  `QuestionSpace` of distinct questions, drawn uniformly by the game's own memory
+  (`DrawsV9`, `OperationDraws`): no question twice in a game while the tier has unused ones,
+  never twice in a row; a family with fewer than 4 questions at a tier is skipped there
+  (`familiesAtV9`).
 - **Level update, per operation, Levelling games only**: credit per answer (fluent 1.0, correct
   but slow within 30 s, wrong or timeout 0); `q` = mean credit; a dead band; up
   `cap_up(n) × min(1, (q − high) / 0.25)`, `cap_up` 3 / 3 / 4 / 5 for n = 4 / 5 / 10 / 20; down
@@ -190,8 +195,10 @@ Non-negotiable without explicit discussion.
   subtraction; v5 = v4 with pattern questions sized by tier and no reviews (`doc/levels.md`
   v1.4); v6 = v5 with √ of powers of 2 sized by its own row (v1.5); v7 = v6 plus weak spots
   in Levelling games (Phase 4; without weak spots a v7 game is a v6 game); v8 = v7 with slow
-  facts entering the schedule at box 2 (Phase 4 close-out, current; scheduled per game's own
-  rules, `slowFactsEnterSchedule`); v1 (all before
+  facts entering the schedule at box 2 (Phase 4 close-out; scheduled per game's own
+  rules, `slowFactsEnterSchedule`); v9 = `doc/levels.md` v1.6 (Phase 6b, current): question
+  spaces drawn without repeats, the new Powers/Roots/Integrals tables, resized and growing
+  families, weak spots ⌊n/5⌋ per operation, and (commit 2) quitting counts; v1 (all before
   the transition)
   is retired — never replayed, refused by the server (`rulesRetired`),
   never sent by the app, kept in history.
@@ -334,12 +341,18 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   the code is behind the spec: a new rules version, never an edit of the test to fit the code.
   Hand-copied tables in other tests are no proof of conformance.
 - `packages/math_core/test/tiers/tier_references.dart` (v2), `tier_references_v4.dart` (v4),
-  `tier_references_v5.dart` (v5) and `tier_references_v6.dart` (v6) are generated (in `packages/math_core`: `dart run
-  tool/tier_references.dart`) only by a change meant to alter a version's questions — never to
-  make a JavaScript failure pass. The tool rewrites them all: an older file that changes is a
-  bug. v8 is `current` and played (v6–v8 share v6's questions): every version's generation is
-  frozen — the next change to generation is **v9, in Phase 6b** (v6 shows the pattern:
-  `patternQuestion` delegates to the frozen `patternQuestionV5` except where it differs).
+  `tier_references_v5.dart` (v5), `tier_references_v6.dart` (v6) and `tier_references_v9.dart`
+  (v9) are generated (in `packages/math_core`: `dart run tool/tier_references.dart`, then
+  `dart format test/tiers` — the tool writes unformatted) only by a change meant to alter a
+  version's questions — never to make a JavaScript failure pass. The tool rewrites them all: an
+  older file that changes is a bug. v9 is `current` and played: every version's generation is
+  frozen — the next change to generation is **v10**. v2–v8 draw through `ContentDraws` (each
+  question on its own), v9 through `DrawsV9`; `standard_v9.dart` and `pattern_spaces_v9.dart`
+  are v9's tables.
+- **A v9 generator holds the game's memory** (what it asked): one `gameExerciseGenerator` per
+  game, never shared or reused — a replay builds its own. `QuestionSpace`s are built once per
+  tier or family and kept (`standardSpaceV9`, `familySpaceV9`). `tool/question_pools.dart`
+  prints the pools (distinct questions per tier, repeats, skipped families) for v8 and v9.
 - A pattern family's Method recognises the family from the question's shape
   (`method_for.dart`): a family that grows must keep its shape recognisable at every size —
   the Method test runs every family at every tier.
@@ -443,9 +456,11 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 - **Weak-spot item keys are stored** (`PersistedSession.weakSpots`, schema v13, upload
   `weakSpots`): `fact:<type>:<numbers>`, `skill:<family>` — never change the format, an
   `ExerciseType` or a `PatternFamily` name. Weak spots in a Levelling game come only from the
-  operation's current tier (`belongsTo`, checked by the replay); `factsAt` must match what each
-  tier's standard questions draw (`fact_tiers_test.dart`) — a change to section 5's tables
-  changes it. The schedule is never stored: `scheduleFromHistory` rebuilds it.
+  operation's current tier (`belongsTo(item, tier, rules)`, checked by the replay); `factsAt`
+  must match what each v4–v8 tier's standard questions draw (`fact_tiers_test.dart`), v9's tier
+  is its space (`factAtV9`). A fact's home tier (`homeTier`, its fluent time, practice games)
+  stays v8's: changing it would change how stored practice games replay. The schedule is
+  never stored: `scheduleFromHistory` rebuilds it.
 - `Random.secure()` throws under `-p node` (dart2js + Node 24); browsers are fine.
 - `web/sqlite3.wasm` and `web/sqflite_sw.js` come from `dart run sqflite_common_ffi_web:setup`;
   rerun with `--force` after upgrades. On GitHub Pages every path respects `/Math-Trainer/`.

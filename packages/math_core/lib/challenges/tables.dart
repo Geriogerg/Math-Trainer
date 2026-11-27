@@ -105,6 +105,15 @@ List<ArithmeticExercise> tablesQuestions({
       pass[i] = pass[j];
       pass[j] = swap;
     }
+    // Never the same fact twice in a row across two passes (review m21):
+    // the new pass's first swapped with its second, no draw spent.
+    if (questions.isNotEmpty && pass.length > 1) {
+      final last = questions.last;
+      if (pass.first == (last.operandA, last.operandB)) {
+        pass[0] = pass[1];
+        pass[1] = (last.operandA, last.operandB);
+      }
+    }
     for (final (t, m) in pass) {
       if (questions.length == setup.questions) break;
       questions.add(

@@ -56,40 +56,58 @@ enum RulesVersion {
   /// slowly**, at box 2 ([slowFactsEnterSchedule]) — it changes which items
   /// are due, so which weak spots a game may hold. Each game's answers are
   /// scheduled under that game's own rules: v7 games keep v7's rule.
-  v8(8);
+  v8(8),
+
+  /// `doc/levels.md` v1.6 (Phase 6b, plan v4.0): **new generation** — every
+  /// tier's standard questions and every pattern family a space of distinct
+  /// questions drawn uniformly, never twice in a game while it has others,
+  /// never twice in a row (`DrawsV9`); the new Powers, Roots and Integrals
+  /// tables, no trivial factor above T0, both lengths at T8; the families
+  /// resized (Swap, round division, round cubes, from-zero integrals) and
+  /// grown, one with fewer than 4 questions at a tier skipped there;
+  /// **weak spots at most ⌊n/5⌋ per operation** (v7–v8: ⌈n/5⌉). v8's
+  /// schedule and v3's level constants.
+  v9(9);
 
   const RulesVersion(this.number);
 
   final int number;
 
   /// What new sessions are played under.
-  static const current = v8;
+  static const current = v9;
 
   /// The rules a server built from this code replays (validation refuses
   /// the others). The server says so in its `/health` (`rules`), and the
   /// app holds a session back, pending, until the server it talks to knows
   /// its rules — an older server would refuse it for good.
-  static const replayed = [v2, v3, v4, v5, v6, v7, v8];
+  static const replayed = [v2, v3, v4, v5, v6, v7, v8, v9];
 
   /// Played before the Levels phase's transition: its levels are on the
   /// old scale (1–100 from placement), never compared with the others.
   bool get retired => switch (this) {
     v1 => true,
-    v2 || v3 || v4 || v5 || v6 || v7 || v8 => false,
+    v2 || v3 || v4 || v5 || v6 || v7 || v8 || v9 => false,
   };
 
   /// Whether a fact answered correctly but slowly enters the weak-spot
   /// schedule (at box 2) — from rules v8 (plan v3.6, Phase 4 outcome).
   bool get slowFactsEnterSchedule => switch (this) {
     v1 || v2 || v3 || v4 || v5 || v6 || v7 => false,
-    v8 => true,
+    v8 || v9 => true,
   };
 
   /// Whether a game may hold weak spots (`PersistedSession.weakSpots`) and
   /// practice kinds exist: rules v7 on.
   bool get hasWeakSpots => switch (this) {
     v1 || v2 || v3 || v4 || v5 || v6 => false,
-    v7 || v8 => true,
+    v7 || v8 || v9 => true,
+  };
+
+  /// Whether a game's questions come from rules v9's spaces, drawn without
+  /// repeats (`doc/levels.md` v1.6); from v9 also its weak spots' tiers.
+  bool get drawsWithoutRepeats => switch (this) {
+    v1 || v2 || v3 || v4 || v5 || v6 || v7 || v8 => false,
+    v9 => true,
   };
 
   /// Throws [ArgumentError] for a number no version has (rule 13).

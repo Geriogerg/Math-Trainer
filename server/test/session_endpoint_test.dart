@@ -406,9 +406,11 @@ void main() {
       'flagged (Phase 4 close-out)', () async {
     final gateway = FakeGateway();
     final endpoint = SessionEndpoint(gateway);
+    // 5 questions an operation: from rules v9 a weak spot needs n ≥ 5
+    // (at most ⌊n / 5⌋ per operation).
     final sequence = shuffledTypeSequence(
       types: _types,
-      perOperation: 4,
+      perOperation: 5,
       seed: 77,
     );
     final levels = {for (final t in _types) t: Level.zero};
@@ -418,7 +420,7 @@ void main() {
       playerId: 'p1',
       seed: 77,
       enabledTypes: _types,
-      exerciseCount: 8,
+      exerciseCount: 10,
       totalScore: 0,
       levels: levels,
       createdAt: DateTime.utc(2026, 11, 20, 9),
@@ -437,7 +439,7 @@ void main() {
     final upload = SessionUpload(
       session: session,
       answers: [
-        for (var i = 0; i < 8; i++)
+        for (var i = 0; i < 10; i++)
           () {
             final q = generator.next(random);
             final d = describeExerciseForStorage(q);

@@ -27,7 +27,8 @@ List<int> _fluentSeconds(ExerciseType type, RulesVersion rules) {
         RulesVersion.v5 ||
         RulesVersion.v6 ||
         RulesVersion.v7 ||
-        RulesVersion.v8:
+        RulesVersion.v8 ||
+        RulesVersion.v9:
       break;
   }
   return switch (type) {

@@ -50,7 +50,7 @@ void main() {
       'version': 'dev',
       'betaGate': true,
       // The rules it replays: the app holds sessions of others back.
-      'rules': [2, 3, 4, 5, 6, 7, 8],
+      'rules': [2, 3, 4, 5, 6, 7, 8, 9],
       // The kinds it accepts: the app holds the others back.
       'kinds': ['game', 'training', 'weakSpots', 'drill'],
       // Phase 7: the duel modes it plays and the duel rules it replays.

@@ -166,7 +166,13 @@ void main() {
       'duelId': basics['duelId'],
       'run': fast.toJson(),
     }, 'tok-a');
-    expect(flagged['flags'], contains('implausiblyFast'));
+    // Every answer in 120 ms: flagged — implausibly fast when two answers
+    // have several digits, and flat times always (which flag depends on
+    // the questions the duel's rules draw: rules v9 from Phase 6b).
+    expect(
+      flagged['flags'],
+      anyOf(contains('implausiblyFast'), contains('flatTimes')),
+    );
 
     // Bo finds neither: practice in both modes.
     expect(

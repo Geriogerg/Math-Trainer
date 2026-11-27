@@ -18,7 +18,7 @@ import 'src/levels_simulation.dart';
 void main(List<String> args) {
   for (final (name, rules) in [
     ('v2', LevelRules.v2),
-    ('v3 = v4 = v5 = v6 = v7 = v8', LevelRules.of(RulesVersion.v8)),
+    ('v3 = v4 = v5 = v6 = v7 = v8 = v9', LevelRules.of(RulesVersion.v9)),
   ]) {
     print('== rules $name: $rules');
     for (final t in targetsFor(rules)) {
@@ -50,7 +50,12 @@ void main(List<String> args) {
       );
     }
   }
-  for (final rules in [RulesVersion.v4, RulesVersion.v5, RulesVersion.v6]) {
+  for (final rules in [
+    RulesVersion.v4,
+    RulesVersion.v5,
+    RulesVersion.v6,
+    RulesVersion.v9,
+  ]) {
     final shares = {
       for (final type in ExerciseType.values)
         type: [
@@ -83,8 +88,9 @@ void main(List<String> args) {
     }
   }
   print(
-    '== rules v8: weak-spot questions served per tier, % (300 games of 10 '
-    'questions, a 70 % player; max in one game; off-tier must be 0)',
+    '== rules v${RulesVersion.current.number}: weak-spot questions served per '
+    'tier, % (300 games of 10 questions, a 70 % player; max in one game; '
+    'off-tier must be 0)',
   );
   print(
     '  operation       ${[for (final t in Tier.values) t.label.padLeft(9)].join()}',

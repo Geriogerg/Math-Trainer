@@ -8,6 +8,7 @@ import 'package:math_core/leveling/level_rules.dart';
 import 'package:math_core/leveling/rules_version.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/patterns/pattern_family.dart';
+import 'package:math_core/patterns/pattern_spaces_v9.dart';
 import 'package:math_core/tiers/fluent_time.dart';
 import 'package:math_core/tiers/tier.dart';
 import 'package:math_core/tiers/tier_content.dart';
@@ -299,7 +300,8 @@ double _power(double x, int k) {
 
 /// What the pattern share should be: 2 in 5 of the questions drawn from a
 /// tier with families — under v4 the tier's own (all but the reviews) and
-/// the one below (the reviews: 3 of 10); from v5 the tier's own only.
+/// the one below (the reviews: 3 of 10); from v5 the tier's own only; from
+/// v9 the families it draws (`familiesAtV9`: none below 4 questions).
 double patternShareExpected(
   ExerciseType type,
   Tier tier, {
@@ -312,6 +314,8 @@ double patternShareExpected(
       ? 0
       : (v4
                 ? PatternFamily.availableAtV4(type, t)
+                : rules.drawsWithoutRepeats
+                ? familiesAtV9(type, t)
                 : PatternFamily.availableAt(type, t))
             .isNotEmpty
       ? 1
@@ -349,6 +353,7 @@ double patternShareExpected(
       due: schedule.due,
       sequence: sequence,
       levels: {type: level},
+      rules: RulesVersion.current,
     );
     final generator =
         gameExerciseGenerator(

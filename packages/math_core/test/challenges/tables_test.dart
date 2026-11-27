@@ -152,6 +152,24 @@ void main() {
       }
     });
   });
+
+  test('never the same fact twice in a row, across passes too (review '
+      'm21)', () {
+    for (var seed = 0; seed < 2000; seed++) {
+      final questions = tablesQuestions(
+        seed: seed,
+        setup: TablesSetup(
+          firstTable: 7,
+          lastTable: 8,
+          maxMultiplier: 10,
+          questions: 50,
+        ),
+      );
+      for (var i = 1; i < questions.length; i++) {
+        expect(questions[i], isNot(questions[i - 1]), reason: '$seed, $i');
+      }
+    }
+  });
 }
 
 /// Recorded on the VM (Levels phase commit 6).
