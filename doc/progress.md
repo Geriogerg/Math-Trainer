@@ -2194,3 +2194,25 @@ placeholder; the phase report lists each with the exact value or action needed.
   and a dead link said), the repository (the recover call with its redirect and token; the
   new password; a weak one refused), Sign in → Forgot password? → the link sent. Run
   locally: app 539, analyze clean.
+- **Commit 5** *(A)* — **Error reporting to our own server.** `POST /v1/errors` on the Dart
+  server (`error_endpoint.dart`): no account needed and nothing about the player kept — the
+  kind (flutter, zone, start, loader, other), the message (1,000 characters) and the stack
+  (4,000), each masked server-side (tokens, keys, bearer values, email addresses, secret
+  query parameters), the app's version and the browser; any content type (the loading page
+  sends by beacon, as text); 10 reports an address then one every six minutes, on top of
+  the general limit; 202 whether stored or capped, 503 when the database is down. SQL
+  (`20261204010000_client_errors.sql`): `client_errors` (row-level security, the server's
+  role only), `record_client_error` (old reports deleted first — 30 days —, at most 2,000 a
+  day in all, one at a time), `owner_dashboard.client_errors` and `dashboard.sh errors`
+  (each message once, how often, which versions, the last 7 days). The app reports
+  Flutter's errors, anything uncaught and a failed start (`ErrorReporter`, made first in
+  `main`; `HttpErrorReporter`: the same error once a run, 10 a run at most, never throws);
+  the loading page reports a script that did not download and an engine that did not start
+  (`sendBeacon`, the server's address and the build in the boot config). The policy describes
+  the reports (both languages). Tests: SQL `99o_client_errors_test.sql` (14 assertions:
+  stored, cut, other kind, 30 days, the day's cap, players refused), server (6: stored
+  without an account, masking and cutting, text bodies, refusals, the address limit, the
+  database down), integration (a report through the real function and grants, masked),
+  app (the reporter: fields, once, cap, failures swallowed; the hook keeps Flutter's own
+  handling). Run locally: SQL 29 files, 596 assertions; server 112; integration 8 of 8;
+  app 541; analyze clean.

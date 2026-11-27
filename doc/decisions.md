@@ -2717,3 +2717,22 @@ report. What needs the owner's inputs is behind a switch or a visible placeholde
 - **Supabase's built-in sender until the owner's**: it works now, limited to a few emails an
   hour for the whole project — enough for the beta, not for a launch (the switch-on brings
   the owner's sender).
+
+**Commit 5 — error reporting to our own server.**
+
+- **Nothing about the player**: no account id, no token, no address stored — a report
+  helps fix the game, it does not need to know whose game it was. So no consent and no
+  link to deletion: reports are kept 30 days, then deleted by the next report's insert.
+- **Masked on the server**, whatever the app sends (rule 17): JWTs, `sb_…` keys, bearer
+  values, email addresses, `access_token=`/`refresh_token=`/`apikey=`/`code=`/`password=`
+  values — an exception's text can carry a URL from an auth error.
+- **Bounded three ways**: the app sends the same error once a run and 10 a run at most; the
+  server takes 10 an address then one every six minutes; the database keeps 2,000 a day in
+  all. A broken release reports enough to be seen, a script cannot fill the database.
+- **What is reported**: Flutter's errors (`FlutterError.onError`), anything uncaught
+  (`PlatformDispatcher.onError`), a start that failed (main's catch-all), and, from the
+  loading page, a script that did not download or an engine that did not start — the
+  failures where no Dart runs. Not the watchdog's "still loading" (a slow network is not an
+  error). The console keeps its messages (the previous handlers still run).
+- **No third-party service** (plan 6.6: no third-party analytics): our server and our
+  database.

@@ -16,6 +16,7 @@
 #   bash tool/dashboard/dashboard.sh duels               Phase 7: duels, ratings, flagged runs, friends
 #   bash tool/dashboard/dashboard.sh review-run <run id> ok|reject   a flagged duel run: back in the pool, or out
 #   bash tool/dashboard/dashboard.sh usage                          the database against the free plan (alert from 50 %)
+#   bash tool/dashboard/dashboard.sh errors                         what went wrong in players' apps, the last 7 days
 #   bash tool/dashboard/dashboard.sh moderation                     who is hidden or banned; who to look at
 #   bash tool/dashboard/dashboard.sh hide <player id> [reason]      off the boards, the pool and friend search
 #   bash tool/dashboard/dashboard.sh ban <player id> [reason]       hidden, and nothing more accepted from them
@@ -105,6 +106,11 @@ case "$command" in
   usage)
     # The database against the free plan (Phase 6a commit 5): ALERT from 50 %.
     echo "select case when alert then 'ALERT: ' else '' end || percent || ' % of 500 MB' as used, pg_size_pretty(bytes) as database, pg_size_pretty(session_bytes) as \"stored games\", sessions as games from owner_dashboard.database_usage;" | run
+    ;;
+  errors)
+    # The app's error reports (Phase 6c commit 5): each message once, with
+    # how often and in which versions, the last 7 days.
+    echo "select kind, reports, message, last_version, to_char(last_at, 'YYYY-MM-DD HH24:MI') as last from owner_dashboard.client_errors limit 50;" | run
     ;;
   moderation)
     # Who is hidden or banned, then every player with something to look at

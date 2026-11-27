@@ -189,6 +189,30 @@ void main() {
     },
   );
 
+  // Phase 6c commit 5: an error report through the real function and
+  // grants, masked, without an account.
+  test('an error report: stored, masked, no account needed', () async {
+    final response = await http.post(
+      server.resolve('/v1/errors'),
+      headers: {'content-type': 'text/plain;charset=UTF-8'},
+      body: jsonEncode({
+        'kind': 'loader',
+        'message': 'engine did not start for ana@example.org',
+        'appVersion': 'integration',
+      }),
+    );
+    expect(response.statusCode, 202, reason: response.body);
+    final rows = await sql(
+      "select kind, message, app_version from public.client_errors "
+      "where app_version = 'integration'",
+    );
+    expect(rows.single, [
+      'loader',
+      'engine did not start for <email>',
+      'integration',
+    ]);
+  });
+
   test('guests, bad tokens', () async {
     final (guestStatus, guestBody) = await post('/v1/duels', {
       'mode': 'basics',

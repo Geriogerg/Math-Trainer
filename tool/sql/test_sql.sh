@@ -64,7 +64,7 @@ for file in "$root"/supabase/migrations/*.sql; do run "$file"; done
 # below leaves out would otherwise be skipped while this prints "passed"
 # (Phase 7: the duel tests, named a1_…, for six commits). Raise the minimum
 # when adding test files; never lower it to pass.
-min_sql_tests=28
+min_sql_tests=29
 ran=0
 for file in "$root"/supabase/tests/[1-9]*_test.sql; do run "$file"; ran=$((ran + 1)); done
 for file in "$root"/supabase/tests/*_test.sql; do
@@ -78,7 +78,7 @@ if [ "$ran" -lt "$min_sql_tests" ]; then
 fi
 # And the assertions in them (Phase 6a, review m16): a file emptied of its
 # checks still counts as a file.
-min_sql_asserts=582
+min_sql_asserts=596
 asserts=$(cat "$root"/supabase/tests/[1-9]*_test.sql | grep -oiw assert | wc -l | tr -d ' ')
 if [ "$asserts" -lt "$min_sql_asserts" ]; then
   fail count "$asserts assert statements in the SQL tests, fewer than the pinned minimum $min_sql_asserts"
@@ -107,6 +107,7 @@ dashboard data-check
 dashboard features
 dashboard usage
 dashboard moderation
+dashboard errors
 dashboard hide 00000000-0000-0000-0000-0000000000d5 "scripted uploads, it's obvious"
 dashboard ban 00000000-0000-0000-0000-0000000000d5
 dashboard unhide 00000000-0000-0000-0000-0000000000d5

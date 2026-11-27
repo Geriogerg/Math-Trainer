@@ -43,6 +43,12 @@ const config = {
   // The robot check is on (Phase 6c commit 3): the page leaves the guest to
   // the app, which has the token.
   turnstile: String(defines.TURNSTILE_SITE_KEY ?? '').trim() !== '',
+  // Where the loading page reports a failure of its own (Phase 6c commit 5)
+  // — the Dart server, already allowed by the page's CSP — and the build.
+  serverUrl: /^https:\/\/[^/"<>\s]+$/.test(String(defines.SERVER_URL ?? '').trim().replace(/\/+$/, ''))
+    ? String(defines.SERVER_URL).trim().replace(/\/+$/, '')
+    : null,
+  appVersion: String(defines.APP_VERSION ?? '').trim().slice(0, 40),
 };
 const marker = 'window.mtBootConfig = null; /*__MT_BOOT_CONFIG__*/';
 const page = join(site, 'index.html');

@@ -77,6 +77,9 @@ class EnglishLegalTexts implements LegalTexts {
             '(request limits) — and, before a guest is created or a sign-in, '
             'by Cloudflare Turnstile, which checks that a person, not a '
             'script, is there. They are not used to identify you.',
+        'Error reports: when something goes wrong in the game, what went '
+            'wrong (the error’s text), the game’s version and your '
+            'browser’s name — without your account, kept 30 days, to fix it.',
       ],
     ),
     (
@@ -266,6 +269,10 @@ class FrenchLegalTexts implements LegalTexts {
             'création d’un invité ou une connexion, par Cloudflare Turnstile, '
             'qui vérifie qu’une personne, et non un script, est là. Elles ne '
             'servent pas à vous identifier.',
+        'Les rapports d’erreur : quand quelque chose se passe mal dans le '
+            'jeu, ce qui s’est mal passé (le texte de l’erreur), la version '
+            'du jeu et le nom de votre navigateur — sans votre compte, gardés '
+            '30 jours, pour le corriger.',
       ],
     ),
     (

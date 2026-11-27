@@ -52,7 +52,7 @@
   // A failure to start says so, with Reload (Phase 6b commit 5); errors
   // inside the app itself are main()'s catch-all.
   function failed(e) {
-    loader && loader.fail();
+    loader && loader.fail(e);
     throw e;
   }
   try {

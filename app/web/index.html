@@ -142,6 +142,22 @@
         status.textContent = text;
         root.classList.add('mt-stuck');
       }
+      // A failure the app cannot report itself (Phase 6c commit 5): to the
+      // server's /v1/errors, by beacon (no preflight, survives a reload).
+      // Once per kind of failure; nothing about the player.
+      var reported = {};
+      function report(message) {
+        var config = window.mtBootConfig;
+        if (!config || !config.serverUrl || !navigator.sendBeacon || reported[message]) return;
+        reported[message] = true;
+        try {
+          navigator.sendBeacon(config.serverUrl + '/v1/errors', JSON.stringify({
+            kind: 'loader',
+            message: message,
+            appVersion: config.appVersion || '',
+          }));
+        } catch (_) { /* nothing to do */ }
+      }
       // The watchdog: slow 4G loads in about 20 s; twice that, a button.
       setTimeout(function () {
         stuck('Still loading. On a slow connection this can take a minute.');
@@ -149,7 +165,10 @@
       // A script that could not be downloaded (the game's code, the engine).
       window.addEventListener('error', function (e) {
         var t = e && e.target;
-        if (t && t.tagName === 'SCRIPT') stuck('The game could not be downloaded.');
+        if (t && t.tagName === 'SCRIPT') {
+          stuck('The game could not be downloaded.');
+          report('script not downloaded: ' + String(t.src || '').replace(/^.*\//, ''));
+        }
       }, true);
       return {
         progress: progress,
@@ -157,7 +176,10 @@
           if (!root.classList.contains('mt-stuck')) status.textContent = text;
           progress(fraction);
         },
-        fail: function () { stuck('The game could not start.'); },
+        fail: function (error) {
+          stuck('The game could not start.');
+          report('engine did not start: ' + String(error && (error.message || error)).slice(0, 300));
+        },
         done: function () {
           finished = true;
           progress(1);

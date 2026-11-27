@@ -94,6 +94,8 @@ import 'infrastructure/web/page_reload.dart' as web;
 import 'core/security/human_check.dart';
 import 'infrastructure/web/human_check.dart';
 import 'core/state/auth_link.dart';
+import 'core/errors/error_reporter.dart';
+import 'infrastructure/backend/http_error_reporter.dart';
 
 part 'session_builders.dart';
 
@@ -424,6 +426,16 @@ const _betaGate = bool.fromEnvironment('BETA_GATE');
 /// The build's commit (CI: the first 7 characters of the SHA), stored with
 /// every feedback message; `dev` for a local build.
 const appVersion = String.fromEnvironment('APP_VERSION', defaultValue: 'dev');
+
+/// Where the app's errors go (Phase 6c commit 5): the Dart server's
+/// `/v1/errors`; nowhere in a build without a server. Made before anything
+/// else in `main`, so a start that fails is reported too.
+ErrorReporter createErrorReporter() => _serverUrl.isEmpty
+    ? const NoErrorReporter()
+    : HttpErrorReporter(
+        serverUrl: Uri.parse(_serverUrl),
+        appVersion: appVersion,
+      );
 
 /// `true` in the CI's preview builds (the beta's site): tools for the owner
 /// such as the typeface specimen. A public release (Phase 6) leaves it

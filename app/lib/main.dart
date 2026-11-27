@@ -6,6 +6,7 @@ import 'composition_root.dart';
 import 'infrastructure/web/page_reload.dart';
 import 'presentation/screens/config_error_screen.dart';
 import 'presentation/screens/specimen_screen.dart';
+import 'core/errors/error_reporter.dart';
 
 /// Whether the accessibility tree is built for everyone (plan v4.1: kept,
 /// measured on a low-end phone profile in Phase 6c).
@@ -18,6 +19,9 @@ Future<void> main() async {
   // Required because asynchronous work happens (opening the database,
   // reading preferences) before `runApp()`.
   WidgetsFlutterBinding.ensureInitialized();
+  // What goes wrong is reported to our own server (Phase 6c commit 5).
+  final errors = createErrorReporter();
+  installErrorReporting(errors);
   // The accessibility tree from the start (Phase 6b commit 6, review M17):
   // on the web Flutter builds it only once a screen reader finds and
   // presses a hidden "Enable accessibility" button, which several miss.
@@ -41,9 +45,10 @@ Future<void> main() async {
   } on WebStorageUnavailableException catch (e) {
     runApp(ConfigErrorApp.webStorageUnavailable(e.cause));
     return;
-  } catch (e) {
+  } catch (e, stack) {
     // Anything else (Phase 6b commit 5, review M18): the page used to stay
     // on "Almost there…" for ever. Now a screen says so, with Reload.
+    errors.report(ErrorKind.start, e, stack);
     runApp(ConfigErrorApp.startFailed(e, onReload: reloadPage));
     return;
   }

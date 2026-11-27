@@ -7,6 +7,7 @@ import 'package:shelf/shelf.dart';
 
 import 'src/config.dart';
 import 'src/duel_endpoint.dart';
+import 'src/error_endpoint.dart';
 import 'src/http_app.dart';
 import 'src/rate_limit.dart';
 import 'src/session_endpoint.dart';
@@ -14,6 +15,7 @@ import 'src/supabase_gateway.dart';
 
 export 'src/config.dart';
 export 'src/duel_endpoint.dart';
+export 'src/error_endpoint.dart';
 export 'src/rating/duel_rating_update.dart';
 export 'src/rating/glicko2.dart';
 export 'src/http_app.dart'
@@ -54,6 +56,8 @@ Handler buildServerHandler(
         limits: limits,
       ).route,
       ...endpoint.routes,
+      // The app's error reports (Phase 6c commit 5).
+      ErrorEndpoint(supabase).route,
     ],
   );
 }

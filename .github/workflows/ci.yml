@@ -83,7 +83,7 @@ jobs:
           cache: true
       - name: Analyzer and tests
         working-directory: server
-        run: dart pub get && dart analyze --fatal-infos && bash ../tool/ci/test_count.sh "Server" 106 -- dart test --reporter expanded
+        run: dart pub get && dart analyze --fatal-infos && bash ../tool/ci/test_count.sh "Server" 112 -- dart test --reporter expanded
       - name: Container image builds and starts
         run: |
           docker build -f server/Dockerfile -t math-trainer-server .
@@ -148,7 +148,7 @@ jobs:
           exit 1
       - name: Sessions and duels, end to end
         working-directory: server
-        run: bash ../tool/ci/test_count.sh "Integration" 7 -- dart test integration --reporter expanded
+        run: bash ../tool/ci/test_count.sh "Integration" 8 -- dart test integration --reporter expanded
       - name: Logs on failure
         if: failure()
         working-directory: server
@@ -173,7 +173,7 @@ jobs:
           cache: true
       - run: flutter pub get
       - name: All app tests
-        run: bash ../tool/ci/test_count.sh "App" 539 -- flutter test --reporter expanded
+        run: bash ../tool/ci/test_count.sh "App" 541 -- flutter test --reporter expanded
       - name: Analyzer
         # Infos are fatal too: the tree has zero notices since the
         # material_ui migration (Phase 1 commit 0).
