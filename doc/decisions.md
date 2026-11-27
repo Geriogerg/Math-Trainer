@@ -70,7 +70,10 @@ server's own tables. Never a paywall on an exercise type — the overall ranking
 ranking of subscribers.
 **Reopen** after Phase 7, on retention data (owner decision).
 
-### Preview on GitHub Pages
+### Preview on GitHub Pages — superseded
+
+**Superseded** by "Preview host: Cloudflare Pages" (Phase 3a): the repository went private on
+20 Nov, and GitHub Pages now only redirects when `GITHUB_PAGES_REDIRECT=on`. *(Status marked at Phase 6b commit 8, review m19.)*
 
 Phase 0 commit 2. Needs no account or token beyond GitHub: the deployment runs in the same
 workflow as CI, after tests and build are green, and the repo being public keeps it on the free
@@ -442,7 +445,7 @@ levels; Training picks a fixed difficulty that never touches them), the 15 s of 
 timeout", and the reduced-motion scope of "Streak escalation and level-up within the
 beta-safety rule".
 
-### Gaps filled by Claude Code — provisional, for the owner to confirm
+### Gaps filled by Claude Code — confirmed by the owner (plan v3.0)
 
 - **Contrast**: the palette's muted text (dark `#5A6B8C`: 3.4:1 on the background, 2.9:1 on a
   surface; light `#7A8AA6`: 3.2:1) and the light theme's error red (`#E24B4A`: 3.6:1) fail the
@@ -555,7 +558,9 @@ Consequences: the level is the comparable unit of the leaderboard (raw scores ar
 players get different questions); and accuracy converges to `p_cible` for everyone, so **it
 measures nothing and must never be shown as a reward**.
 
-## Leveling parameters — starting values
+## Leveling parameters — starting values — superseded
+
+**Superseded** by the Levels phase (`doc/levels.md`, rules v2 on). *(Status marked at Phase 6b commit 8, review m19.)*
 
 *Superseded by the Levels phase (`doc/levels.md`), above.*
 
@@ -586,7 +591,9 @@ Tuning targets: convergence in 10–20 sessions, oscillation at equilibrium with
 slightly positive mean bias (expected from `K_haut > K_bas`, harmless to fairness since it applies
 to everyone equally).
 
-## One difficulty axis at a time
+## One difficulty axis at a time — superseded
+
+**Superseded** by tiers (`doc/levels.md` section 5): the tier decides the content. *(Status marked at Phase 6b commit 8, review m19.)*
 
 *Superseded by the Levels phase (`doc/levels.md`), above.*
 
@@ -602,7 +609,9 @@ never recomputed during it — otherwise the server cannot revalidate and duels 
 per operation, five anchor points checked by hand (1, 25, 50, 75, 100), and two tests —
 monotonicity and no brutal jump between consecutive levels.
 
-## Per-question timeout: 15 s, counted as wrong
+## Per-question timeout: 15 s, counted as wrong — superseded
+
+**Superseded**: 30 s since the Redesign (plan v2.9, schema migration `…_thirty_second_questions`). *(Status marked at Phase 6b commit 8, review m19.)*
 
 *Superseded in part or whole by the Redesign phase (plan v2.9), above.*
 
@@ -623,7 +632,9 @@ Reason: the useful distinction is not timeout versus wrong answer but **playing 
 zeros and lose levels for a reason unrelated to skill. Consistent with never lowering the level
 through inactivity.
 
-## The level step is weighted by answer volume
+## The level step is weighted by answer volume — superseded
+
+**Superseded** by `doc/levels.md` section 3 (caps by questions per operation, rules v2 on). *(Status marked at Phase 6b commit 8, review m19.)*
 
 *Superseded by the Levels phase (`doc/levels.md`), above.*
 
@@ -636,7 +647,9 @@ answers do not move 16 times more than 4 — which would make the system unstabl
 variable K applied to sample size. Side effect: small-session noise is damped, and four short
 sessions give about the same result as a long one.
 
-## `n_min` from 8 to 4 — coupled to `δ`
+## `n_min` from 8 to 4 — coupled to `δ` — superseded
+
+**Superseded** by `doc/levels.md` section 3 (rules v2 on). *(Status marked at Phase 6b commit 8, review m19.)*
 
 *Superseded by the Levels phase (`doc/levels.md`), above.*
 
@@ -721,7 +734,10 @@ number goes up); Profile shows a continuous bar per operation. Phase 1's provisi
 "level 14 (+2.76)" is gone.
 **Reopen when** Phase 3 recalibrates the constants.
 
-## Placement test (Phase 1, commit 6)
+## Placement test (Phase 1, commit 6) — superseded
+
+**Superseded**: no placement since the Levels phase (plan v3.1, everyone starts at 0); placement
+sessions are history only. *(Status marked at Phase 6b commit 8, review m19.)*
 
 *Superseded by the Levels phase (`doc/levels.md`), above.*
 
@@ -901,7 +917,10 @@ game and made switching from addition to multiplication look like a level drop.
   are absent from the curve.
 - Cache unreadable when recording: the session is written without this value rather than lost.
 
-## Overall level: unplayed types count as 1
+## Overall level: unplayed types count as 1 — superseded
+
+**Superseded**: the main level is the mean of the four basics, an unplayed one at 0 (Levels
+phase, schema v9); shown as its whole part everywhere (Phase 6b commit 7). *(Status marked at Phase 6b commit 8, review m19.)*
 
 *Superseded in part or whole by the Redesign phase (plan v2.9), above.*
 
@@ -1100,7 +1119,10 @@ length, after which a level means something; "Top N %" rounds up (the best playe
 of a 100-player board, never "Top 0 %").
 **Reopen when** the beta shows boards too empty (lower the bar) or noisy (raise it).
 
-## Player names: a charset the font draws, a short blocklist, reports (Phase 2, commit 9)
+## Player names: a charset the font draws, a short blocklist, reports (Phase 2, commit 9) — extended
+
+**Extended** by Phase 6a (unique names by fold, reports by saved accounts only, `profiles` private);
+the alphabets (Latin, Greek, Cyrillic) **confirmed** by the owner (plan v4.0). *(Status marked at Phase 6b commit 8, review m19.)*
 
 The plan asked for a name filter "including a character set limited to what the bundled fonts
 cover" (no font is fetched at runtime, Phase 1 commit 3). Inter's character map, read from the
@@ -1174,7 +1196,12 @@ The Phase 1 test accounts are deleted by a migration listing their eight ids
 **Reopen when** a migration needs a Supabase feature the stand-in cannot fake (then: `supabase
 start` in CI).
 
-## Cross-platform determinism: pinned references, VM and JavaScript (Phase 1, commit 1)
+## Cross-platform determinism: pinned references, VM and JavaScript (Phase 1, commit 1) — principle kept, files replaced
+
+**The principle holds; the files changed**: `test/determinism/` and `LevelUpdater` are gone with the
+Levels phase. Today's pins are the tier references (`test/tiers/tier_references*.dart`, one per
+rules version that changed generation), the duel pins (`duel_config_test.dart`) and the Method
+pins, all run on the VM and JavaScript. *(Status marked at Phase 6b commit 8, review m19.)*
 
 Players generate in the browser (dart2js); the server will replay on the Dart VM. `dart:math`'s
 `Random(seed)` and IEEE 754 arithmetic are specified the same on both, but "specified" is not
@@ -1201,7 +1228,9 @@ Found along the way:
 **Reopen when** the core gains floating-point functions beyond `sqrt` (rule 18), or a WebAssembly
 build (`--wasm`) ships: add a `-p chrome --compiler dart2wasm` run then.
 
-## Useless RNG draw in `CompositeExerciseGenerator`
+## Useless RNG draw in `CompositeExerciseGenerator` — obsolete
+
+**Obsolete**: the class went with tiered generation (Levels phase). *(Status marked at Phase 6b commit 8, review m19.)*
 
 Reusing `ArithmeticExerciseGenerator` with a one-element list still calls `random.nextInt(1)`
 (always 0). Deterministic and harmless, but **removing it would change every sequence for a given
@@ -1222,7 +1251,7 @@ A corner button on the Play screen, persisted through `ThemeModeStore` (interfac
 `math_core/lib/`, `SharedPreferences` implementation in `infrastructure/`). Until something is stored,
 the system theme stays the default — the button only overrides it once used.
 
-## Preview host: Cloudflare Pages (Phase 3a, commit 1) — owner decision pending
+## Preview host: Cloudflare Pages (Phase 3a, commit 1) — decided by the owner (plan v2.4)
 
 GitHub Pages sends gzip only. Measured on the live preview (19 Nov 2026, fresh browser, every
 file the app loads before its first question, re-compressed locally):
@@ -1250,7 +1279,9 @@ an origin: a guest's progress at the old address does not follow (a linked playe
 which is why the plan wants the move **before any tester**.
 **Reopen when** a custom domain arrives (Phase 6): the preview then moves once more, onto it.
 
-## Beta gate: a code per device, enforced by the app (Phase 3a, commit 3)
+## Beta gate: a code per device, enforced by the app (Phase 3a, commit 3) — extended
+
+**Extended** by the server-side gate (Phase 5.1 commit 5); both go at the public launch (Phase 6c). *(Status marked at Phase 6b commit 8, review m19.)*
 
 The plan: an invitation code asked once, before the anonymous sign-in; codes in a table with a
 use limit, so each tester's data can be followed. The code is checked before the guest exists
@@ -1279,7 +1310,9 @@ plan asks. Answer times use games only and the level the session froze for that 
 placement answers move along a staircase within one session, so their level would mislead.
 **Reopen when** Phase 3b needs a view the report lacks, or the owner wants it in a browser.
 
-## Type placement: the first game on a never-played operation (Phase 3a, commit 7)
+## Type placement: the first game on a never-played operation (Phase 3a, commit 7) — superseded
+
+**Superseded**: no placement since the Levels phase (plan v3.1). *(Status marked at Phase 6b commit 8, review m19.)*
 
 Plan: "First game on a never-played type acts as a short placement for that type" — from level
 1, powers, roots and percentages take ~65 games to settle. Starting a game whose selection holds
@@ -1327,7 +1360,7 @@ app side). Three things that would matter to calibration were not stored anywher
   (`answer_times_by_input`, `app_versions`, two more `data_check` rows).
 **Reopen when** Phase 3b stores the timeout with the session.
 
-## Digit typeface: Space Grotesk, cut to digits (Phase 5, commit 1)
+## Digit typeface: Space Grotesk, cut to digits (Phase 5, commit 1) — confirmed (plan v2.6)
 
 The plan's four candidates (section 6.2), each from google/fonts (SIL OFL, no Reserved Font
 Name, licences in `app/assets/fonts/licences/`), cut by `tool/fonts/subset_digits.py` to a static
@@ -1383,7 +1416,7 @@ full bleed (iOS rounds it). On a selected chip the check mark moves before the l
 operator stays visible (a selected chip still has a non-colour signal, rule 14).
 **Reopen when** the app gets its real name (Phase 6): the app icon may become a mark.
 
-## Sound: synthesised in the browser, on by default (Phase 5, commit 4)
+## Sound: synthesised in the browser, on by default (Phase 5, commit 4) — confirmed (plan v2.6)
 
 The plan asks for self-made or CC0 sounds with their licence recorded. The sounds are
 **synthesised** with the Web Audio API (oscillators and gain envelopes, a few nodes per sound):
@@ -1507,7 +1540,7 @@ skips the code screen); preloading `sqlite3.wasm` (the link is saturated during 
 it would only push CanvasKit later). **Reopen when** Turnstile arrives (Phase 6: the page's
 sign-up would need the token — skip it then), or supabase_flutter changes its storage key.
 
-## Strategy detector: the plan's table made exact (Phase 5.1, commit 2) — provisional
+## Strategy detector: the plan's table made exact (Phase 5.1, commit 2) — confirmed (plan v2.7)
 
 `math_core/strategies/strategy.dart`: `bestStrategy(exercise)` returns the move of section
 6.1's table that fits, with the numbers of its worked line (`CompensationMove(kept: 47,
@@ -1534,7 +1567,7 @@ exercises (sums and differences to 300, products to 120 × 120, squares to 130, 
 `Strategy` names will be stored once tips are shown: never renamed. **Reopen when** Phase 4
 shows tips (wording, thresholds by level) or Phase 3b data shows which moves help.
 
-## Structural features: Dart and SQL, one list of cases (Phase 5.1, commit 3) — provisional
+## Structural features: Dart and SQL, one list of cases (Phase 5.1, commit 3) — confirmed (plan v2.7)
 
 `math_core/difficulty/structural_features.dart`: per exercise, **carries** (columns that carry
 in an addition), **borrows** (columns that borrow in a subtraction), **digits 6–9** (among the
@@ -1554,7 +1587,7 @@ there. **Provisional**: the definitions above (the plan names the features, not 
 counting). **Reopen when** Phase 3b fits a model on them (a feature may need splitting:
 carries into the tens vs the hundreds; distance to 100 vs to 10).
 
-## Server-side gate: who is "already in", and a 403 that is not a refusal (Phase 5.1, commit 5) — provisional
+## Server-side gate: who is "already in", and a 403 that is not a refusal (Phase 5.1, commit 5) — confirmed (plan v2.7)
 
 Plan: "an anonymous user without a valid code cannot upload; existing testers unaffected". The
 server asks `upload_allowed(player)` (SQL, service role only) before storing an anonymous
@@ -1577,7 +1610,7 @@ The migration went out one push before the server (the server asks a function CI
 created first; uploads in between would only have been retried). **Reopen when** Phase 6
 removes the gate, or Turnstile protects the anonymous sign-up itself.
 
-## Staging: a second project, deploys in order, production smoke read-only (Phase 5.2, commit 1) — provisional
+## Staging: a second project, deploys in order, production smoke read-only (Phase 5.2, commit 1) — confirmed (plan v2.8)
 
 The plan asks for a second Supabase project and Render service, staging first, production
 untouched by tests. Choices made to get there, **provisional**:
@@ -1609,7 +1642,10 @@ untouched by tests. Choices made to get there, **provisional**:
 still write `auth.users` in the testers' project). **Reopen when** Phase 6 adds the domain
 (production becomes the real site; the preview may become staging).
 
-## Duel configuration: quotas, a bracket's level, one stream (Phase 5.2, commit 2) — provisional
+## Duel configuration: quotas, a bracket's level, one stream (Phase 5.2, commit 2) — superseded
+
+**Superseded** by Phase 7 (plan v3.7): three modes of 8 questions, the tier from the rating (150
+points a tier), recorded in "Phase 7: asynchronous duels and friends". *(Status marked at Phase 6b commit 8, review m19.)*
 
 **Superseded at Phase 7 commit 1** (plan v3.7): duels are per mode, a tier per 150 rating
 points, two of each of four types ("Phase 7" below). Kept for the record; no duel was stored
@@ -1636,7 +1672,7 @@ players get the same questions; the server can regenerate them (Phase 7 commit 2
 **Reopen when** Phase 7 measures duels: the level per bracket (players' real levels by
 rating), per-type levels if one type is much harder at the same level, the quotas.
 
-## Glicko-2 on the server (Phase 5.2, commit 3) — provisional parameters
+## Glicko-2 on the server (Phase 5.2, commit 3) — confirmed (plan v2.8; used by Phase 7)
 
 `server/lib/src/rating/glicko2.dart`: `glicko2Update(player, games, tau)`, steps 1–8 of
 Glickman's "Example of the Glicko-2 system" (2013), the volatility by the Illinois algorithm

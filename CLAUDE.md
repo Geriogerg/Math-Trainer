@@ -7,7 +7,8 @@ in English.
 level system** (v1.6 is rules v9, built in Phase 6b). Both
 are the owner's: read them at the start of every phase; never edit them.
 This file is the working file: keep it short, update it as the project moves, keep it
-consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/decisions.md`,
+consistent with the plan. Other docs when relevant: `doc/architecture.md` (regenerated at 6b
+commit 8), `doc/decisions.md` (each entry marked confirmed, superseded or provisional),
 `doc/design.md`, `doc/online.md`, `doc/progress.md`. The plan wins any conflict — report it.
 
 ## Current phase
@@ -48,7 +49,7 @@ line; weak spots at most ⌊n/5⌋ per operation; strings in one place, English 
 right after. m12 (large files) and m13 (app contracts in the core) are fixed when the files are
 next touched — the phase report says what moved.
 
-Done: 0–7 (27 Nov; `doc/progress.md`, "Phase 6b"). Next: commit 8.
+Done: 0–8 (27 Nov; `doc/progress.md`, "Phase 6b"). Next: the exit test and the phase report.
 
 **Phase 7's rules** (plan v3.7–v3.8; detail in `doc/decisions.md`, "Phase 7"):
 - **No live matches**: every duel is asynchronous — a player races another's recorded run,

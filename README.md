@@ -97,7 +97,7 @@ Every decision is recorded with its reasons and alternatives in
 |---|---|
 | [Monorepo with a pure-Dart core](doc/decisions.md#monorepo-app-packagesmath_core-server) and a [separate Dart server](doc/online.md#backend-supabase--a-dart-server) rather than Edge Functions | Supabase Edge Functions run TypeScript, and a second implementation of the level maths would drift. The server imports the core unchanged. |
 | [Same questions on VM, JavaScript and WebAssembly](doc/decisions.md#cross-platform-determinism-pinned-references-vm-and-javascript-phase-1-commit-1) | Server replay and future duels depend on it. Explicit seeds, integer-only maths (no `pow`, `exp`, floating `sqrt`), and pinned reference sequences checked on VM and JS. |
-| [Self-contained sessions](doc/decisions.md#self-contained-sessions-the-type-sequence-is-stored-phase-2-commit-1) with a [rules version](doc/decisions.md#levels-close-out--rules-v3-the-level-update-tuned-plan-v32-23-nov-2026) | Every session stores everything that decided its questions, so any old game can be replayed under the rules it was played with (v2, v3 and v4 coexist). |
+| [Self-contained sessions](doc/decisions.md#self-contained-sessions-the-type-sequence-is-stored-phase-2-commit-1) with a [rules version](doc/decisions.md#levels-close-out--rules-v3-the-level-update-tuned-plan-v32-23-nov-2026) | Every session stores everything that decided its questions, so any old game can be replayed under the rules it was played with (every rules version since the level transition still is). |
 | [The server validates by replay and level chaining](doc/decisions.md#validation-the-chain-of-levels-and-adopting-the-servers-phase-2-commit-6) | "The server never trusts the client": correctness, level updates and order are recomputed. Implausible timing is flagged, not refused. |
 | [Integer hundredths for levels](doc/decisions.md#continuous-levels-in-integer-hundredths-phase-1-commit-2), [levels as a recomputable cache](doc/decisions.md#levels-are-a-recomputable-cache-not-a-source-of-truth) | Exact, platform-independent arithmetic. History is the source of truth. |
 | Generation builds the result (draw *r*, show *r²*) and never uses rejection sampling | Bounded time, uniform control over content, and it makes "exact division" and "whole-number percentages" true by construction. |
@@ -115,7 +115,7 @@ Every decision is recorded with its reasons and alternatives in
 This is a solo project built with [Claude Code](https://claude.com/claude-code) as the
 implementer, under a written process:
 
-1. **A product plan owned by me**: [`doc/plan.md`](doc/plan.md), now at version 3.3. It says what
+1. **A product plan owned by me**: [`doc/plan.md`](doc/plan.md) (its version is in its header). It says what
    the app is, why, and in what order it's built. Each version records the outcome of the
    previous phase and the decisions it raised. Claude Code reads it and never edits it.
 2. **Binding specifications** for the hard parts. For example, [`doc/levels.md`](doc/levels.md)
@@ -139,28 +139,34 @@ implementer, under a written process:
    phase.
 
 **Timeline.** An MVP in August 2026, then from the plan of 18 November 2026: Phase 0 (CI and web
-pipeline), 1 (first run and accounts), 2 (server and leaderboard), 3a (invite-only beta),
+pipeline), 1 (first run and accounts), 2 (server and boards), 3a (invite-only beta),
 5 (visual identity, sound, haptics), 5.1–5.2 (first-load work, staging), the Redesign (game
-modes and new interface), Levels (new level system) and Patterns and Method. That's 121 of the
-172 commits, in six days.
+modes and new interface), Levels (new level system), Patterns and Method, 4 (weak spots),
+7 (asynchronous duels and friends), 6a (integrity and capacity) and 6b (player experience). Every
+commit is listed, by phase, in [`doc/progress.md`](doc/progress.md).
 
 ## Tests and CI
 
-| Suite | Tests |
+| Suite | What |
 |---|---|
-| Core on the Dart VM (`packages/math_core`, `dart test`) | 686 |
-| Core compiled to JavaScript (`dart test -p node`) | 659 |
-| App (`flutter test`: unit, widget and golden tests in both themes) | 408 |
-| Server (`server/`, `dart test`) | 36 |
-| Tooling (hook rules) | 10 |
-| SQL (`supabase/tests/`, 14 files) | migrations applied twice, then the tests, on a scratch Postgres |
+| Core on the Dart VM (`packages/math_core`, `dart test`) | rules, generation (pinned questions per rules version), levels, Method, simulations |
+| Core compiled to JavaScript (`dart test -p node`) | the same, to prove VM and JavaScript agree |
+| App (`flutter test`) | unit, widget, golden (both themes), accessibility guidelines, a guard on strings |
+| Server (`server/`, `dart test`) | endpoints, validation, duels, rate limits |
+| Integration (`server/integration`) | the real server against every migration, through a PostgREST stand-in |
+| Tooling (hook rules) | the Claude Code hooks' rules |
+| SQL (`supabase/tests/`) | migrations applied twice, then the tests, on a scratch Postgres |
+
+How many tests each suite must run is pinned in [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
+(`tool/ci/test_count.sh <suite> <minimum>`; the SQL runner pins its own): a suite that runs
+fewer fails CI, so the numbers live there and nowhere else.
 
 Some suites drive whole flows. The app tests play games through the real builders and then
 validate the uploads with the server's code, and the core suite runs simulated players to check
 that the level-tuning targets still hold.
 
-**CI** ([`.github/workflows/ci.yml`](.github/workflows/ci.yml), 15 jobs) runs on every push and
-pull request:
+**CI** ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs on every push and pull
+request:
 
 - formatting; analyzer with `--fatal-infos`; core tests on VM and JavaScript;
 - app analyzer and tests, golden images included;
@@ -179,16 +185,13 @@ history and sound, and deletes the account. Against production it is read-only. 
 [Android workflow](.github/workflows/android.yml) compiles the APK so mobile stays cheap to
 return to.
 
-Size, for scale: core 8.4 k lines of Dart (75 files), app 12.5 k (91 files), server 0.7 k;
-27 SQL migrations.
-
 ## Repository layout
 
 | Directory | What |
 |---|---|
 | `app/` | the Flutter app (`flutter test`; `flutter run -d edge --web-port=8080 --dart-define-from-file=dart_defines.json`, see `dart_defines.example.json`) |
 | `packages/math_core/` | pure-Dart core shared by the app and the server (`dart test`, `dart test -p node`) |
-| `server/` | Dart validation server (`dart test`; `docker build -f server/Dockerfile .` from the root) |
+| `server/` | the Dart server: upload validation by replay, duels (`dart test`; `docker build -f server/Dockerfile .` from the root) |
 | `supabase/` | SQL migrations (applied by CI) and SQL tests (`bash tool/sql/test_sql.sh <postgres url>`) |
 | `tool/` | Claude Code hooks, preview smoke test, SQL test runner, CI scripts, font tools |
 | `doc/` | plan, specifications, architecture, decisions, design, progress log, legal drafts |

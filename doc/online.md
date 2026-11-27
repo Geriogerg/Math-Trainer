@@ -9,16 +9,20 @@ detail and the state of the code. Where the two disagree, the plan wins.
 
 | When | What | State |
 |---|---|---|
-| Step 6, slice 1 | Email/password sign-up and sign-in | done (`0d884c1`) |
-| Step 6, slice 2 | Mandatory sign-in, player name, Profile tab | done (`7400f9b`) |
-| Phase 1 | Anonymous-first (commit 4, done), linking and account screens, account deletion | in progress |
-| Phase 6 | Email confirmation with a real SMTP sender, CAPTCHA | planned |
-| Phase 2 | Monorepo, Dart server, session upload, replay validation, leaderboard | planned |
-| Phase 7 | Asynchronous duels in three rated modes, friends, challenges (plan v3.7) | built (Phase 7) |
+| Step 6 | Email/password accounts, player name, Profile tab | done |
+| Phase 1 | Anonymous-first, linking and account screens, account deletion | done |
+| Phase 2 | Monorepo, Dart server, session upload, replay validation, the boards | done |
+| Phases 3a–5.2 | Beta gate, feedback, owner dashboard, server levels before a game, staging | done |
+| Phase 7 | Asynchronous duels in three rated modes, friends, challenges (plan v3.7) | done |
+| Phase 6a | Integrity and capacity: duel results hold, abuse floor, moderation, names, caching | done (26 Nov) |
+| Phase 6b | Player experience: levels at sign-in, 15 s limits, waking the server before a duel | in progress (27 Nov) |
+| Phase 6c | Public launch: email confirmation from the domain, Turnstile, password recovery | planned |
 
-The old "slice 3" (leaderboard, sync, validation service) is Phase 2 of the plan.
+Sections below are titled by the phase that built them; later changes are written in place.
+The rules duels and uploads follow today are summed up in `CLAUDE.md` ("Phase 7's rules",
+Pitfalls) and argued in `doc/decisions.md`.
 
-## Current state (Phase 1, commit 4)
+## Accounts
 
 - Supabase client in `infrastructure/backend/`, behind `AccountRepository`/`ProfileRepository`
   (`math_core/lib/account/`). The Supabase SDK is never imported outside `infrastructure/` and
@@ -57,11 +61,17 @@ The old "slice 3" (leaderboard, sync, validation service) is Phase 2 of the plan
   If the local wipe fails after the server deletion, the player is still signed out and told
   that data stayed on the device. Device settings (theme, type selection) are kept.
 - Supabase project settings this relies on: anonymous sign-ins **on** (owner, 19 Nov 2026);
-  built-in rate limit on anonymous sign-ins (30 per hour per IP) until CAPTCHA (Phase 6);
+  built-in rate limit on anonymous sign-ins (30 per hour per IP) until Turnstile (Phase 6c);
   `delete_my_account()` (run by hand in Phase 1, a migration since Phase 2 commit 2). Checked
   live: the CI smoke test's guest deletes itself through it (first green run 19 Nov 2026).
-- Email confirmation is **off** in the Supabase project for development: the default mailer only
-  sends to organisation members. Phase 1 turns it on with a real SMTP sender and a site URL.
+- Email confirmation is **off** in the Supabase project: the default mailer only sends to
+  organisation members. Phase 6c turns it on with the domain's own sender.
+- **Since Phase 5.1** the page itself signs in while the files download (`window.mtBootAuth`,
+  `web/index.html`), and the app waits for it before starting its client.
+- **Since Phase 6b**: an email account's Sign out is confirmed first (commit 4); every Supabase
+  call gives up after 15 s, as offline (`TimeLimitedClient`, commit 5); right after sign-in the
+  server's levels replace the local ones when no game waits to be sent, and Home and Profile
+  show them at once (commit 5); a guest with no level is offered to sign in on Home.
 
 ### Player name
 
@@ -120,7 +130,8 @@ rankings). **Supabase never computes a level.**
 Supabase Edge Functions run Deno/TypeScript; the pure-Dart core cannot run there, and duplicating
 `LevelUpdater`/`Scorer` in TypeScript would mean two implementations to keep in sync — exactly what
 architecture rule 1 prevents. Hence a **separate Dart server** (`shelf`, in a container) that
-reuses the core unchanged. Its host and monthly budget are an owner decision (Phase 2, commit 2).
+reuses the core unchanged. It runs on Render (owner's decision, plan v2.3), the free plan until
+the always-on plan before the launch (Phase 6c).
 
 Code layout, from Phase 2 commit 1: monorepo `app/` (the Flutter app), `packages/math_core/` (the
 pure-Dart core, imported by both sides through a path dependency), `server/`.
@@ -134,8 +145,9 @@ container (`server/Dockerfile`, built from the repo root). Configuration only fr
 variables (`server/lib/src/config.dart`): `SUPABASE_URL`, `SUPABASE_SECRET_KEY` (refused if it is
 the publishable key; never printed), `PORT` (default 8080), `ALLOWED_ORIGINS` (web origins
 allowed by CORS — the preview `https://math-trainer-kjc.pages.dev` and the old
-`https://geriogerg.github.io`, now a redirect). `GET /health` answers
-`{"status":"ok"}`; errors are JSON, a 500 never carries details. CI (`server` job): analyzer,
+`https://geriogerg.github.io`, now a redirect). `GET /health` answers the deployed commit,
+the rules versions and session kinds it accepts, and the duel modes and duel rules it serves —
+the app holds what the server does not list yet; errors are JSON, a 500 never carries details. CI (`server` job): analyzer,
 tests, and the image builds and answers `/health`.
 
 ### Deploying the server — decided by the owner: Render free (plan v2.3)
@@ -380,7 +392,12 @@ second device starts where the other device left off and is accepted, instead of
 
 Refused sessions keep their reason (`sessions.upload_refused`, read into
 `PersistedSession.uploadRefused`); Profile's recent sessions say under such a game why it is not
-ranked (`presentation/upload_refusal_text.dart`, one sentence per `RejectionReason`).
+ranked (`presentation/strings/upload_refusal_text.dart`, one sentence per `RejectionReason`).
+
+**Since Phase 6b commit 5** the same rule also runs right after sign-in
+(`adoptServerLevelsAtSignIn`, a 15 s limit instead of 2 s): a linked player on a new device
+sees their levels on Home and Profile at once. History and weak spots are not downloaded —
+Profile tells a saved account that other devices' games are not shown.
 
 ## Replay and validation (Phase 2 commit 6)
 
@@ -450,13 +467,14 @@ seven, an unplayed one counting as level 1 (the app's `overallLevel`), rounded t
 days; per operation, ≥ 3 counted sessions on it (`sessions_played`); overall, ≥ 3 completed
 games. Inactive players leave the board; their level never decays.
 
-### The Leaderboard tab (Phase 2 commit 8)
+### The Ranks tab (Phase 2 commit 8; named Ranks everywhere since Phase 6b commit 7)
 
-`LeaderboardScreen` replaces the tab's placeholder: board chips (Overall and the seven), "Around
+`LeaderboardScreen` replaces the tab's placeholder: board chips (Main, the operations and, since
+Phase 7, the three duel modes), "Around
 me" (default: "Top N %", "Rank r of t · level L", the neighbours) and "Top 100". The player's own
 row is bold and labelled "(You)" (rule 14); a nameless player reads "Player". Not on the board:
 the reason in words, with the games still missing. Reloads every time the tab is shown; offline
-→ "Could not load the leaderboard." and Retry. State in `LeaderboardController`
+→ "Could not load the boards." and Retry. State in `LeaderboardController`
 (`core/state/`); reads through `LeaderboardRepository` (Supabase RPC, no server hop).
 
 ## Player names: filter and reports (Phase 2 commit 9)

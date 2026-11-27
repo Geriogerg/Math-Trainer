@@ -1607,7 +1607,7 @@ owner decision, nothing to build).
 | M16 | Nothing explained to a newcomer | 6b (4) | **fixed** (one line under each control, the result's change and its reason, a first-run card, rules of every mode) |
 | M17 | Accessibility | 6b (6) | **fixed** (semantics on; the question a live region; right, wrong, time's up and 10 s left announced; spoken prompts; edges 3:1; body 15 px; viewport meta; guideline tests on Online, a duel, Friends, Ranks — playing with a real screen reader is an owner check) |
 | M18 | Missing states around the network | 6b (5) | **fixed** (15 s on every Supabase call, the deletion spinner included; the loader's watchdog and Reload; a catch-all at start; failed friend actions said) |
-| M19 | Stale reference docs | 6b (8); the `CLAUDE.md` "v6 is current" sentence fixed in 6a (0) | part |
+| M19 | Stale reference docs | 6b (8); the `CLAUDE.md` "v6 is current" sentence fixed in 6a (0) | **fixed** (architecture regenerated from the code, `online.md`'s stale parts rewritten, README numbers replaced by the CI pins) |
 | m1 | An answer at the buzzer can get an honest game refused | 6a (6) | **fixed** |
 | m2 | One poisoned session blocks a player's uploads for ever | 6a (6) | **fixed** |
 | m3 | Main level rounded here, floored there | 6b (7) | **fixed** (the whole part everywhere) |
@@ -1626,7 +1626,7 @@ owner decision, nothing to build).
 | m16 | Test gaps (SQL pin counts files, no catalogue test, two server cases) | 6a (7) | **fixed** |
 | m17 | Smaller friction (sign-out, pending uploads, rules of two modes, terms) | 6b (4, 7) | **fixed** (sign-out confirmed, pending uploads counted, both modes' rules (4); terms unified, owner text gone, a password can be shown (7); a refusal is still a caption line, 13 px since 6) |
 | m18 | No localisation mechanism | 6b (7): strings in one place, English at launch | **fixed** for the plan's scope (every word in `presentation/strings/`, a guard test; French is the next step, not built) |
-| m19 | `doc/decisions.md` unmarked superseded entries; legal README gap | 6b (8); the notice gap with 6c (2) | open |
+| m19 | `doc/decisions.md` unmarked superseded entries; legal README gap | 6b (8); the notice gap with 6c (2) | **part**: 24 entries marked confirmed, superseded, extended or obsolete; the legal notice gap is 6c's (plan) |
 | m20 | Pattern families that do not grow with the tier | 6b (1), rules v9 | **fixed** (the size rows, and a median growth test on every family) |
 | m21 | Subtraction T8 second number, non-monotone tiers, Tables repeat | 6b (1), rules v9 | **part**: both lengths at T8; Tables mode never asks a fact twice in a row (across passes too); monotonicity left to the Phase 3b data check (the review's own advice) |
 | n1 | "Once a day" is a UTC calendar day | 6a (1) | **fixed** |
@@ -2047,3 +2047,13 @@ changes what a v9 game draws).
   shown. The smoke test looks for "Game complete" (and the old text, for a deploy in between).
   Tests: the guard and its self-check (2); tests updated for the new words and the whole-part
   main level; 12 goldens re-rendered and read. Run locally: app 512, analyze clean.
+- **Commit 8** *(A)* — **Docs (M19, m19).** `doc/architecture.md` regenerated from the code:
+  the monorepo, the core's 20 folders, the app's layers (with `strings/`), the server, Supabase,
+  how a game and a duel flow, rules versions, the exercise model with spoken words, schema 13,
+  web delivery, dependencies. `doc/online.md`: the phasing table brought to 6c, "Current state
+  (Phase 1)" rewritten as "Accounts" with the 5.1 and 6b changes, `/health`'s contents, levels
+  at sign-in, the Ranks tab. `README.md`: the test counts, job count and line counts replaced by
+  the suites and a pointer to the CI pins; the timeline brought to 6b. `doc/decisions.md`:
+  every heading still saying "provisional" or "pending" marked (confirmed with the plan version,
+  superseded by what, extended, obsolete) — 24 entries; only Phase 6b's stay provisional.
+  `CLAUDE.md` aligned. No code changed.
