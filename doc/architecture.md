@@ -87,7 +87,7 @@ infrastructure/effects/     Web Audio synthesis, vibration
 infrastructure/web/         the page's boot sign-in, page reload (conditional imports)
 presentation/screens/       AuthGate, AppShell (Play, Online, Profile, Ranks), Home and setups
                             (play_tab), the game, its result, Get the count, Chain, Tips,
-                            Profile, Ranks, Online, Friends, sign in, save progress, privacy
+                            Profile, Ranks, Online, Friends, sign in, save progress, legal pages
 presentation/duel/          a duel's flow, lanes, result, rules sheet
 presentation/kit/           the only buttons, cards, chips, keys, badges, captions screens use
 presentation/strings/       every word a player reads (Phase 6b commit 7; a guard test)

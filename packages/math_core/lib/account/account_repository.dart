@@ -17,12 +17,20 @@ abstract class AccountRepository {
   /// account id kept — so levels and history stay where they are (plan,
   /// section 6.3). `authState` then emits the same id, no longer anonymous.
   ///
+  /// [ageDeclaredAt]: when the player ticked "I am 15 or older" (Phase 6c
+  /// commit 2, plan v4.1; review B1) — kept with the account, as the policy
+  /// says.
+  ///
   /// `null`: the project requires email confirmation, and the email is
   /// pending until the link in the email is opened (Phase 6; confirmation
   /// is off until then). Throws an `AccountException` on failure
   /// (`emailAlreadyUsed` — the player may sign in to that account instead —
   /// `weakPassword`, `invalidInput`, `network`).
-  Future<Account?> linkEmail({required String email, required String password});
+  Future<Account?> linkEmail({
+    required String email,
+    required String password,
+    required DateTime ageDeclaredAt,
+  });
 
   /// Throws an `AccountException` on failure (invalid credentials,
   /// network unavailable).

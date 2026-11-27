@@ -24,6 +24,7 @@ class _Accounts implements AccountRepository {
   Future<Account?> linkEmail({
     required String email,
     required String password,
+    required DateTime ageDeclaredAt,
   }) async {
     if (linkError case final e?) throw e;
     return Account(id: 'guest', email: email);
@@ -74,14 +75,40 @@ void main() {
     return popped;
   }
 
-  Future<void> fillSaveForm(WidgetTester tester, String email) async {
+  Future<void> fillSaveForm(
+    WidgetTester tester,
+    String email, {
+    bool ageConfirmed = true,
+  }) async {
     final fields = find.byType(TextField);
     await tester.enterText(fields.at(0), email);
     await tester.enterText(fields.at(1), 'secret-1');
     await tester.enterText(fields.at(2), 'Alex');
+    if (ageConfirmed) await tester.tap(find.text('I am 15 or older'));
     await tester.tap(find.widgetWithText(FilledButton, 'Save'));
     await tester.pumpAndSettle();
   }
+
+  // Phase 6c commit 2 (plan v4.1; review B1): the minimum age, declared.
+  testWidgets('Save your progress: nothing sent until "I am 15 or older"', (
+    tester,
+  ) async {
+    final accounts = _Accounts();
+    final popped = await pumpPushed(
+      tester,
+      SaveProgressScreen(
+        accountRepository: accounts,
+        profileRepository: FakeProfileRepository(),
+      ),
+    );
+    await fillSaveForm(tester, 'me@test.com', ageConfirmed: false);
+    expect(popped, isEmpty);
+    expect(find.textContaining('You must be 15 or older'), findsOneWidget);
+    await tester.tap(find.text('I am 15 or older'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+    await tester.pumpAndSettle();
+    expect(popped, [SaveProgressOutcome.saved]);
+  });
 
   testWidgets('Save your progress: success pops with "saved"', (tester) async {
     final popped = await pumpPushed(

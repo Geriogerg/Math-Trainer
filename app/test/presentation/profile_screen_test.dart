@@ -149,6 +149,7 @@ class _RecordingAccountRepository implements AccountRepository {
   Future<Account?> linkEmail({
     required String email,
     required String password,
+    required DateTime ageDeclaredAt,
   }) => throw UnimplementedError();
 
   @override
@@ -942,7 +943,11 @@ void main() {
         const Account(id: 'guest-1', isAnonymous: true),
       );
 
-      await tester.ensureVisible(find.text('Delete my data'));
+      await tester.scrollUntilVisible(
+        find.text('Delete my data'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.tap(find.text('Delete my data'));
       await tester.pumpAndSettle();
       expect(find.text('Delete your data?'), findsOneWidget);
@@ -961,7 +966,11 @@ void main() {
         const Account(id: 'guest-1', isAnonymous: true),
       );
 
-      await tester.ensureVisible(find.text('Delete my data'));
+      await tester.scrollUntilVisible(
+        find.text('Delete my data'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.tap(find.text('Delete my data'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Cancel'));

@@ -2632,3 +2632,34 @@ report. What needs the owner's inputs is behind a switch or a visible placeholde
 - **The old address's redirect page** (`tool/preview_redirect/`, GitHub Pages, off since
   the repository went private) still says "Math Trainer has moved": it is published only by
   the switch-on's redirect step, which writes its text then.
+
+**Commit 2 — privacy policy and legal notice (B1).**
+
+- **The pages are Dart strings, one class per language** (the owner's rule for strings,
+  plan v4.1), not Markdown files or a web page: they read the same offline, inside the app,
+  and a French page that misses a paragraph does not compile. A test also holds both
+  languages to the same sections, paragraphs and owner details.
+- **Placeholders are marks in the text** (`⟦contactEmail⟧`), filled from one map per language
+  (`LegalDetails.given`) — a value can differ by language (a date, a region's name). Until
+  filled: highlighted, in brackets, bold (never colour alone), said "not filled in yet", and
+  a "Draft" banner on the page. Nothing shows the drafts' `[[…]]` syntax.
+- **What is filled already**: the hosts' company names (Cloudflare, Inc.; Render Services,
+  Inc., United States — `render.yaml` sets no region, Render's default is Oregon; Supabase,
+  Inc.), the processors' roles, the rights, the CNIL, the 30-day guest deletion (read from
+  `abandonedGuestRetention` by a test). Owner-only facts stay placeholders, Cloudflare's
+  address included (the old draft's address was marked "to verify").
+- **The legal bases**: the service (contract, 6(1)(b)) for play, levels, boards, duels,
+  friends and the account; legitimate interest (6(1)(f)) for fair play, abuse limits, name
+  review, keeping finished duels for opponents, and calibration — as the Phase 5.2 draft
+  argued; no consent-based processing, so no consent banner. For the review.
+- **The age box is on Save your progress only**: it is where an account is created (a
+  guest gives nothing; signing in reaches an existing account). It is required, unticked by
+  default, and its moment is kept in the account's metadata (Supabase `user_metadata`), sent
+  in the same call as the email — no account without it. **Accounts saved before** (7
+  testers) declared nothing: not asked again (adult testers; to ask, a one-time prompt at
+  sign-in would do).
+- **The language** opens as the device's (French on a French device, English otherwise),
+  with a switch; the rest of the interface stays English until 6d.
+- **The Phase 5.2 drafts are removed** (`doc/legal/privacy-policy.md`,
+  `legal-notice.md`): two versions would drift. Their review questions moved to
+  `doc/legal/README.md`, updated (the language and the age are decided).

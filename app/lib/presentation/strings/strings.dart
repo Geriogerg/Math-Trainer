@@ -3,12 +3,13 @@
 /// right after").
 ///
 /// Screens read `strings.<area>.<name>`. Each area is a plain class whose
-/// members hold the English text; a translation will be a subclass of each
-/// area overriding what it translates (a member it leaves alone stays in
-/// English), and [strings] will become the choice made at start from the
-/// device's language. Kept as Dart, not ARB files: no context to thread
-/// through, enum labels as exhaustive switches, and tests that need no
-/// localisation setup.
+/// members hold the English text. French (Phase 6d) follows the owner's
+/// rule (plan v4.1): **one class per language, so a missing translation
+/// fails to compile** — each area becomes an interface with an English and
+/// a French class, as the legal pages already are (`legal/legal_texts.dart`),
+/// and [strings] the choice made at start. Kept as Dart, not ARB files: no
+/// context to thread through, enum labels as exhaustive switches, and tests
+/// that need no localisation setup.
 ///
 /// The labels of exercise types, Method lines, tips, duels and account
 /// messages live beside this file, as their own tables. A guard test

@@ -27,6 +27,10 @@ AccountException _toAccountException(AuthException error) {
   return AccountException(failure, detail: error.message);
 }
 
+/// Where the "I am 15 or older" declaration is kept (Supabase user
+/// metadata): its moment, in UTC (Phase 6c commit 2).
+const ageDeclarationKey = 'age_15_or_older_declared_at';
+
 class SupabaseAccountRepository implements AccountRepository {
   SupabaseAccountRepository(this._client);
 
@@ -60,14 +64,22 @@ class SupabaseAccountRepository implements AccountRepository {
   /// `is_anonymous` false; a taken email answers 422 `email_exists`. Two
   /// calls (email, then password) could leave an account with an email
   /// but no password if the second failed.
+  /// The age declaration goes with them, in the user's metadata
+  /// ([ageDeclarationKey]): one call, so an account never exists without
+  /// it.
   @override
   Future<Account?> linkEmail({
     required String email,
     required String password,
+    required DateTime ageDeclaredAt,
   }) async {
     try {
       final response = await _client.auth.updateUser(
-        UserAttributes(email: email, password: password),
+        UserAttributes(
+          email: email,
+          password: password,
+          data: {ageDeclarationKey: ageDeclaredAt.toUtc().toIso8601String()},
+        ),
       );
       final user = response.user;
       // Confirmation required: the address waits in `new_email`, the

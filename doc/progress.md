@@ -1584,7 +1584,7 @@ owner decision, nothing to build).
 
 | ID | Finding, in short | Phase | State |
 |---|---|---|---|
-| B1 | No publishable legal surface; age rule | 6c | open (age decided: 15) |
+| B1 | No publishable legal surface; age rule | 6c | **part** (6c commit 2): both pages in-app, French and English, linked from the gate, Profile and the save form; "I am 15 or older" required and kept; the owner's details and the professional review left (switch-on) |
 | B2 | Email confirmation off, no CAPTCHA | 6c | open |
 | B3 | No password recovery | 6c | open |
 | B4 | No abuse protection on the server | 6a (2) | **fixed** |
@@ -1615,7 +1615,7 @@ owner decision, nothing to build).
 | m5 | Weak spots can be 25 % of an operation | 6b (1), rules v9 (moved from 7: it changes what a game draws) | **fixed** (⌊n/5⌋) |
 | m6 | No security headers | 6a (6) | **fixed** (tokens still in `localStorage`: Supabase's default; the CSP is the mitigation) |
 | m7 | Daily limits can be raced; short friend codes; invite link sends without asking | 6a (6) | **fixed** |
-| m8 | Deleting an account deletes opponents' duel history; notice wording | 6a (4); notice wording with 6c (2) | **fixed** in 6a (duels kept, in-app notice says so); the published policy is 6c |
+| m8 | Deleting an account deletes opponents' duel history; notice wording | 6a (4); notice wording with 6c (2) | **fixed** (6a: duels kept; 6c commit 2: the policy says so in both languages) |
 | m9 | Wrangler state committed | 6a (0) | **fixed** (GitHub still holds the old commits by hash until its own cleanup) |
 | m10 | Abandonment sweep runs inside other players' requests | 6a (6) | **fixed** differently: a server timer, not `pg_cron` |
 | m11 | Trivial questions at high tiers; unbalanced duels | 6b (1), rules v9 | **part**: no trivial factor above T0, round division's quotient ≥ 10 and sized; duels not balanced by effort (not in spec v1.6) |
@@ -1626,7 +1626,7 @@ owner decision, nothing to build).
 | m16 | Test gaps (SQL pin counts files, no catalogue test, two server cases) | 6a (7) | **fixed** |
 | m17 | Smaller friction (sign-out, pending uploads, rules of two modes, terms) | 6b (4, 7) | **fixed** (sign-out confirmed, pending uploads counted, both modes' rules (4); terms unified, owner text gone, a password can be shown (7); a refusal is still a caption line, 13 px since 6) |
 | m18 | No localisation mechanism | 6b (7): strings in one place, English at launch | **fixed** for the plan's scope (every word in `presentation/strings/`, a guard test; French is the next step, not built) |
-| m19 | `doc/decisions.md` unmarked superseded entries; legal README gap | 6b (8); the notice gap with 6c (2) | **part**: 24 entries marked confirmed, superseded, extended or obsolete; the legal notice gap is 6c's (plan) |
+| m19 | `doc/decisions.md` unmarked superseded entries; legal README gap | 6b (8); the notice gap with 6c (2) | **fixed** (6b: 24 entries marked; 6c commit 2: the policy names the input device, the app version and the timing flags; the drafts replaced by the pages) |
 | m20 | Pattern families that do not grow with the tier | 6b (1), rules v9 | **fixed** (the size rows, and a median growth test on every family) |
 | m21 | Subtraction T8 second number, non-monotone tiers, Tables repeat | 6b (1), rules v9 | **part**: both lengths at T8; Tables mode never asks a fact twice in a row (across passes too); monotonicity left to the Phase 3b data check (the review's own advice) |
 | n1 | "Once a day" is a UTC calendar day | 6a (1) | **fixed** |
@@ -2117,3 +2117,29 @@ placeholder; the phase report lists each with the exact value or action needed.
   it, the manifest, the image's size, no literal of the name in `lib/` outside `Brand`). Run
   locally: app 521, analyze clean; `boot_config.mjs` checked on a copy of the page (absolute
   image and `og:url` written).
+- **Commit 2** *(A)* — **Privacy policy and legal notice (B1).** In-app pages in English and
+  French (`strings/legal/legal_texts.dart`: an interface and one class per language — a
+  missing member does not compile; `screens/legal_screen.dart`: a language switch, French
+  first on a French device), linked from the beta gate, Profile and Save your progress
+  (`LegalLinks`). The policy: who is responsible, what is stored (the account and the age
+  declaration, every answer with its time, device and version, duels, friends, fair-play
+  marks and reports, feedback and the invitation code, technical data), why and on what
+  basis, who sees it (players, the publisher, Supabase, Render, Cloudflare, transfers),
+  how long (30 days for an unused guest; duels kept as "Deleted player"), rights and the
+  CNIL, the age of 15, browser storage, the version's date. The notice: publisher, director
+  of publication, hosts, intellectual property, contact. **Placeholders**: six owner details
+  (`LegalDetail`: publisher, contact email, director of publication, Cloudflare's address
+  and phone, the Supabase region, the date) shown highlighted, in brackets and said as "not
+  filled in yet", under a "Draft" banner, until given per language in
+  `LegalDetails.given`. **"I am 15 or older"** on Save your progress: nothing is sent
+  unticked; its moment goes with the email in the account's metadata
+  (`age_15_or_older_declared_at`, one `updateUser` call). The short notice
+  (`privacy_screen.dart`, `privacy_strings.dart`) and the Phase 5.2 drafts in `doc/legal/`
+  are gone; `doc/legal/README.md` keeps the questions for the professional review. Tests:
+  the texts (same sections and owner details in both languages, every mark a detail and
+  every detail used, the 30 days and the button names true of the code, duels, friends and
+  per-answer data named), the screen (placeholders and banner, details shown, both
+  languages, the device's language), the links (Profile, the save form), the age box
+  (screen and controller), the declaration in the Supabase call; 2 goldens (privacy in
+  English, light; notice in French, dark), the gate's goldens re-rendered. Run locally: app
+  528, core analyze clean.

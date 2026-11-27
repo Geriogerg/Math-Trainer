@@ -153,6 +153,7 @@ void main() {
         final account = await repo.linkEmail(
           email: 'new@test.com',
           password: 'long-enough',
+          ageDeclaredAt: DateTime.utc(2026, 11, 27, 10),
         );
 
         expect(account, const Account(id: testUserId, email: 'new@test.com'));
@@ -161,6 +162,8 @@ void main() {
         final body = jsonDecode(put.body) as Map<String, Object?>;
         expect(body['email'], 'new@test.com');
         expect(body['password'], 'long-enough');
+        // The age declaration, in the same call (Phase 6c commit 2).
+        expect(body['data'], {ageDeclarationKey: '2026-11-27T10:00:00.000Z'});
       },
     );
 
@@ -170,7 +173,11 @@ void main() {
       final repo = SupabaseAccountRepository(pending.client);
 
       expect(
-        await repo.linkEmail(email: 'new@test.com', password: 'long-enough'),
+        await repo.linkEmail(
+          email: 'new@test.com',
+          password: 'long-enough',
+          ageDeclaredAt: DateTime.utc(2026, 11, 27),
+        ),
         isNull,
       );
     });
@@ -304,7 +311,11 @@ void main() {
 
         expect(
           await failureOf(
-            () => repo.linkEmail(email: testEmail, password: 'x'),
+            () => repo.linkEmail(
+              email: testEmail,
+              password: 'x',
+              ageDeclaredAt: DateTime.utc(2026, 11, 27),
+            ),
           ),
           expected,
         );

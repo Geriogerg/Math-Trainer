@@ -9,6 +9,7 @@ import '../../core/state/account_form_controller.dart';
 import 'package:math_trainer/presentation/strings/account_messages.dart';
 import '../theme/app_theme.dart';
 import 'sign_in_screen.dart';
+import 'legal_screen.dart';
 
 /// "Save your progress" (plan, section 6.3): a guest links an email, a
 /// password and a player name. Same account id afterwards, so levels and
@@ -47,6 +48,10 @@ class _SaveProgressScreenState extends State<SaveProgressScreen> {
 
   /// The password shown as typed (review m17), hidden by default.
   bool _showPassword = false;
+
+  /// "I am 15 or older" (Phase 6c commit 2), unticked until the player
+  /// ticks it.
+  bool _ageConfirmed = false;
   late final _name = TextEditingController(text: widget.initialDisplayName);
 
   @override
@@ -63,6 +68,7 @@ class _SaveProgressScreenState extends State<SaveProgressScreen> {
       email: _email.text,
       password: _password.text,
       displayName: _name.text,
+      ageConfirmed: _ageConfirmed,
     );
     if (!mounted || outcome == SaveProgressOutcome.failed) return;
     Navigator.of(context).pop(outcome);
@@ -90,6 +96,7 @@ class _SaveProgressScreenState extends State<SaveProgressScreen> {
         AccountFormProblem.invalidName => describeNameProblem(
           _controller.nameProblem!,
         ),
+        AccountFormProblem.ageNotConfirmed => strings.account.ageMissing,
       };
     }
     final failure = _controller.failure;
@@ -171,7 +178,17 @@ class _SaveProgressScreenState extends State<SaveProgressScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
+                // The minimum age, declared (plan 6.3; review B1).
+                CheckboxListTile(
+                  value: _ageConfirmed,
+                  onChanged: busy
+                      ? null
+                      : (v) => setState(() => _ageConfirmed = v ?? false),
+                  title: Text(strings.account.ageBox),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  contentPadding: EdgeInsets.zero,
+                ),
+                const SizedBox(height: 8),
                 AppButton.primary(
                   onPressed: _submit,
                   busy: busy,
@@ -192,6 +209,12 @@ class _SaveProgressScreenState extends State<SaveProgressScreen> {
                     onPressed: _signInInstead,
                     label: strings.account.signInInstead,
                   ),
+                const SizedBox(height: 16),
+                // What happens to what is given here (Phase 6c commit 2).
+                LegalLinks(
+                  privacyLabel: strings.account.privacyPolicy,
+                  noticeLabel: strings.account.legalNotice,
+                ),
               ],
             );
           },

@@ -5,7 +5,7 @@ import '../kit/kit.dart';
 
 import '../../core/state/beta_gate_controller.dart';
 import '../theme/app_theme.dart';
-import 'privacy_screen.dart';
+import 'legal_screen.dart';
 
 /// The invite-only beta's door (Phase 3a commit 3): shown by `AuthGate`
 /// on a device with no session and no accepted code, before any account
@@ -101,14 +101,11 @@ class _BetaGateScreenState extends State<BetaGateScreen> {
                         onPressed: checking ? null : widget.onSignIn,
                         label: strings.account.haveAccount,
                       ),
-                      // Before giving any data (Phase 3a commit 4).
-                      AppButton.secondary(
-                        onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => const PrivacyScreen(),
-                          ),
-                        ),
-                        label: strings.account.privacy,
+                      // Before giving any data (Phase 3a commit 4; both
+                      // pages since Phase 6c commit 2).
+                      LegalLinks(
+                        privacyLabel: strings.account.privacyPolicy,
+                        noticeLabel: strings.account.legalNotice,
                       ),
                     ],
                   );

@@ -34,9 +34,9 @@ import '../theme/app_theme.dart';
 import 'session_flow_screen.dart';
 import 'empty_state.dart';
 import 'feedback_screen.dart';
-import 'privacy_screen.dart';
 import 'save_progress_screen.dart';
 import 'sign_in_screen.dart';
+import 'legal_screen.dart';
 
 part 'profile_sections.dart';
 
@@ -604,17 +604,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   label: strings.profile.sendFeedback,
                 ),
               ),
-            // What is stored and how to delete it (Phase 3a commit 4), right
-            // above the deletion it describes.
-            Center(
-              child: AppButton.secondary(
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const PrivacyScreen(),
-                  ),
-                ),
-                label: strings.profile.privacy,
-              ),
+            // What is stored and how to delete it (Phase 3a commit 4; the
+            // full pages since Phase 6c commit 2), right above the deletion
+            // it describes.
+            LegalLinks(
+              privacyLabel: strings.profile.privacyPolicy,
+              noticeLabel: strings.profile.legalNotice,
             ),
             // Last and quiet on purpose: irreversible, never next to the
             // everyday actions. Every player has it, guests included

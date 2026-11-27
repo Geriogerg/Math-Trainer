@@ -13,6 +13,10 @@ enum AccountFormProblem {
 
   /// The player name breaks the name rule ([AccountFormController.nameProblem]).
   invalidName,
+
+  /// "I am 15 or older" not ticked (Phase 6c commit 2, plan v4.1: the
+  /// minimum age, declared at account creation).
+  ageNotConfirmed,
 }
 
 enum SaveProgressOutcome {
@@ -37,10 +41,15 @@ enum SaveProgressOutcome {
 /// account. Holds the submit logic and its state; the screens only render
 /// it (rule 7).
 class AccountFormController extends ChangeNotifier {
-  AccountFormController({required this.accounts, required this.profiles});
+  AccountFormController({
+    required this.accounts,
+    required this.profiles,
+    DateTime Function()? clock,
+  }) : _clock = clock ?? DateTime.now;
 
   final AccountRepository accounts;
   final ProfileRepository profiles;
+  final DateTime Function() _clock;
 
   bool _isSubmitting = false;
   AccountFailure? _failure;
@@ -63,11 +72,13 @@ class AccountFormController extends ChangeNotifier {
 
   /// Links [email] and [password] to the signed-in guest (same account id,
   /// so nothing moves), then saves [displayName]. Email trimmed: mobile
-  /// keyboards often append a space.
+  /// keyboards often append a space. Nothing is sent unless [ageConfirmed]
+  /// ("I am 15 or older"); its moment goes with the email.
   Future<SaveProgressOutcome> saveProgress({
     required String email,
     required String password,
     required String displayName,
+    required bool ageConfirmed,
   }) async {
     final name = displayName.trim();
     _nameProblem = name.isEmpty ? null : displayNameProblem(name);
@@ -76,6 +87,8 @@ class AccountFormController extends ChangeNotifier {
           ? AccountFormProblem.missingFields
           : _nameProblem != null
           ? AccountFormProblem.invalidName
+          : !ageConfirmed
+          ? AccountFormProblem.ageNotConfirmed
           : null,
     )) {
       return SaveProgressOutcome.failed;
@@ -84,6 +97,7 @@ class AccountFormController extends ChangeNotifier {
       final account = await accounts.linkEmail(
         email: email.trim(),
         password: password,
+        ageDeclaredAt: _clock().toUtc(),
       );
       if (account == null) {
         _end();

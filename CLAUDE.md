@@ -51,7 +51,7 @@ control, 15 s on Supabase calls, Cancel only while the server wakes, edges at 3:
 the terms (game, Ranks, seconds, Practice). m11 and m21 go to the Phase 3b data check; m13
 stays debt. Phase 6d (French) follows the launch.
 
-Done: 0–1 (27 Nov; `doc/progress.md`, "Phase 6c build"). Next: commit 2.
+Done: 0–2 (27 Nov; `doc/progress.md`, "Phase 6c build"). Next: commit 3.
 
 **Phase 7's rules** (plan v3.7–v3.8; detail in `doc/decisions.md`, "Phase 7"):
 - **No live matches**: every duel is asynchronous — a player races another's recorded run,
@@ -554,8 +554,11 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   parallel or skip a refused session's successors.
 - Adopt the server's levels only when no upload is pending (`syncLevelsBeforeGame`): pending
   sessions chain from the local levels. Never without a server either — its levels are empty.
-- The privacy notice (`strings/privacy_strings.dart`) states what is stored and that deletion removes it
-  all: a new table of player data must cascade from `auth.users` and be named there.
+- **The privacy policy and legal notice** (`strings/legal/legal_texts.dart`, 6c commit 2) state
+  what is stored and that deletion removes it all: a new table of player data must cascade
+  from `auth.users` and be named there **in both languages** (one class per language; a test
+  holds them to the same sections and owner details). The owner's details are
+  `LegalDetails.given`; until given, placeholders and a "Draft" banner show.
 - Level updates have one implementation: `gameLevelUpdates`, used by the app's orchestrator
   and the server's validation. Never compute levels elsewhere. Questions likewise:
   `gameExerciseGenerator` for the app, the replay and duels.

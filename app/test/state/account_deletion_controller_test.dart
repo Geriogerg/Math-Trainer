@@ -30,6 +30,7 @@ class _Accounts implements AccountRepository {
   Future<Account?> linkEmail({
     required String email,
     required String password,
+    required DateTime ageDeclaredAt,
   }) => throw UnimplementedError();
 
   @override

@@ -194,7 +194,7 @@ return to.
 | `server/` | the Dart server: upload validation by replay, duels (`dart test`; `docker build -f server/Dockerfile .` from the root) |
 | `supabase/` | SQL migrations (applied by CI) and SQL tests (`bash tool/sql/test_sql.sh <postgres url>`) |
 | `tool/` | Claude Code hooks, preview smoke test, SQL test runner, CI scripts, font tools |
-| `doc/` | plan, specifications, architecture, decisions, design, progress log, legal drafts |
+| `doc/` | plan, specifications, architecture, decisions, design, progress log, legal review notes |
 
 ## Licence
 

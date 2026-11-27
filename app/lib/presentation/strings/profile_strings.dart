@@ -72,7 +72,8 @@ class ProfileStrings {
   String deleteButton({required bool guest}) =>
       guest ? 'Delete my data' : 'Delete my account';
   final sendFeedback = 'Send feedback';
-  final privacy = 'Privacy';
+  final privacyPolicy = 'Privacy policy';
+  final legalNotice = 'Legal notice';
 
   // Challenges, Tables, weak spots.
   final challenges = 'Challenges';

@@ -1,39 +1,32 @@
-# Legal drafts (Phase 5.2, commit 4)
+# Legal pages
 
-**Drafts, not published, not legal advice.** Written from what the code actually stores and
-where (checked against `supabase/migrations/`, `server/`, the app's storage and
-`privacy_screen.dart` on 20 November 2026), to be reviewed by the owner, then by a
-professional before Phase 6 publishes them as pages linked in the app (plan, Phase 6 step 2).
+Since Phase 6c commit 2 the **privacy policy** and the **legal notice** are in-app pages, in
+English and French: `app/lib/presentation/strings/legal/legal_texts.dart` (one class per
+language, so a missing translation does not compile), shown by
+`app/lib/presentation/screens/legal_screen.dart` and linked from the beta gate, Profile and
+Save your progress. They replace the Phase 5.2 drafts that stood here (removed; in git
+history before commit 2 of Phase 6c).
 
-| File | What |
-|---|---|
-| `privacy-policy.md` | Privacy policy (GDPR information, art. 13) |
-| `legal-notice.md` | Legal notice (*mentions légales*, French LCEN art. 6 III) |
+**Not final.** The owner's details are placeholders, shown highlighted under a "Draft" banner
+until given in `legal_details.dart` (`LegalDetails.given`, per language): publisher,
+contact email, director of publication, Cloudflare's address and telephone, the Supabase
+project's region, the version's date. Then the pages go to a professional review (plan
+section 6.6) before the switch-on.
 
-**Placeholders** are written `[[LIKE THIS]]`: the publisher's identity, address and contact,
-the hosts' regions, the app's final name and domain. Search for `[[` before publishing.
+**Questions for the professional review** (what the pages cannot decide):
 
-**Questions for the professional review** (decisions the drafts cannot make):
-
-1. **Language.** The app is in English; a site published from France for a French audience
-   is expected to carry its legal notice in French (loi Toubon applies to consumer-facing
-   information). Publish both languages?
-2. **Minors.** The game is for teens and adults. The drafts rely on *performance of the
-   service* (art. 6(1)(b)) and *legitimate interest* (art. 6(1)(f)), not consent — so the
-   French age of digital consent (15, art. 8 GDPR / loi Informatique et Libertés art. 45) is
-   not triggered directly. Is a minimum age, or parental information for under-15s, still
-   advisable?
-3. **Transfers outside the EU.** Render (the server) and Cloudflare (the site) are US
-   companies; the Supabase project's region is `[[REGION]]`. The drafts point to the EU–US
-   Data Privacy Framework and standard contractual clauses — to confirm against each
-   provider's current DPA.
-4. **Publisher as a private individual.** LCEN allows a non-professional publisher to keep
-   their name and address off the site if the host has them: does that suit the owner?
-5. **Beta data.** Answer data is used to calibrate levels (legitimate interest). Is the
-   wording enough, given testers are invited?
-
-**Known gap in the app** (to fix with Phase 6's pages, not before — the beta-safety rule and
-"nothing players can see" in Phase 5.2): the in-app notice (`privacy_screen.dart`) does not
-yet say that the **input device** (on-screen keypad or keyboard) and the **app version** are
-stored with each game, nor that games may be **flagged for implausible timing**. The policy
-below does.
+1. **Publisher as a private individual.** LCEN art. 6 III-2 lets a non-professional
+   publisher keep their name and address off the site if the host has them: does the
+   notice's wording suit, and which host (Cloudflare, which serves the site)?
+2. **Minimum age.** 15, declared at account creation ("I am 15 or older", kept in the
+   account's metadata). The bases are contract (art. 6(1)(b)) and legitimate interest
+   (6(1)(f)), not consent: is the declaration enough, and is anything owed to guests (no
+   account, no email) under 15?
+3. **Transfers outside the EU.** Render (the server, United States) and Cloudflare are US
+   companies; Supabase's region is the owner's to give. The pages point to the EU–US Data
+   Privacy Framework or standard contractual clauses — to confirm against each provider's
+   current terms.
+4. **Turnstile and error reports** (Phase 6c commits 3 and 5): Cloudflare's bot check and the
+   game's own error reports — described as the code does them; the wording to confirm.
+5. **Retention of hosting logs**: the pages do not give durations for the providers' own
+   logs.

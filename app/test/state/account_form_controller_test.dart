@@ -14,6 +14,7 @@ class _Accounts implements AccountRepository {
   AccountException? signInError;
   bool pendingConfirmation = false;
   final linkCalls = <(String, String)>[];
+  final ageDeclarations = <DateTime>[];
   final signInCalls = <(String, String)>[];
 
   @override
@@ -23,8 +24,10 @@ class _Accounts implements AccountRepository {
   Future<Account?> linkEmail({
     required String email,
     required String password,
+    required DateTime ageDeclaredAt,
   }) async {
     linkCalls.add((email, password));
+    ageDeclarations.add(ageDeclaredAt);
     if (linkError case final e?) throw e;
     if (pendingConfirmation) return null;
     return Account(id: 'guest', email: email);
@@ -69,7 +72,11 @@ void main() {
   setUp(() {
     accounts = _Accounts();
     profiles = _Profiles();
-    controller = AccountFormController(accounts: accounts, profiles: profiles);
+    controller = AccountFormController(
+      accounts: accounts,
+      profiles: profiles,
+      clock: () => DateTime.utc(2026, 11, 27, 9, 30),
+    );
   });
 
   group('saveProgress', () {
@@ -80,6 +87,7 @@ void main() {
           email: ' me@test.com ',
           password: 'secret-1',
           displayName: '  Alex ',
+          ageConfirmed: true,
         );
 
         expect(outcome, SaveProgressOutcome.saved);
@@ -89,6 +97,28 @@ void main() {
         expect(controller.failure, isNull);
       },
     );
+
+    // Phase 6c commit 2 (plan v4.1; review B1): the minimum age, declared.
+    test('"I am 15 or older" unticked sends nothing; ticked, its moment goes '
+        'with the email', () async {
+      final refused = await controller.saveProgress(
+        email: 'me@test.com',
+        password: 'secret-1',
+        displayName: 'Alex',
+        ageConfirmed: false,
+      );
+      expect(refused, SaveProgressOutcome.failed);
+      expect(controller.problem, AccountFormProblem.ageNotConfirmed);
+      expect(accounts.linkCalls, isEmpty);
+
+      await controller.saveProgress(
+        email: 'me@test.com',
+        password: 'secret-1',
+        displayName: 'Alex',
+        ageConfirmed: true,
+      );
+      expect(accounts.ageDeclarations, [DateTime.utc(2026, 11, 27, 9, 30)]);
+    });
 
     test('a missing field sends nothing', () async {
       for (final (email, password, name) in [
@@ -100,6 +130,7 @@ void main() {
           email: email,
           password: password,
           displayName: name,
+          ageConfirmed: true,
         );
         expect(outcome, SaveProgressOutcome.failed);
         expect(controller.problem, AccountFormProblem.missingFields);
@@ -112,6 +143,7 @@ void main() {
         email: 'e@x.com',
         password: 'p',
         displayName: 'x' * (maxDisplayNameLength + 1),
+        ageConfirmed: true,
       );
       expect(outcome, SaveProgressOutcome.failed);
       expect(controller.problem, AccountFormProblem.invalidName);
@@ -128,6 +160,7 @@ void main() {
           email: 'e@x.com',
           password: 'p',
           displayName: name,
+          ageConfirmed: true,
         );
         expect(outcome, SaveProgressOutcome.failed);
         expect(controller.nameProblem, problem);
@@ -144,6 +177,7 @@ void main() {
         email: 'taken@test.com',
         password: 'secret-1',
         displayName: 'Alex',
+        ageConfirmed: true,
       );
 
       expect(outcome, SaveProgressOutcome.failed);
@@ -159,6 +193,7 @@ void main() {
         email: 'me@test.com',
         password: 'secret-1',
         displayName: 'Alex',
+        ageConfirmed: true,
       );
 
       expect(outcome, SaveProgressOutcome.savedWithoutName);
@@ -172,6 +207,7 @@ void main() {
         email: 'me@test.com',
         password: 'secret-1',
         displayName: 'Alex',
+        ageConfirmed: true,
       );
 
       expect(outcome, SaveProgressOutcome.confirmationPending);
@@ -184,6 +220,7 @@ void main() {
         email: 'me@test.com',
         password: 'secret-1',
         displayName: 'Alex',
+        ageConfirmed: true,
       );
       accounts.linkError = null;
 
@@ -191,6 +228,7 @@ void main() {
         email: 'me@test.com',
         password: 'secret-1',
         displayName: 'Alex',
+        ageConfirmed: true,
       );
 
       expect(controller.failure, isNull);

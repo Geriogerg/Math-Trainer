@@ -12,7 +12,14 @@ class AccountStrings {
   final playerName = 'Player name';
   final save = 'Save';
   final haveAccount = 'I already have an account';
-  final privacy = 'Privacy';
+  final privacyPolicy = 'Privacy policy';
+  final legalNotice = 'Legal notice';
+
+  // The minimum age (Phase 6c commit 2, plan v4.1; review B1).
+  final ageBox = 'I am 15 or older';
+  final ageMissing =
+      'You must be 15 or older to save your progress: tick the box if you '
+      'are.';
 
   // Sign in.
   final signIn = 'Sign in';
