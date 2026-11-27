@@ -49,7 +49,9 @@ line; weak spots at most ⌊n/5⌋ per operation; strings in one place, English 
 right after. m12 (large files) and m13 (app contracts in the core) are fixed when the files are
 next touched — the phase report says what moved.
 
-Done: 0–8 (27 Nov; `doc/progress.md`, "Phase 6b"). Next: the exit test and the phase report.
+Done: 0–8 and the m12 close-out (27 Nov; `doc/progress.md`, "Phase 6b"); exit test run, phase
+report given. Next: the owner's verdicts on 6b's provisional choices and the phone checklist,
+then Phase 6c.
 
 **Phase 7's rules** (plan v3.7–v3.8; detail in `doc/decisions.md`, "Phase 7"):
 - **No live matches**: every duel is asynchronous — a player races another's recorded run,
