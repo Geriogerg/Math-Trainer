@@ -86,14 +86,15 @@ class GameStrings {
     return '$sign${a ~/ 100}.${(a % 100).toString().padLeft(2, '0')}';
   }
 
-  /// Why an operation's level moved, in one line: the game's quality
-  /// against the band (`doc/levels.md` section 3), the questions left of a
-  /// quit.
+  /// Why an operation's level moved, in one line: what the game counted
+  /// and where that put it against the band (`doc/levels.md` section 3),
+  /// the questions left of a quit. Counts, never a percentage (plan v4.1,
+  /// "Phase 6b outcome"): "8 right, 6 fast, of 10: up".
   String qualityReason(OperationQuality q, {required int change}) {
-    final band = switch (q.zone) {
-      QualityZone.up => 'above ${q.bandHighPercent} %, up',
-      QualityZone.kept => '${q.bandLowPercent}–${q.bandHighPercent} %, kept',
-      QualityZone.down => 'below ${q.bandLowPercent} %, down',
+    final zone = switch (q.zone) {
+      QualityZone.up => 'up',
+      QualityZone.kept => 'kept',
+      QualityZone.down => 'down',
     };
     final bound = change == 0 && q.zone == QualityZone.down
         ? ' (already at 0)'
@@ -103,7 +104,8 @@ class GameStrings {
     final left = q.unanswered == 0
         ? ''
         : ' · ${q.unanswered} left, counted as missed';
-    return 'Quality ${q.qualityPercent} %: $band$bound$left';
+    return '${q.right} right, ${q.fast} fast, of ${q.questions}: '
+        '$zone$bound$left';
   }
 
   // Get the count and Chain operations.

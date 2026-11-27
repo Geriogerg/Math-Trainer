@@ -332,7 +332,7 @@ class SqfliteSessionRepository implements SessionRepository {
       exerciseType: row['exercise_type'] as String,
       operationType: row['operation_type'] as String,
       operands: operands,
-      submittedValue: (row['submitted_value'] as num).toInt(),
+      submittedValue: row['submitted_value'] as int,
       isCorrect: (row['is_correct'] as int) == 1,
       elapsedMs: row['elapsed_ms'] as int,
       createdAt: DateTime.parse(row['created_at'] as String),

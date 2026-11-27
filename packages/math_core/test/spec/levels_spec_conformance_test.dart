@@ -153,8 +153,7 @@ void main() {
           for (final (text, at) in _familyExamples(examples)) {
             final example = _parse(type, text);
             expect(example.type, type, reason: text);
-            final where = _exampleConflicts.containsKey(text) ? _At.any : at;
-            final tiers = switch (where) {
+            final tiers = switch (at) {
               _At.first => [family.from],
               _At.last => [Tier.t9],
               _At.any => Tier.values.skip(family.from.index).toList(),
@@ -168,7 +167,7 @@ void main() {
             expect(
               why.length,
               lessThan(tiers.length),
-              reason: '$name: $text (${where.name}) — ${why.join('; ')}',
+              reason: '$name: $text (${at.name}) — ${why.join('; ')}',
             );
           }
         });
@@ -346,12 +345,6 @@ enum _At { first, last, any }
 /// each reported to the owner (`doc/decisions.md`, "Phase 6b", commit 1).
 /// Once the spec is fixed the key no longer matches, and the example is
 /// checked as written again.
-const _exampleConflicts = {
-  // v1.6's size table extends the family to b ≤ 50 at T7 and b ≤ 100 at T9;
-  // its family-table example still ends at b = 25 (the v1.4 size).
-  '∫₀²⁵ 2x dx': 'size table: T9 b ≤ 100',
-};
-
 List<(String, _At)> _familyExamples(String cell) => [
   for (final text in cell.split(', '))
     if (text.contains(' → '))

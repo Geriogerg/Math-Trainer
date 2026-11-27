@@ -168,10 +168,9 @@ void main() {
       expect(q[ExerciseType.addition], (
         questions: 4,
         unanswered: 2,
-        qualityPercent: 50,
+        right: 2,
+        fast: 2,
         zone: QualityZone.down,
-        bandLowPercent: 62,
-        bandHighPercent: 72,
       ));
       expect(q[ExerciseType.multiplication]!.unanswered, 4);
       // Finished, all fluent: up; three fluent and a slow one: 96 %, up.
@@ -184,7 +183,11 @@ void main() {
         rulesVersion: RulesVersion.v9,
         typeSequence: List.filled(4, ExerciseType.addition),
       )[ExerciseType.addition]!;
-      expect((finished.qualityPercent, finished.zone), (96, QualityZone.up));
+      // 96 % of the credit, but counts on screen: 4 right, 3 fast.
+      expect(
+        (finished.right, finished.fast, finished.zone),
+        (4, 3, QualityZone.up),
+      );
     });
 
     test('more answers of an operation than planned throw (rule 13)', () {

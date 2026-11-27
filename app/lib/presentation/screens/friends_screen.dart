@@ -110,7 +110,10 @@ class _FriendsScreenState extends State<FriendsScreen> {
     if (mode == null || !mounted) return;
     // The rules first, as from Online (Phase 6b commit 5: commit 4 left
     // this path out).
-    if (!await confirmDuel(context, mode) || !mounted) return;
+    if (!await confirmDuel(context, mode, hints: widget.environment.hints) ||
+        !mounted) {
+      return;
+    }
     await playDuel(
       context,
       widget.environment,
@@ -310,6 +313,7 @@ Future<DuelMode?> pickDuelMode(BuildContext context) =>
                 ),
                 const SizedBox(height: 6),
               ],
+              const DuelReminder(),
             ],
           ),
         ),

@@ -7,6 +7,13 @@ import 'infrastructure/web/page_reload.dart';
 import 'presentation/screens/config_error_screen.dart';
 import 'presentation/screens/specimen_screen.dart';
 
+/// Whether the accessibility tree is built for everyone (plan v4.1: kept,
+/// measured on a low-end phone profile in Phase 6c).
+const semanticsAlways = bool.fromEnvironment(
+  'SEMANTICS_ALWAYS',
+  defaultValue: true,
+);
+
 Future<void> main() async {
   // Required because asynchronous work happens (opening the database,
   // reading preferences) before `runApp()`.
@@ -14,8 +21,10 @@ Future<void> main() async {
   // The accessibility tree from the start (Phase 6b commit 6, review M17):
   // on the web Flutter builds it only once a screen reader finds and
   // presses a hidden "Enable accessibility" button, which several miss.
-  // Never disposed: on for the app's lifetime.
-  SemanticsBinding.instance.ensureSemantics();
+  // Never disposed: on for the app's lifetime. `SEMANTICS_ALWAYS=false`
+  // leaves it to that button — the build measured against this one
+  // (Phase 6c commit 0, `tool/perf/semantics_cost.mjs`).
+  if (semanticsAlways) SemanticsBinding.instance.ensureSemantics();
   // The digit-typeface specimen (Phase 5 commit 1): `?specimen` in the
   // address, debug and preview builds only — before any account or
   // database, it needs neither.

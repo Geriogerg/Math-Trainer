@@ -9,6 +9,7 @@ import 'package:test/test.dart';
 
 import 'fake_duel_gateway.dart';
 import 'session_endpoint_test.dart' show FakeGateway, honest;
+import 'package:math_core/duel/duel_client.dart' show knownDuelRules;
 
 /// Phase 6a commit 2 (plan v3.9; review B4): the floor under abuse — rate
 /// limits, bodies cut while read, tokens that cannot be tokens refused
@@ -469,7 +470,7 @@ void main() {
           'POST',
           Uri.parse('http://localhost/v1/duels'),
           headers: {'authorization': 'Bearer tok-a'},
-          body: jsonEncode({'mode': mode}),
+          body: jsonEncode({'mode': mode, ...knownDuelRules()}),
         ),
       );
       final first = await find('basics');

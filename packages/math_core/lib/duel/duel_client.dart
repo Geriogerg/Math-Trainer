@@ -1,7 +1,31 @@
+import '../leveling/rules_version.dart';
 import 'duel_config.dart';
 import 'duel_mode.dart';
 import 'duel_rating.dart';
 import 'duel_run.dart';
+
+/// What an app declares with every request for a duel (`find`, `open`;
+/// plan v4.1, "deploy-window duels"): the game and duel rules versions it
+/// can play. The server hands a duel only to an app that knows its own
+/// current versions ([knowsCurrentDuelRules]) — an app opened before a
+/// deploy that added a version is told to reload (`appOutdated`) instead
+/// of getting a duel it cannot read, which it would lose 24 hours later.
+Map<String, Object?> knownDuelRules() => {
+  'rules': [for (final v in RulesVersion.replayed) v.number],
+  'duelRules': [for (final v in DuelRulesVersion.replayed) v.number],
+};
+
+/// Whether a duel request's [body] declares the current game and duel
+/// rules versions ([knownDuelRules]). An app that declares nothing (every
+/// build before plan v4.1) does not.
+bool knowsCurrentDuelRules(Map<String, Object?> body) {
+  final rules = body['rules'];
+  final duelRules = body['duelRules'];
+  return rules is List &&
+      rules.contains(RulesVersion.current.number) &&
+      duelRules is List &&
+      duelRules.contains(DuelRulesVersion.current.number);
+}
 
 /// How a duel came about (stored names: the server sends them).
 enum DuelKind {

@@ -424,6 +424,111 @@ void main() {
     await databaseFactory.deleteDatabase(path);
   });
 
+  // Phase 6c commit 0 (plan v4.1): every answer is an int, and now so is
+  // its column. The table is rebuilt; nothing else may change.
+  test('v14: submitted_value becomes INTEGER — same rows, same index, the '
+      'repository reads them', () async {
+    const path = 'migration_v14_test.db';
+    await databaseFactory.deleteDatabase(path);
+    final v13 = await databaseFactory.openDatabase(
+      path,
+      options: OpenDatabaseOptions(
+        version: 13,
+        onCreate: (db, version) async {
+          await db.execute('CREATE TABLE sessions (id TEXT PRIMARY KEY)');
+          await db.execute('''
+            CREATE TABLE answers (
+              id TEXT PRIMARY KEY,
+              session_id TEXT NOT NULL REFERENCES sessions(id),
+              exercise_type TEXT NOT NULL,
+              operation_type TEXT NOT NULL,
+              operands_json TEXT NOT NULL,
+              submitted_value REAL NOT NULL,
+              is_correct INTEGER NOT NULL,
+              elapsed_ms INTEGER NOT NULL,
+              created_at TEXT NOT NULL,
+              synced_at TEXT,
+              input_device TEXT
+            )
+          ''');
+          await db.execute(
+            'CREATE INDEX idx_answers_session_id ON answers(session_id)',
+          );
+        },
+      ),
+    );
+    await v13.insert('sessions', {'id': 's1'});
+    final rows = [
+      for (final (id, value, device) in [
+        ('a1', 144, 'keypad'),
+        ('a2', -1, null), // a timeout
+        ('a3', 2147483648, 'keyboard'), // beyond 32 bits
+      ])
+        {
+          'id': id,
+          'session_id': 's1',
+          'exercise_type': 'power',
+          'operation_type': 'addition',
+          'operands_json': '{"base":12,"exponent":2}',
+          'submitted_value': value.toDouble(),
+          'is_correct': 1,
+          'elapsed_ms': 2400,
+          'created_at': DateTime.utc(2026, 11, 26).toIso8601String(),
+          'synced_at': id == 'a1'
+              ? DateTime.utc(2026, 11, 27).toIso8601String()
+              : null,
+          'input_device': device,
+        },
+    ];
+    for (final row in rows) {
+      await v13.insert('answers', row);
+    }
+    expect(
+      (await v13.rawQuery(
+        'SELECT DISTINCT typeof(submitted_value) AS t '
+        'FROM answers',
+      )).single['t'],
+      'real',
+    );
+    await v13.close();
+
+    final db = await openMathTrainerDatabase(path);
+    expect(await db.getVersion(), schemaVersion);
+    final after = await db.query('answers', orderBy: 'id');
+    expect(after, hasLength(3));
+    for (final (i, row) in after.indexed) {
+      expect(row, {
+        ...rows[i],
+        'submitted_value': rows[i]['submitted_value'],
+      }, reason: 'every column kept');
+      expect(row['submitted_value'], isA<int>());
+    }
+    expect(
+      [for (final r in after) r['submitted_value']],
+      [144, -1, 2147483648],
+    );
+    final types = await db.rawQuery(
+      'SELECT DISTINCT typeof(submitted_value) AS t FROM answers',
+    );
+    expect(types.single['t'], 'integer');
+    final column = (await db.rawQuery(
+      'PRAGMA table_info(answers)',
+    )).singleWhere((c) => c['name'] == 'submitted_value');
+    expect(column['type'], 'INTEGER');
+    final indexes = await db.rawQuery('PRAGMA index_list(answers)');
+    expect(indexes.map((i) => i['name']), contains('idx_answers_session_id'));
+    // A new database is created that way too.
+    await db.close();
+    await databaseFactory.deleteDatabase(path);
+    final fresh = await openMathTrainerDatabase(path);
+    final freshColumn = (await fresh.rawQuery(
+      'PRAGMA table_info(answers)',
+    )).singleWhere((c) => c['name'] == 'submitted_value');
+    expect(freshColumn['type'], 'INTEGER');
+    await fresh.close();
+    await databaseFactory.deleteDatabase(path);
+  });
+
   test('v9 recomputes each stored point as the main level after it', () async {
     const path = 'migration_v9_test.db';
     await databaseFactory.deleteDatabase(path);

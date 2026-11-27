@@ -5,6 +5,8 @@
 > from the owner. The day-to-day working rules live in `CLAUDE.md`, which must always stay
 > consistent with this plan (section 11).
 >
+> Version 4.1 — 27 November 2026: Phase 6b outcome; Phase 6c split into build (now) and switch-on;
+> Phase 6d French added.
 > Version 4.0 — 27 November 2026: Phase 6a outcome; 6b and 6c adjusted; sections 4 and 8 aligned.
 > Version 3.9 — 26 November 2026: project review (`doc/review-2026-11-26.md`) and the owner's answers;
 > Phase 6 split into 6a Integrity and capacity, 6b Player experience (rules v9, `doc/levels.md` v1.6)
@@ -112,16 +114,16 @@ Day and night themes. Tabs: Play, Online, Profile, Ranks.
 - **Platform:** CI (VM and JavaScript, weekly Android compile, pinned test counts), production on
   `math-trainer-kjc.pages.dev` behind the beta gate, staging running with its own Supabase project,
   Dart server on Render (free plan, sleeps), SQL migrations from CI, owner dashboard.
-- **Tests (after Phase 6a):** core 1,128 (VM) / 902 (JavaScript), app 452, server 103,
-  integration 7, SQL 27 files and 564 assertions. No secret in the repository; `.wrangler/` purged
+- **Tests (after Phase 6b):** core 1,310 (VM) / 1,035 (JavaScript), app 512, server 104,
+  integration 7, SQL 28 files. Rules v2–v9 replayable; v9 current. No secret in the repository; `.wrangler/` purged
   from the history (26 November). Web build: `main.dart.js` 0.77 MB brotli; first visit about
   2.9 MB, large files cached for a year.
 - The repository is **private** since 20 November. Web-only: mobile development is paused.
 
 **Review verdict (26 November): not ready to open to strangers.** Phase 6a closed two blockers
-(server abuse, escapable duel losses) and the integrity and capacity majors. Left: the player
-experience (6b) and the launch surface — legal pages, confirmed accounts, Turnstile, password
-recovery (6c).
+(server abuse, escapable duel losses) and the integrity and capacity majors; Phase 6b (rules v9)
+the player experience. Left: the launch surface — legal pages, confirmed accounts, Turnstile,
+password recovery (6c).
 
 ## 5. Strategy: web-first, mobile-ready
 
@@ -296,7 +298,7 @@ strategies. Each is reconsidered after Phase 7 against the principles of section
 ## 7. Roadmap
 
 ```
-P0 ─ P1 ─ P2 ─ P3a ─ 3a.1 ─ P5 ─ Redesign ─ Levels ─ Patterns ─ P4 Learning ─ P7 Online ─ Review ─ P6a Integrity ─ P6b Experience ─ P6c Launch ─ P7b Live
+P0 ─ P1 ─ P2 ─ P3a ─ 3a.1 ─ P5 ─ Redesign ─ Levels ─ Patterns ─ P4 Learning ─ P7 Online ─ Review ─ P6a Integrity ─ P6b Experience ─ P6c Launch ─ P6d French ─ P7b Live
 P3b: a data check, run when the dashboard reaches its threshold (not a blocker).
 P8 Return to mobile: whenever mobile development is possible again (independent of P6 and P7).
 ```
@@ -1275,29 +1277,85 @@ to purge them before it is ever made public.
 levels; the Method examples of the review read correctly; a first-time player on a phone
 understands Home, a game result and a duel without help; a screen reader can play a game.
 
+### Phase 6b outcome (27 November)
+
+All commits live (site `13d88ef`, server `8594bc8`, rules 2–9). No repeated question in a
+10-question game at any tier (was up to 100 % for powers, roots, integrals); every tier has at least
+12 distinct questions; quitting after a mistake now costs levels (an 80 % player who quits after
+each mistake loses 1.4 levels a game); the review's ten Method examples read correctly and 137
+Methods are pinned; one line under each control, explained results, rules sheets, network states,
+screen-reader support, about 500 strings in `presentation/strings/`.
+
+**Found:** a 6a regression refused every game with more than 5 minutes of answers uploaded at once
+(`futureTimestamp`, from 26 November until commit 0), and a 6b bug hid the first-run card and let a
+closed tab escape the quitting rule until commit 5. Both fixed and tested.
+
+**Owner decisions on the provisional choices (27 November):**
+- **Kept:** v9 generation choices (no rejection sampling, uniform draws, families under 4 questions
+  skipped, T7 integrals up to 7); quitting counts from one answer; the Method readings; one quiet
+  line per control; 15 s limit on Supabase calls; Cancel only while the server wakes; edges at 3:1;
+  body text 15 px; strings as Dart classes (one class per language, so a missing translation fails
+  to compile); the terms "game", "Ranks", seconds, "Practice"; √ of powers of 2 mirroring powers
+  of 2 as `doc/levels.md` v1.6 says.
+- **Changed — the quality reason in counts, not %.** "8 right, 6 fast, of 10", never a percentage:
+  section 2 forbids accuracy shown as progress, and counts explain the change just as well.
+- **Changed — the duel rules sheet** shows before the first rated duel of each mode, then a one-line
+  reminder on the find screen ("Rated · leaving counts as a loss"), with the full rules one tap away.
+  Every time is friction for a returning player.
+- **Semantics on for everyone** — kept, but measured in 6c on a low-end phone profile (first load
+  and frame time); if the cost is real, switch them on only when a screen reader asks.
+- **Deploy-window duels:** a duel whose offer was never opened by an app that knows its rules
+  version is void, not a loss.
+
+**Moved:** recovery of the games refused by the 6a regression, `submitted_value` to an integer
+type, and the semantics measurement → Phase 6c, commit 0. Duel balancing by effort (m11) and tier
+monotonicity (m21) → the Phase 3b data check. m13 stays debt.
+
 ### Phase 6c — Public launch
 
-**Entry:** Phases 6a and 6b done; owner prerequisites: name confirmed and domain bought, legal pages
-filled and reviewed, an email service connected to the domain, a Turnstile key, the Render
+Two parts: **build** now, behind switches, with placeholders where the owner's inputs are missing;
+**switch-on** once the owner's prerequisites are ready.
+
+**6c build (one pass, now).**
+
+0. *(A)* **Close-out of 6b.** Games refused as `futureTimestamp` since 26 November re-sent from
+   the devices that still hold them (the app re-queues them; the server accepts them under the
+   fixed check) and the count recovered reported; the quality reason in counts; the duel rules
+   sheet once per mode plus the reminder line; an unopened deploy-window duel is void;
+   `submitted_value` an integer type; first load and frame time with semantics on, measured on a
+   low-end phone profile.
+1. *(A)* Name as a single setting (title, manifest, icons, preview image); "Math Trainer" until the
+   owner confirms the name.
+2. *(A)* Privacy policy and legal notice as in-app screens, French and English, linked from the
+   gate, Profile and the save form; duels, friends and the stored per-answer data described;
+   placeholders visible until filled; the "I am 15 or older" box at account creation (B1).
+3. *(A)* Turnstile on anonymous sign-in and sign-up, behind a switch with the test key; email
+   confirmation ready (templates, redirect, "check your inbox" screen), off until the sender
+   exists; an unconfirmed account treated as a guest for boards, duels, friends and name reports
+   (B2).
+4. *(A)* "Forgot password?" with recovery email and set-password screen, working now with
+   Supabase's built-in sender (B3).
+5. *(A)* Error reporting to our own server.
+6. *(A)* Production smoke test rethought for an ungated site; the staging smoke test plays a duel
+   with a confirmed account; capacity report and launch checklist in `doc/`.
+
+**6c switch-on (after the owner's prerequisites).** Entry: name confirmed and domain bought, legal
+pages filled and reviewed, an email service connected to the domain, a Turnstile key, the Render
 always-on plan.
 
-1. *(A)* Name as a single setting (title, manifest, icons, preview image).
-2. *(A)* Privacy policy and legal notice as in-app screens, French and English, linked from the
-   gate, Profile and the save form; duels, friends and the stored per-answer data described; the
-   "I am 15 or older" box at account creation (B1).
-3. *(A)* Turnstile on anonymous sign-in and sign-up; email confirmation on, sent from the domain; an
-   unconfirmed account treated as a guest (B2).
-4. *(A)* "Forgot password?" with recovery email and set-password screen (B3).
-5. *(A)* Error reporting to our own server.
-6. *(A)* Production on the domain, the old address redirecting; staging unchanged; the production
-   smoke test rethought for an ungated site, and the staging smoke test plays a duel with a
-   confirmed account; reports of names from confirmed accounts only; rules v2–v6 retired 30 days
-   after v9.
-7. *(A)* Capacity report and launch checklist in `doc/`.
-8. *(C)* Gate removed; checklist run on a phone from a fresh browser.
+7. *(A)* Production on the domain, the old address redirecting; the name set; email confirmation
+   from the domain; Turnstile switched on.
+8. *(A)* Rules v2–v6 retired (from 27 December, 30 days after v9).
+9. *(C)* Gate removed; launch checklist run on a phone from a fresh browser.
 
 **Exit:** a stranger opens the domain on a phone, plays at once, creates a confirmed account,
 recovers a forgotten password, plays a rated duel, and finds the legal pages in both languages.
+
+### Phase 6d — French (right after launch)
+
+French interface from the strings classes, a language setting defaulting to the browser's language;
+the legal pages already exist in both. Tips and Method names translated; Method lines are
+arithmetic and need none.
 
 ### Phase 7b — Live duels and tournaments (later)
 

@@ -28,6 +28,9 @@ void main() {
       'hint_seen_firstRun': true,
       'hint_seen_countRules': true,
       'hint_seen_chainRules': true,
+      'hint_seen_duelRulesBasics': true,
+      'hint_seen_duelRulesAdvanced': true,
+      'hint_seen_duelRulesCount': true,
     });
     for (final hint in Hint.values) {
       expect(await store.seen(hint), isTrue, reason: hint.name);

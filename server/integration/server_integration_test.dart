@@ -19,6 +19,7 @@ import 'package:math_core/replay/session_replay.dart';
 import 'package:math_core/sync/session_upload.dart';
 import 'package:postgres/postgres.dart';
 import 'package:test/test.dart';
+import '../test/known_rules.dart';
 
 /// The real server against the real SQL (Phase 6a commit 7, review M12):
 /// `bin/server.dart` with its HTTP gateway, every migration applied to a
@@ -66,7 +67,7 @@ void main() {
         'authorization': ?(who == null ? null : 'Bearer ${token(who)}'),
         'content-type': 'application/json',
       },
-      body: jsonEncode(body),
+      body: jsonEncode(withKnownRules(path, body)),
     );
     return (
       response.statusCode,

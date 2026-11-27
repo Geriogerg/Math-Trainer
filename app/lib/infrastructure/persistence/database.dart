@@ -13,7 +13,7 @@ import 'session_rows.dart';
 
 /// Current schema version. Every change increments this value and adds a
 /// branch in [_onUpgrade] — never destructive, never retroactive.
-const schemaVersion = 13;
+const schemaVersion = 14;
 
 /// The app's database, where each platform expects it. On web: same schema
 /// and same SQL as elsewhere, SQLite compiled to WebAssembly
@@ -75,22 +75,7 @@ Future<Database> openMathTrainerDatabase(String path) {
           weak_spots TEXT
         )
       ''');
-      await db.execute('''
-        CREATE TABLE answers (
-          id TEXT PRIMARY KEY,
-          session_id TEXT NOT NULL REFERENCES sessions(id),
-          exercise_type TEXT NOT NULL,
-          operation_type TEXT NOT NULL,
-          operands_json TEXT NOT NULL,
-          submitted_value REAL NOT NULL,
-          is_correct INTEGER NOT NULL,
-          elapsed_ms INTEGER NOT NULL,
-          created_at TEXT NOT NULL,
-          synced_at TEXT,
-          -- `InputDevice.name` (schema v8); NULL: no key pressed.
-          input_device TEXT
-        )
-      ''');
+      await createAnswersTable(db, 'answers');
       await db.execute(
         'CREATE INDEX idx_answers_session_id ON answers(session_id)',
       );
@@ -199,6 +184,55 @@ Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
       await db.execute('ALTER TABLE sessions ADD COLUMN weak_spots TEXT');
     }
   }
+  if (oldVersion < 14) {
+    await answersValueToInteger(db);
+  }
+}
+
+/// The answers table as it stands (schema v14), under [name].
+Future<void> createAnswersTable(DatabaseExecutor db, String name) =>
+    db.execute('''
+      CREATE TABLE $name (
+        id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL REFERENCES sessions(id),
+        exercise_type TEXT NOT NULL,
+        operation_type TEXT NOT NULL,
+        operands_json TEXT NOT NULL,
+        -- An int (rule 9); REAL until schema v14.
+        submitted_value INTEGER NOT NULL,
+        is_correct INTEGER NOT NULL,
+        elapsed_ms INTEGER NOT NULL,
+        created_at TEXT NOT NULL,
+        synced_at TEXT,
+        -- `InputDevice.name` (schema v8); NULL: no key pressed.
+        input_device TEXT
+      )
+    ''');
+
+/// Schema v14 (Phase 6c commit 0; plan v4.1, moved from the 6b review):
+/// `submitted_value` was REAL — every answer is an int (rule 9), read back
+/// through `num.toInt()`. SQLite cannot change a column's type, so the
+/// table is rebuilt: same rows, the value cast to INTEGER (each was written
+/// from an int: the cast loses nothing), same index. Inside the upgrade's
+/// transaction: a failure leaves the v13 table as it was.
+Future<void> answersValueToInteger(DatabaseExecutor db) async {
+  const columns =
+      'id, session_id, exercise_type, operation_type, operands_json, '
+      'submitted_value, is_correct, elapsed_ms, created_at, synced_at, '
+      'input_device';
+  await db.execute('DROP TABLE IF EXISTS answers_v14');
+  await createAnswersTable(db, 'answers_v14');
+  await db.execute(
+    'INSERT INTO answers_v14 ($columns) '
+    'SELECT id, session_id, exercise_type, operation_type, operands_json, '
+    'CAST(submitted_value AS INTEGER), is_correct, elapsed_ms, created_at, '
+    'synced_at, input_device FROM answers',
+  );
+  await db.execute('DROP TABLE answers');
+  await db.execute('ALTER TABLE answers_v14 RENAME TO answers');
+  await db.execute(
+    'CREATE INDEX IF NOT EXISTS idx_answers_session_id ON answers(session_id)',
+  );
 }
 
 /// Schema v9: each session's `overall_level_after` becomes the main level

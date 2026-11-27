@@ -36,13 +36,17 @@ class HttpDuelClient implements DuelClient {
       'mode': mode.name,
       'rematchOf': ?rematchOf,
       'challenge': ?challenge,
+      ...knownDuelRules(),
     });
     return _parse(() => DuelOffer.fromJson(_accepted(answer, offer: true)));
   }
 
   @override
   Future<DuelOffer> open(String duelId) async {
-    final answer = await _post('/v1/duels/open', {'duelId': duelId});
+    final answer = await _post('/v1/duels/open', {
+      'duelId': duelId,
+      ...knownDuelRules(),
+    });
     return _parse(() => DuelOffer.fromJson(_accepted(answer, offer: true)));
   }
 

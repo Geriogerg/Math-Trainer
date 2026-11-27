@@ -119,7 +119,7 @@ void main() {
     // Phase 6b commit 4: "12 → 12" with the change); the level itself never
     // in hundredths (owner, end of Phase 1), its progress a bar.
     expect(find.text('Addition: 50 → 53 (+3.00)'), findsOneWidget);
-    expect(find.text('Quality 100 %: above 72 %, up'), findsOneWidget);
+    expect(find.text('4 right, 4 fast, of 4: up'), findsOneWidget);
     expect(
       find.bySemanticsLabel('Progress toward the next level'),
       findsOneWidget,
@@ -137,10 +137,9 @@ void main() {
       findsOneWidget,
     );
     expect(find.bySemanticsLabel('Best streak: 4'), findsOneWidget);
-    // Never a percentage presented as progress (`doc/design.md`): the only
-    // one is the quality line, the level's reason against its band.
-    expect(find.textContaining('%'), findsOneWidget);
-    expect(find.textContaining('Quality '), findsOneWidget);
+    // Never a percentage (`doc/design.md`; plan v4.1: the level's reason
+    // is in counts too).
+    expect(find.textContaining('%'), findsNothing);
   });
 
   testWidgets('Difficulty bonus hidden when it is 0 (level 1, no multiplier)', (
@@ -270,7 +269,7 @@ void main() {
     // "50 → 47", the change, and why (Phase 6b commit 4, review M16).
     expect(find.text('Addition: 50 → 47 (−3.00)'), findsOneWidget);
     expect(
-      find.text('Quality 25 %: below 62 %, down · 3 left, counted as missed'),
+      find.text('1 right, 1 fast, of 4: down · 3 left, counted as missed'),
       findsOneWidget,
     );
   });
@@ -372,39 +371,47 @@ void main() {
     });
 
     OperationQuality quality(
-      int percent,
+      int right,
+      int fast,
       QualityZone zone, {
+      int questions = 10,
       int unanswered = 0,
     }) => (
-      questions: 4,
+      questions: questions,
       unanswered: unanswered,
-      qualityPercent: percent,
+      right: right,
+      fast: fast,
       zone: zone,
-      bandLowPercent: 62,
-      bandHighPercent: 72,
     );
 
-    test('qualityReason: the band, a bound reached, the questions left', () {
+    test('qualityReason: counts, the zone, a bound reached, the questions '
+        'left — never a percentage', () {
       expect(
-        strings.game.qualityReason(quality(80, QualityZone.up), change: 120),
-        'Quality 80 %: above 72 %, up',
+        strings.game.qualityReason(quality(8, 6, QualityZone.up), change: 120),
+        '8 right, 6 fast, of 10: up',
       );
       expect(
-        strings.game.qualityReason(quality(66, QualityZone.kept), change: 0),
-        'Quality 66 %: 62–72 %, kept',
+        strings.game.qualityReason(quality(7, 5, QualityZone.kept), change: 0),
+        '7 right, 5 fast, of 10: kept',
       );
       expect(
         strings.game.qualityReason(
-          quality(25, QualityZone.down, unanswered: 3),
+          quality(1, 1, QualityZone.down, questions: 4, unanswered: 3),
           change: 0,
         ),
-        'Quality 25 %: below 62 %, down (already at 0) · 3 left, counted as '
+        '1 right, 1 fast, of 4: down (already at 0) · 3 left, counted as '
         'missed',
       );
       expect(
-        strings.game.qualityReason(quality(100, QualityZone.up), change: 0),
-        'Quality 100 %: above 72 %, up (already at 100)',
+        strings.game.qualityReason(quality(10, 10, QualityZone.up), change: 0),
+        '10 right, 10 fast, of 10: up (already at 100)',
       );
+      for (final zone in QualityZone.values) {
+        expect(
+          strings.game.qualityReason(quality(5, 2, zone), change: 0),
+          isNot(contains('%')),
+        );
+      }
     });
   });
 }

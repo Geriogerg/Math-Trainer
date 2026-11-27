@@ -11,6 +11,7 @@ import 'package:test/test.dart';
 
 import 'fake_duel_gateway.dart';
 import 'session_endpoint_test.dart' show FakeGateway, honest;
+import 'known_rules.dart';
 
 /// Phase 6a commit 3 (plan v3.9; review M5): the cadence of a player's
 /// sessions reaches the validation, and the owner's moderation is obeyed.
@@ -137,7 +138,7 @@ void main() {
           'POST',
           Uri.parse('http://localhost$path'),
           headers: {'authorization': 'Bearer $token'},
-          body: jsonEncode(body),
+          body: jsonEncode(withKnownRules(path, body)),
         ),
       );
       final json = (jsonDecode(await response.readAsString()) as Map)

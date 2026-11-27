@@ -9,6 +9,7 @@ import 'package:shelf/shelf.dart';
 import 'package:test/test.dart';
 
 import 'fake_duel_gateway.dart';
+import 'known_rules.dart';
 
 /// Phase 7's exit test (plan v3.7), as far as the server decides it: two
 /// linked players race each other's runs in all three modes and their
@@ -31,7 +32,7 @@ void main() {
         'POST',
         Uri.parse('http://localhost$path'),
         headers: {'authorization': 'Bearer $token'},
-        body: jsonEncode(body),
+        body: jsonEncode(withKnownRules(path, body)),
       ),
     );
     final json = (jsonDecode(await response.readAsString()) as Map)

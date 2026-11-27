@@ -90,6 +90,7 @@ import 'core/state/hints.dart';
 import 'core/state/levels_refresh.dart';
 import 'core/state/unfinished_game.dart';
 import 'infrastructure/persistence/shared_preferences_hints_store.dart';
+import 'infrastructure/web/page_reload.dart' as web;
 
 part 'session_builders.dart';
 
@@ -132,6 +133,7 @@ class AppEnvironment {
     this.unfinishedGameStore,
     this.hints,
     this.levelsRefresh,
+    this.reloadPage,
   });
 
   final SessionRepository repository;
@@ -271,6 +273,11 @@ class AppEnvironment {
   /// copied.
   final LinkSharer? linkSharer;
 
+  /// Reloads the page (the web build); `null` elsewhere and in tests. A
+  /// duel asked for by a build older than the server's rules offers it
+  /// (plan v4.1).
+  final void Function()? reloadPage;
+
   AppEnvironment forPlayer(String playerId) => AppEnvironment(
     repository: repository,
     playerId: playerId,
@@ -300,6 +307,7 @@ class AppEnvironment {
     linkSharer: linkSharer,
     unfinishedGameStore: unfinishedGameStore,
     hints: hints,
+    reloadPage: reloadPage,
     levelsRefresh: LevelsRefresh(),
     duelQueue: switch (duelClient) {
       final client? => DuelRunQueue(
@@ -545,5 +553,6 @@ Future<AppEnvironment> buildAppEnvironment() async {
     feedbackRepository: SupabaseFeedbackRepository(Supabase.instance.client),
     unfinishedGameStore: unfinishedGames,
     hints: const SharedPreferencesHintsStore(),
+    reloadPage: web.reloadPage,
   );
 }

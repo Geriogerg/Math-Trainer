@@ -1621,7 +1621,7 @@ owner decision, nothing to build).
 | m11 | Trivial questions at high tiers; unbalanced duels | 6b (1), rules v9 | **part**: no trivial factor above T0, round division's quotient ≥ 10 and sized; duels not balanced by effort (not in spec v1.6) |
 | m12 | Files that carry too much | when next touched | **fixed** for every file 6b touched: `duel_endpoint.dart` (commit 0), `method_for.dart` (commit 3), and at the close `play_tab.dart` (1,067 lines → 505 + Home 228 + setups 343), `profile_screen.dart` (1,268 → 694 + sections 580), `composition_root.dart` (908 → 549 + builders 366) |
 | m13 | App contracts in the core; logic twice in Dart and SQL | when next touched | open |
-| m14 | Seven replayable rules versions | 6c (6): v2–v6 retired 30 days after v9 | open |
+| m14 | Seven replayable rules versions | 6c switch-on (8): v2–v6 retired from 27 Dec, 30 days after v9 (plan v4.1) | open |
 | m15 | Dead dependencies; `PREVIEW_BUILD` always on | 6a (7) | **fixed** (`structural_features.dart` kept: the Dart half of a parity pair) |
 | m16 | Test gaps (SQL pin counts files, no catalogue test, two server cases) | 6a (7) | **fixed** |
 | m17 | Smaller friction (sign-out, pending uploads, rules of two modes, terms) | 6b (4, 7) | **fixed** (sign-out confirmed, pending uploads counted, both modes' rules (4); terms unified, owner text gone, a password can be shown (7); a refusal is still a caption line, 13 px since 6) |
@@ -2068,3 +2068,38 @@ changes what a v9 game draws).
   (seen: the site served 3846808 an hour after commit 7). The smoke now waits for either form
   (`waitForPattern`, a pattern without backslashes — they would not survive the string into
   the page). LESSON: a change of wording must be checked against `tool/smoke/` too.
+
+## Phase 6c build — public launch behind switches (plan v4.1)
+
+The build part of Phase 6c, in one pass (commits 0–6); the switch-on (7–9) waits for the
+owner's prerequisites. Whatever needs the owner's inputs is behind a switch or a visible
+placeholder; the phase report lists each with the exact value or action needed.
+
+- **Commit 0** *(A)* — **Close-out of 6b.** Plan v4.1 and `doc/levels.md` v1.6.1 committed
+  (the owner's); CLAUDE.md's Current phase is 6c build. **The refused games**: production's
+  `upload_rejections` (read-only, 27 Nov 09:30 UTC) holds no `futureTimestamp` refusal — 5
+  refusals in all, the last on 22 Nov — and no game was uploaded between 26 Nov 12:39 UTC
+  and the reading, a window that covers the regression's whole life (live ~15:40 UTC on
+  26 Nov, replaced ~01:00 UTC on 27 Nov). **Recovered: 0 of 0**; no resend path built
+  (`doc/decisions.md`, "Phase 6c build"). **The quality reason in counts**: "8 right, 6 fast,
+  of 10: up" (`OperationQuality` carries `right` and `fast`, no percentage; the result
+  screen's test forbids "%" again). **Duel rules once per mode**: `Hint.duelRules…` per
+  mode, remembered on Start; Online's Duels heading and a friend challenge's mode picker
+  carry "Rated · leaving counts as a loss" and a Rules link to every mode's rules
+  (`DuelReminder`). **Deploy-window duels**: every `find` and `open` declares the rules the
+  app plays (`knownDuelRules`); the server refuses one that does not know its current game
+  and duel rules (409 `appOutdated`, before anything is made or marked) and the app offers
+  Reload (`AppEnvironment.reloadPage`, carried by `forPlayer`). Production holds no duel to
+  void (30 duels, all v8, all finished). **`submitted_value` INTEGER**: local schema v14
+  rebuilds `answers` (same rows, the value cast, the index). **The spec test** checks
+  ∫₀¹⁰⁰ 2x dx at T9 now that v1.6.1 fixed the example (`_exampleConflicts` gone).
+  **Semantics measured** (`tool/perf/semantics_cost.mjs`, `tool/perf/fake_supabase.mjs`;
+  `SEMANTICS_ALWAYS`): the first frame and every game figure
+  equal within the noise on a 6× slower CPU at phone size (first frame median 3.00 s on,
+  3.53 s off; frame intervals p50 / p95 16.7 / 33.3 ms both; main thread 483 ms a second
+  both; 57 elements against 36) — kept on (`doc/decisions.md`).
+  Tests: core (the declaration 2; qualities updated), server (`appOutdated` on find and open,
+  nothing made or marked: 2; every test's duel requests declare), app (the sheet once per
+  mode, the reminder's link, Reload on `appOutdated`, the client's declaration, schema v14,
+  the counts in words, `forPlayer` keeps the reload). Run locally: core VM 1312, JavaScript 1037, server 106, app 517 (6 result goldens re-rendered
+  and read, the Online goldens for the reminder), analyze clean; pins raised.

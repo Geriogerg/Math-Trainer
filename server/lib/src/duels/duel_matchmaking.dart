@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:math_core/duel/duel_client.dart' show knowsCurrentDuelRules;
 import 'package:math_core/duel/duel_config.dart';
 import 'package:math_core/duel/duel_mode.dart';
 import 'package:math_core/duel/duel_rating.dart';
@@ -16,6 +17,13 @@ import 'duel_ratings.dart';
 /// Most duels handed out to one player over a rolling 24 hours (plan v3.9,
 /// Phase 6a): a duel takes a minute or more, and each one is a row.
 const maxDuelsPerDay = 200;
+
+/// The refusal of a duel request from an app that does not declare the
+/// server's current rules versions (plan v4.1, "deploy-window duels": a
+/// duel never opened by an app that knows its rules version must not be a
+/// loss — so it is never handed to one). Nothing is made or marked: the app
+/// reloads and asks again.
+const appOutdated = 'appOutdated';
 
 /// Handing out duels: matchmaking, rematches, challenges, and opening a
 /// challenge (split out of `duel_endpoint.dart` at the 6a close-out, plan
@@ -43,6 +51,7 @@ class DuelMatchmaking {
     } on FormatException catch (e) {
       return refused(400, 'badRequest', detail: e.message);
     }
+    if (!knowsCurrentDuelRules(body)) return refused(409, appOutdated);
     final me = await _player(user.id, mode);
     if (me == null) return refused(409, 'notLinked');
     // The owner suspended the account: no new duel (a hidden player still
@@ -149,6 +158,8 @@ class DuelMatchmaking {
   ) async {
     final duelId = body['duelId'];
     if (duelId is! String) return refused(400, 'badRequest', detail: 'duelId');
+    // Before anything is marked: an unopened challenge stays unopened.
+    if (!knowsCurrentDuelRules(body)) return refused(409, appOutdated);
     final context = await gateway.rpc('duel_context', {
       'p_duel_id': duelId,
       'p_player_id': user.id,

@@ -8,12 +8,14 @@ import 'package:math_core/duel/online_overview.dart';
 import 'package:math_core/leveling/rules_version.dart';
 import 'package:math_core/persistence/in_memory_session_repository.dart';
 import 'package:math_trainer/composition_root.dart';
+import 'package:math_trainer/core/state/hints.dart';
 import 'package:math_trainer/presentation/screens/app_shell.dart';
 import 'package:math_trainer/presentation/theme/app_theme.dart';
 
 import '../fake_account_repository.dart';
 import '../fake_duel_client.dart';
 import '../fake_profile_repository.dart';
+import '../fake_stores.dart';
 import 'golden_test_utils.dart';
 
 class FakeOnlineRepository implements OnlineRepository {
@@ -80,7 +82,11 @@ void main() {
   late FakeOnlineRepository online;
   late FakeDuelClient client;
 
-  Future<void> pumpShell(WidgetTester tester, ThemeData theme) async {
+  Future<void> pumpShell(
+    WidgetTester tester,
+    ThemeData theme, {
+    HintsStore? hints,
+  }) async {
     await setGoldenSurfaceSize(tester);
     final environment = AppEnvironment(
       repository: InMemorySessionRepository(),
@@ -90,6 +96,7 @@ void main() {
       onlineRepository: online,
       duelClient: client,
       duelRunStore: MemoryDuelRunStore(),
+      hints: hints,
     ).forPlayer('me');
     await tester.pumpWidget(
       MaterialApp(
@@ -224,6 +231,59 @@ void main() {
     await tester.pump();
     await tester.pump();
     expect(client.finds.map((f) => f.mode), [DuelMode.basics]);
+  });
+
+  testWidgets('the rules sheet once per mode, then the reminder line '
+      '(plan v4.1)', (tester) async {
+    final hints = FakeHintsStore();
+    client.offers.add(client.offers.first);
+    await pumpShell(tester, buildLightTheme(), hints: hints);
+    expect(find.text('Rated · leaving counts as a loss'), findsOneWidget);
+
+    // Cancel: nothing remembered, the sheet comes again.
+    await tester.tap(find.text('Basics'));
+    await tester.pumpAndSettle();
+    expect(find.text('Basics duel'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(hints.seenHints, isEmpty);
+
+    await tester.tap(find.text('Basics'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Start'));
+    await tester.pump();
+    await tester.pump();
+    expect(hints.seenHints, {Hint.duelRulesBasics});
+    expect(client.finds.map((f) => f.mode), [DuelMode.basics]);
+    Navigator.of(tester.element(find.byType(AppShell))).pop();
+    await tester.pumpAndSettle();
+
+    // The next Basics duel starts on the tap; Advanced still asks once.
+    await tester.tap(find.text('Basics'));
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Basics duel'), findsNothing);
+    expect(client.finds, hasLength(2));
+    Navigator.of(tester.element(find.byType(AppShell))).pop();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Advanced'));
+    await tester.pumpAndSettle();
+    expect(find.text('Advanced duel'), findsOneWidget);
+  });
+
+  testWidgets("the reminder's link opens every mode's rules", (tester) async {
+    await pumpShell(tester, buildLightTheme(), hints: FakeHintsStore());
+    await tester.tap(find.text('Rules'));
+    await tester.pumpAndSettle();
+    expect(find.text('Duel rules'), findsOneWidget);
+    expect(
+      find.text('Basics: 8 questions, 2 each of + − × ÷.'),
+      findsOneWidget,
+    );
+    expect(find.text('Leaving counts as a loss.'), findsOneWidget);
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+    expect(client.finds, isEmpty);
   });
 
   // Phase 6b commit 6 (review M17): the Online tab against Flutter's own

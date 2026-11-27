@@ -63,16 +63,16 @@ enum QualityZone { up, kept, down }
 /// How one operation fared in a Levelling game — what the result screen
 /// says about its level change (Phase 6b commit 4, review M16): the
 /// questions counted (a quit's missing ones included from rules v9), how
-/// many were left unanswered, the quality (mean credit, in percent, rounded
-/// down), and its zone against [LevelRules]' dead band (in percent, for the
-/// words).
+/// many were left unanswered, how many were right and how many of those
+/// fast (within the fluent time), and the zone the game's quality fell in
+/// against [LevelRules]' dead band. Counts, never a percentage (plan v4.1,
+/// "Phase 6b outcome": section 2 forbids accuracy shown as progress).
 typedef OperationQuality = ({
   int questions,
   int unanswered,
-  int qualityPercent,
+  int right,
+  int fast,
   QualityZone zone,
-  int bandLowPercent,
-  int bandHighPercent,
 });
 
 /// [OperationQuality] per operation, by exactly the arithmetic of
@@ -99,25 +99,30 @@ Map<ExerciseType, OperationQuality> gameQualities({
         final level = frozenLevels[type] ?? Level.zero;
         final fluentMs = fluentTimeMs(type, level, rulesVersion);
         var credit = 0;
+        var right = 0;
+        var fast = 0;
         for (final a in answers) {
           credit += answerCreditPercent(
             answer: a,
             fluentMs: fluentMs,
             rules: rules,
           );
+          if (a.isCorrect) {
+            right++;
+            if (a.elapsedMs <= fluentMs) fast++;
+          }
         }
         final n = answers.length;
         return (
           questions: n,
           unanswered: n - (answered[type] ?? 0),
-          qualityPercent: credit ~/ n,
+          right: right,
+          fast: fast,
           zone: credit > rules.deadBandHighPercent * n
               ? QualityZone.up
               : credit < rules.deadBandLowPercent * n
               ? QualityZone.down
               : QualityZone.kept,
-          bandLowPercent: rules.deadBandLowPercent,
-          bandHighPercent: rules.deadBandHighPercent,
         );
       }(),
   };

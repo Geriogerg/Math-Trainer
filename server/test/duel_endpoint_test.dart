@@ -10,6 +10,7 @@ import 'package:shelf/shelf.dart';
 import 'package:test/test.dart';
 
 import 'fake_duel_gateway.dart';
+import 'known_rules.dart';
 
 /// The pinned Basics duel (math_core's `duel_config_test.dart`).
 final basicsConfig = DuelConfig(
@@ -51,7 +52,7 @@ Future<(int, Map<String, Object?>)> post(
       'POST',
       Uri.parse('http://localhost$path'),
       headers: {'authorization': ?(token == null ? null : 'Bearer $token')},
-      body: jsonEncode(body),
+      body: jsonEncode(withKnownRules(path, body)),
     ),
   );
   final text = await response.readAsString();
@@ -102,6 +103,78 @@ void main() {
       }),
       routes: DuelEndpoint(gateway).routes,
     );
+  });
+
+  // Plan v4.1, deploy-window duels: never a duel to an app that cannot read
+  // it — the declaration first, before anything is made or marked.
+  group('an app that does not declare the current rules (appOutdated)', () {
+    Future<(int, Map<String, Object?>)> raw(String path, Object body) async {
+      final response = await handler(
+        Request(
+          'POST',
+          Uri.parse('http://localhost$path'),
+          headers: {'authorization': 'Bearer tok-a'},
+          body: jsonEncode(body),
+        ),
+      );
+      return (
+        response.statusCode,
+        (jsonDecode(await response.readAsString()) as Map)
+            .cast<String, Object?>(),
+      );
+    }
+
+    test('find: refused, nothing made', () async {
+      for (final body in [
+        {'mode': 'basics'},
+        {
+          'mode': 'basics',
+          'rules': [2, 3, 4, 5, 6, 7, 8],
+          'duelRules': [1],
+        },
+        {
+          'mode': 'basics',
+          'rules': [for (final v in RulesVersion.replayed) v.number],
+          'duelRules': <int>[],
+        },
+      ]) {
+        final (status, answer) = await raw('/v1/duels', body);
+        expect(
+          (status, answer['status'], answer['reason']),
+          (409, 'refused', 'appOutdated'),
+          reason: '$body',
+        );
+      }
+      expect(gateway.duels, isEmpty);
+      expect(gateway.calls, isNot(contains('duel_insert')));
+      // Declared: a duel.
+      expect((await post('/v1/duels', {'mode': 'basics'})).$1, 200);
+      expect(gateway.duels, hasLength(1));
+    });
+
+    test('open: refused, the challenge stays unopened', () async {
+      final config = DuelConfig.forRating(
+        mode: DuelMode.basics,
+        seed: 9,
+        rating: 1000,
+      );
+      insertDuel(
+        'c1',
+        config: config,
+        kind: 'challenge',
+        first: 'player-b',
+        lane: QuizLane([
+          for (var i = 0; i < 8; i++) (elapsedMs: 4000, correct: true),
+        ]).toJson(),
+      );
+      gateway.duels['c1']!['state'] = 'awaitingSecond';
+      final (status, answer) = await raw('/v1/duels/open', {'duelId': 'c1'});
+      expect((status, answer['reason']), (409, 'appOutdated'));
+      expect(gateway.duels['c1']!['openedAt'], isNull);
+      expect(gateway.calls, isNot(contains('duel_mark_opened')));
+      expect((await post('/v1/duels/open', {'duelId': 'c1'})).$1, 200);
+      expect(gateway.duels['c1']!['openedAt'], isNotNull);
+    });
   });
 
   group('POST /v1/duels/run', () {

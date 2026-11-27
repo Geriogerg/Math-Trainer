@@ -8,6 +8,7 @@ import 'package:shelf/shelf.dart';
 import 'package:test/test.dart';
 
 import 'fake_duel_gateway.dart';
+import 'known_rules.dart';
 
 /// Phase 6a commit 1 (plan v3.9): the duel exploits of the review of 26 Nov
 /// (`doc/review-2026-11-26.md`, B5, M1, M2, M3), each replayed against the
@@ -28,7 +29,7 @@ void main() {
         'POST',
         Uri.parse('http://localhost$path'),
         headers: {'authorization': 'Bearer $token'},
-        body: jsonEncode(body),
+        body: jsonEncode(withKnownRules(path, body)),
       ),
     );
     final json = (jsonDecode(await response.readAsString()) as Map)

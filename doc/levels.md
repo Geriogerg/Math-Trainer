@@ -1,4 +1,4 @@
-# Levels — specification (v1.6, 26 November 2026: rules v9 — wider pools, no repeats, quitting counts, Method quality)
+# Levels — specification (v1.6.1, 27 November 2026: example and rules-version wording fixed; v1.6, 26 November 2026: rules v9 — wider pools, no repeats, quitting counts, Method quality)
  
 > v1.6 follows the project review of 26 November (`doc/review-2026-11-26.md`, findings M4, M10,
 > M11, m3, m4, m11, m20, m21). Everything it changes in generation or level updates is **rules v9**;
@@ -276,8 +276,10 @@ missed.
 - Same fluent time as the tier.
 - Generated backwards, like everything else: draw the pattern (base, offset, factor), then the
   numbers, then the answer.
-- **Changing the generation is a new rules version (v4).** Games played under v2 and v3 must still
-  regenerate their questions under their own version: keep the older generators.
+- **Changing the generation or the level update is a new rules version** (v4 … v9). Games played
+  under an older version still regenerate and replay under their own version until it is retired;
+  keep the older generators. √ of powers of 2 and 4 mirror powers of 2 two tiers later, as the size
+  table says (v9).
 ### Size limits for the fast-growing families
  
 | Family | Size by tier |
@@ -384,7 +386,7 @@ Examples in the family tables below show the **largest** size a family reaches, 
  
 | Family | Example | From |
 |---|---|---|
-| ∫₀ᵇ 2x dx = b² | ∫₀⁴ 2x dx → ∫₀²⁵ 2x dx | T1 |
+| ∫₀ᵇ 2x dx = b² | ∫₀⁴ 2x dx → ∫₀¹⁰⁰ 2x dx | T1 |
 | ∫₀ᵇ 3x² dx = b³ | ∫₀⁵ 3x² dx | T4 |
 | ∫ₐᵇ 2x dx = (b − a)(b + a) | ∫₁₉²¹ 2x dx = 80 | T5 |
 | ∫₀ᵇ 4x³ dx = b⁴ | ∫₀³ 4x³ dx | T7 |

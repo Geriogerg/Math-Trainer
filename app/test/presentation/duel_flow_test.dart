@@ -305,6 +305,37 @@ void main() {
     handle.dispose();
   });
 
+  // Plan v4.1, deploy-window duels: the server hands no duel to a build
+  // older than its rules; the player is offered a reload, nothing started.
+  testWidgets("a build older than the server's rules: Reload", (tester) async {
+    final outdated = FakeDuelClient()
+      ..failure = const DuelRefused('appOutdated');
+    var reloads = 0;
+    final environment = AppEnvironment(
+      repository: InMemorySessionRepository(),
+      playerId: 'device',
+      accountRepository: FakeAccountRepository(),
+      profileRepository: FakeProfileRepository(),
+      duelClient: outdated,
+      duelRunStore: MemoryDuelRunStore(),
+      reloadPage: () => reloads++,
+    ).forPlayer('me');
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildLightTheme(),
+        home: DuelFlowScreen(
+          environment: environment,
+          load: () => outdated.find(DuelMode.basics),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+    expect(find.textContaining('A new version of the game'), findsOneWidget);
+    await tester.tap(find.text('Reload'));
+    expect(reloads, 1);
+  });
+
   testWidgets('a guest is told to save their progress', (tester) async {
     final guest = FakeDuelClient()..failure = const DuelAccountRequired();
     final environment = AppEnvironment(

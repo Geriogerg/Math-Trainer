@@ -2233,10 +2233,20 @@ above no longer holds for Render; it would again on a host without Cloudflare in
 - **Container**: UID 65534 by number (the scratch image has no user database). The base image
   stays a tag (`dart:3.14`): pinning a digest needs a way to bump it, not in this phase.
 
-## Phase 6b: player experience (plan v4.0) — provisional choices
+## Phase 6b: player experience (plan v4.0) — confirmed but four (plan v4.1)
 
-Each choice below fills a gap the plan leaves; the owner confirms or reverses it in the phase
-report.
+Each choice below filled a gap the plan left. **The owner's verdict (plan v4.1, "Phase 6b
+outcome", 27 November):** kept — v9's generation choices, quitting counts from one answer,
+the Method readings, one quiet line per control, 15 s on Supabase calls, Cancel only while
+the server wakes, edges at 3:1, body text 15 px, strings as Dart classes (**one class per
+language, so a missing translation fails to compile** — the owner's reading, stricter than
+the subclass-with-English-fallback written below), the terms, √ of powers of 2 as v1.6 says.
+**Changed**: the result's reason in **counts, not a percentage** (commit 4 below; Phase 6c
+commit 0); the duel rules sheet **once per mode**, then a reminder line (commit 4 below;
+Phase 6c commit 0); semantics on for everyone **kept but measured** (commit 6 below; Phase 6c
+commit 0); a deploy-window duel never opened by an app that knows its rules is **void, not a
+loss** (commit 1 below, "Duels"; Phase 6c commit 0). The spec conflict of commit 1 (∫₀²⁵) and
+the √ row's wording were fixed by the owner in `doc/levels.md` v1.6.1.
 
 **Commit 0 — close-out of 6a.**
 
@@ -2323,7 +2333,7 @@ fixes the tables and the rules; these are the readings and gaps.
   most ⌊n/5⌋ per operation — none with 4 questions an operation (so a main game of 4 × 4
   questions holds none), 1 of 5, 2 of 10, 4 of 20. A v9 weak spot must belong to v9's tier;
   the fact catalogue's home tiers stay v8's (practice games replay with them).
-- **Duels** draw under the game rules they store: a new duel is v9 (no question twice);
+- *(The last part superseded, plan v4.1: an app that does not know the server's rules gets no duel — Phase 6c commit 0.)* **Duels** draw under the game rules they store: a new duel is v9 (no question twice);
   v8 duels replay as they were. No new `DuelRulesVersion`. An app opened before this deploy
   and never reloaded cannot read a v9 duel — it shows an error until the page is reloaded (a
   duel left that way would be lost after 24 hours, as any). Not guarded: the app reloads on
@@ -2423,7 +2433,7 @@ rules; these are the readings.
   hover. Home: the main level ("the mean of + − × ÷"), each row, each card; setup: the
   question count in all, what the mode does (Levelling: "Quitting counts the questions left
   as missed"), Training's levels (10 / 40 / 70). Online: one line per mode.
-- **The result line is "Addition: 12 → 15 (+3.00)"**, whole levels then the change in
+- *(Superseded, plan v4.1: the reason is in counts — Phase 6c commit 0.)* **The result line is "Addition: 12 → 15 (+3.00)"**, whole levels then the change in
   levels with two decimals ("no change" at 0), and under it the reason: "Quality 80 %: above
   72 %, up" (62–72 %, kept; below 62 %, down; "already at 0 / 100" when a bound stopped it;
   "· 3 left, counted as missed" for a v9 quit). The quality is `gameQualities` (core), the
@@ -2434,7 +2444,7 @@ rules; these are the readings.
 - **The first-run card** ("How levels work": three sentences, "Got it") sits under the main
   level until dismissed, remembered on the device (`HintsStore`, `shared_preferences`, one
   flag per `Hint`). A new device shows it again; an account-wide flag is not worth a table.
-- **Rules before every rated duel, every time** (Start / Cancel), not only the first: a rated
+- *(Superseded, plan v4.1: once per mode, then a reminder line — Phase 6c commit 0.)* **Rules before every rated duel, every time** (Start / Cancel), not only the first: a rated
   duel moves a rating and leaving it is a loss, so one extra tap is the price. A waiting
   challenge's Play asks too. Get the count and Chain operations show their rules once, on
   the first open (practice: nothing at stake).
@@ -2480,7 +2490,7 @@ rules; these are the readings.
 
 **Commit 6 — accessibility (M17).**
 
-- **Semantics on from the start** (`ensureSemantics` in `main`): on the web Flutter otherwise
+- *(Kept, plan v4.1, and measured — Phase 6c commit 0.)* **Semantics on from the start** (`ensureSemantics` in `main`): on the web Flutter otherwise
   builds the accessibility tree only after a screen reader presses a hidden "Enable
   accessibility" button. The cost is a DOM tree beside the canvas on every device; not measured
   on a low-end phone (an owner check).
@@ -2524,3 +2534,80 @@ rules; these are the readings.
 - **Levels as whole parts everywhere** (m3): Home's and Profile's main level is now floored
   like Ranks and every operation (10.5 shows 10, not 11).
 - **A password can be shown** on Sign in and Save your progress (m17).
+
+## Phase 6c build: public launch behind switches (plan v4.1) — provisional choices
+
+Each choice below fills a gap the plan leaves; the owner confirms or reverses it in the phase
+report. What needs the owner's inputs is behind a switch or a visible placeholder (plan v4.1:
+"build now, switch on later").
+
+**Commit 0 — close-out of 6b.**
+
+- **Nothing to recover: production refused no game as `futureTimestamp`.** Read on production
+  (27 Nov, 09:30 UTC, read-only): `upload_rejections` holds 5 refusals in all, the last on
+  22 Nov (`badElapsed` ×3, `typeAlreadyPlayed`, `placementAfterGames`) — none
+  `futureTimestamp`. No session reached the server between 26 Nov 12:39 UTC (the last
+  upload) and the reading: the regression went live about 15:40 UTC on 26 Nov (6a commit 3)
+  and was replaced about 01:00 UTC on 27 Nov (6b commit 0), and no tester sent a game in that
+  window (one played duels at 21:00, which were not affected). A device holds a refusal only
+  if the server answered one, and it records every refusal before answering (50 a day per
+  player at most; none came close), so no device holds such a game either. **Recovered: 0 of
+  0.** No resend path was built: it would have reopened server verdicts — skipping
+  `outOfOrder` and `levelsMismatch` for a game older than the player's accepted ones — for no
+  game at all. If a refusal of this kind ever shows up, the earlier precedent applies (Levels
+  phase commit 4.1: a migration deletes the verdicts, the app's schema upgrade clears its
+  marks, the games are sent again in order).
+- **The reason in counts** ("8 right, 6 fast, of 10: up"): *right* is every correct answer,
+  *fast* those within the tier's fluent time (full credit), *of* the questions counted — a
+  quit's missing ones included. The zone word stays (up, kept, down), with "already at 0 /
+  100" and "N left, counted as missed" as before. `OperationQuality` lost its percentages
+  (`qualityPercent`, the band's edges) — nothing else read them; the result screen's test
+  again forbids any "%".
+- **The duel rules once per mode** (`Hint.duelRulesBasics`, `…Advanced`, `…Count`, per
+  device like every hint): remembered when the player presses Start, not on Cancel. The
+  waiting challenge's Play and a friend challenge use the same per-mode memory.
+- **"The find screen" read as Online's duel list** (and a friend challenge's mode picker):
+  the reminder "Rated · leaving counts as a loss" sits under the Duels heading with a "Rules"
+  link to every mode's rules. The "Finding an opponent…" screen itself shows for well under
+  a second once the server is awake (it is always-on from the launch) — too short to read a
+  line or tap a link, and a rules sheet opened there would cover a duel whose timer already
+  runs.
+- **Deploy-window duels: never handed out rather than voided afterwards.** Every request for
+  a duel (`find`, `open`) now declares the game and duel rules versions the app can play
+  (`knownDuelRules`); the server hands a duel only to an app that knows its own current
+  versions — otherwise 409 `appOutdated`, before anything is made, served or marked opened,
+  and the app says "A new version of the game is out" with Reload. So no duel can be opened
+  by an app that cannot read it: a pool or practice duel is never made, a waiting challenge
+  stays unopened (an unopened challenge was never a loss). The owner's rule holds without a
+  void path: there is nothing to void. **Production has no duel to void either**: all 30 are
+  rules v8 and finished; the one abandoned run is a v8 practice duel of 25 Nov (no rating).
+  The cost: a page still open on a 6b build (which declares nothing, and does not know the new
+  refusal) says "This duel is not available." on its next duel request until it is reloaded —
+  once, after this deploy; nothing is lost.
+- **`submitted_value` INTEGER** (local schema v14): SQLite cannot change a column's type, so
+  the `answers` table is rebuilt within the upgrade's transaction — same rows, the value cast
+  (every one was written from an int), the same index; the repository reads it as an `int`.
+  Supabase never had the column (answers travel in the JSON payload).
+- **Semantics on a low-end phone profile** — **kept on for everyone: no real cost found.** Measured with
+  `tool/perf/semantics_cost.mjs` (Edge headless, Chrome DevTools' low-end mobile CPU — 6×
+  slower —, 360 × 780 at 2×, cache off, files from localhost, a local stand-in for Supabase;
+  two release builds, the second with `SEMANTICS_ALWAYS=false`; 5 visits each, alternated; a
+  game of 10 answers 1.6 s apart):
+
+  | 5 visits each | semantics on | off |
+  |---|---|---|
+  | first frame, median (range) | 3.00 s (2.56–4.55) | 3.53 s (2.83–10.85) |
+  | main thread busy until the first frame | 2.50 s | 2.22 s |
+  | game: frame interval p50 / p95 / p99 | 16.7 / 33.3 / 66.6 ms | 16.7 / 33.4 / 66.7 ms |
+  | game: frames over 50 ms | 1.4 % | 2.3 % |
+  | game: main thread busy per second | 483 ms | 483 ms |
+  | game: DOM elements | 57 | 36 |
+
+  The first frame and every game figure are the same within the noise; the one consistent
+  difference is about 0.3 s more work before the first frame (a first trial: 0.1 s) and 21
+  more elements. "If the cost is real" (plan v4.1): it is not, on this profile, so the
+  owner's rule keeps semantics on. **Limits**: an emulated slow CPU on a desktop is not a
+  real low-end phone (its GPU, memory and thermal limits are not emulated) — one look on a
+  cheap Android phone is in the owner's checklist. A first run of 5 visits, taken while other
+  work loaded the machine, varied from 3 to 25 s and was discarded. `SEMANTICS_ALWAYS` stays
+  as a build switch (default on): the fallback, should a real phone disagree.

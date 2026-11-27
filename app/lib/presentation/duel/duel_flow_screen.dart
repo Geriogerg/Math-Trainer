@@ -57,6 +57,10 @@ class _DuelFlowScreenState extends State<DuelFlowScreen> {
   /// Why no duel could start; `null` while loading or playing.
   String? _problem;
 
+  /// The server's rules are newer than this build's (plan v4.1): the way
+  /// out is a reload, offered when the page can do it.
+  bool _outdated = false;
+
   /// Before a duel (Phase 6b commit 5, review M15): first the server is
   /// woken — nothing asked yet, so Cancel is safe — then asked for the
   /// duel, a short request with no Cancel: the server may already have
@@ -82,6 +86,7 @@ class _DuelFlowScreenState extends State<DuelFlowScreen> {
     setState(() {
       _controller = null;
       _problem = null;
+      _outdated = false;
       _waking = true;
       _slowWake = false;
     });
@@ -105,6 +110,11 @@ class _DuelFlowScreenState extends State<DuelFlowScreen> {
     } on DuelAccountRequired {
       _fail(strings.online.saveToPlay);
     } on DuelRefused catch (e) {
+      if (e.reason == 'appOutdated') {
+        _outdated = true;
+        _fail(strings.online.appOutdated);
+        return;
+      }
       _fail(switch (e.reason) {
         'exists' => strings.online.challengeExists,
         'notLinked' => strings.online.cannotBeChallenged,
@@ -165,11 +175,18 @@ class _DuelFlowScreenState extends State<DuelFlowScreen> {
       child: Scaffold(
         body: SafeArea(
           child: problem != null
-              ? EmptyState(
-                  message: problem,
-                  actionLabel: strings.common.close,
-                  onAction: () => Navigator.of(context).pop(),
-                )
+              ? switch ((_outdated, widget.environment.reloadPage)) {
+                  (true, final reload?) => EmptyState(
+                    message: problem,
+                    actionLabel: strings.common.reload,
+                    onAction: reload,
+                  ),
+                  _ => EmptyState(
+                    message: problem,
+                    actionLabel: strings.common.close,
+                    onAction: () => Navigator.of(context).pop(),
+                  ),
+                }
               : controller == null
               ? _Finding(
                   waking: _waking && _slowWake,

@@ -9,6 +9,7 @@ import 'package:test/test.dart';
 
 import 'fake_duel_gateway.dart';
 import 'session_endpoint_test.dart' show honest;
+import 'package:math_core/duel/duel_client.dart' show knownDuelRules;
 
 /// Phase 6a commit 6 (plan v3.9; review m2, m10): what Supabase refuses is
 /// refused for good, never "try again later"; abandoned duels are recorded
@@ -148,7 +149,7 @@ void main() {
           'POST',
           Uri.parse('http://localhost/v1/duels'),
           headers: {'authorization': 'Bearer tok-a'},
-          body: jsonEncode({'mode': 'basics'}),
+          body: jsonEncode({'mode': 'basics', ...knownDuelRules()}),
         ),
       );
       expect(response.statusCode, 200);

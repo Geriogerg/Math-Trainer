@@ -147,6 +147,9 @@ class _OnlineScreenState extends State<OnlineScreen> {
         children: [
           const SizedBox(height: 12),
           Text(strings.online.duels, style: section),
+          // After each mode's first rated duel, no sheet: this line, and
+          // the full rules one tap away (plan v4.1).
+          const DuelReminder(),
           const SizedBox(height: 6),
           for (final mode in DuelMode.values) ...[
             AppCard(
@@ -158,9 +161,15 @@ class _OnlineScreenState extends State<OnlineScreen> {
               }(),
               caption: duelModeRule(mode),
               onTap: () async {
-                // The rules first, every time (review M15: a rated duel
-                // started on one tap).
-                if (!await confirmDuel(context, mode)) return;
+                // The rules before the first rated duel of the mode
+                // (review M15; plan v4.1: once per mode).
+                if (!await confirmDuel(
+                  context,
+                  mode,
+                  hints: environment.hints,
+                )) {
+                  return;
+                }
                 if (!context.mounted) return;
                 await _play(context, controller, (client) => client.find(mode));
               },
@@ -181,7 +190,13 @@ class _OnlineScreenState extends State<OnlineScreen> {
                   label: strings.online.play,
                   compact: true,
                   onPressed: () async {
-                    if (!await confirmDuel(context, challenge.mode)) return;
+                    if (!await confirmDuel(
+                      context,
+                      challenge.mode,
+                      hints: environment.hints,
+                    )) {
+                      return;
+                    }
                     if (!context.mounted) return;
                     await _play(
                       context,

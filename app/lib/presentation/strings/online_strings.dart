@@ -1,5 +1,6 @@
 import 'package:math_core/duel/duel_mode.dart';
 import 'package:math_core/friends/friends.dart';
+import 'duel_texts.dart';
 
 /// Online: duels, friends, the tab bar.
 class OnlineStrings {
@@ -52,9 +53,26 @@ class OnlineStrings {
         '3 rounds of 30 s, the same numbers for both. Closer to the targets '
             'wins; if tied, the faster.',
     },
-    'Rated: both ratings move — unless no player is found and you race a '
-        'practice opponent.',
-    'Leaving counts as a loss.',
+    rated,
+    leaving,
+  ];
+  final rated =
+      'Rated: both ratings move — unless no player is found and you race a '
+      'practice opponent.';
+  final leaving = 'Leaving counts as a loss.';
+
+  // After a mode's first rated duel, a reminder instead (plan v4.1).
+  final ratedReminder = 'Rated · leaving counts as a loss';
+  final rulesLink = 'Rules';
+  final rulesLinkSpoken = 'Duel rules';
+  final allRulesTitle = 'Duel rules';
+  List<String> get allRules => [
+    for (final mode in DuelMode.values)
+      '${duelModeLabel(mode)}: ${modeRule(mode)}',
+    '30 s per question. More right answers wins; if tied, the faster. '
+        'Get the count: closer to the targets wins.',
+    rated,
+    leaving,
   ];
 
   // Before and during a duel.
@@ -62,6 +80,9 @@ class OnlineStrings {
   final challengeExists = 'A challenge is already open.';
   final cannotBeChallenged = 'This player cannot be challenged.';
   final duelNotAvailable = 'This duel is not available.';
+  final appOutdated =
+      'A new version of the game is out. Reload the page to play duels — '
+      'nothing was started.';
   final quitDuelTitle = 'Quit the duel?';
   final stillCounts = 'It still counts.';
   final wakingServer = 'Waking the server…';

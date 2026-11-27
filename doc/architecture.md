@@ -159,12 +159,12 @@ The expected answer is an `int` from the domain (rule 9); the display and its sp
 from `presentation/` (`exercise_prompt.dart`, `strings/spoken_prompt.dart`). Answers store
 their operands as `operands_json`, discriminated by the `ExerciseType` name.
 
-## Local schema (version 13)
+## Local schema (version 14)
 
 | Table | Content |
 |---|---|
 | `sessions` | id, player_id, seed, operation_types, exercise_count, total_score, levels_json (frozen levels, hundredths), overall_level_after (the main level after, level units), created_at (the session's **end**), synced_at, kind (`SessionKind.name`), type_sequence (planned types, v6), upload_refused (v7), app_version (v8), rules_version (v10; NULL = v1), weak_spots (item keys, v13) |
-| `answers` | id, session_id, exercise_type, operation_type, operands_json, submitted_value (REAL, read as int), is_correct, elapsed_ms, created_at (that answer's moment), synced_at, input_device (v8) |
+| `answers` | id, session_id, exercise_type, operation_type, operands_json, submitted_value (INTEGER since v14; REAL before), is_correct, elapsed_ms, created_at (that answer's moment), synced_at, input_device (v8) |
 | `player_levels` | (player_id, exercise_type), level (hundredths), sessions_played, updated_at — the level cache, recomputable from history |
 
 ## Web delivery

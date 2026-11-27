@@ -8,6 +8,7 @@ import 'package:shelf/shelf.dart';
 import 'package:test/test.dart';
 
 import 'fake_duel_gateway.dart';
+import 'known_rules.dart';
 
 /// Phase 7 close-out commit 1 (plan v3.8): a duel started but not submitted
 /// within 24 hours is a loss, from the answers the server received; the
@@ -27,7 +28,7 @@ void main() {
         'POST',
         Uri.parse('http://localhost$path'),
         headers: {'authorization': 'Bearer $token'},
-        body: jsonEncode(body),
+        body: jsonEncode(withKnownRules(path, body)),
       ),
     );
     final json = (jsonDecode(await response.readAsString()) as Map)

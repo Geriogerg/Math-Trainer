@@ -263,7 +263,8 @@ actions at the bottom of every result: **Home** and **Play again** (same operati
 new seed).
 
 Accuracy is shown as a raw count ("9/12"), never as a curve nor as a percentage presented as
-progress.
+progress. The reason under each level change is counts too — "8 right, 6 fast, of 10: up"
+(plan v4.1; Phase 6b had shown the game's quality in %).
 
 Two centred actions: **Play again** (dominant, filled) and **Home**, pinned at the bottom
 under the scrolling results — a long mistakes list never pushes "Play again" out of reach. Worth considering:
