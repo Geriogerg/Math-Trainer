@@ -50,7 +50,7 @@ class ExercisePrompt extends StatelessWidget {
       PowerExercise e => _PowerPrompt(exercise: e, style: style),
       SquareRootExercise e => _SquareRootPrompt(exercise: e, style: style),
       PercentageExercise e => Text(
-        '${e.percent}${e.tenths == 0 ? '' : '.${e.tenths}'}% '
+        '${strings.game.percent(e.percent, e.tenths)} '
         '${strings.game.percentOf} ${groupedNumber(e.base)}',
         style: style,
         softWrap: false,

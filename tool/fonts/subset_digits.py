@@ -10,7 +10,7 @@ instead of 100+, so the first load barely moves (budget: +50 KB).
 
 Other letters ("Level", "Top") are not in the subset: the theme names
 Inter as the fallback family, which draws them. The "of" of "25% of 80"
-is: a prompt drawn in two faces gets a line 1 px taller (mixed metrics),
+is, and the "de" of "25 % de 80" (Phase 6d): a prompt drawn in two faces gets a line 1 px taller (mixed metrics),
 which would move the answer below it during the beta
 (`session_layout_pin_test.dart`).
 """
@@ -22,8 +22,14 @@ from fontTools.ttLib import TTFont
 from fontTools.varLib import instancer
 
 # Digits; + − × ÷ √ % as doc/design.md writes them; what scores and times
-# print (= . , space); the "of" of a percentage prompt.
-GLYPHS = "0123456789+−×÷√%=., of"
+# print (= . , space); the "of" of a percentage prompt, and its French "de"
+# (Phase 6d); the thin space (U+2009) that groups digits.
+GLYPHS = "0123456789+−×÷√%=., ofde\u2009"
+
+# The group separator the app writes is the narrow no-break space (U+202F,
+# number_format.dart): Space Grotesk has no glyph for it, so it is mapped
+# to the thin space's — same width, and it never breaks a line.
+ALIASES = {0x202F: 0x2009}
 
 
 def main(src: str, out: str) -> None:
@@ -41,6 +47,11 @@ def main(src: str, out: str) -> None:
     subsetter = subset.Subsetter(options)
     subsetter.populate(text=GLYPHS)
     subsetter.subset(font)
+    for table in font["cmap"].tables:
+        if table.isUnicode():
+            for alias, target in ALIASES.items():
+                if target in table.cmap:
+                    table.cmap[alias] = table.cmap[target]
     font.save(out)
 
 

@@ -132,7 +132,7 @@ void main() {
       await tester.pump();
       await tester.pump();
       expect(find.text('Won'), findsOneWidget);
-      expect(find.text('Basics · 1 542 → 1 560'), findsOneWidget);
+      expect(find.text('Basics · 1\u202f542 → 1\u202f560'), findsOneWidget);
       expect(find.text('8 / 8'), findsOneWidget);
       expect(find.text('5 / 8'), findsOneWidget);
       expect(client.submitted.single.$1, 'd1');

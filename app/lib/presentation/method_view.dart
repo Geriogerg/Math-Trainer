@@ -4,6 +4,7 @@ import 'package:math_core/method/method.dart';
 import 'package:math_core/method/method_expr.dart';
 
 import 'number_format.dart';
+import 'strings/strings.dart';
 
 /// A Method's lines (`doc/levels.md` section 9), one per row, from the
 /// core's tokens: grouped thousands, true minus sign, raised exponents, √
@@ -95,9 +96,11 @@ List<InlineSpan> methodLineSpans(MethodLine line, TextStyle? style) {
             },
             OpenParen() => '(',
             CloseParen() => ')',
-            PercentToken(:final percent, :final tenths) =>
-              '$percent${tenths == 0 ? '' : '.$tenths'}%',
-            OfToken() => 'of',
+            PercentToken(:final percent, :final tenths) => strings.game.percent(
+              percent,
+              tenths,
+            ),
+            OfToken() => strings.game.percentOf,
             ExponentToken() || RootToken() => '',
           });
       }

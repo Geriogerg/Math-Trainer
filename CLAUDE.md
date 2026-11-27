@@ -39,7 +39,7 @@ in French. Settled in plan v4.2: the 6c build's choices (deploy-window duels ref
 voided, the reminder on Online's duel list, Turnstile on every auth call Supabase protects,
 semantics on for everyone).
 
-Done: 0 (27 Nov; `doc/progress.md`, "Phase 6d"). Next: commit 1.
+Done: 0–1 (27 Nov; `doc/progress.md`, "Phase 6d"). Next: commit 2.
 
 **Phase 7's rules** (plan v3.7–v3.8; detail in `doc/decisions.md`, "Phase 7"):
 - **No live matches**: every duel is asynchronous — a player races another's recorded run,
@@ -286,7 +286,8 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 
 - `session_layout_pin_test.dart` holds the game screen's keypad and session geometry (and the
   30 s timeout). Re-measured once at the Redesign phase's commit 6 on the new screen; frozen
-  again since — never update its numbers to make a restyling pass, change the restyling. Sound and haptics go through
+  again since — never update its numbers to make a restyling pass, change the restyling.
+  (Its stacked case changed once at Phase 6d commit 1, for plan v4.2's thin space.) Sound and haptics go through
   `SessionEffects` (fire and forget, after the controller moved on), never inline in a widget.
 - Screens build buttons, chips, keys, figures and levels from `presentation/kit/` — never
   `FilledButton`, `TextButton`, `FilterChip` or `ChoiceChip` directly. Find a level in tests
@@ -303,8 +304,11 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 - Vibration goes through `GameHaptics` (feature-detected; none on iPhone Safari).
 - Sound goes through `GameSound` (Web Audio synthesis, no files); the smoke test fails if a
   game schedules no tone — a change that silences the game breaks CI on purpose.
-- Digits use `TextStyle.digits` (Space Grotesk subset: digits, operators, "of" only). A line
-  mixing faces grows 1 px — keep each prompt in one face; anything else falls back to Inter.
+- Digits use `TextStyle.digits` (Space Grotesk subset: digits, operators, "of", "de", the thin
+  space). A line mixing faces grows 1 px — keep each prompt in one face; anything else falls
+  back to Inter. Digits are grouped by U+202F (`groupSeparator`, both languages, plan v4.2);
+  the subset maps it to its thin space (`tool/fonts/subset_digits.py`). Tests spell groups
+  `\u202f`.
 
 - CI analyzes with `--fatal-infos` (core and tooling): run `dart analyze --fatal-infos` locally,
   an info-level lint fails the build.

@@ -138,9 +138,9 @@ void main() {
     testWidgets('the Online tab, as in the mockup — $name', (tester) async {
       await pumpShell(tester, theme);
       expect(find.text('Basics'), findsOneWidget);
-      expect(find.text('1 542'), findsOneWidget);
-      expect(find.text('1 380 ?'), findsOneWidget, reason: '4 rated duels');
-      expect(find.text('1 610'), findsOneWidget);
+      expect(find.text('1\u202f542'), findsOneWidget);
+      expect(find.text('1\u202f380 ?'), findsOneWidget, reason: '4 rated duels');
+      expect(find.text('1\u202f610'), findsOneWidget);
       expect(find.text('Waiting for you'), findsOneWidget);
       expect(find.text('Léa · Basics'), findsOneWidget);
       expect(find.text('Tom raced your run'), findsOneWidget);
@@ -190,7 +190,7 @@ void main() {
     await pumpShell(tester, buildLightTheme());
     // No level on this device: 900, 900, 1 300 — all "?".
     expect(find.text('900 ?'), findsNWidgets(2));
-    expect(find.text('1 300 ?'), findsOneWidget);
+    expect(find.text('1\u202f300 ?'), findsOneWidget);
   });
 
   testWidgets('Play on a waiting challenge opens it', (tester) async {

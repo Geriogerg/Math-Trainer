@@ -27,17 +27,17 @@ void main() {
 
     testWidgets('one line when it fits, thousands grouped', (tester) async {
       await pump(tester, big, maxWidth: 2000);
-      expect(find.text('4 789 + 3 657'), findsOneWidget);
+      expect(find.text('4\u202f789 + 3\u202f657'), findsOneWidget);
     });
 
     testWidgets('two right-aligned lines and a rule when it does not', (
       tester,
     ) async {
       await pump(tester, big, maxWidth: 120);
-      expect(find.text('4 789'), findsOneWidget);
-      expect(find.text('+ 3 657'), findsOneWidget);
-      final top = tester.getTopRight(find.text('4 789'));
-      final bottom = tester.getTopRight(find.text('+ 3 657'));
+      expect(find.text('4\u202f789'), findsOneWidget);
+      expect(find.text('+ 3\u202f657'), findsOneWidget);
+      final top = tester.getTopRight(find.text('4\u202f789'));
+      final bottom = tester.getTopRight(find.text('+ 3\u202f657'));
       expect(top.dx, bottom.dx, reason: 'aligned on the units digit');
       expect(bottom.dy, greaterThan(top.dy));
     });
@@ -52,7 +52,7 @@ void main() {
           ArithmeticExercise(operandA: 7003, operandB: 2468, operationType: op),
           maxWidth: 120,
         );
-        expect(find.text('7 003'), findsOneWidget, reason: '$op');
+        expect(find.text('7\u202f003'), findsOneWidget, reason: '$op');
       }
     });
 
@@ -86,12 +86,12 @@ void main() {
         ),
         maxWidth: 120,
       );
-      expect(find.text('5 628 ÷ 67'), findsOneWidget);
+      expect(find.text('5\u202f628 ÷ 67'), findsOneWidget);
     });
 
     testWidgets('no width given: one line', (tester) async {
       await pump(tester, big);
-      expect(find.text('4 789 + 3 657'), findsOneWidget);
+      expect(find.text('4\u202f789 + 3\u202f657'), findsOneWidget);
     });
   });
 

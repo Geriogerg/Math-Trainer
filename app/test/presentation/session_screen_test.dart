@@ -119,7 +119,7 @@ void main() {
       }
       await tester.pump();
 
-      expect(find.text('9 999 999 999'), findsOneWidget);
+      expect(find.text('9\u202f999\u202f999\u202f999'), findsOneWidget);
     });
 
     testWidgets('each answer records which keys typed it', (tester) async {

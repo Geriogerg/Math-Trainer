@@ -2754,3 +2754,28 @@ report. What needs the owner's inputs is behind a switch or a visible placeholde
   fewer.
 - **Estimates are labelled as such** in `doc/capacity.md` (5 games, 20 views, 1 duel a day a
   player): the first week's dashboard replaces them.
+
+## Phase 6d: French (plan v4.2) — provisional choices
+
+Each choice below fills a gap the plan leaves; the owner confirms or reverses it in the phase
+report. The owner's rules: "tu", short and direct like the English; 2 468 in both languages
+(a thin space), the decimal separator per language; every screen checked at 360 px in French.
+
+**Commit 1 — the language mechanism and the numbers.**
+
+- **Interfaces converted by script**, each English member marked `@override`: the doc
+  comments moved to the interface (what the member is), the values stay in the English class.
+  A French class implements the same interface: a missing member does not compile.
+- **The group separator is U+202F** (narrow no-break space), the French typographic thin
+  space, in both languages — not U+2009 (thin space), which allows a line break inside a
+  number. Space Grotesk has no U+202F glyph: the subset maps it to its thin-space glyph
+  (same width). Inter has it.
+- **The game-geometry pin moved, once, on purpose**: the plan's thin space is narrower than
+  the space, so 4 789 × 3 657 now fits one line at 360 px; the pin's stacked case became
+  47 892 × 3 657 (still one line at 412, stacked at 360) and only its centre changed. The
+  pin's rule ("never change the numbers to make a restyling pass") yields to the plan here
+  (CLAUDE.md: the plan wins a conflict); flagged in the report. Players at 360 px see
+  products up to about 4 × 4 digits on one line instead of two.
+- **The digit face gains "d", "e"** (French "de" in a percentage prompt, drawn in the same face
+  so the prompt keeps its height) and the thin space — from Space Grotesk 2.000, the same
+  version as the subset it replaces.

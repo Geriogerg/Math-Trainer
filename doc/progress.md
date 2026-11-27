@@ -2253,3 +2253,18 @@ every screen checked at 360 px in French.
 - **Commit 0** *(A)* — **Phase start.** Plan v4.2 committed (the owner's: the 6c build's
   choices accepted, 6d before the switch-on, the launch prerequisites in section 10);
   CLAUDE.md's Current phase is 6d.
+- **Commit 1** *(A)* — **The language mechanism and the numbers.** The seven strings areas
+  (common, home, game, profile, account, online, ranks) are each an `abstract interface
+  class` with an `English…` class implementing it (converted by script: ~340 members, each
+  `@override`), gathered in `englishStrings`; a French class that misses a member will not
+  compile. **Numbers**: digits grouped by a narrow no-break space (U+202F) in both languages
+  (plan v4.2: "2 468 in both, thin space"; was a plain space), never cut at a line's end;
+  percentages written by the strings (`GameStrings.percent`: "37.5%" — the French class will
+  write "37,5 %"), in the prompt and the Method. **The digit face** regenerated from Space
+  Grotesk 2.000 (google/fonts, the same version): + "d", "e" (French "de") and the thin
+  space, U+202F mapped to the thin space's glyph; every older glyph's width and the line
+  metrics unchanged (5.1 KB). **The game-geometry pin**: the thin space is narrower than
+  the space, so the pin's stacked prompt (4 789 × 3 657) no longer stacked at 360 px — the
+  case is now 47 892 × 3 657, which does; only its centre moved (196.64 → 194.96), every other
+  pinned number unchanged. Tests: number, prompt, Online, session and duel tests spell
+  groups with `\u202f`; 8 goldens re-rendered and read. Run locally: app 541, analyze clean.

@@ -151,8 +151,12 @@ const _keyMargin = 4.0;
 /// field's top and height (its accent underline included), per operation
 /// (a taller prompt — a root's bar, a raised exponent, an integral's
 /// bounds, a product stacked on two lines — pushes it down). The stacked
-/// case added at the Levels phase's commit 5: 4 789 × 3 657 fits one line
-/// at 412 px and stacks at 360 px.
+/// case added at the Levels phase's commit 5 fits one line at 412 px and
+/// stacks at 360 px. Re-measured once, on purpose, at Phase 6d commit 1:
+/// plan v4.2 groups digits with a thin space, narrower than the space it
+/// replaced, so that case (4 789 × 3 657) no longer stacked at 360 px; it is
+/// now 47 892 × 3 657, which does, and only its centre moved (196.64 →
+/// 194.96, the stack's width) — every other number here is unchanged.
 final _questionCentre = {
   Size(412, 915): (206.0, 284.5),
   Size(360, 640): (180.0, 147.0),
@@ -172,7 +176,7 @@ final _answer = {
     'root': (180.0, 193.0),
     'percent': (180.0, 191.0),
     'integral': (180.0, 200.0),
-    'stacked': (196.64, 222.0),
+    'stacked': (194.96, 222.0),
   },
 };
 const _answerHeight = 43.0;
@@ -184,7 +188,7 @@ final _prompts = <String, Exercise>{
   'percent': PercentageExercise(percent: 25, base: 80),
   'integral': IntegralExercise(lower: 0, upper: 3, c0: 0, c1: 2, c2: 0, c3: 0),
   'stacked': ArithmeticExercise(
-    operandA: 4789,
+    operandA: 47892,
     operandB: 3657,
     operationType: OperationType.multiplication,
   ),
