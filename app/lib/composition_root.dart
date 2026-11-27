@@ -84,7 +84,9 @@ import 'infrastructure/persistence/shared_preferences_theme_mode_store.dart';
 import 'infrastructure/persistence/shared_preferences_type_selection_store.dart';
 import 'infrastructure/persistence/sqflite_session_repository.dart';
 import 'infrastructure/persistence/shared_preferences_unfinished_game_store.dart';
+import 'core/state/hints.dart';
 import 'core/state/unfinished_game.dart';
+import 'infrastructure/persistence/shared_preferences_hints_store.dart';
 
 /// Concrete dependencies resolved once at app start (see `main.dart`),
 /// before `runApp()` — never in a UI widget. This is the only file choosing
@@ -123,6 +125,7 @@ class AppEnvironment {
     this.siteUrl,
     this.linkSharer,
     this.unfinishedGameStore,
+    this.hints,
   });
 
   final SessionRepository repository;
@@ -231,6 +234,10 @@ class AppEnvironment {
   final DuelRunStore duelRunStore;
 
   final UnfinishedGameStore? unfinishedGameStore;
+
+  /// The one-time explanations seen (Phase 6b commit 4). `null`: none is
+  /// shown (tests that do not look at them).
+  final HintsStore? hints;
 
   /// This player's duel runs on their way (`forPlayer`); `null` without
   /// [duelClient].
@@ -491,6 +498,7 @@ Future<AppEnvironment> buildAppEnvironment() async {
           ),
     feedbackRepository: SupabaseFeedbackRepository(Supabase.instance.client),
     unfinishedGameStore: unfinishedGames,
+    hints: const SharedPreferencesHintsStore(),
   );
 }
 

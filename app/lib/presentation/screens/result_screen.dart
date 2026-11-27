@@ -5,6 +5,7 @@ import '../kit/kit.dart';
 import 'package:math_core/method/method.dart';
 import 'package:math_core/method/method_for.dart';
 import 'package:math_core/leveling/level.dart';
+import 'package:math_core/leveling/level_updates.dart';
 import 'package:math_core/replay/session_replay.dart';
 import 'package:math_core/models/answer_result.dart';
 import 'package:math_core/models/exercise_type.dart';
@@ -76,6 +77,16 @@ class ResultScreen extends StatelessWidget {
           (outcome: o, family: showMethods ? families[i] : null),
     ];
     final metrics = theme.extension<AppMetrics>()!;
+    // Why each level moved (Phase 6b commit 4, review M16): the quality of
+    // its answers against the band, as the update computed it.
+    final qualities = controller.config.kind.movesLevels
+        ? gameQualities(
+            outcomes: result.outcomes,
+            frozenLevels: controller.config.levels,
+            rulesVersion: controller.config.rulesVersion,
+            typeSequence: controller.plannedOrder,
+          )
+        : const <ExerciseType, OperationQuality>{};
 
     final results = LayoutBuilder(
       builder: (context, constraints) => SingleChildScrollView(
@@ -105,6 +116,7 @@ class ResultScreen extends StatelessWidget {
                       before: controller.config.levels[type] ?? Level.zero,
                       updates: controller.lastLevelUpdates,
                       type: type,
+                      quality: qualities[type],
                     ),
                   _LevelUpCue(
                     leveledUp: leveledUp(
@@ -434,12 +446,16 @@ class _LevelChangeRow extends StatelessWidget {
     required this.before,
     required this.updates,
     required this.type,
+    this.quality,
   });
 
   final String label;
   final Level before;
   final Map<ExerciseType, LevelCacheEntry>? updates;
   final ExerciseType type;
+
+  /// Why the level moved; `null`: not explained.
+  final OperationQuality? quality;
 
   @override
   Widget build(BuildContext context) {
@@ -481,11 +497,23 @@ class _LevelChangeRow extends StatelessWidget {
       curve: motion.curve,
       builder: (context, value, _) => Column(
         children: [
+          // "12 → 13 (+0.56)": the whole levels, the change in hundredths
+          // (review M16: the result showed a level and a bar, no before /
+          // after, no reason, no sign for a drop).
           Text(
-            '$label — level ${value.floor()}',
+            '$label: ${before.whole} → ${value.floor()} '
+            '(${levelChangeText(entry.level.hundredths - before.hundredths)})',
             textAlign: TextAlign.center,
             style: style,
           ),
+          if (quality case final q?)
+            Caption(
+              qualityReason(
+                q,
+                change: entry.level.hundredths - before.hundredths,
+              ),
+              textAlign: TextAlign.center,
+            ),
           // The moment the whole number goes up (Phase 5 commit 6): a mark
           // in words — never the colour alone — that pulses once.
           if (value.floor() > before.whole) const _LevelUpMark(),
@@ -496,6 +524,34 @@ class _LevelChangeRow extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A level change in levels, two decimals, signed: "+0.56", "−3.00"; "no
+/// change".
+String levelChangeText(int hundredths) {
+  if (hundredths == 0) return 'no change';
+  final sign = hundredths > 0 ? '+' : '−';
+  final a = hundredths.abs();
+  return '$sign${a ~/ 100}.${(a % 100).toString().padLeft(2, '0')}';
+}
+
+/// Why an operation's level moved, in one line: the game's quality against
+/// the band (`doc/levels.md` section 3), the questions left of a quit.
+String qualityReason(OperationQuality q, {required int change}) {
+  final band = switch (q.zone) {
+    QualityZone.up => 'above ${q.bandHighPercent} %, up',
+    QualityZone.kept => '${q.bandLowPercent}–${q.bandHighPercent} %, kept',
+    QualityZone.down => 'below ${q.bandLowPercent} %, down',
+  };
+  final bound = change == 0 && q.zone == QualityZone.down
+      ? ' (already at 0)'
+      : change == 0 && q.zone == QualityZone.up
+      ? ' (already at 100)'
+      : '';
+  final left = q.unanswered == 0
+      ? ''
+      : ' · ${q.unanswered} left, counted as missed';
+  return 'Quality ${q.qualityPercent} %: $band$bound$left';
 }
 
 /// How far the player is inside their whole level, 0 to 1 — the hundredths

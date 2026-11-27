@@ -226,7 +226,7 @@ void main() {
     expect(effects.levelUps, 1);
     expect(find.text('▲ Level up'), findsNothing); // still counting up
     await tester.pumpAndSettle();
-    expect(find.text('Addition — level 13'), findsOneWidget);
+    expect(find.textContaining('→ 13 ('), findsOneWidget);
     expect(find.text('▲ Level up'), findsOneWidget);
     // Rebuilds never replay it.
     await tester.pump(const Duration(seconds: 1));
@@ -243,7 +243,7 @@ void main() {
   testWidgets('reduced motion: the final level at once', (tester) async {
     await pumpResult(tester, to: Level.whole(13), reducedMotion: true);
     await tester.pump();
-    expect(find.text('Addition — level 13'), findsOneWidget);
+    expect(find.textContaining('→ 13 ('), findsOneWidget);
     expect(find.text('▲ Level up'), findsOneWidget);
   });
 }

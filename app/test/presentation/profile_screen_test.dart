@@ -18,12 +18,21 @@ import 'package:math_core/persistence/in_memory_session_repository.dart';
 import 'package:math_core/persistence/persisted_answer.dart';
 import 'package:math_core/persistence/persisted_session.dart';
 import 'package:math_core/persistence/session_repository.dart';
+import 'package:math_core/sync/session_upload.dart';
+import 'package:math_core/sync/session_upload_client.dart';
 import 'package:math_trainer/presentation/screens/profile_screen.dart';
 import 'package:math_trainer/presentation/theme/app_theme.dart';
 
 import '../fake_account_repository.dart';
 import '../fake_profile_repository.dart';
 import 'kit_finders.dart';
+
+/// A server that is never reached in these tests.
+class _NoUploadClient implements SessionUploadClient {
+  @override
+  Future<UploadOutcome> upload(SessionUpload upload) =>
+      throw StateError('no upload in this test');
+}
 
 /// Fails while [shouldFail] is true, succeeds afterwards — simulates a
 /// network/disk that recovers, to test the "Retry" button.
@@ -745,6 +754,65 @@ void main() {
     expect(find.text('Alex'), findsOneWidget);
   });
 
+  testWidgets('games not sent yet are counted under Recent sessions '
+      '(Phase 6b commit 4, review m17)', (WidgetTester tester) async {
+    await setTallSurface(tester);
+    final repository = InMemorySessionRepository();
+    for (final (id, day) in [('a', 8), ('b', 9)]) {
+      await repository.recordSession(
+        session: PersistedSession(
+          id: id,
+          playerId: 'test-player',
+          seed: 1,
+          enabledTypes: const {ExerciseType.addition},
+          exerciseCount: 8,
+          totalScore: 80,
+          levels: {ExerciseType.addition: Level.whole(1)},
+          createdAt: DateTime.utc(2026, 8, day),
+          rulesVersion: RulesVersion.current,
+        ),
+        answers: const [],
+        levelUpdates: const {},
+      );
+    }
+    Future<void> pumpWith(SessionUploadClient? uploads) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildLightTheme(),
+          home: Scaffold(
+            body: ProfileScreen(
+              environment: AppEnvironment(
+                repository: repository,
+                playerId: 'test-player',
+                accountRepository: FakeAccountRepository(),
+                profileRepository: FakeProfileRepository(),
+                uploadClient: uploads,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    await pumpWith(_NoUploadClient());
+    expect(
+      find.text('2 games not sent yet: they go when the server answers.'),
+      findsOneWidget,
+    );
+    await repository.markSynced('a', DateTime.utc(2026, 8, 9, 1));
+    await tester.pumpWidget(const SizedBox());
+    await pumpWith(_NoUploadClient());
+    expect(
+      find.text('1 game not sent yet: it goes when the server answers.'),
+      findsOneWidget,
+    );
+    // No server: nothing is waiting to be sent.
+    await tester.pumpWidget(const SizedBox());
+    await pumpWith(null);
+    expect(find.textContaining('not sent yet'), findsNothing);
+  });
+
   testWidgets('Sign out calls signOut', (WidgetTester tester) async {
     await setTallSurface(tester);
     final accountRepository = _RecordingAccountRepository();
@@ -764,6 +832,15 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Sign out'));
+    await tester.pumpAndSettle();
+    // Asked first (Phase 6b commit 4, review m17): Cancel changes nothing.
+    expect(find.text('Sign out?'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(accountRepository.signOutCalled, isFalse);
+    await tester.tap(find.text('Sign out'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Sign out').last);
     await tester.pumpAndSettle();
 
     expect(accountRepository.signOutCalled, isTrue);

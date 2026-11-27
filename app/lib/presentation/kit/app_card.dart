@@ -1,18 +1,24 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../theme/app_theme.dart';
+import 'caption.dart';
 
-/// A full-width tappable card with a label only (Redesign phase, mockup 1:
-/// the Challenges). The label carries the meaning; nothing else on it.
+/// A full-width tappable card (Redesign phase, mockup 1: the Challenges):
+/// its label, and from Phase 6b one line saying what it opens ([caption]:
+/// review M16, "minimal text" relaxed for strangers).
 class AppCard extends StatelessWidget {
   const AppCard({
     super.key,
     required this.label,
     required this.onTap,
     this.detail,
+    this.caption,
   });
 
   final String label;
+
+  /// One line under the label: what the card opens.
+  final String? caption;
 
   /// A short status at the end of the row ("3 due"); in words, never a
   /// colour alone (rule 14).
@@ -41,11 +47,17 @@ class AppCard extends StatelessWidget {
             child: Row(
               children: [
                 Expanded(
-                  child: Text(
-                    label,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w500,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        label,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      if (caption case final caption?) Caption(caption),
+                    ],
                   ),
                 ),
                 if (detail case final detail?)

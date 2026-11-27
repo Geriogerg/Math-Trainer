@@ -48,7 +48,7 @@ line; weak spots at most ⌊n/5⌋ per operation; strings in one place, English 
 right after. m12 (large files) and m13 (app contracts in the core) are fixed when the files are
 next touched — the phase report says what moved.
 
-Done: 0–3 (27 Nov; `doc/progress.md`, "Phase 6b"). Next: commit 4.
+Done: 0–4 (27 Nov; `doc/progress.md`, "Phase 6b"). Next: commit 5.
 
 **Phase 7's rules** (plan v3.7–v3.8; detail in `doc/decisions.md`, "Phase 7"):
 - **No live matches**: every duel is asynchronous — a player races another's recorded run,
@@ -340,6 +340,10 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   differ. `gameLevelUpdates` needs the planned `typeSequence` (a quit counts the missing
   questions).
 - Integer levels round small steps to zero — never round before storing hundredths.
+- **One-time hints are per device** (`HintsStore`, `Hint` names stored — never rename one):
+  the first-run card, Get the count's and Chain's rules. A rated duel's rules
+  (`confirmDuel`) show every time, on purpose. The result's reason line comes from
+  `gameQualities` (core), never a second formula.
 - `Level` is an `int` at runtime: string interpolation prints hundredths, and `level ?? 1`
   compiles (widens to `Object`). Display through `.whole`; fall back to `Level.zero`.
 - **`doc/levels.md` is checked by reading the file** (plan v3.4):

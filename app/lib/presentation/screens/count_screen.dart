@@ -3,17 +3,37 @@ import 'package:material_ui/material_ui.dart';
 import 'package:math_core/challenges/count.dart';
 import '../../composition_root.dart';
 import '../../core/state/count_controller.dart';
+import '../../core/state/hints.dart';
 import '../kit/kit.dart';
 import '../theme/app_theme.dart';
 
-/// Plays a Get-the-count round full screen, over the tabs.
-Future<void> playCount(BuildContext context, AppEnvironment environment) =>
-    Navigator.of(context).push<void>(
-      MaterialPageRoute(
-        fullscreenDialog: true,
-        builder: (_) => CountFlowScreen(environment: environment),
-      ),
+/// Plays a Get-the-count round full screen, over the tabs — its rules
+/// first, on the first open (Phase 6b commit 4, review m17).
+Future<void> playCount(BuildContext context, AppEnvironment environment) async {
+  final hints = environment.hints;
+  if (hints != null && !await hints.seen(Hint.countRules)) {
+    if (!context.mounted) return;
+    await showRules(
+      context,
+      title: 'Get the count',
+      lines: const [
+        'Reach the target with the numbers given and + − × ÷, each number '
+            'once at most.',
+        'The closer, the better; reaching it ends the round.',
+        'Practice: it never moves your levels.',
+      ],
+      confirm: null,
     );
+    await hints.markSeen(Hint.countRules);
+  }
+  if (!context.mounted) return;
+  await Navigator.of(context).push<void>(
+    MaterialPageRoute(
+      fullscreenDialog: true,
+      builder: (_) => CountFlowScreen(environment: environment),
+    ),
+  );
+}
 
 /// Owns the round's controller; Play again swaps in a new one.
 class CountFlowScreen extends StatefulWidget {

@@ -37,6 +37,100 @@ Map<ExerciseType, LevelCacheEntry> gameLevelUpdates({
   required List<ExerciseType> typeSequence,
 }) {
   final rules = LevelRules.of(rulesVersion);
+  final outcomesByType = _countedAnswers(outcomes, rulesVersion, typeSequence);
+
+  final updates = <ExerciseType, LevelCacheEntry>{};
+  for (final MapEntry(key: type, value: answers) in outcomesByType.entries) {
+    final current = frozenLevels[type] ?? Level.zero;
+    updates[type] = LevelCacheEntry(
+      level: levelAfterGame(
+        current: current,
+        answers: answers,
+        fluentMs: fluentTimeMs(type, current, rulesVersion),
+        rules: rules,
+      ),
+      sessionsPlayed: (priorLevels[type]?.sessionsPlayed ?? 0) + 1,
+      updatedAt: now,
+    );
+  }
+  return updates;
+}
+
+/// Where an operation's quality fell in a game: above the dead band (the
+/// level goes up), inside it (kept), below it (down).
+enum QualityZone { up, kept, down }
+
+/// How one operation fared in a Levelling game — what the result screen
+/// says about its level change (Phase 6b commit 4, review M16): the
+/// questions counted (a quit's missing ones included from rules v9), how
+/// many were left unanswered, the quality (mean credit, in percent, rounded
+/// down), and its zone against [LevelRules]' dead band (in percent, for the
+/// words).
+typedef OperationQuality = ({
+  int questions,
+  int unanswered,
+  int qualityPercent,
+  QualityZone zone,
+  int bandLowPercent,
+  int bandHighPercent,
+});
+
+/// [OperationQuality] per operation, by exactly the arithmetic of
+/// [gameLevelUpdates] (the same credits, fluent times and counted
+/// questions). Throws for rules v1, retired.
+Map<ExerciseType, OperationQuality> gameQualities({
+  required List<AnswerResult> outcomes,
+  required Map<ExerciseType, Level> frozenLevels,
+  required RulesVersion rulesVersion,
+  required List<ExerciseType> typeSequence,
+}) {
+  final rules = LevelRules.of(rulesVersion);
+  final answered = <ExerciseType, int>{};
+  for (final o in outcomes) {
+    answered[o.exercise.type] = (answered[o.exercise.type] ?? 0) + 1;
+  }
+  return {
+    for (final MapEntry(key: type, value: answers) in _countedAnswers(
+      outcomes,
+      rulesVersion,
+      typeSequence,
+    ).entries)
+      type: () {
+        final level = frozenLevels[type] ?? Level.zero;
+        final fluentMs = fluentTimeMs(type, level, rulesVersion);
+        var credit = 0;
+        for (final a in answers) {
+          credit += answerCreditPercent(
+            answer: a,
+            fluentMs: fluentMs,
+            rules: rules,
+          );
+        }
+        final n = answers.length;
+        return (
+          questions: n,
+          unanswered: n - (answered[type] ?? 0),
+          qualityPercent: credit ~/ n,
+          zone: credit > rules.deadBandHighPercent * n
+              ? QualityZone.up
+              : credit < rules.deadBandLowPercent * n
+              ? QualityZone.down
+              : QualityZone.kept,
+          bandLowPercent: rules.deadBandLowPercent,
+          bandHighPercent: rules.deadBandHighPercent,
+        );
+      }(),
+  };
+}
+
+/// [outcomes] by operation, as the level update counts them: under rules
+/// that count a quit, every planned question — one left unanswered a
+/// timeout.
+Map<ExerciseType, List<AnswerOutcome>> _countedAnswers(
+  List<AnswerResult> outcomes,
+  RulesVersion rulesVersion,
+  List<ExerciseType> typeSequence,
+) {
   final outcomesByType = <ExerciseType, List<AnswerOutcome>>{};
   for (final outcome in outcomes) {
     outcomesByType
@@ -70,20 +164,5 @@ Map<ExerciseType, LevelCacheEntry> gameLevelUpdates({
       }
     }
   }
-
-  final updates = <ExerciseType, LevelCacheEntry>{};
-  for (final MapEntry(key: type, value: answers) in outcomesByType.entries) {
-    final current = frozenLevels[type] ?? Level.zero;
-    updates[type] = LevelCacheEntry(
-      level: levelAfterGame(
-        current: current,
-        answers: answers,
-        fluentMs: fluentTimeMs(type, current, rulesVersion),
-        rules: rules,
-      ),
-      sessionsPlayed: (priorLevels[type]?.sessionsPlayed ?? 0) + 1,
-      updatedAt: now,
-    );
-  }
-  return updates;
+  return outcomesByType;
 }

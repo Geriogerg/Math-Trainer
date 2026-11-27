@@ -452,7 +452,10 @@ class SessionController extends ChangeNotifier {
 
   /// The game's planned order: its type sequence. A config without one
   /// (tests) plans a single operation's questions, or else the answers
-  /// given.
+  /// given. What the level update counts (a quit's missing questions from
+  /// rules v9) — the result screen explains it from the same.
+  List<ExerciseType> get plannedOrder => _plannedOrder();
+
   List<ExerciseType> _plannedOrder() =>
       config.typeSequence ??
       (config.enabledTypes.length == 1

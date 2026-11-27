@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:math_core/generation/exercise_source.dart';
 import 'package:math_core/leveling/level.dart';
+import 'package:math_core/leveling/level_updates.dart';
 import 'package:math_core/leveling/rules_version.dart';
 import 'package:math_core/models/exercise.dart';
 import 'package:math_core/models/exercise_type.dart';
@@ -113,10 +114,11 @@ void main() {
 
     await pumpResultScreen(tester, controller);
 
-    expect(find.textContaining('Addition — level'), findsOneWidget);
-    // The whole level, then a bar for the progress inside it — never the
-    // hundredths as text (owner, end of Phase 1).
-    expect(find.textContaining('('), findsNothing);
+    // Whole levels, the change in hundredths and its reason (plan v4.0,
+    // Phase 6b commit 4: "12 → 12" with the change); the level itself never
+    // in hundredths (owner, end of Phase 1), its progress a bar.
+    expect(find.text('Addition: 50 → 53 (+3.00)'), findsOneWidget);
+    expect(find.text('Quality 100 %: above 72 %, up'), findsOneWidget);
     expect(
       find.bySemanticsLabel('Progress toward the next level'),
       findsOneWidget,
@@ -134,8 +136,10 @@ void main() {
       findsOneWidget,
     );
     expect(find.bySemanticsLabel('Best streak: 4'), findsOneWidget);
-    // Never a percentage presented as progress (`doc/design.md`).
-    expect(find.textContaining('%'), findsNothing);
+    // Never a percentage presented as progress (`doc/design.md`): the only
+    // one is the quality line, the level's reason against its band.
+    expect(find.textContaining('%'), findsOneWidget);
+    expect(find.textContaining('Quality '), findsOneWidget);
   });
 
   testWidgets('Difficulty bonus hidden when it is 0 (level 1, no multiplier)', (
@@ -234,7 +238,7 @@ void main() {
     await pumpResultScreen(tester, controller);
 
     expect(find.text('Session interrupted'), findsOneWidget);
-    expect(find.textContaining('Addition — level'), findsNothing);
+    expect(find.textContaining('Addition: '), findsNothing);
   });
 
   // Rules v9 (`doc/levels.md` v1.6, "Quitting never pays"): the quit counts.
@@ -262,7 +266,12 @@ void main() {
     await pumpResultScreen(tester, controller);
 
     expect(find.text('Session interrupted'), findsOneWidget);
-    expect(find.textContaining('Addition — level 47'), findsOneWidget);
+    // "50 → 47", the change, and why (Phase 6b commit 4, review M16).
+    expect(find.text('Addition: 50 → 47 (−3.00)'), findsOneWidget);
+    expect(
+      find.text('Quality 25 %: below 62 %, down · 3 left, counted as missed'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('Play again and Home trigger their own callbacks', (
@@ -351,6 +360,48 @@ void main() {
     expect(find.text('Not saved'), findsNothing);
     expect(find.text('Retry saving'), findsNothing);
     expect(await repository.recentSessions('test-player'), hasLength(1));
+  });
+
+  group('the level change in words (Phase 6b commit 4, review M16)', () {
+    test('levelChangeText: signed, two decimals, or "no change"', () {
+      expect(levelChangeText(56), '+0.56');
+      expect(levelChangeText(-300), '−3.00');
+      expect(levelChangeText(1205), '+12.05');
+      expect(levelChangeText(0), 'no change');
+    });
+
+    OperationQuality quality(
+      int percent,
+      QualityZone zone, {
+      int unanswered = 0,
+    }) => (
+      questions: 4,
+      unanswered: unanswered,
+      qualityPercent: percent,
+      zone: zone,
+      bandLowPercent: 62,
+      bandHighPercent: 72,
+    );
+
+    test('qualityReason: the band, a bound reached, the questions left', () {
+      expect(
+        qualityReason(quality(80, QualityZone.up), change: 120),
+        'Quality 80 %: above 72 %, up',
+      );
+      expect(
+        qualityReason(quality(66, QualityZone.kept), change: 0),
+        'Quality 66 %: 62–72 %, kept',
+      );
+      expect(
+        qualityReason(quality(25, QualityZone.down, unanswered: 3), change: 0),
+        'Quality 25 %: below 62 %, down (already at 0) · 3 left, counted as '
+        'missed',
+      );
+      expect(
+        qualityReason(quality(100, QualityZone.up), change: 0),
+        'Quality 100 %: above 72 %, up (already at 100)',
+      );
+    });
   });
 }
 

@@ -11,6 +11,7 @@ import 'package:math_core/models/game_setup.dart';
 import 'package:math_core/persistence/level_cache_entry.dart';
 import 'package:math_core/weak_spots/item.dart';
 import '../../composition_root.dart';
+import '../../core/state/hints.dart';
 import '../../core/state/session_controller.dart';
 import '../exercise_type_labels.dart';
 import '../kit/kit.dart';
@@ -73,6 +74,10 @@ class _PlayTabState extends State<PlayTab> {
   /// The Tips page is open (`doc/levels.md` section 8).
   bool _tipsOpen = false;
 
+  /// The first-run card is shown until the player dismisses it (Phase 6b
+  /// commit 4, review M16); never without a hints store (tests).
+  bool _firstRun = false;
+
   bool _isStarting = false;
   String? _startError;
 
@@ -92,6 +97,44 @@ class _PlayTabState extends State<PlayTab> {
     super.initState();
     _loadStartupState();
     _loadSetup();
+    _loadFirstRun();
+  }
+
+  Future<void> _loadFirstRun() async {
+    final hints = widget.environment.hints;
+    if (hints == null) return;
+    try {
+      final seen = await hints.seen(Hint.firstRun);
+      if (!seen && mounted) setState(() => _firstRun = true);
+    } on Exception catch (_) {
+      // Not shown: a store that fails never blocks Home.
+    }
+  }
+
+  void _dismissFirstRun() {
+    setState(() => _firstRun = false);
+    widget.environment.hints?.markSeen(Hint.firstRun).ignore();
+  }
+
+  /// Chain operations' setup, its rules first on the first open (review
+  /// m17: "Get the count and Chain operations open with no rules").
+  Future<void> _openChainSetup() async {
+    final hints = widget.environment.hints;
+    if (hints != null && !await hints.seen(Hint.chainRules)) {
+      if (!mounted) return;
+      await showRules(
+        context,
+        title: 'Chain operations',
+        lines: const [
+          'A number, then one operation a screen. Keep the result in your '
+              'head; type it at the end.',
+          'Practice: it never moves your levels.',
+        ],
+        confirm: null,
+      );
+      await hints.markSeen(Hint.chainRules);
+    }
+    if (mounted) setState(() => _chainSetupOpen = true);
   }
 
   @override
@@ -397,11 +440,13 @@ class _PlayTabState extends State<PlayTab> {
       onToggle: _toggle,
       onPlay: _openSetup,
       onGetTheCount: () => playCount(context, widget.environment),
-      onChainOperations: () => setState(() => _chainSetupOpen = true),
+      onChainOperations: _openChainSetup,
       onTables: () => setState(() => _tablesSetupOpen = true),
       onTips: () => setState(() => _tipsOpen = true),
       weakSpotsDue: _weakSpots?.length,
       onWeakSpots: _startWeakSpots,
+      firstRun: _firstRun,
+      onDismissFirstRun: _dismissFirstRun,
     );
   }
 }
@@ -420,9 +465,15 @@ class _HomeView extends StatelessWidget {
     required this.onTips,
     this.weakSpotsDue,
     this.onWeakSpots,
+    this.firstRun = false,
+    this.onDismissFirstRun,
   });
 
   final int mainLevel;
+
+  /// The first-run card, until dismissed (Phase 6b commit 4).
+  final bool firstRun;
+  final VoidCallback? onDismissFirstRun;
   final int Function(ExerciseType type) levelOf;
   final Set<ExerciseType> Function(ExerciseFamily family) selectionOf;
   final ValueChanged<ExerciseType> onToggle;
@@ -451,6 +502,14 @@ class _HomeView extends StatelessWidget {
               LevelBadge(level: mainLevel),
             ],
           ),
+          const Caption(
+            'Your level: the mean of + − × ÷.',
+            textAlign: TextAlign.end,
+          ),
+          if (firstRun) ...[
+            const SizedBox(height: 12),
+            _FirstRunCard(onDismiss: onDismissFirstRun),
+          ],
           for (final family in ExerciseFamily.values) ...[
             _SectionLabel(switch (family) {
               ExerciseFamily.basics => 'Basics',
@@ -471,6 +530,12 @@ class _HomeView extends StatelessWidget {
                 ],
               ],
             ),
+            Caption(switch (family) {
+              ExerciseFamily.basics =>
+                'Tap the operations to play. Each has its own level, 0–100.',
+              ExerciseFamily.advanced =>
+                'Squares, roots, percentages, integrals: levels of their own.',
+            }),
             const SizedBox(height: 8),
             AppButton.primary(
               key: playButtonKey(family),
@@ -491,6 +556,7 @@ class _HomeView extends StatelessWidget {
           AppCard(
             key: weakSpotsCardKey,
             label: 'Weak spots',
+            caption: 'What you missed, asked again.',
             detail: switch (weakSpotsDue) {
               null => null,
               0 => 'None due',
@@ -499,20 +565,85 @@ class _HomeView extends StatelessWidget {
             onTap: (weakSpotsDue ?? 0) > 0 ? onWeakSpots : null,
           ),
           const _SectionLabel('Challenges'),
-          AppCard(label: 'Get the count', onTap: onGetTheCount),
+          AppCard(
+            label: 'Get the count',
+            caption: 'Reach a target with the numbers given.',
+            onTap: onGetTheCount,
+          ),
           const SizedBox(height: 8),
-          AppCard(label: 'Chain operations', onTap: onChainOperations),
+          AppCard(
+            label: 'Chain operations',
+            caption: 'A running total, kept in your head.',
+            onTap: onChainOperations,
+          ),
           const SizedBox(height: 8),
           // Its own card, under Challenges (`doc/levels.md`, section 7).
-          AppCard(label: 'Tables', onTap: onTables),
+          AppCard(
+            label: 'Tables',
+            caption: 'Times tables, at your pace. Never ranked.',
+            onTap: onTables,
+          ),
           const SizedBox(height: 8),
           // Reached from its own card (`doc/levels.md`, section 8).
-          AppCard(label: 'Tips', onTap: onTips),
+          AppCard(
+            label: 'Tips',
+            caption: 'Shortcuts for every operation and level.',
+            onTap: onTips,
+          ),
         ],
       ),
     );
   }
 }
+
+/// What a newcomer needs before the first game (Phase 6b commit 4, review
+/// M16): how a level moves, in three lines; gone once dismissed.
+class _FirstRunCard extends StatelessWidget {
+  const _FirstRunCard({required this.onDismiss});
+
+  final VoidCallback? onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final metrics = theme.extension<AppMetrics>()!;
+    return Container(
+      key: firstRunCardKey,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(metrics.radius * 0.75),
+        border: Border.all(color: theme.colorScheme.outline),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('How levels work', style: theme.textTheme.titleSmall),
+          const SizedBox(height: 8),
+          Text(
+            'Each operation has a level, 0 to 100. A Levelling game moves '
+            'it: right answers raise it, fast ones most; mistakes, timeouts '
+            'and quitting lower it.',
+            style: theme.textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Training games and Practice never move levels.',
+            style: theme.textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerRight,
+            child: AppButton.secondary(label: 'Got it', onPressed: onDismiss),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The first-run card (tests find it by this key).
+const firstRunCardKey = ValueKey('first-run-card');
 
 class _SectionLabel extends StatelessWidget {
   const _SectionLabel(this.text);
@@ -600,6 +731,13 @@ class _SetupView extends StatelessWidget {
                   onChanged: (n) =>
                       onChanged((s) => s.copyWith(questionsPerOperation: n)),
                 ),
+                Caption(
+                  types.length == 1
+                      ? '${setup.questionsPerOperation} questions.'
+                      : '${setup.questionsPerOperation} per operation: '
+                            '${setup.questionsPerOperation * types.length} '
+                            'questions in all.',
+                ),
                 const _SectionLabel('Mode'),
                 SegmentedChoice<GameMode>(
                   values: GameMode.values,
@@ -610,6 +748,13 @@ class _SetupView extends StatelessWidget {
                   },
                   onChanged: (mode) => onChanged((s) => s.copyWith(mode: mode)),
                 ),
+                Caption(switch (setup.mode) {
+                  GameMode.levelling =>
+                    'Moves your levels. Quitting counts the questions left '
+                        'as missed.',
+                  GameMode.training =>
+                    'A fixed difficulty. Your levels never move.',
+                }),
                 if (setup.mode == GameMode.training) ...[
                   const SizedBox(height: 8),
                   SegmentedChoice<TrainingDifficulty>(
@@ -623,6 +768,7 @@ class _SetupView extends StatelessWidget {
                     onChanged: (difficulty) =>
                         onChanged((s) => s.copyWith(difficulty: difficulty)),
                   ),
+                  const Caption('Easy: level 10 · Medium: 40 · Hard: 70.'),
                 ],
                 const Spacer(),
                 const SizedBox(height: 24),

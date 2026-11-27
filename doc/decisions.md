@@ -2379,3 +2379,28 @@ rules; these are the readings.
 - **`method_for.dart`** (1 067 lines, review m12) is one library in four files — the entry
   and its guards, the building blocks, the families (one exhaustive switch, n6), the
   fallbacks — `part` files, so nothing private became public.
+
+**Commit 4 — explained, not wordy (M15 part, M16, m17 part).**
+
+- **One line, quiet**: every Home and setup control gets one line in the small, muted style
+  (`Caption`, the kit), under the control — never a paragraph, never a tooltip a phone cannot
+  hover. Home: the main level ("the mean of + − × ÷"), each row, each card; setup: the
+  question count in all, what the mode does (Levelling: "Quitting counts the questions left
+  as missed"), Training's levels (10 / 40 / 70). Online: one line per mode.
+- **The result line is "Addition: 12 → 15 (+3.00)"**, whole levels then the change in
+  levels with two decimals ("no change" at 0), and under it the reason: "Quality 80 %: above
+  72 %, up" (62–72 %, kept; below 62 %, down; "already at 0 / 100" when a bound stopped it;
+  "· 3 left, counted as missed" for a v9 quit). The quality is `gameQualities` (core), the
+  same arithmetic as the update — never a second formula. It is a percentage, which
+  `doc/design.md` forbids "presented as progress": it is the game's score against the band
+  that moved the level, not progress, so kept; the test that forbade any "%" now allows that
+  line only. The level itself is never shown in hundredths (owner, Phase 1).
+- **The first-run card** ("How levels work": three sentences, "Got it") sits under the main
+  level until dismissed, remembered on the device (`HintsStore`, `shared_preferences`, one
+  flag per `Hint`). A new device shows it again; an account-wide flag is not worth a table.
+- **Rules before every rated duel, every time** (Start / Cancel), not only the first: a rated
+  duel moves a rating and leaving it is a loss, so one extra tap is the price. A waiting
+  challenge's Play asks too. Get the count and Chain operations show their rules once, on
+  the first open (practice: nothing at stake).
+- **Sign out is confirmed** (a dialog naming what happens); **games not sent yet** are
+  counted under "Recent sessions" when there is a server to send them to.

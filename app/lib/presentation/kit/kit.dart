@@ -6,6 +6,7 @@ library;
 
 export 'app_button.dart';
 export 'app_card.dart';
+export 'caption.dart';
 export 'keypad_key.dart';
 export 'level_badge.dart';
 export 'operation_button.dart';

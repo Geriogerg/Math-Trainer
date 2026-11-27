@@ -1603,8 +1603,8 @@ owner decision, nothing to build).
 | M12 | Server ↔ Supabase boundary untested; no duel end to end | 6a (7) | **part**: the integration job plays it; the staging smoke test plays no duel yet |
 | M13 | A push can cancel a production deployment | 6a (7) | **fixed** |
 | M14 | Empty account on a new device | 6b (5) | open |
-| M15 | Rated duel on one tap, no cancel while waiting | 6b (4, 5) | open |
-| M16 | Nothing explained to a newcomer | 6b (4) | open |
+| M15 | Rated duel on one tap, no cancel while waiting | 6b (4, 5) | **part**: the rules and Start / Cancel before every rated duel (4); Cancel while waiting is 5 |
+| M16 | Nothing explained to a newcomer | 6b (4) | **fixed** (one line under each control, the result's change and its reason, a first-run card, rules of every mode) |
 | M17 | Accessibility | 6b (6) | open |
 | M18 | Missing states around the network | 6b (5) | open |
 | M19 | Stale reference docs | 6b (8); the `CLAUDE.md` "v6 is current" sentence fixed in 6a (0) | part |
@@ -1624,7 +1624,7 @@ owner decision, nothing to build).
 | m14 | Seven replayable rules versions | 6c (6): v2–v6 retired 30 days after v9 | open |
 | m15 | Dead dependencies; `PREVIEW_BUILD` always on | 6a (7) | **fixed** (`structural_features.dart` kept: the Dart half of a parity pair) |
 | m16 | Test gaps (SQL pin counts files, no catalogue test, two server cases) | 6a (7) | **fixed** |
-| m17 | Smaller friction (sign-out, pending uploads, rules of two modes, terms) | 6b (4, 7) | open |
+| m17 | Smaller friction (sign-out, pending uploads, rules of two modes, terms) | 6b (4, 7) | **part**: sign-out confirmed, pending uploads counted, both modes' rules on first open (4); terms are 7 |
 | m18 | No localisation mechanism | 6b (7): strings in one place, English at launch | open |
 | m19 | `doc/decisions.md` unmarked superseded entries; legal README gap | 6b (8); the notice gap with 6c (2) | open |
 | m20 | Pattern families that do not grow with the tier | 6b (1), rules v9 | **fixed** (the size rows, and a median growth test on every family) |
@@ -1982,3 +1982,19 @@ changes what a v9 game draws).
   band), `method_test.dart` updated (the old 2 082 ÷ 6 layout, × 1 and × 10 one line, the
   strategy only where `offersMethod`). `tool/method_examples.dart` prints the review's
   examples; `tool/method_pins.dart` regenerates the pins.
+- **Commit 4** *(C)* — **Explained, not wordy (M15 part, M16, m17 part).** One line under
+  each Home and setup control (`Caption` in the kit; `AppCard.caption`): the main level, each
+  row, each card; the question count in all, what each mode does, Training's levels; one line
+  per duel mode. **The result** reads "Addition: 12 → 15 (+3.00)" and, under it, why: the
+  game's quality against the band ("Quality 80 %: above 72 %, up"; "already at 0"; "3 left,
+  counted as missed") — `gameQualities` (core) shares `gameLevelUpdates`' counting.
+  **First run**: a "How levels work" card under the main level until "Got it" (`HintsStore`,
+  `shared_preferences`). **Rules**: before every rated duel and a waiting challenge's Play
+  (Start / Cancel, `confirmDuel`); Get the count and Chain operations on their first open.
+  **Sign out** asks first; **games not sent yet** are counted on Profile. Tests: core
+  `gameQualities` (1); app — Home's captions, the first-run card (shown, dismissed, never
+  again), Chain's and Get the count's rules (first open only), the setup's lines, the duel
+  rules (Cancel finds nothing, Start finds), a waiting challenge's rules, Sign out (Cancel,
+  then confirm), pending uploads (2, 1, none without a server), `levelChangeText`,
+  `qualityReason`, the hints store (3); 12 goldens re-rendered (Home, setup, Online, result,
+  Method) and read. Run locally: core VM 1309, JavaScript 1034, app 471, analyze clean.

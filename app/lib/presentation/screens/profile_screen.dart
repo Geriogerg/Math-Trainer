@@ -62,6 +62,7 @@ class _ProfileData {
     required this.avgElapsedMs,
     required this.windowSessions,
     required this.recentSessions,
+    this.pendingUploads = 0,
   });
 
   /// Frozen once per load — `_LevelCurve` positions its points relative to
@@ -81,6 +82,10 @@ class _ProfileData {
 
   /// `recentSessions(playerId, limit: 10)`, sorted recent → old.
   final List<PersistedSession> recentSessions;
+
+  /// Games stored here and not yet sent (review m17: pending uploads were
+  /// invisible).
+  final int pendingUploads;
 }
 
 /// Formerly "Progress" (step 5). Renamed Profile in step 6, slice 2: it
@@ -169,6 +174,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           repository.averageElapsedMsByType(playerId),
           repository.sessionsSince(playerId, since),
           repository.recentSessions(playerId, limit: _recentSessionsLimit),
+          // Only with a server to send them to.
+          environment.uploadClient == null
+              ? Future.value(const <PersistedSession>[])
+              : repository.pendingUploads(playerId),
         ]).then(
           (results) => _ProfileData(
             now: now,
@@ -180,6 +189,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 if (!session.rulesVersion.retired) session,
             ],
             recentSessions: results[4] as List<PersistedSession>,
+            pendingUploads: (results[5] as List<PersistedSession>).length,
           ),
         );
     _loadProfile();
@@ -243,6 +253,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // handled here, it is still delivered to the `FutureBuilder` when it
     // subscribes.
     _profile = widget.environment.profileRepository.currentProfile()..ignore();
+  }
+
+  /// Sign out, asked first (review m17: one tap with no confirmation, and
+  /// the app then starts as a new, empty guest).
+  Future<void> _confirmSignOut() async {
+    final go = await showRules(
+      context,
+      title: 'Sign out?',
+      lines: const [
+        'Your games and levels stay with your account: sign in again to '
+            'find them.',
+        'This device starts again as a new guest.',
+      ],
+      confirm: 'Sign out',
+    );
+    if (go) await widget.environment.accountRepository.signOut();
   }
 
   Future<void> _editDisplayName(PlayerProfile profile) async {
@@ -449,7 +475,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ? null
                       : () => _editDisplayName(profile),
                   onRetryProfile: () => setState(_loadProfile),
-                  onSignOut: widget.environment.accountRepository.signOut,
+                  onSignOut: _confirmSignOut,
                   onSaveProgress: () =>
                       _saveProgress(profile, data.recentSessions.isNotEmpty),
                   onSignInExisting: () => _signInExisting(
@@ -510,6 +536,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             const SizedBox(height: 24),
             Text('Recent sessions', style: theme.textTheme.bodyMedium),
+            if (data.pendingUploads > 0)
+              Caption(
+                data.pendingUploads == 1
+                    ? '1 game not sent yet: it goes when the server answers.'
+                    : '${data.pendingUploads} games not sent yet: they go '
+                          'when the server answers.',
+              ),
             const SizedBox(height: 8),
             if (data.recentSessions.isEmpty)
               Text('No session played yet.', style: theme.textTheme.bodyMedium)

@@ -153,6 +153,40 @@ void main() {
       expect(after(all), {for (final e in v8.entries) e.key: e.value.level});
     });
 
+    // Phase 6b commit 4: what the result screen says about each change.
+    test('gameQualities: the quality behind each change, its zone, the '
+        'questions left', () {
+      final q = gameQualities(
+        outcomes: [add(), add()],
+        frozenLevels: {
+          ExerciseType.addition: Level.whole(30),
+          ExerciseType.multiplication: Level.whole(30),
+        },
+        rulesVersion: RulesVersion.v9,
+        typeSequence: planned,
+      );
+      expect(q[ExerciseType.addition], (
+        questions: 4,
+        unanswered: 2,
+        qualityPercent: 50,
+        zone: QualityZone.down,
+        bandLowPercent: 62,
+        bandHighPercent: 72,
+      ));
+      expect(q[ExerciseType.multiplication]!.unanswered, 4);
+      // Finished, all fluent: up; three fluent and a slow one: 96 %, up.
+      final finished = gameQualities(
+        outcomes: [
+          for (var i = 0; i < 3; i++) add(),
+          _answer(OperationType.addition, correct: true, ms: 20000),
+        ],
+        frozenLevels: {ExerciseType.addition: Level.whole(30)},
+        rulesVersion: RulesVersion.v9,
+        typeSequence: List.filled(4, ExerciseType.addition),
+      )[ExerciseType.addition]!;
+      expect((finished.qualityPercent, finished.zone), (96, QualityZone.up));
+    });
+
     test('more answers of an operation than planned throw (rule 13)', () {
       expect(
         () => after([for (var i = 0; i < 5; i++) add()]),

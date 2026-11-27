@@ -194,10 +194,36 @@ void main() {
         matching: find.text('Play'),
       ),
     );
+    await tester.pumpAndSettle();
+    // The rules first (Phase 6b commit 4, review M15), then the duel.
+    expect(find.text('Leaving counts as a loss.'), findsOneWidget);
+    await tester.tap(find.text('Start'));
     await tester.pump();
     await tester.pump();
     expect(find.text('1 / 8'), findsOneWidget);
     expect(find.text('Léa'), findsOneWidget);
+  });
+
+  testWidgets('a mode says its rules before a rated duel: Cancel finds '
+      'nothing, Start finds (Phase 6b commit 4, review M15)', (tester) async {
+    await pumpShell(tester, buildLightTheme());
+    // One line under each mode.
+    expect(find.text('8 questions, 2 each of + − × ÷.'), findsOneWidget);
+    await tester.tap(find.text('Basics'));
+    await tester.pumpAndSettle();
+    expect(find.text('Basics duel'), findsOneWidget);
+    expect(find.textContaining('both ratings move'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(client.finds, isEmpty);
+    expect(find.text('Basics duel'), findsNothing);
+
+    await tester.tap(find.text('Basics'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Start'));
+    await tester.pump();
+    await tester.pump();
+    expect(client.finds.map((f) => f.mode), [DuelMode.basics]);
   });
 
   testWidgets('a guest is invited to save their progress', (tester) async {

@@ -8,6 +8,7 @@ import '../../composition_root.dart';
 import '../../core/state/account_form_controller.dart';
 import '../../core/state/online_controller.dart';
 import '../duel/duel_flow_screen.dart';
+import '../duel/duel_rules.dart';
 import '../duel/duel_texts.dart';
 import '../kit/kit.dart';
 import '../theme/app_theme.dart';
@@ -153,8 +154,14 @@ class _OnlineScreenState extends State<OnlineScreen> {
                 final r = controller.rating(mode);
                 return ratingText(r.rating, provisional: r.provisional);
               }(),
-              onTap: () =>
-                  _play(context, controller, (client) => client.find(mode)),
+              caption: duelModeRule(mode),
+              onTap: () async {
+                // The rules first, every time (review M15: a rated duel
+                // started on one tap).
+                if (!await confirmDuel(context, mode)) return;
+                if (!context.mounted) return;
+                await _play(context, controller, (client) => client.find(mode));
+              },
             ),
             const SizedBox(height: 6),
           ],
@@ -170,11 +177,15 @@ class _OnlineScreenState extends State<OnlineScreen> {
                 trailing: AppButton.primary(
                   label: 'Play',
                   compact: true,
-                  onPressed: () => _play(
-                    context,
-                    controller,
-                    (client) => client.open(challenge.duelId),
-                  ),
+                  onPressed: () async {
+                    if (!await confirmDuel(context, challenge.mode)) return;
+                    if (!context.mounted) return;
+                    await _play(
+                      context,
+                      controller,
+                      (client) => client.open(challenge.duelId),
+                    );
+                  },
                 ),
               ),
           ],

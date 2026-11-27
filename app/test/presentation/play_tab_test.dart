@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:math_trainer/composition_root.dart';
+import 'package:math_trainer/core/state/hints.dart';
 import 'package:math_core/challenges/chain.dart';
 import 'package:math_core/challenges/tables.dart';
 import 'package:math_core/leveling/level.dart';
@@ -90,6 +91,7 @@ void main() {
     FakeGameSetupStore? setup,
     FakeChainSetupStore? chainSetup,
     FakeTablesStore? tables,
+    FakeHintsStore? hints,
   }) => AppEnvironment(
     repository: repository,
     playerId: 'test-player',
@@ -99,6 +101,7 @@ void main() {
     gameSetupStore: setup ?? FakeGameSetupStore(),
     chainSetupStore: chainSetup ?? FakeChainSetupStore(),
     tablesStore: tables ?? FakeTablesStore(),
+    hints: hints,
   );
 
   testWidgets('a new player lands on Home, every level at 0 — no placement '
@@ -126,8 +129,16 @@ void main() {
       expect(find.text('42'), findsOneWidget);
       // Never played: shown at 0, where everyone starts.
       expect(find.text('0'), findsNWidgets(7));
-      // No explanatory sentence: labels only.
-      expect(find.textContaining('.'), findsNothing);
+      // One line under each control (Phase 6b commit 4, review M16: the
+      // Redesign's "labels only" relaxed for strangers).
+      for (final line in [
+        'Your level: the mean of + − × ÷.',
+        'Tap the operations to play. Each has its own level, 0–100.',
+        'Reach a target with the numbers given.',
+        'Times tables, at your pace. Never ranked.',
+      ]) {
+        expect(find.text(line), findsOneWidget, reason: line);
+      }
       // Each row's Play says which row to screen readers (and to the
       // smoke test, tool/smoke/preview_smoke.mjs).
       expect(find.bySemanticsLabel('Play Basics'), findsOneWidget);
@@ -183,6 +194,102 @@ void main() {
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
     expect(find.text('Basics'), findsOneWidget);
+  });
+
+  group('first run (Phase 6b commit 4, review M16)', () {
+    testWidgets('the card says how levels move, until "Got it"', (
+      tester,
+    ) async {
+      final hints = FakeHintsStore();
+      final repository = await _playedRepository();
+      await pumpPlayTab(tester, environmentWith(repository, hints: hints));
+      expect(find.byKey(firstRunCardKey), findsOneWidget);
+      expect(find.text('How levels work'), findsOneWidget);
+      expect(
+        find.text('Training games and Practice never move levels.'),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('Got it'));
+      await tester.pumpAndSettle();
+      expect(find.byKey(firstRunCardKey), findsNothing);
+      expect(hints.seenHints, {Hint.firstRun});
+
+      // Seen: never again.
+      await tester.pumpWidget(const SizedBox());
+      await pumpPlayTab(tester, environmentWith(repository, hints: hints));
+      expect(find.byKey(firstRunCardKey), findsNothing);
+    });
+
+    testWidgets('Chain operations: its rules on the first open only', (
+      tester,
+    ) async {
+      final hints = FakeHintsStore({Hint.firstRun});
+      await pumpPlayTab(
+        tester,
+        environmentWith(await _playedRepository(), hints: hints),
+      );
+      await tester.tap(find.text('Chain operations'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Keep the result in your head'), findsOne);
+      expect(find.text('Seconds'), findsNothing);
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+      expect(find.text('Seconds'), findsOneWidget);
+      expect(hints.seenHints, contains(Hint.chainRules));
+
+      await tester.tap(find.byTooltip('Back'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Chain operations'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Keep the result in your head'), findsNothing);
+      expect(find.text('Seconds'), findsOneWidget);
+    });
+
+    testWidgets('Get the count: its rules on the first open', (tester) async {
+      final hints = FakeHintsStore({Hint.firstRun});
+      await pumpPlayTab(
+        tester,
+        environmentWith(await _playedRepository(), hints: hints),
+      );
+      await tester.ensureVisible(find.text('Get the count'));
+      await tester.tap(find.text('Get the count'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('each number once at most'), findsOneWidget);
+      expect(hints.seenHints, isNot(contains(Hint.countRules)));
+      await tester.tap(find.text('OK'));
+      await tester.pump();
+      expect(hints.seenHints, contains(Hint.countRules));
+    });
+
+    testWidgets('the setup says what each choice does', (tester) async {
+      await pumpPlayTab(
+        tester,
+        environmentWith(
+          await _playedRepository(),
+          selection: FakeTypeSelectionStore({
+            ExerciseType.addition,
+            ExerciseType.multiplication,
+          }),
+          setup: FakeGameSetupStore(GameSetup(questionsPerOperation: 10)),
+        ),
+      );
+      await tester.tap(find.byKey(playButtonKey(ExerciseFamily.basics)));
+      await tester.pumpAndSettle();
+      expect(find.text('10 per operation: 20 questions in all.'), findsOne);
+      expect(
+        find.text(
+          'Moves your levels. Quitting counts the questions left as missed.',
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('Training'));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('A fixed difficulty. Your levels never move.'),
+        findsOne,
+      );
+      expect(find.text('Easy: level 10 · Medium: 40 · Hard: 70.'), findsOne);
+    });
   });
 
   group('Tables mode (doc/levels.md section 7)', () {
