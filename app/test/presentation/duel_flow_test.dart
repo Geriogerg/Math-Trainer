@@ -14,6 +14,7 @@ import 'package:math_trainer/presentation/strings/method_labels.dart';
 import 'package:math_trainer/presentation/duel/duel_flow_screen.dart';
 import 'package:math_trainer/presentation/screens/session_screen.dart';
 import 'package:math_trainer/presentation/theme/app_theme.dart';
+import 'package:math_trainer/presentation/strings/strings.dart';
 
 import '../fake_account_repository.dart';
 import '../fake_duel_client.dart';
@@ -83,6 +84,9 @@ void main() {
     ).forPlayer('me');
     await tester.pumpWidget(
       MaterialApp(
+        locale: testLocale,
+        supportedLocales: testLocales,
+        localizationsDelegates: testLocalizations,
         theme: theme,
         home: DuelFlowScreen(
           environment: environment,
@@ -217,6 +221,9 @@ void main() {
       ).forPlayer('me');
       await tester.pumpWidget(
         MaterialApp(
+          locale: testLocale,
+          supportedLocales: testLocales,
+          localizationsDelegates: testLocalizations,
           theme: buildLightTheme(),
           home: Builder(
             builder: (context) => Center(
@@ -279,6 +286,9 @@ void main() {
       ).forPlayer('me');
       await tester.pumpWidget(
         MaterialApp(
+          locale: testLocale,
+          supportedLocales: testLocales,
+          localizationsDelegates: testLocalizations,
           theme: buildLightTheme(),
           home: DuelFlowScreen(
             environment: environment,
@@ -322,6 +332,9 @@ void main() {
     ).forPlayer('me');
     await tester.pumpWidget(
       MaterialApp(
+        locale: testLocale,
+        supportedLocales: testLocales,
+        localizationsDelegates: testLocalizations,
         theme: buildLightTheme(),
         home: DuelFlowScreen(
           environment: environment,
@@ -348,6 +361,9 @@ void main() {
     ).forPlayer('me');
     await tester.pumpWidget(
       MaterialApp(
+        locale: testLocale,
+        supportedLocales: testLocales,
+        localizationsDelegates: testLocalizations,
         theme: buildLightTheme(),
         home: DuelFlowScreen(
           environment: environment,
@@ -357,5 +373,29 @@ void main() {
     );
     await tester.pump();
     expect(find.text('Save your progress to play online.'), findsOneWidget);
+  });
+
+  testWidgets('a duel: lanes, result, rematch — French, 360 px', (
+    tester,
+  ) async {
+    useFrench();
+    await pumpDuel(tester, buildLightTheme());
+    await expectFrenchAt360(tester, 'duel_start', settle: false);
+    await tester.pump();
+    for (final value in answers.take(4)) {
+      await type(tester, value);
+    }
+    await tester.pump(const Duration(milliseconds: 250));
+    await expectFrenchAt360(tester, 'duel', settle: false);
+    for (final value in answers.skip(4)) {
+      await type(tester, value);
+    }
+    await tester.pump();
+    await tester.pump();
+    await expectFrenchAt360(tester, 'duel_result', settle: false);
+    await tester.tap(find.text(strings.online.rematch));
+    await tester.pump();
+    await tester.pump();
+    await expectFrenchAt360(tester, 'duel_count', settle: false);
   });
 }

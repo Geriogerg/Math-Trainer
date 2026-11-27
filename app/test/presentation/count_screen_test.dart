@@ -136,6 +136,9 @@ void main() {
     addTearDown(c.dispose);
     await tester.pumpWidget(
       MaterialApp(
+        locale: testLocale,
+        supportedLocales: testLocales,
+        localizationsDelegates: testLocalizations,
         debugShowCheckedModeBanner: false,
         theme: theme,
         home: Scaffold(
@@ -201,4 +204,26 @@ void main() {
       );
     });
   }
+
+  testWidgets('get the count — French, 360 px', (tester) async {
+    useFrench();
+    final c = await pumpScreen(tester, buildLightTheme());
+    for (var i = 0; i < 14; i++) {
+      tick();
+    }
+    c.tapTile(0);
+    c.tapOperator(CountOperator.multiply);
+    c.tapTile(4);
+    c.tapTile(6);
+    await expectFrenchAt360(tester, 'count', settle: false);
+  });
+
+  testWidgets('get the count correction — French, 360 px', (tester) async {
+    useFrench();
+    await pumpScreen(tester, buildLightTheme());
+    for (var i = 0; i < 45; i++) {
+      tick();
+    }
+    await expectFrenchAt360(tester, 'count_correction', settle: false);
+  });
 }

@@ -427,7 +427,7 @@ class _MistakeLine extends StatelessWidget {
             Icons.hourglass_empty,
             size: 18,
             color: muted,
-            semanticLabel: strings.game.timedOut,
+            semanticLabel: strings.game.timesUp,
           )
         else
           Text(

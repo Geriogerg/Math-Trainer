@@ -143,6 +143,9 @@ void main() {
 
         await tester.pumpWidget(
           MaterialApp(
+            locale: testLocale,
+            supportedLocales: testLocales,
+            localizationsDelegates: testLocalizations,
             theme: mode.theme,
             home: Scaffold(
               body: ResultScreen(
@@ -167,5 +170,34 @@ void main() {
         );
       });
     }
+  }
+
+  for (final (scenario, build) in [
+    ('', buildFinishedController),
+    ('_mistakes', buildControllerWithMistakes),
+  ]) {
+    testWidgets('result screen$scenario — French, 360 px', (tester) async {
+      useFrench();
+      final controller = await build();
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: testLocale,
+          supportedLocales: testLocales,
+          localizationsDelegates: testLocalizations,
+          theme: buildLightTheme(),
+          home: Scaffold(
+            body: ResultScreen(
+              controller: controller,
+              onPlayAgain: () {},
+              onExitToSelection: () {},
+              isRestarting: false,
+              restartError: null,
+            ),
+          ),
+        ),
+      );
+      await expectFrenchAt360(tester, 'result$scenario', height: 1400);
+    });
   }
 }

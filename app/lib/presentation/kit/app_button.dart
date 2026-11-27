@@ -86,7 +86,12 @@ class AppButton extends StatelessWidget {
                   : theme.colorScheme.primary,
             ),
           )
-        : Text(label, semanticsLabel: semanticLabel);
+        // A label that wraps (a long one, at 360 px) stays centred.
+        : Text(
+            label,
+            semanticsLabel: semanticLabel,
+            textAlign: TextAlign.center,
+          );
     final action = busy ? null : onPressed;
     if (_primary) {
       return FilledButton(

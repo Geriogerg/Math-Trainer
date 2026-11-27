@@ -12,6 +12,7 @@ import 'package:math_trainer/composition_root.dart';
 import 'package:math_trainer/presentation/screens/app_shell.dart';
 import 'package:math_trainer/presentation/screens/play_tab.dart';
 import 'package:math_trainer/presentation/theme/app_theme.dart';
+import 'package:math_trainer/presentation/strings/strings.dart';
 
 import '../fake_account_repository.dart';
 import '../fake_profile_repository.dart';
@@ -92,6 +93,9 @@ void main() {
       final environment = await tester.runAsync(_environment);
       await tester.pumpWidget(
         MaterialApp(
+          locale: testLocale,
+          supportedLocales: testLocales,
+          localizationsDelegates: testLocalizations,
           debugShowCheckedModeBanner: false,
           theme: theme,
           home: AppShell(environment: environment!),
@@ -120,8 +124,8 @@ void main() {
 
     testWidgets('tables setup — $name', (tester) async {
       await pumpShell(tester);
-      await tester.scrollUntilVisible(find.text('Tables'), 100);
-      await tester.tap(find.text('Tables'));
+      await tester.scrollUntilVisible(find.text(strings.home.tables), 100);
+      await tester.tap(find.text(strings.home.tables));
       await tester.pumpAndSettle();
       await expectLater(
         find.byType(MaterialApp),
@@ -129,4 +133,46 @@ void main() {
       );
     });
   }
+
+  Future<void> pumpFrench(WidgetTester tester) async {
+    useFrench();
+    final environment = await tester.runAsync(_environment);
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: testLocale,
+        supportedLocales: testLocales,
+        localizationsDelegates: testLocalizations,
+        debugShowCheckedModeBanner: false,
+        theme: buildLightTheme(),
+        home: AppShell(environment: environment!),
+      ),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('home — French, 360 px', (tester) async {
+    await pumpFrench(tester);
+    await expectFrenchAt360(tester, 'home', height: 1200);
+  });
+
+  for (final family in [ExerciseFamily.basics, ExerciseFamily.advanced]) {
+    testWidgets('${family.name} setup — French, 360 px', (tester) async {
+      await pumpFrench(tester);
+      if (family == ExerciseFamily.advanced) {
+        // None of the row is selected: x² first, or Play is inert.
+        final power = strings.labels.exerciseType(ExerciseType.power);
+        await tester.tap(find.bySemanticsLabel(RegExp('^$power')));
+        await tester.pumpAndSettle();
+      }
+      await tester.tap(find.byKey(playButtonKey(family)));
+      await expectFrenchAt360(tester, '${family.name}_setup', height: 900);
+    });
+  }
+
+  testWidgets('tables setup — French, 360 px', (tester) async {
+    await pumpFrench(tester);
+    await tester.scrollUntilVisible(find.text(strings.home.tables), 100);
+    await tester.tap(find.text(strings.home.tables));
+    await expectFrenchAt360(tester, 'tables_setup', height: 900);
+  });
 }

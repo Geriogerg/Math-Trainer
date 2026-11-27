@@ -105,6 +105,10 @@ ThemeData _buildTheme({
     colorScheme: colorScheme,
     fontFamily: _fontFamily,
     scaffoldBackgroundColor: colorScheme.surface,
+    // A field's error is a sentence ("Ce code n’est pas valide. Vérifie-le
+    // sur ton invitation."): Material shows one line and cuts the rest,
+    // which French reached at 360 px (Phase 6d commit 5).
+    inputDecorationTheme: const InputDecorationTheme(errorMaxLines: 3),
   );
 
   return base.copyWith(

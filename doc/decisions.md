@@ -2829,3 +2829,21 @@ report. The owner's rules: "tu", short and direct like the English; 2 468 in bot
   change in Profile; the email follows the last language the player chose. Kept in the
   user's metadata (no new table, nothing to delete apart from the account); named in the
   privacy policy.
+
+**Commit 5 — no English left.**
+
+- **The check is source plus screens, not a list of keys** (provisional): Dart has no
+  reflection in Flutter tests, so the interfaces make a missing member a compile error, the
+  source test catches a copied English literal and an identical table entry, and the 360 px
+  renders catch English on screen whatever its origin. A word-level allowlist (13 entries,
+  each with its reason) is the price.
+- **Fixed rather than flagged**, each by shortening the French (the owner's "short and
+  direct"), except two layout changes that help English too: every field's error gets 3
+  lines (theme), a wrapped button label is centred. Left as they are, wrapping but fitting:
+  Online's Advanced line, the setup's Training caption, the guest's status line, the sign-in
+  hint on Home — each takes a second line in French where English takes one; nothing cut.
+- **"Expirées"** for the result's timed-out tile (agrees with "Justes", "Fausses": the
+  questions), **"Saisir un code"**, **"Sauvegarder"** and **"Mot de passe oublié"** as
+  titles — to confirm by the owner.
+- **Tips' examples grouped in both languages** (2 468): plan v4.2's rule; the English had
+  missed it since commit 1.

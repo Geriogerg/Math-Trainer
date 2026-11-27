@@ -99,7 +99,7 @@ class FrenchGameStrings implements GameStrings {
   final wrongCount = 'Fausses';
 
   @override
-  final timedOut = 'Temps écoulé';
+  final timedOut = 'Expirées';
 
   @override
   final averageTime = 'Temps moyen';
@@ -174,10 +174,15 @@ class FrenchGameStrings implements GameStrings {
         : '';
     final left = q.unanswered == 0
         ? ''
-        : ' · ${q.unanswered} restantes, comptées ratées';
-    return '${q.right} justes, ${q.fast} rapides, sur ${q.questions}\u202f: '
+        : ' · ${_count(q.unanswered, 'restante, comptée ratée', 'restantes, comptées ratées')}';
+    return '${_count(q.right, 'juste', 'justes')}, '
+        '${_count(q.fast, 'rapide', 'rapides')}, sur ${q.questions}\u202f: '
         '$zone$bound$left';
   }
+
+  /// [n] and its word: singular for 0 and 1, as French counts.
+  static String _count(int n, String one, String many) =>
+      '$n ${n < 2 ? one : many}';
 
   @override
   final undo = 'Annuler';

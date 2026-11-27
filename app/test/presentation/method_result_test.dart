@@ -17,6 +17,7 @@ import 'package:math_trainer/presentation/screens/result_screen.dart';
 import 'package:math_trainer/presentation/screens/tips_view.dart';
 import 'package:math_trainer/presentation/theme/app_theme.dart';
 import 'package:math_trainer/presentation/strings/tips.dart';
+import 'package:math_trainer/presentation/strings/strings.dart';
 
 import 'golden_test_utils.dart';
 
@@ -106,6 +107,9 @@ Future<void> _pump(
 }) async {
   await tester.pumpWidget(
     MaterialApp(
+      locale: testLocale,
+      supportedLocales: testLocales,
+      localizationsDelegates: testLocalizations,
       theme: theme ?? buildLightTheme(),
       home: Scaffold(
         body: ResultScreen(
@@ -186,6 +190,9 @@ void main() {
     );
     await tester.pumpWidget(
       MaterialApp(
+        locale: testLocale,
+        supportedLocales: testLocales,
+        localizationsDelegates: testLocalizations,
         theme: buildLightTheme(),
         home: Scaffold(
           body: TipsView(
@@ -210,6 +217,9 @@ void main() {
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
       MaterialApp(
+        locale: testLocale,
+        supportedLocales: testLocales,
+        localizationsDelegates: testLocalizations,
         theme: buildLightTheme(),
         home: Scaffold(
           body: TipsView(
@@ -243,4 +253,15 @@ void main() {
       );
     });
   }
+
+  testWidgets('result screen with a Method open — French, 360 px', (
+    tester,
+  ) async {
+    useFrench();
+    final controller = await _finished();
+    addTearDown(controller.dispose);
+    await _pump(tester, controller, onMoreTips: (_, _) {});
+    await _tap(tester, find.text(strings.game.method).first);
+    await expectFrenchAt360(tester, 'result_method', height: 1400);
+  });
 }

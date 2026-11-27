@@ -57,10 +57,12 @@ class FrenchAccountStrings implements AccountStrings {
       'et sauvegarde ta progression avec un nouvel e-mail.';
 
   @override
-  final signInReplacing = 'Se connecter et remplacer la progression';
+  // One line in a button at 360 px; the warning above says what goes.
+  final signInReplacing = 'Se connecter et remplacer';
 
   @override
-  final saveProgress = 'Sauvegarde ta progression';
+  // An app bar's one line at 360 px: "Sauvegarde ta progression" was cut.
+  final saveProgress = 'Sauvegarder';
 
   @override
   final saveProgressMissing =
@@ -127,7 +129,8 @@ class FrenchAccountStrings implements AccountStrings {
   final forgotPassword = 'Mot de passe oublié\u202f?';
 
   @override
-  final resetTitle = 'Réinitialiser ton mot de passe';
+  // An app bar's one line at 360 px; the link's own words.
+  final resetTitle = 'Mot de passe oublié';
 
   @override
   final resetDetail =

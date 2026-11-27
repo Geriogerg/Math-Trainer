@@ -74,6 +74,9 @@ void main() {
     await setGoldenSurfaceSize(tester);
     await tester.pumpWidget(
       MaterialApp(
+        locale: testLocale,
+        supportedLocales: testLocales,
+        localizationsDelegates: testLocalizations,
         theme: theme ?? buildLightTheme(),
         home: Scaffold(
           body: TipsView(
@@ -110,6 +113,9 @@ void main() {
     Tip? drilled;
     await tester.pumpWidget(
       MaterialApp(
+        locale: testLocale,
+        supportedLocales: testLocales,
+        localizationsDelegates: testLocalizations,
         theme: buildLightTheme(),
         home: Scaffold(
           body: TipsView(
@@ -147,4 +153,10 @@ void main() {
       );
     });
   }
+
+  testWidgets('tips — French, 360 px', (tester) async {
+    useFrench();
+    await pumpTips(tester, {ExerciseType.addition: Level.whole(37)});
+    await expectFrenchAt360(tester, 'tips', height: 1200);
+  });
 }

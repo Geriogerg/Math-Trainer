@@ -19,6 +19,9 @@ void main() {
       await setGoldenSurfaceSize(tester);
       await tester.pumpWidget(
         MaterialApp(
+          locale: testLocale,
+          supportedLocales: testLocales,
+          localizationsDelegates: testLocalizations,
           debugShowCheckedModeBanner: false,
           theme: theme,
           home: LegalScreen(
@@ -33,6 +36,23 @@ void main() {
         find.byType(MaterialApp),
         matchesGoldenFile('goldens/legal_$name.png'),
       );
+    });
+  }
+
+  for (final page in LegalPage.values) {
+    testWidgets('legal page ${page.name} — French, 360 px', (tester) async {
+      useFrench();
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: testLocale,
+          supportedLocales: testLocales,
+          localizationsDelegates: testLocalizations,
+          debugShowCheckedModeBanner: false,
+          theme: buildLightTheme(),
+          home: LegalScreen(page: page, details: const {}, languageCode: 'fr'),
+        ),
+      );
+      await expectFrenchAt360(tester, 'legal_${page.name}');
     });
   }
 }

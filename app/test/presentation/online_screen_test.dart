@@ -11,6 +11,7 @@ import 'package:math_trainer/composition_root.dart';
 import 'package:math_trainer/core/state/hints.dart';
 import 'package:math_trainer/presentation/screens/app_shell.dart';
 import 'package:math_trainer/presentation/theme/app_theme.dart';
+import 'package:math_trainer/presentation/strings/strings.dart';
 
 import '../fake_account_repository.dart';
 import '../fake_duel_client.dart';
@@ -100,12 +101,15 @@ void main() {
     ).forPlayer('me');
     await tester.pumpWidget(
       MaterialApp(
+        locale: testLocale,
+        supportedLocales: testLocales,
+        localizationsDelegates: testLocalizations,
         theme: theme,
         home: AppShell(environment: environment),
       ),
     );
     await tester.pump();
-    await tester.tap(find.text('Online'));
+    await tester.tap(find.text(strings.online.tabOnline));
     await tester.pumpAndSettle();
   }
 
@@ -176,7 +180,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Online'));
+    await tester.tap(find.text(strings.online.tabOnline));
     await tester.pumpAndSettle();
     expect(tester.widget<Badge>(find.byType(Badge)).isLabelVisible, isFalse);
     expect(online.reads, greaterThanOrEqualTo(2));
@@ -310,5 +314,24 @@ void main() {
     await pumpShell(tester, buildLightTheme());
     expect(find.text('Save your progress'), findsOneWidget);
     expect(find.text('Basics'), findsNothing);
+  });
+
+  testWidgets('the Online tab — French, 360 px', (tester) async {
+    useFrench();
+    await pumpShell(tester, buildLightTheme());
+    await expectFrenchAt360(tester, 'online', height: 1300);
+  });
+
+  testWidgets("a mode's rules, and every mode's — French, 360 px", (
+    tester,
+  ) async {
+    useFrench();
+    await pumpShell(tester, buildLightTheme(), hints: FakeHintsStore());
+    await tester.tap(find.text(strings.labels.duelMode(DuelMode.advanced)));
+    await expectFrenchAt360(tester, 'duel_rules_advanced');
+    await tester.tap(find.text(strings.common.cancel));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(strings.online.rulesLink));
+    await expectFrenchAt360(tester, 'duel_rules_all');
   });
 }

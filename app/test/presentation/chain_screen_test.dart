@@ -125,6 +125,9 @@ void main() {
     addTearDown(c.dispose);
     await tester.pumpWidget(
       MaterialApp(
+        locale: testLocale,
+        supportedLocales: testLocales,
+        localizationsDelegates: testLocalizations,
         debugShowCheckedModeBanner: false,
         theme: theme,
         home: Scaffold(
@@ -205,4 +208,23 @@ void main() {
       );
     });
   }
+
+  testWidgets('chain — French, 360 px', (tester) async {
+    useFrench();
+    await pumpScreen(tester, buildLightTheme());
+    for (var i = 0; i < 8; i++) {
+      fire();
+    }
+    await expectFrenchAt360(tester, 'chain', settle: false);
+  });
+
+  testWidgets('chain correction — French, 360 px', (tester) async {
+    useFrench();
+    final c = await pumpScreen(tester, buildLightTheme());
+    for (var i = 0; i < 11; i++) {
+      fire();
+    }
+    c.submit(98);
+    await expectFrenchAt360(tester, 'chain_correction', settle: false);
+  });
 }

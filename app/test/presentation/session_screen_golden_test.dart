@@ -121,6 +121,9 @@ void main() {
 
         await tester.pumpWidget(
           MaterialApp(
+            locale: testLocale,
+            supportedLocales: testLocales,
+            localizationsDelegates: testLocalizations,
             theme: mode.theme,
             home: Scaffold(
               body: SessionScreen(controller: controller, onQuit: () {}),
@@ -139,5 +142,40 @@ void main() {
         );
       });
     }
+  }
+
+  for (final (scenario, correcting, integral, stacked) in [
+    ('', false, false, false),
+    ('_correction', true, false, false),
+    ('_integral', false, true, false),
+    ('_stacked', false, false, true),
+  ]) {
+    testWidgets('session screen$scenario — French, 360 px', (tester) async {
+      useFrench();
+      final controller = buildController(
+        correcting: correcting,
+        integral: integral,
+        stacked: stacked,
+      );
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: testLocale,
+          supportedLocales: testLocales,
+          localizationsDelegates: testLocalizations,
+          theme: buildLightTheme(),
+          home: Scaffold(
+            body: SessionScreen(controller: controller, onQuit: () {}),
+          ),
+        ),
+      );
+      // The small phone of the layout pin: 360 × 640.
+      await expectFrenchAt360(
+        tester,
+        'session$scenario',
+        height: 640,
+        settle: false,
+      );
+    });
   }
 }

@@ -4,6 +4,7 @@ import 'package:math_core/account/beta_access.dart';
 import 'package:math_trainer/core/state/beta_gate_controller.dart';
 import 'package:math_trainer/presentation/screens/beta_gate_screen.dart';
 import 'package:math_trainer/presentation/theme/app_theme.dart';
+import 'package:math_trainer/presentation/strings/strings.dart';
 
 import 'golden_test_utils.dart';
 
@@ -42,6 +43,9 @@ void main() {
       addTearDown(controller.dispose);
       await tester.pumpWidget(
         MaterialApp(
+          locale: testLocale,
+          supportedLocales: testLocales,
+          localizationsDelegates: testLocalizations,
           debugShowCheckedModeBanner: false,
           theme: theme,
           home: BetaGateScreen(controller: controller, onSignIn: () {}),
@@ -56,4 +60,27 @@ void main() {
       );
     });
   }
+
+  testWidgets('beta gate, a wrong code — French, 360 px', (tester) async {
+    useFrench();
+    final controller = BetaGateController(
+      codes: _Unknown(),
+      store: _Store(),
+      onAccepted: () {},
+    );
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: testLocale,
+        supportedLocales: testLocales,
+        localizationsDelegates: testLocalizations,
+        debugShowCheckedModeBanner: false,
+        theme: buildLightTheme(),
+        home: BetaGateScreen(controller: controller, onSignIn: () {}),
+      ),
+    );
+    await tester.enterText(find.byType(TextField), 'K7QP-2X9M');
+    await tester.tap(find.text(strings.account.continueLabel));
+    await expectFrenchAt360(tester, 'beta_gate');
+  });
 }

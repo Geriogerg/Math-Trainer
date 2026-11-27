@@ -136,6 +136,9 @@ void main() {
     await setGoldenSurfaceSize(tester);
     await tester.pumpWidget(
       MaterialApp(
+        locale: testLocale,
+        supportedLocales: testLocales,
+        localizationsDelegates: testLocalizations,
         theme: theme,
         home: FriendsScreen(environment: environment(sharer: sharer)),
       ),
@@ -393,6 +396,9 @@ void main() {
     await setGoldenSurfaceSize(tester);
     await tester.pumpWidget(
       MaterialApp(
+        locale: testLocale,
+        supportedLocales: testLocales,
+        localizationsDelegates: testLocalizations,
         theme: buildLightTheme(),
         home: AppShell(environment: environment(online: online)),
       ),
@@ -416,5 +422,22 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('friends-pill')));
     await tester.pumpAndSettle();
     expect(find.text('MATH-7K2P-QX4M'), findsOneWidget);
+  });
+
+  testWidgets('the Friends page and Add code — French, 360 px', (tester) async {
+    useFrench();
+    await pumpFriends(tester, buildLightTheme());
+    await expectFrenchAt360(tester, 'friends', height: 1000);
+    await tester.tap(find.text(strings.online.addCode));
+    await expectFrenchAt360(tester, 'friends_add_code');
+  });
+
+  testWidgets('a challenge: the mode, then its rules — French, 360 px', (
+    tester,
+  ) async {
+    useFrench();
+    await pumpFriends(tester, buildLightTheme());
+    await tester.tap(find.text(strings.online.challenge).first);
+    await expectFrenchAt360(tester, 'challenge_mode');
   });
 }

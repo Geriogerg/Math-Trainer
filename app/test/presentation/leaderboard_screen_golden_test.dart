@@ -9,6 +9,8 @@ import 'package:math_trainer/presentation/theme/app_theme.dart';
 
 import '../fake_account_repository.dart';
 import '../fake_profile_repository.dart';
+import 'package:math_trainer/presentation/strings/strings.dart';
+
 import 'golden_test_utils.dart';
 
 class _FixedLeaderboard implements LeaderboardRepository {
@@ -60,6 +62,9 @@ void main() {
       await setGoldenSurfaceSize(tester);
       await tester.pumpWidget(
         MaterialApp(
+          locale: testLocale,
+          supportedLocales: testLocales,
+          localizationsDelegates: testLocalizations,
           debugShowCheckedModeBanner: false,
           theme: theme,
           home: Scaffold(
@@ -84,4 +89,60 @@ void main() {
       );
     });
   }
+
+  testWidgets('leaderboard, around me — French, 360 px', (tester) async {
+    useFrench();
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: testLocale,
+        supportedLocales: testLocales,
+        localizationsDelegates: testLocalizations,
+        debugShowCheckedModeBanner: false,
+        theme: buildLightTheme(),
+        home: Scaffold(
+          body: SafeArea(
+            child: LeaderboardScreen(
+              environment: AppEnvironment(
+                repository: InMemorySessionRepository(),
+                playerId: 'me',
+                accountRepository: FakeAccountRepository(),
+                profileRepository: FakeProfileRepository(),
+                leaderboardRepository: _FixedLeaderboard(),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await expectFrenchAt360(tester, 'leaderboard', height: 1000);
+  });
+
+  testWidgets('report a name — French, 360 px', (tester) async {
+    useFrench();
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: testLocale,
+        supportedLocales: testLocales,
+        localizationsDelegates: testLocalizations,
+        debugShowCheckedModeBanner: false,
+        theme: buildLightTheme(),
+        home: Scaffold(
+          body: SafeArea(
+            child: LeaderboardScreen(
+              environment: AppEnvironment(
+                repository: InMemorySessionRepository(),
+                playerId: 'me',
+                accountRepository: FakeAccountRepository(),
+                profileRepository: FakeProfileRepository(),
+                leaderboardRepository: _FixedLeaderboard(),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip(strings.ranks.reportName).first);
+    await expectFrenchAt360(tester, 'report_name');
+  });
 }

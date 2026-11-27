@@ -413,6 +413,24 @@ void main() {
         );
       }
     });
+
+    // Phase 6d commit 5: French counts 0 and 1 in the singular.
+    test('qualityReason in French: singular for 0 and 1', () {
+      appLanguage.value = AppLanguage.french;
+      addTearDown(() => appLanguage.value = AppLanguage.english);
+      expect(
+        strings.game.qualityReason(
+          quality(1, 0, QualityZone.down, questions: 4, unanswered: 1),
+          change: -100,
+        ),
+        '1 juste, 0 rapide, sur 4 : en baisse · 1 restante, comptée '
+        'ratée',
+      );
+      expect(
+        strings.game.qualityReason(quality(8, 6, QualityZone.up), change: 120),
+        '8 justes, 6 rapides, sur 10 : en hausse',
+      );
+    });
   });
 }
 

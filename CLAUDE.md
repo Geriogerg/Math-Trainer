@@ -39,7 +39,7 @@ in French. Settled in plan v4.2: the 6c build's choices (deploy-window duels ref
 voided, the reminder on Online's duel list, Turnstile on every auth call Supabase protects,
 semantics on for everyone).
 
-Done: 0–4 (27 Nov; `doc/progress.md`, "Phase 6d"). Next: commit 5.
+Done: 0–5 (27 Nov; `doc/progress.md`, "Phase 6d"). Next: commit 6.
 
 **Phase 7's rules** (plan v3.7–v3.8; detail in `doc/decisions.md`, "Phase 7"):
 - **No live matches**: every duel is asynchronous — a player races another's recorded run,
@@ -391,6 +391,11 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   Each area is an interface with `English…` and `French…` classes (`strings/french/`): a new
   member goes in both, or nothing compiles. A test that changes `appLanguage` restores
   English in `tearDown`. French uses "tu" and `\u202f` before ? ! : ; %.
+  **A new screen gets a French 360 px check** (`useFrench()` then
+  `expectFrenchAt360(tester, name)`, with the real fonts loaded): it fails on an overflow,
+  a text cut short or an English word; read its `goldens/fr360_*.png`.
+  `french_complete_test.dart` fails on a French literal equal to an English one — a word
+  the same in both goes in its `_sameInBoth`, with the reason.
 - **Every word a player reads is in `app/lib/presentation/strings/`** (6b commit 7):
   `strings.<area>.<name>`; `strings_in_one_place_test.dart` fails on a word-holding
   literal anywhere else in `lib/presentation/`. Players read "game" (not session), "Ranks",

@@ -176,6 +176,9 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          locale: testLocale,
+          supportedLocales: testLocales,
+          localizationsDelegates: testLocalizations,
           theme: mode.theme,
           home: Scaffold(
             body: ProfileScreen(environment: environment, clock: () => _now),
@@ -190,4 +193,26 @@ void main() {
       );
     });
   }
+
+  testWidgets('profile screen — French, 360 px', (tester) async {
+    useFrench();
+    final environment = AppEnvironment(
+      repository: _FixedLevelsRepository(_now),
+      playerId: 'golden-player',
+      accountRepository: FakeAccountRepository(),
+      profileRepository: FakeProfileRepository()..displayName = 'Alex',
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: testLocale,
+        supportedLocales: testLocales,
+        localizationsDelegates: testLocalizations,
+        theme: buildLightTheme(),
+        home: Scaffold(
+          body: ProfileScreen(environment: environment, clock: () => _now),
+        ),
+      ),
+    );
+    await expectFrenchAt360(tester, 'profile', height: 3000);
+  });
 }

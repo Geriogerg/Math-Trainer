@@ -2312,3 +2312,40 @@ every screen checked at 360 px in French.
   says to paste the `.by-language.html` files. Tests: the templates (French words, the
   switch, both bodies), the repository sends the language, Profile's change reaches the
   account. Run locally: app 549, core and app analyze clean.
+- **Commit 5** *(A)* — **No English left.** Two checks, each failing on its own:
+  - `french_complete_test.dart` (source): no French file holds a word-holding literal its
+    English area also holds (13 same-in-both words allowed, each with its reason: "Score",
+    "Tables", "Division"…); every entry of every table (operations, the Method's 49 families,
+    strategies and fallbacks, account failures, name problems, refusal reasons, duel words,
+    54 tips, spoken operators) differs by language; no French class names an English one or
+    extends anything (a member it lacks cannot fall back to English); every area of
+    `frenchStrings` is a French class. Checked by hand: copying "Practice" into the French
+    class fails it.
+  - **every screen in French at 360 px** (`expectFrenchAt360`, `golden_test_utils.dart`):
+    52 renders — Home, the three setups, a game (plain, correction, integral, the stacked
+    question at 360 × 640), the result (plain, mistakes, a Method open), Chain and Get the
+    count (play, correction, rules, start), a duel (start, lanes, result, Get the count
+    rematch), Online, every duel rule sheet, Friends (and Add code, the mode picker), Ranks
+    (and Report), Profile (saved and guest; delete, feedback), Tips, both legal pages, the
+    beta gate, the account forms (sign in, forgot password and its answer, new password,
+    save — empty, age, check your inbox, email taken), the start errors. Each fails on an
+    **overflow**, on a **text cut short** (an ellipsis or `maxLines` reached — which no
+    overflow error reports) and on an **English word shown** (any word the English strings
+    use and the French never do, from every text, tooltip and semantic label; names allowed:
+    the game's, the fonts', the languages' in the picker). Kept as `goldens/fr360_*.png`,
+    all read.
+  - **What 360 px found, fixed**: a field's error was one line, cut ("Ce code n’est pas
+    valide…") — the theme now gives every field 3 lines; "Temps écoulé" took two lines in a
+    result tile — "Expirées" (with "Justes", "Fausses"); "Ajouter un code" two lines in half
+    the width — "Saisir un code"; two app-bar titles cut — "Sauvegarder" (was "Sauvegarde ta
+    progression"), "Mot de passe oublié" (was "Réinitialiser ton mot de passe"); "Se
+    connecter et remplacer la progression" two lines in a button — "Se connecter et
+    remplacer", and a button's wrapped label is now centred (English goldens moved by
+    sub-pixels); Online's reminder two lines — "Classé · abandonner, c’est perdre" (and
+    "Abandonner compte comme une défaite." for "Partir…").
+  - **Also found**: "1 justes, 1 rapides" — French counts 0 and 1 in the singular now (a
+    test); the tips' examples were not grouped ("2468 + 785: 3168…") in either language —
+    every 4-digit number in them is grouped by the thin space (plan v4.2: "2 468 in both");
+    English "50 % is a half" → "50%"; the result's hourglass says "Time's up" / "Temps
+    écoulé" (the game screen's words) rather than the tile's label.
+  - Run locally: app 598, analyze clean.

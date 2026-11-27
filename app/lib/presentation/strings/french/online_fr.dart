@@ -108,10 +108,11 @@ class FrenchOnlineStrings implements OnlineStrings {
       'que tu affrontes un adversaire d’entraînement.';
 
   @override
-  final leaving = 'Partir compte comme une défaite.';
+  final leaving = 'Abandonner compte comme une défaite.';
 
   @override
-  final ratedReminder = 'Classé · partir compte comme une défaite';
+  // One line beside "Règles" at 360 px.
+  final ratedReminder = 'Classé · abandonner, c’est perdre';
 
   @override
   final rulesLink = 'Règles';
@@ -222,7 +223,7 @@ class FrenchOnlineStrings implements OnlineStrings {
   final shareLink = 'Partager le lien';
 
   @override
-  final addCode = 'Ajouter un code';
+  final addCode = 'Saisir un code';
 
   @override
   final add = 'Ajouter';
