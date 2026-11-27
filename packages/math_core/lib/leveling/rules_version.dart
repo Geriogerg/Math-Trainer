@@ -66,7 +66,9 @@ enum RulesVersion {
   /// resized (Swap, round division, round cubes, from-zero integrals) and
   /// grown, one with fewer than 4 questions at a tier skipped there;
   /// **weak spots at most ⌊n/5⌋ per operation** (v7–v8: ⌈n/5⌉). v8's
-  /// schedule and v3's level constants.
+  /// schedule and v3's level constants — and **quitting counts**: a
+  /// Levelling game with one answer moves levels however it ends, its
+  /// unanswered questions timeouts ([quitCounts]).
   v9(9);
 
   const RulesVersion(this.number);
@@ -101,6 +103,15 @@ enum RulesVersion {
   bool get hasWeakSpots => switch (this) {
     v1 || v2 || v3 || v4 || v5 || v6 => false,
     v7 || v8 || v9 => true,
+  };
+
+  /// Whether a Levelling game left before its last question still moves
+  /// levels, its unanswered questions counted as timeouts (`doc/levels.md`
+  /// v1.6 section 3, "Quitting never pays"; review M4): from rules v9. Under
+  /// v2–v8 an interrupted game moved no level.
+  bool get quitCounts => switch (this) {
+    v1 || v2 || v3 || v4 || v5 || v6 || v7 || v8 => false,
+    v9 => true,
   };
 
   /// Whether a game's questions come from rules v9's spaces, drawn without

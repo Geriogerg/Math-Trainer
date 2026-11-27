@@ -48,7 +48,7 @@ line; weak spots at most ⌊n/5⌋ per operation; strings in one place, English 
 right after. m12 (large files) and m13 (app contracts in the core) are fixed when the files are
 next touched — the phase report says what moved.
 
-Done: 0, 1 (27 Nov; `doc/progress.md`, "Phase 6b"; 1 committed, pushed with 2). Next: commit 2.
+Done: 0–2 (27 Nov; `doc/progress.md`, "Phase 6b"). Next: commit 3.
 
 **Phase 7's rules** (plan v3.7–v3.8; detail in `doc/decisions.md`, "Phase 7"):
 - **No live matches**: every duel is asynchronous — a player races another's recorded run,
@@ -124,8 +124,9 @@ practice kinds (uploaded, never move levels, never ranked).
   rules and lists them in `/health`; the app holds a session until the server lists its rules.
 - Display: one line, two right-aligned lines when it doesn't fit, ÷ always one line. Tables mode
   and the Tips page are never ranked. Kept: 30 s timer, three silent timeouts end the game
-  uncounted, questions per operation 4/5/10/20, Training never moves levels (T1 / T4 / T7),
-  main level = mean of the four basics.
+  (uncounted under v2–v8; **from v9 a quit counts** — ✕, three timeouts or a closed tab —
+  its questions left as timeouts), questions per operation 4/5/10/20, Training never moves
+  levels (T1 / T4 / T7), main level = mean of the four basics.
 
 **Rules v5–v6** (24 Nov): pattern questions sized by tier, no reviews (`doc/levels.md` v1.4);
 √ of powers of 2 by its own row (v1.5). v4 and v5 kept for replay. Staging is live: with
@@ -331,6 +332,13 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   date (CI's deploy waits for tests, ~15 min) → tell the owner at once.
 - `PersistedSession`'s `rulesVersion` defaults to v1 (rows stored before it): a test session
   meant to upload or replay passes `RulesVersion.current`.
+- **A Levelling game is kept after every answer** (Phase 6b commit 2,
+  `UnfinishedGameStore` in `shared_preferences`) and stored at the next start
+  (`recoverUnfinishedGame`, in `buildAppEnvironment`, before any game): a game left by
+  closing the tab counts under v9. Its session id is drawn at the first answer, its answers'
+  ids as they come — never draw them again at the end, or the kept game and the stored one
+  differ. `gameLevelUpdates` needs the planned `typeSequence` (a quit counts the missing
+  questions).
 - Integer levels round small steps to zero — never round before storing hundredths.
 - `Level` is an `int` at runtime: string interpolation prints hundredths, and `level ?? 1`
   compiles (widens to `Object`). Display through `.whole`; fall back to `Level.zero`.

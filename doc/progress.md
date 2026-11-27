@@ -1592,7 +1592,7 @@ owner decision, nothing to build).
 | M1 | Duel answers known before play, times self-declared, flagged runs rated | 6a (1) cheap part; 7b server-timed questions | **part**: no faked time, flagged runs earn nothing; answers still known to a modified client until 7b |
 | M2 | A duel replayable with full knowledge | 6a (1) | **fixed** |
 | M3 | Rated duels aimed at a chosen player; daily rule bypassed | 6a (1) | **fixed** (no block list: not in the plan) |
-| M4 | Quitting bad Levelling games never costs a level | 6b (2), rules v9 | open |
+| M4 | Quitting bad Levelling games never costs a level | 6b (2), rules v9 | **fixed** (a v9 quit counts its questions left as timeouts — ✕, three timeouts, a closed tab; simulated: quitting costs more than finishing) |
 | M5 | Solo sessions fabricated in bulk; no way to remove a cheater | 6a (3) | **fixed** (with the daily cap of commit 2; the seed is still the client's: a session replays to what it claims, it is not chosen by the server) |
 | M6 | Names: weak filter, no uniqueness, abusable hiding, `profiles` world-readable | 6a (4) | **fixed** (the word filter itself unchanged: the owner reviews within 48 h) |
 | M7 | The main leaderboard does not scale | 6a (5) | **fixed** |
@@ -1934,3 +1934,20 @@ changes what a v9 game draws).
   | Addition | 93 → 0 | 33 → 0 | 6 → 0 | 0 → 0 | 0 → 0 |
 
   (Every operation at every tier: 0 % under v9; the full table is `tool/question_pools.dart`.)
+- **Commit 2** *(A)* — **Quitting counts (M4).** `RulesVersion.quitCounts` (v9): a Levelling
+  game with one answer moves levels however it ends, its unanswered questions timeouts —
+  `gameLevelUpdates` takes the planned `typeSequence` (an operation never reached loses the
+  full cap); the server's replay applies it to interrupted v9 sessions (v2–v8 unchanged).
+  **App**: three timeouts or ✕ count under v9 (`_interruptSession`); the quit dialog says the
+  questions left count as missed; the result screen shows a v9 interrupted game's level
+  change. **A closed tab**: a Levelling game is kept after every answer
+  (`UnfinishedGameStore`, `shared_preferences`), stored at the next start before anything else
+  (`recoverUnfinishedGame`), never twice; the session's and answers' ids are drawn as the
+  answers come (same order as before). `PersistedSession.copyWith` sets `overallLevelAfter`.
+  **Simulation**: a player who quits at the first mistake (`levelAfterSimulatedGame`,
+  `meanChangePerGame`, `medianGamesToTiersQuitting`) — under v8 a 60 % player gained by
+  quitting (+0.03 a game against −0.31 finishing), under v9 quitting costs more than
+  finishing at every accuracy below 100 % (60 %: −2.68; 70 %: −2.28; 80 %: −1.41). Tests:
+  core (quit rule 4, validation v8/v9, copyWith, simulation 2), app (controller v9
+  timeouts and ✕, v8 kept; the kept game: ids, cleared when stored, a closed tab stored with
+  its 7 timeouts, never twice, v8 no level, unreadable dropped).

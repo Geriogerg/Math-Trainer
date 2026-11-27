@@ -54,6 +54,7 @@ void main() {
       },
       now: _at,
       rulesVersion: RulesVersion.v2,
+      typeSequence: [for (final o in outcomes) o.exercise.type],
     );
     expect(updates[ExerciseType.addition]!.level, Level.fromHundredths(300));
     expect(updates[ExerciseType.addition]!.sessionsPlayed, 1);
@@ -73,6 +74,7 @@ void main() {
       priorLevels: const {},
       now: _at,
       rulesVersion: RulesVersion.v2,
+      typeSequence: [for (final o in outcomes) o.exercise.type],
     );
     expect(updates[ExerciseType.addition]!.level, Level.fromHundredths(300));
     expect(
@@ -89,10 +91,74 @@ void main() {
       priorLevels: const {},
       now: _at,
       rulesVersion: version,
+      typeSequence: [for (final o in outcomes) o.exercise.type],
     )[ExerciseType.multiplication]?.level;
     expect(multiplication(RulesVersion.v2), Level.fromHundredths(120));
     expect(multiplication(RulesVersion.v3), Level.fromHundredths(156));
     expect(() => multiplication(RulesVersion.v1), throwsArgumentError);
+  });
+
+  // Rules v9: a quit counts its missing questions (`doc/levels.md` v1.6).
+  group('rules v9: quitting counts', () {
+    final planned = [
+      ...List.filled(4, ExerciseType.addition),
+      ...List.filled(4, ExerciseType.multiplication),
+    ];
+    Map<ExerciseType, Level> after(List<AnswerResult> answered) => {
+      for (final MapEntry(:key, :value) in gameLevelUpdates(
+        outcomes: answered,
+        frozenLevels: {
+          ExerciseType.addition: Level.whole(30),
+          ExerciseType.multiplication: Level.whole(30),
+        },
+        priorLevels: const {},
+        now: _at,
+        rulesVersion: RulesVersion.v9,
+        typeSequence: planned,
+      ).entries)
+        key: value.level,
+    };
+    AnswerResult add() =>
+        _answer(OperationType.addition, correct: true, ms: fluent);
+
+    test('the unanswered questions are timeouts: 2 of 4 fluent, then a quit, '
+        'is q = 0.50 (−1.03)', () {
+      expect(
+        after([add(), add()])[ExerciseType.addition],
+        Level.fromHundredths(3000 - 103),
+      );
+    });
+
+    test('an operation with no answer at all loses the full cap', () {
+      expect(after([add()])[ExerciseType.multiplication], Level.whole(27));
+    });
+
+    test('a finished game moves as under v8', () {
+      final all = [
+        for (var i = 0; i < 4; i++) add(),
+        for (var i = 0; i < 4; i++)
+          _answer(OperationType.multiplication, correct: true, ms: fluent),
+      ];
+      final v8 = gameLevelUpdates(
+        outcomes: all,
+        frozenLevels: {
+          ExerciseType.addition: Level.whole(30),
+          ExerciseType.multiplication: Level.whole(30),
+        },
+        priorLevels: const {},
+        now: _at,
+        rulesVersion: RulesVersion.v8,
+        typeSequence: planned,
+      );
+      expect(after(all), {for (final e in v8.entries) e.key: e.value.level});
+    });
+
+    test('more answers of an operation than planned throw (rule 13)', () {
+      expect(
+        () => after([for (var i = 0; i < 5; i++) add()]),
+        throwsArgumentError,
+      );
+    });
   });
 
   test('the orchestrator scores a game with them, under its rules', () async {
@@ -107,6 +173,7 @@ void main() {
       playerId: 'p',
       now: _at,
       rulesVersion: RulesVersion.v3,
+      typeSequence: [for (final o in outcomes) o.exercise.type],
     );
     expect(updates[ExerciseType.addition]!.level, Level.fromHundredths(300));
     expect(

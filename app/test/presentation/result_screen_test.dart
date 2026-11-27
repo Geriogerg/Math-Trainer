@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:math_core/generation/exercise_source.dart';
 import 'package:math_core/leveling/level.dart';
+import 'package:math_core/leveling/rules_version.dart';
 import 'package:math_core/models/exercise.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/models/operation_type.dart';
@@ -208,7 +209,37 @@ void main() {
     },
   );
 
-  testWidgets('interrupted session: no level change block', (tester) async {
+  testWidgets('interrupted session under rules v2–v8: no level change '
+      'block', (tester) async {
+    final controller = SessionController(
+      config: SessionConfig(
+        seed: 1,
+        enabledTypes: const {ExerciseType.addition},
+        exerciseCount: 4,
+        levels: {ExerciseType.addition: Level.whole(50)},
+        rulesVersion: RulesVersion.v8,
+      ),
+      exerciseSource: _FixedExerciseSource(additionExercises(4)),
+      repository: InMemorySessionRepository(),
+      playerId: 'test-player',
+      clock: () => DateTime(2024),
+      createTimer: (duration, callback) => _InertTimer(),
+    );
+    addTearDown(controller.dispose);
+    controller.start();
+    controller.submitAnswer(0);
+    controller.abandon();
+    await controller.pendingPersistence;
+
+    await pumpResultScreen(tester, controller);
+
+    expect(find.text('Session interrupted'), findsOneWidget);
+    expect(find.textContaining('Addition — level'), findsNothing);
+  });
+
+  // Rules v9 (`doc/levels.md` v1.6, "Quitting never pays"): the quit counts.
+  testWidgets('interrupted session under rules v9: its level change shown '
+      '— 1 right of 4, the 3 left missed', (tester) async {
     final controller = SessionController(
       config: SessionConfig(
         seed: 1,
@@ -231,7 +262,7 @@ void main() {
     await pumpResultScreen(tester, controller);
 
     expect(find.text('Session interrupted'), findsOneWidget);
-    expect(find.textContaining('Addition — level'), findsNothing);
+    expect(find.textContaining('Addition — level 47'), findsOneWidget);
   });
 
   testWidgets('Play again and Home trigger their own callbacks', (

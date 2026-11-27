@@ -107,6 +107,7 @@ void main() {
         priorLevels: const {},
         now: DateTime.utc(2026, 11, 23),
         rulesVersion: RulesVersion.v3,
+        typeSequence: List.filled(4, ExerciseType.addition),
       )[ExerciseType.addition]!.level;
       expect(after(7900), Level.whole(58)); // +3: all fluent
       expect(after(8000), Level.whole(58)); // the fluent time itself counts

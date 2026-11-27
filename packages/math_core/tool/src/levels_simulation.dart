@@ -405,3 +405,117 @@ double patternShareExpected(
     offTier: off / total,
   );
 }
+
+/// One game of [questions] by [player] at [level] under [rules], the player
+/// **quitting at their first wrong answer** when [quitsAfterMistake]
+/// (review M4): the level after it. Under rules that count a quit (v9,
+/// `RulesVersion.quitCounts`) the questions left are timeouts; under v2–v8
+/// an interrupted game moved no level.
+Level levelAfterSimulatedGame(
+  SimulatedPlayer player, {
+  required Level level,
+  required Random random,
+  required RulesVersion rules,
+  required bool quitsAfterMistake,
+  int questions = 10,
+  ExerciseType type = ExerciseType.addition,
+}) {
+  final fluentMs = fluentTimeMs(type, level, rules);
+  final answers = <AnswerOutcome>[];
+  var quit = false;
+  for (var i = 0; i < questions; i++) {
+    final right = random.nextDouble() < player.accuracy;
+    final fluent = random.nextDouble() < player.fluent;
+    answers.add(
+      AnswerOutcome(
+        isCorrect: right,
+        elapsedMs: right && fluent ? fluentMs : 29000,
+      ),
+    );
+    if (!right && quitsAfterMistake && i < questions - 1) {
+      quit = true;
+      break;
+    }
+  }
+  if (quit && !rules.quitCounts) return level;
+  while (answers.length < questions) {
+    answers.add(const AnswerOutcome(isCorrect: false, elapsedMs: 30000));
+  }
+  return levelAfterGame(
+    current: level,
+    answers: answers,
+    fluentMs: fluentMs,
+    rules: LevelRules.of(rules),
+  );
+}
+
+/// The mean change, in levels, of one game of 10 questions at [level] —
+/// finished, or quit at the first mistake ([levelAfterSimulatedGame]) —
+/// over [games] games.
+double meanChangePerGame(
+  SimulatedPlayer player, {
+  required RulesVersion rules,
+  required bool quitsAfterMistake,
+  Level? level,
+  int games = 20000,
+  int seed = 2026,
+}) {
+  final at = level ?? Level.whole(50);
+  final random = Random(seed);
+  var total = 0;
+  for (var g = 0; g < games; g++) {
+    total +=
+        levelAfterSimulatedGame(
+          player,
+          level: at,
+          random: random,
+          rules: rules,
+          quitsAfterMistake: quitsAfterMistake,
+        ).hundredths -
+        at.hundredths;
+  }
+  return total / games / 100;
+}
+
+/// Median games of 10 questions to each tier T1…T9 from level 0 for a
+/// player who quits at the first mistake, under [rules] (`null`: more than
+/// half never reached it within [maxGames]).
+List<int?> medianGamesToTiersQuitting(
+  SimulatedPlayer player, {
+  required RulesVersion rules,
+  int runs = 301,
+  int maxGames = 500,
+  int seed = 2026,
+}) {
+  final perTier = List.generate(9, (_) => <int>[]);
+  final random = Random(seed);
+  for (var r = 0; r < runs; r++) {
+    final reached = List<int?>.filled(9, null);
+    var level = Level.zero;
+    for (var game = 1; game <= maxGames && reached.last == null; game++) {
+      level = levelAfterSimulatedGame(
+        player,
+        level: level,
+        random: random,
+        rules: rules,
+        quitsAfterMistake: true,
+      );
+      for (var t = 1; t <= 9; t++) {
+        if (reached[t - 1] == null && level.whole >= 10 * t) {
+          reached[t - 1] = game;
+        }
+      }
+    }
+    for (var t = 0; t < 9; t++) {
+      perTier[t].add(reached[t] ?? 1 << 30);
+    }
+  }
+  return [
+    for (final games in perTier)
+      () {
+        games.sort();
+        final median = games[games.length ~/ 2];
+        return median >= 1 << 30 ? null : median;
+      }(),
+  ];
+}

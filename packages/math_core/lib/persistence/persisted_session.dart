@@ -128,6 +128,7 @@ class PersistedSession {
     String? playerId,
     Object? syncedAt = _unset,
     Object? uploadRefused = _unset,
+    Object? overallLevelAfter = _unset,
   }) {
     return PersistedSession(
       id: id,
@@ -138,7 +139,9 @@ class PersistedSession {
       totalScore: totalScore,
       levels: levels,
       createdAt: createdAt,
-      overallLevelAfter: overallLevelAfter,
+      overallLevelAfter: identical(overallLevelAfter, _unset)
+          ? this.overallLevelAfter
+          : overallLevelAfter as double?,
       syncedAt: identical(syncedAt, _unset)
           ? this.syncedAt
           : syncedAt as DateTime?,

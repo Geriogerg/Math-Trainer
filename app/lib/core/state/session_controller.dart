@@ -20,7 +20,9 @@ import 'package:math_core/persistence/persisted_session.dart';
 import 'package:math_core/persistence/session_repository.dart';
 import 'package:math_core/persistence/uuid.dart';
 import 'package:math_core/scoring/scorer.dart';
+import 'package:math_core/sync/session_upload.dart';
 import 'session_state.dart';
+import 'unfinished_game.dart';
 
 /// End-of-session write, kept as is if it fails so that
 /// [SessionController.retryPersistence] can replay it identically.
@@ -52,6 +54,7 @@ class SessionController extends ChangeNotifier {
     this.questionTimeout = defaultQuestionTimeout,
     this.correctionDelay,
     this.appVersion,
+    this.unfinishedGames,
     SessionLevelUpdates? levelCacheOrchestrator,
     int Function()? monotonicMs,
   }) : levelCacheOrchestrator =
@@ -115,6 +118,19 @@ class SessionController extends ChangeNotifier {
   /// The build playing this session, stored with it
   /// (`PersistedSession.appVersion`); `null` in tests that don't care.
   final String? appVersion;
+
+  /// Where a Levelling game is kept after every answer (Phase 6b commit 2):
+  /// a tab closed mid-game leaves it there, and the next start stores it as
+  /// a game left at its last answer (`recoverUnfinishedGame`) — under rules
+  /// v9 that counts. Cleared once the game is stored. `null`: not kept
+  /// (Training, practice, duels, tests).
+  final UnfinishedGameStore? unfinishedGames;
+
+  /// The session's id and its answers' ids, drawn as the answers come (in
+  /// the order the end-of-game write used to draw them): the game kept
+  /// mid-way and the game stored at its end are the same rows.
+  String? _sessionId;
+  final List<String> _answerIds = [];
 
   /// Three consecutive timeouts without any key pressed interrupt the
   /// session (`doc/decisions.md`).
@@ -303,6 +319,8 @@ class SessionController extends ChangeNotifier {
       // The score multiplier reads the whole level, like generation.
       level: (config.levels[exercise.type] ?? Level.zero).whole,
     );
+    _sessionId ??= idGenerator();
+    _answerIds.add(idGenerator());
     final outcomes = [..._state.outcomes, outcome];
     final isSessionComplete = outcomes.length >= config.exerciseCount;
     final delay = correctionDelay;
@@ -336,6 +354,23 @@ class SessionController extends ChangeNotifier {
 
     if (isSessionComplete) {
       _pendingPersistence = _persistCompletedSession(countsForLevels: true);
+    } else if (unfinishedGames != null) {
+      unawaited(_keepProgress());
+    }
+  }
+
+  /// The game so far, kept for a start after a closed tab. A failure loses
+  /// only that safety net, never the game in memory.
+  Future<void> _keepProgress() async {
+    try {
+      await unfinishedGames?.save(
+        SessionUpload(
+          session: _sessionAt(_state.outcomes.last.answeredAt),
+          answers: _persistedAnswers(),
+        ),
+      );
+    } on Exception catch (_) {
+      // Not kept this time; the next answer tries again.
     }
   }
 
@@ -371,13 +406,18 @@ class SessionController extends ChangeNotifier {
     // records an answer) — nothing to keep, and an empty session would show
     // up as a 0-point game in the Profile history.
     if (_state.outcomes.isEmpty) return;
-    _pendingPersistence = _persistCompletedSession(countsForLevels: false);
+    // Rules v9 (`doc/levels.md` v1.6, "Quitting never pays"; review M4):
+    // a game left after one answer counts, its unanswered questions as
+    // timeouts. Under v2–v8 it moved no level.
+    _pendingPersistence = _persistCompletedSession(
+      countsForLevels: config.rulesVersion.quitCounts,
+    );
   }
 
   /// Manual abandonment (confirmed back gesture, step 5 commit A): same
   /// handling as an automatic interruption — `interrupted` status, answers
-  /// already given persisted, level cache untouched. Nothing new: the
-  /// finished/interrupted distinction exists since step 4.2.
+  /// already given persisted; the level cache moves under rules v9 (the
+  /// questions left count as timeouts), not under v2–v8.
   void abandon() {
     if (_state.status != SessionStatus.inProgress) return;
     _interruptSession();
@@ -393,6 +433,8 @@ class SessionController extends ChangeNotifier {
     _timeoutTimer?.cancel();
     _correctionTimer?.cancel();
     _state = SessionState.initial();
+    _sessionId = null;
+    _answerIds.clear();
     _lastLevelUpdates = null;
     _persistenceFailed = false;
     _failedWrite = null;
@@ -408,31 +450,67 @@ class SessionController extends ChangeNotifier {
     super.dispose();
   }
 
-  /// [countsForLevels]: `false` for an interrupted session (abandonment) —
-  /// the session and the answers already given are still stored (they
-  /// cannot be rebuilt otherwise), only the level cache computation is
-  /// skipped. `PersistedSession.exerciseCount` stays the *planned* count;
-  /// `answers.length < exerciseCount` is enough to recognise an interrupted
-  /// session later, with no extra field to persist.
-  Future<void> _persistCompletedSession({required bool countsForLevels}) async {
-    final sessionId = idGenerator();
-    final createdAt = clock().toUtc();
+  /// The game's planned order: its type sequence. A config without one
+  /// (tests) plans a single operation's questions, or else the answers
+  /// given.
+  List<ExerciseType> _plannedOrder() =>
+      config.typeSequence ??
+      (config.enabledTypes.length == 1
+          ? List.filled(config.exerciseCount, config.enabledTypes.single)
+          : [for (final o in _state.outcomes) o.exercise.type]);
 
-    final answers = _state.outcomes.map((outcome) {
-      final described = describeExerciseForStorage(outcome.exercise);
-      return PersistedAnswer(
-        id: idGenerator(),
-        sessionId: sessionId,
-        exerciseType: described.exerciseType,
-        operationType: described.operationType,
-        operands: described.operands,
-        submittedValue: outcome.submittedValue,
-        isCorrect: outcome.isCorrect,
-        elapsedMs: outcome.elapsedMs,
-        createdAt: outcome.answeredAt,
-        inputDevice: outcome.inputDevice,
-      );
-    }).toList();
+  /// The answers so far, as stored — each with the id drawn when it was
+  /// given.
+  List<PersistedAnswer> _persistedAnswers() => [
+    for (final (i, outcome) in _state.outcomes.indexed)
+      () {
+        final described = describeExerciseForStorage(outcome.exercise);
+        return PersistedAnswer(
+          id: _answerIds[i],
+          sessionId: _sessionId!,
+          exerciseType: described.exerciseType,
+          operationType: described.operationType,
+          operands: described.operands,
+          submittedValue: outcome.submittedValue,
+          isCorrect: outcome.isCorrect,
+          elapsedMs: outcome.elapsedMs,
+          createdAt: outcome.answeredAt,
+          inputDevice: outcome.inputDevice,
+        );
+      }(),
+  ];
+
+  /// The session as stored, [createdAt] its end (the moment of the write,
+  /// or of the last answer for a game kept mid-way).
+  PersistedSession _sessionAt(
+    DateTime createdAt, {
+    double? overallLevelAfter,
+  }) => PersistedSession(
+    id: _sessionId!,
+    playerId: playerId,
+    seed: config.seed,
+    enabledTypes: config.enabledTypes,
+    exerciseCount: config.exerciseCount,
+    totalScore: _state.score,
+    levels: config.levels,
+    createdAt: createdAt,
+    overallLevelAfter: overallLevelAfter,
+    kind: config.kind,
+    typeSequence: config.typeSequence,
+    appVersion: appVersion,
+    rulesVersion: config.rulesVersion,
+    weakSpots: config.weakSpots,
+  );
+
+  /// [countsForLevels]: `false` for an interrupted session under rules
+  /// v2–v8 — the session and the answers already given are still stored
+  /// (they cannot be rebuilt otherwise), only the level cache computation
+  /// is skipped; from rules v9 a quit counts. `PersistedSession.exerciseCount`
+  /// stays the *planned* count; `answers.length < exerciseCount` is enough
+  /// to recognise an interrupted session later, with no extra field.
+  Future<void> _persistCompletedSession({required bool countsForLevels}) async {
+    final createdAt = clock().toUtc();
+    final answers = _persistedAnswers();
 
     var levelUpdates = const <ExerciseType, LevelCacheEntry>{};
     if (countsForLevels) {
@@ -444,6 +522,7 @@ class SessionController extends ChangeNotifier {
           playerId: playerId,
           now: createdAt,
           rulesVersion: config.rulesVersion,
+          typeSequence: _plannedOrder(),
         );
       } on Exception catch (_) {
         // The level cache can be recomputed from history (see
@@ -477,22 +556,7 @@ class SessionController extends ChangeNotifier {
       // writing the session itself.
     }
 
-    final session = PersistedSession(
-      id: sessionId,
-      playerId: playerId,
-      seed: config.seed,
-      enabledTypes: config.enabledTypes,
-      exerciseCount: config.exerciseCount,
-      totalScore: _state.score,
-      levels: config.levels,
-      createdAt: createdAt,
-      overallLevelAfter: overallLevelAfter,
-      kind: config.kind,
-      typeSequence: config.typeSequence,
-      appVersion: appVersion,
-      rulesVersion: config.rulesVersion,
-      weakSpots: config.weakSpots,
-    );
+    final session = _sessionAt(createdAt, overallLevelAfter: overallLevelAfter);
 
     await _record((
       session: session,
@@ -518,6 +582,11 @@ class SessionController extends ChangeNotifier {
       _notifyIfAlive();
       return;
     }
+    // Stored: the game kept mid-way is no longer needed. Should this clear
+    // fail, the next start finds the session stored and only clears it.
+    try {
+      await unfinishedGames?.clear();
+    } on Exception catch (_) {}
     if (_persistenceFailed) {
       _failedWrite = null;
       _persistenceFailed = false;

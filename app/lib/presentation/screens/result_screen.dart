@@ -92,11 +92,12 @@ class ResultScreen extends StatelessWidget {
                   style: theme.textTheme.titleMedium,
                 ),
                 const SizedBox(height: 24),
-                // No level change for an interrupted session — countsForLevels
-                // stayed false, lastLevelUpdates is never set
-                // (`doc/decisions.md`).
+                // An interrupted session moves no level under rules v2–v8
+                // (lastLevelUpdates never set); from v9 it counts, its
+                // questions left as missed — its change is shown.
                 // Training and practice move no level: nothing to show.
-                if (status == SessionStatus.finished &&
+                if ((status == SessionStatus.finished ||
+                        controller.config.rulesVersion.quitCounts) &&
                     controller.config.kind.movesLevels) ...[
                   for (final type in controller.config.enabledTypes)
                     _LevelChangeRow(

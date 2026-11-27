@@ -10,6 +10,8 @@ import 'rules_version.dart';
 /// game ([LevelCacheOrchestrator]) or a Training game ([NoLevelUpdates]).
 /// `SessionController` only knows this.
 abstract interface class SessionLevelUpdates {
+  /// [typeSequence]: the game's planned order (a quit counts its missing
+  /// questions from rules v9, `gameLevelUpdates`).
   Future<Map<ExerciseType, LevelCacheEntry>> computeUpdates({
     required List<AnswerResult> outcomes,
     required Map<ExerciseType, Level> frozenLevels,
@@ -17,6 +19,7 @@ abstract interface class SessionLevelUpdates {
     required String playerId,
     required DateTime now,
     required RulesVersion rulesVersion,
+    required List<ExerciseType> typeSequence,
   });
 }
 
@@ -33,6 +36,7 @@ class NoLevelUpdates implements SessionLevelUpdates {
     required String playerId,
     required DateTime now,
     required RulesVersion rulesVersion,
+    required List<ExerciseType> typeSequence,
   }) async => const {};
 }
 
@@ -53,11 +57,13 @@ class LevelCacheOrchestrator implements SessionLevelUpdates {
     required String playerId,
     required DateTime now,
     required RulesVersion rulesVersion,
+    required List<ExerciseType> typeSequence,
   }) async => gameLevelUpdates(
     outcomes: outcomes,
     frozenLevels: frozenLevels,
     priorLevels: await repository.currentLevels(playerId),
     now: now,
     rulesVersion: rulesVersion,
+    typeSequence: typeSequence,
   );
 }

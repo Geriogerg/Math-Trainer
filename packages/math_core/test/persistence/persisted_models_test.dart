@@ -218,6 +218,13 @@ void main() {
       );
     });
 
+    // Phase 6b commit 2: a game recovered at start gets it set.
+    test('copyWith can set the overall level after, or null it', () {
+      final set = buildSession().copyWith(overallLevelAfter: 7.25);
+      expect(set.overallLevelAfter, 7.25);
+      expect(set.copyWith(overallLevelAfter: null).overallLevelAfter, isNull);
+    });
+
     test('rejects an overall level outside [1, 100]', () {
       expect(() => buildSession(overallLevelAfter: -0.5), throwsArgumentError);
       expect(() => buildSession(overallLevelAfter: 100.5), throwsArgumentError);

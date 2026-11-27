@@ -209,6 +209,13 @@ void main() {
 
       await attemptPop();
       expect(find.text('Quit the game?'), findsOneWidget);
+      // Rules v9: a Levelling game left still counts (Phase 6b commit 2).
+      expect(
+        find.text(
+          'The questions left count as missed: your levels can go down.',
+        ),
+        findsOneWidget,
+      );
 
       // Cancel: the dialog closes, the session goes on without losing anything.
       await tester.tap(find.text('Cancel'));

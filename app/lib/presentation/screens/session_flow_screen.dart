@@ -141,14 +141,24 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
     await _confirmQuit();
   }
 
-  /// The ✕ and the back gesture alike (Redesign phase). Labels only: a game
-  /// quit early is kept as interrupted, which moves no level.
+  /// The ✕ and the back gesture alike (Redesign phase). A game quit early
+  /// is kept as interrupted; from rules v9 a Levelling one still counts,
+  /// its questions left as missed (`doc/levels.md` v1.6) — the dialog says
+  /// so.
   Future<void> _confirmQuit() async {
     if (_controller.state.status != SessionStatus.inProgress) return;
+    final config = _controller.config;
+    final counts = config.kind.movesLevels && config.rulesVersion.quitCounts;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Quit the game?'),
+        content: counts
+            ? const Text(
+                'The questions left count as missed: your levels can go '
+                'down.',
+              )
+            : null,
         actions: [
           AppButton.secondary(
             onPressed: () => Navigator.of(dialogContext).pop(false),

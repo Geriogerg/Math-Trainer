@@ -320,6 +320,7 @@ void main() {
         priorLevels: const {},
         now: upload.session.createdAt,
         rulesVersion: upload.session.rulesVersion,
+        typeSequence: upload.session.typeSequence!,
       );
       expect(result.levelUpdates.keys, appSide.keys);
       for (final type in appSide.keys) {
@@ -398,11 +399,56 @@ void main() {
       });
     });
 
-    test('interrupted: accepted, no level moves', () {
-      final result = validate(honestGame(answered: 3)) as Accepted;
+    test('interrupted under v2–v8: accepted, no level moves', () {
+      final result =
+          validate(honestGame(answered: 3, rulesVersion: RulesVersion.v8))
+              as Accepted;
       expect(result.completed, isFalse);
       expect(result.levelUpdates, isEmpty);
       expect(result.newState.hasCompletedSession, isFalse);
+    });
+
+    // Rules v9 (`doc/levels.md` v1.6, "Quitting never pays"; review M4).
+    test('interrupted under v9: counted, the unanswered questions as '
+        'timeouts — three right answers out of eight cost levels', () {
+      final twenty = {
+        ExerciseType.addition: Level.whole(20),
+        ExerciseType.multiplication: Level.whole(20),
+      };
+      final state = ServerPlayerState(
+        levels: {
+          for (final MapEntry(:key, :value) in twenty.entries)
+            key: LevelCacheEntry(
+              level: value,
+              sessionsPlayed: 3,
+              updatedAt: DateTime.utc(2026, 11, 19),
+            ),
+        },
+      );
+      // Answered: addition, multiplication, addition — all right and fast.
+      final result =
+          validate(honestGame(answered: 3, levels: twenty), state: state)
+              as Accepted;
+      expect(result.completed, isFalse);
+      expect(result.newState.hasCompletedSession, isFalse);
+      // Addition: 2 fluent + 2 timeouts, q = 0.50 → −1.03.
+      expect(
+        result.levelUpdates[ExerciseType.addition]!.level,
+        Level.fromHundredths(2000 - 103),
+      );
+      // Multiplication: 1 fluent + 3 timeouts, q = 0.25 → −3.
+      expect(
+        result.levelUpdates[ExerciseType.multiplication]!.level,
+        Level.whole(17),
+      );
+      expect(result.levelUpdates[ExerciseType.addition]!.sessionsPlayed, 4);
+      // The same game finished with those answers right would have gained.
+      final finished =
+          validate(honestGame(levels: twenty), state: state) as Accepted;
+      expect(
+        finished.levelUpdates[ExerciseType.multiplication]!.level.hundredths,
+        greaterThan(2000),
+      );
     });
 
     test('wrong answers and timeouts are honest too', () {

@@ -2294,3 +2294,35 @@ fixes the tables and the rules; these are the readings and gaps.
   its next visit, and the window is one deploy.
 - **Practice games** (Weak spots, Drill) keep their generators: v9 is about Levelling,
   Training and duels.
+
+**Commit 2 — quitting counts (M4).** The spec (`doc/levels.md` v1.6 section 3, "Quitting never
+pays") fixes the rule; these are the readings.
+
+- **"Every unanswered question counts as a timeout for its operation"**, read literally:
+  an operation the game planned but never reached gets all its questions as timeouts — q = 0,
+  the full cap (−3). Quitting a 4-operation game after one answer costs every operation up to
+  3 levels. The spec says so; the quit dialog now warns ("The questions left count as missed:
+  your levels can go down.").
+- **A closed tab**: a Levelling game is kept on the device after every answer
+  (`shared_preferences`, one game, its upload shape — on the web `localStorage`, written at
+  once, so a tab closed right after an answer still has it). The next start stores it before
+  anything else, as a game left at its last answer (`createdAt` = that answer's time, its end),
+  then clears it; a game whose session is already stored (its write landed, the clear did
+  not) is only cleared; one that cannot be read is dropped. The session's id is now drawn at
+  its first answer, its answers' ids as they come — the same order as before, so the kept
+  game and the stored one are the same rows. **Not covered**: two tabs playing at once (the
+  second tab's start would store the first tab's live game; the first tab's own write then
+  fails, shown as "not saved") — rare, and nothing is counted twice.
+- **What still counts only finished games**: the main board's game count
+  (`completed_games`) and `hasCompletedSession` — a quit game moves levels, it is not a
+  finished game.
+- **Screens**: three timeouts end the game on its result screen, which now shows the level
+  change of a v9 game; ✕ (confirmed) returns to the setup as before, the levels shown there
+  already moved. Training, practice games and duels are unchanged (Training never moves
+  levels; a duel left was already a loss).
+- **Simulation** (`tool/levels_simulation.dart`, a player who quits at the first mistake,
+  games of 10 at level 50, mean change per game, finished / quit): 80 % v8 +1.55 / +0.52,
+  v9 +1.55 / −1.41; 70 % v8 +0.53 / +0.14, v9 +0.53 / −2.28; 60 % v8 −0.31 / **+0.03** (the
+  exploit: quitting turned a loss into a gain), v9 −0.31 / −2.68. A perfect player never
+  quits: unchanged. From level 0, a 70 % quitter reached T7 in 468 games under v8; under v9
+  never reaches T1.

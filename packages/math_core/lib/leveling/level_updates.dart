@@ -8,24 +8,33 @@ import 'level_change.dart';
 import 'level_rules.dart';
 import 'rules_version.dart';
 
-/// The level cache entries a **completed Levelling game** produces under
-/// its [rulesVersion] (`doc/levels.md` section 3, `LevelRules.of`) — pure: the app
+/// The level cache entries a **Levelling game** produces under its
+/// [rulesVersion] (`doc/levels.md` section 3, `LevelRules.of`) — pure: the app
 /// (`LevelCacheOrchestrator`, prior levels from its cache) and the server
 /// (prior levels from its own tables) compute them with this one function,
 /// so an honest session lands on the same levels on both sides.
 ///
-/// One entry per operation answered, moved by the quality of its answers
+/// One entry per operation, moved by the quality of its answers
 /// ([levelAfterGame]) against the fluent time of its operation at its
 /// frozen level. [frozenLevels] is the level that generated the session (0
 /// when missing); [priorLevels] give the session counts; [now] is the
 /// session's own time — never the time of computation, or a replay later
 /// would differ. Throws for rules v1, retired.
+///
+/// [typeSequence] is the game's planned order. Under rules that count a
+/// quit ([RulesVersion.quitCounts], v9 on) every planned question counts:
+/// one left unanswered is a timeout, credit 0, for its operation — an
+/// operation with no answer at all included ("Quitting never pays"). Rules
+/// v2–v8 count the answers only: they are given completed games alone.
+/// Throws when [outcomes] hold more answers of an operation than
+/// [typeSequence] plans (rule 13).
 Map<ExerciseType, LevelCacheEntry> gameLevelUpdates({
   required List<AnswerResult> outcomes,
   required Map<ExerciseType, Level> frozenLevels,
   required Map<ExerciseType, LevelCacheEntry> priorLevels,
   required DateTime now,
   required RulesVersion rulesVersion,
+  required List<ExerciseType> typeSequence,
 }) {
   final rules = LevelRules.of(rulesVersion);
   final outcomesByType = <ExerciseType, List<AnswerOutcome>>{};
@@ -38,6 +47,28 @@ Map<ExerciseType, LevelCacheEntry> gameLevelUpdates({
             elapsedMs: outcome.elapsedMs,
           ),
         );
+  }
+
+  if (rulesVersion.quitCounts) {
+    final planned = <ExerciseType, int>{};
+    for (final type in typeSequence) {
+      planned[type] = (planned[type] ?? 0) + 1;
+    }
+    for (final MapEntry(key: type, value: answers) in outcomesByType.entries) {
+      if (answers.length > (planned[type] ?? 0)) {
+        throw ArgumentError.value(
+          answers.length,
+          'outcomes',
+          'more ${type.name} answers than the ${planned[type] ?? 0} planned.',
+        );
+      }
+    }
+    for (final MapEntry(key: type, value: count) in planned.entries) {
+      final answers = outcomesByType.putIfAbsent(type, () => []);
+      while (answers.length < count) {
+        answers.add(const AnswerOutcome(isCorrect: false, elapsedMs: 30000));
+      }
+    }
   }
 
   final updates = <ExerciseType, LevelCacheEntry>{};

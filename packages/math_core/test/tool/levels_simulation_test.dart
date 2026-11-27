@@ -264,4 +264,53 @@ void main() {
       }
     });
   });
+
+  // Review M4, `doc/levels.md` v1.6 "Quitting never pays" (Phase 6b
+  // commit 2): a player who leaves each game at their first mistake.
+  group('quitting at the first mistake', () {
+    test('under v8 it paid: a 60 % player loses levels finishing, never '
+        'quitting', () {
+      final sixty = _player('60 %');
+      expect(
+        meanChangePerGame(
+          sixty,
+          rules: RulesVersion.v8,
+          quitsAfterMistake: false,
+        ),
+        lessThan(0),
+      );
+      expect(
+        meanChangePerGame(
+          sixty,
+          rules: RulesVersion.v8,
+          quitsAfterMistake: true,
+        ),
+        greaterThanOrEqualTo(0),
+      );
+    });
+
+    test('under v9 quitting costs more than finishing, at every accuracy '
+        'below 100 %; a perfect player never quits, so nothing changes', () {
+      for (final player in simulatedPlayers) {
+        final finished = meanChangePerGame(
+          player,
+          rules: RulesVersion.v9,
+          quitsAfterMistake: false,
+          games: 4000,
+        );
+        final quit = meanChangePerGame(
+          player,
+          rules: RulesVersion.v9,
+          quitsAfterMistake: true,
+          games: 4000,
+        );
+        if (player.accuracy < 1) {
+          expect(quit, lessThan(finished), reason: player.name);
+          expect(quit, lessThan(0), reason: player.name);
+        } else {
+          expect(quit, finished, reason: player.name);
+        }
+      }
+    });
+  });
 }

@@ -83,6 +83,8 @@ import 'infrastructure/persistence/shared_preferences_player_id_provider.dart';
 import 'infrastructure/persistence/shared_preferences_theme_mode_store.dart';
 import 'infrastructure/persistence/shared_preferences_type_selection_store.dart';
 import 'infrastructure/persistence/sqflite_session_repository.dart';
+import 'infrastructure/persistence/shared_preferences_unfinished_game_store.dart';
+import 'core/state/unfinished_game.dart';
 
 /// Concrete dependencies resolved once at app start (see `main.dart`),
 /// before `runApp()` — never in a UI widget. This is the only file choosing
@@ -120,9 +122,14 @@ class AppEnvironment {
     this.pendingInviteStore = const SharedPreferencesPendingInviteStore(),
     this.siteUrl,
     this.linkSharer,
+    this.unfinishedGameStore,
   });
 
   final SessionRepository repository;
+
+  /// Where a Levelling game is kept after every answer, for a start after a
+  /// closed tab (Phase 6b commit 2, `recoverUnfinishedGame`). `null` in
+  /// tests that do not look at it.
 
   /// Player whose data is read and written. At start: the device's local id
   /// (`LocalPlayerIdProvider`), now only used to find games played before
@@ -222,6 +229,8 @@ class AppEnvironment {
 
   /// Where runs wait for the server, per player.
   final DuelRunStore duelRunStore;
+
+  final UnfinishedGameStore? unfinishedGameStore;
 
   /// This player's duel runs on their way (`forPlayer`); `null` without
   /// [duelClient].
@@ -405,6 +414,16 @@ Future<AppEnvironment> buildAppEnvironment() async {
   // frame, and a refusal changes nothing in how the app runs.
   unawaited(requestPersistentStorage());
 
+  // A Levelling game left by closing the tab (Phase 6b commit 2): stored
+  // now, before any new game starts from the levels — under rules v9 its
+  // unanswered questions count as timeouts. Never blocks the start.
+  const unfinishedGames = SharedPreferencesUnfinishedGameStore();
+  try {
+    await recoverUnfinishedGame(store: unfinishedGames, repository: repository);
+  } on Exception catch (_) {
+    // Kept for the next start.
+  }
+
   // The page may have signed in while the files downloaded (Phase 5.1
   // commit 1): its session must be in storage before the client reads it.
   await waitForBootSignIn();
@@ -471,6 +490,7 @@ Future<AppEnvironment> buildAppEnvironment() async {
             accessToken: accountRepository.accessToken,
           ),
     feedbackRepository: SupabaseFeedbackRepository(Supabase.instance.client),
+    unfinishedGameStore: unfinishedGames,
   );
 }
 
@@ -596,6 +616,10 @@ SessionController _controllerFor(
       isDebugBuild: kDebugMode,
       noTimeoutRequested: _debugNoTimeout,
     ),
+    // A Levelling game is kept as it goes: closing the tab still counts.
+    unfinishedGames: kind == SessionKind.game
+        ? environment.unfinishedGameStore
+        : null,
   );
 }
 

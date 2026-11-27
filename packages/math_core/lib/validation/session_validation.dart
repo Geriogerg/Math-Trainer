@@ -285,13 +285,16 @@ ValidationResult validateSessionUpload({
           );
         }
       }
-      updates = completed
+      // A game left early moves no level under v2–v8; from v9 it counts,
+      // its unanswered questions timeouts (review M4).
+      updates = completed || session.rulesVersion.quitCounts
           ? gameLevelUpdates(
               outcomes: outcomes,
               frozenLevels: session.levels,
               priorLevels: state.levels,
               now: session.createdAt,
               rulesVersion: session.rulesVersion,
+              typeSequence: session.typeSequence ?? const [],
             )
           : const {};
     case SessionKind.training:

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:math_core/generation/exercise_source.dart';
 import 'package:math_core/leveling/level.dart';
+import 'package:math_core/leveling/rules_version.dart';
 import 'package:math_core/persistence/level_cache_entry.dart';
 import 'package:math_core/models/exercise.dart';
 import 'package:math_core/models/exercise_type.dart';
@@ -583,6 +584,7 @@ void main() {
       required _TimerSpy spy,
       required int exerciseCount,
       SessionRepository? repository,
+      RulesVersion rulesVersion = RulesVersion.current,
     }) {
       return SessionController(
         config: SessionConfig(
@@ -590,6 +592,7 @@ void main() {
           enabledTypes: {ExerciseType.addition},
           exerciseCount: exerciseCount,
           levels: {ExerciseType.addition: Level.whole(50)},
+          rulesVersion: rulesVersion,
         ),
         exerciseSource: _FixedExerciseSource(manyExercises(exerciseCount)),
         repository: repository ?? InMemorySessionRepository(),
@@ -697,36 +700,59 @@ void main() {
       },
     );
 
-    test(
-      'an interrupted session stores the answers already given but not the level',
-      () async {
-        final repository = InMemorySessionRepository();
-        final spy = _TimerSpy();
-        final controller = buildTimeoutController(
-          spy: spy,
-          exerciseCount: 10,
-          repository: repository,
-        );
+    test('an interrupted session stores the answers already given but not the '
+        'level (rules v2–v8)', () async {
+      final repository = InMemorySessionRepository();
+      final spy = _TimerSpy();
+      final controller = buildTimeoutController(
+        spy: spy,
+        exerciseCount: 10,
+        repository: repository,
+        rulesVersion: RulesVersion.v8,
+      );
 
-        controller.start();
-        spy.latest.fire();
-        spy.latest.fire();
-        spy.latest.fire();
-        await Future<void>.delayed(Duration.zero);
+      controller.start();
+      spy.latest.fire();
+      spy.latest.fire();
+      spy.latest.fire();
+      await Future<void>.delayed(Duration.zero);
 
-        final sessions = await repository.recentSessions('test-player');
-        expect(sessions, hasLength(1));
-        // exerciseCount stays the planned count (10), not the number of
-        // answers actually given (3): this gap tells an interrupted session
-        // from a finished one, without a dedicated field.
-        expect(sessions.single.exerciseCount, 10);
-        final answers = await repository.answersForSession(sessions.single.id);
-        expect(answers, hasLength(3));
+      final sessions = await repository.recentSessions('test-player');
+      expect(sessions, hasLength(1));
+      // exerciseCount stays the planned count (10), not the number of
+      // answers actually given (3): this gap tells an interrupted session
+      // from a finished one, without a dedicated field.
+      expect(sessions.single.exerciseCount, 10);
+      final answers = await repository.answersForSession(sessions.single.id);
+      expect(answers, hasLength(3));
 
-        // Does not count for levels.
-        expect(await repository.currentLevels('test-player'), isEmpty);
-      },
-    );
+      // Does not count for levels.
+      expect(await repository.currentLevels('test-player'), isEmpty);
+    });
+
+    // Rules v9 (`doc/levels.md` v1.6, "Quitting never pays"; review M4).
+    test('rules v9: three timeouts end the game, and it counts — the questions '
+        'left are timeouts too', () async {
+      final repository = InMemorySessionRepository();
+      final spy = _TimerSpy();
+      final controller = buildTimeoutController(
+        spy: spy,
+        exerciseCount: 10,
+        repository: repository,
+      );
+      controller.start();
+      spy.latest.fire();
+      spy.latest.fire();
+      spy.latest.fire();
+      await controller.pendingPersistence;
+      expect(controller.state.status, SessionStatus.interrupted);
+      // Ten questions, none right: q = 0, the whole cap — level 50 → 47.
+      final level = (await repository.currentLevels(
+        'test-player',
+      ))[ExerciseType.addition]!.level;
+      expect(level, Level.whole(47));
+      expect(controller.lastLevelUpdates?[ExerciseType.addition]?.level, level);
+    });
 
     test(
       'pendingPersistence only resolves once the session is written (immediate replay, '
@@ -975,8 +1001,37 @@ void main() {
       expect(sessions.single.exerciseCount, 10);
       final answers = await repository.answersForSession(sessions.single.id);
       expect(answers, hasLength(2));
-      // Does not count for levels, like an automatic interruption.
+      // Rules v9: two right answers of ten, q = 0.2 → the whole cap.
+      expect(
+        (await repository.currentLevels(
+          'test-player',
+        ))[ExerciseType.addition]?.level,
+        Level.whole(47),
+      );
+    });
+
+    test('rules v8: a quit game moves no level', () async {
+      final repository = InMemorySessionRepository();
+      final controller = SessionController(
+        config: SessionConfig(
+          seed: 1,
+          enabledTypes: {ExerciseType.addition},
+          exerciseCount: 10,
+          levels: {ExerciseType.addition: Level.whole(50)},
+          rulesVersion: RulesVersion.v8,
+        ),
+        exerciseSource: _FixedExerciseSource(manyExercises(10)),
+        repository: repository,
+        playerId: 'test-player',
+        clock: () => DateTime(2024),
+        createTimer: (duration, callback) => _FakeTimer(callback),
+      );
+      controller.start();
+      controller.submitAnswer(0);
+      controller.abandon();
+      await controller.pendingPersistence;
       expect(await repository.currentLevels('test-player'), isEmpty);
+      expect(controller.lastLevelUpdates, isNull);
     });
 
     test('before any answer: nothing is stored', () async {
@@ -1094,41 +1149,40 @@ void main() {
       );
     });
 
-    test(
-      'stays null after an interrupted session (countsForLevels: false)',
-      () async {
-        final repository = InMemorySessionRepository();
-        final controller = SessionController(
-          config: SessionConfig(
-            seed: 1,
-            enabledTypes: {ExerciseType.addition},
-            exerciseCount: 8,
-            levels: {ExerciseType.addition: Level.whole(50)},
-          ),
-          exerciseSource: _FixedExerciseSource(
-            List.generate(
-              8,
-              (i) => ArithmeticExercise(
-                operandA: i,
-                operandB: 0,
-                operationType: OperationType.addition,
-              ),
+    test('stays null after an interrupted session under rules v2–v8 '
+        '(countsForLevels: false)', () async {
+      final repository = InMemorySessionRepository();
+      final controller = SessionController(
+        config: SessionConfig(
+          seed: 1,
+          enabledTypes: {ExerciseType.addition},
+          exerciseCount: 8,
+          levels: {ExerciseType.addition: Level.whole(50)},
+          rulesVersion: RulesVersion.v8,
+        ),
+        exerciseSource: _FixedExerciseSource(
+          List.generate(
+            8,
+            (i) => ArithmeticExercise(
+              operandA: i,
+              operandB: 0,
+              operationType: OperationType.addition,
             ),
           ),
-          repository: repository,
-          playerId: 'test-player',
-          clock: () => DateTime(2024),
-          createTimer: (duration, callback) => _FakeTimer(callback),
-        );
+        ),
+        repository: repository,
+        playerId: 'test-player',
+        clock: () => DateTime(2024),
+        createTimer: (duration, callback) => _FakeTimer(callback),
+      );
 
-        controller.start();
-        controller.submitAnswer(0);
-        controller.abandon();
-        await controller.pendingPersistence;
+      controller.start();
+      controller.submitAnswer(0);
+      controller.abandon();
+      await controller.pendingPersistence;
 
-        expect(controller.lastLevelUpdates, isNull);
-      },
-    );
+      expect(controller.lastLevelUpdates, isNull);
+    });
 
     test('restart() clears the previous value', () async {
       final repository = InMemorySessionRepository();

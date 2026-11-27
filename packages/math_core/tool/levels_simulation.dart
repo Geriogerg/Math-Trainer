@@ -106,6 +106,48 @@ void main(List<String> args) {
     ];
     print('  ${type.name.padRight(16)}${cells.join()}');
   }
+  print(
+    '== quitting at the first mistake (review M4): mean change per game of '
+    '10 questions at level 50, finished / quit — v8 against v9',
+  );
+  for (final player in simulatedPlayers) {
+    String cell(RulesVersion rules) {
+      final finished = meanChangePerGame(
+        player,
+        rules: rules,
+        quitsAfterMistake: false,
+      );
+      final quit = meanChangePerGame(
+        player,
+        rules: rules,
+        quitsAfterMistake: true,
+      );
+      String f(double x) => '${x >= 0 ? '+' : ''}${x.toStringAsFixed(2)}';
+      return '${f(finished)} / ${f(quit)}';
+    }
+
+    print(
+      '  ${player.name.padRight(16)}v8 ${cell(RulesVersion.v8).padRight(16)}'
+      'v9 ${cell(RulesVersion.v9)}',
+    );
+  }
+  print(
+    '== a player who quits at the first mistake: median games of 10 '
+    'questions to each tier (301 players; — = never within 500 games)',
+  );
+  print(
+    '  player / rules      '
+    '${[for (var t = 1; t <= 9; t++) 'T$t'.padLeft(5)].join()}',
+  );
+  for (final player in simulatedPlayers.skip(2)) {
+    for (final rules in [RulesVersion.v8, RulesVersion.v9]) {
+      final medians = medianGamesToTiersQuitting(player, rules: rules);
+      print(
+        '  ${'${player.name}, v${rules.number}'.padRight(20)}'
+        '${[for (final m in medians) (m == null ? '—' : '$m').padLeft(5)].join()}',
+      );
+    }
+  }
   if (!args.contains('--grid')) return;
   print('== candidates meeting every target (stall at n = 4/5/10/20)');
   for (final rules in candidateRules()) {

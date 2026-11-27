@@ -58,6 +58,10 @@ void main() {
           playerId: 'test-player',
           now: DateTime.utc(2026, 8, 8),
           rulesVersion: RulesVersion.current,
+          typeSequence: [
+            ...List.filled(4, ExerciseType.addition),
+            ...List.filled(4, ExerciseType.subtraction),
+          ],
         );
         expect(updates.keys, {ExerciseType.addition, ExerciseType.subtraction});
         expect(updates[ExerciseType.addition]!.sessionsPlayed, 1);
@@ -100,6 +104,7 @@ void main() {
         playerId: 'test-player',
         now: now,
         rulesVersion: RulesVersion.current,
+        typeSequence: List.filled(8, ExerciseType.addition),
       );
 
       // 50 + 3 (8 fluent answers), not 80 + 3; counted on from the cache.

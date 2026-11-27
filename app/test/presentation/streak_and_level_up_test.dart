@@ -59,6 +59,7 @@ class _RaisedLevels implements SessionLevelUpdates {
     required String playerId,
     required DateTime now,
     required RulesVersion rulesVersion,
+    required List<ExerciseType> typeSequence,
   }) async => {
     ExerciseType.addition: LevelCacheEntry(
       level: to,
