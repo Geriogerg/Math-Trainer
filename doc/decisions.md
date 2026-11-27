@@ -2462,3 +2462,29 @@ rules; these are the readings.
   640 px phone. Two Home captions shortened to stay on one line.
 - **Viewport meta** in `index.html`: the loader is at phone width from its first paint
   (Flutter replaces the tag with its own when it starts).
+
+**Commit 7 — strings and consistency (m3, m18, m17 terms).**
+
+- **Every player-facing word in `app/lib/presentation/strings/`**, as plain Dart classes per
+  area (`strings.home`, `.game`, `.profile`, `.account`, `.online`, `.ranks`, `.common`) plus
+  the tables that already were tables (exercise types, Method labels, tips, duel texts, account
+  messages, refusal texts, spoken prompts, the privacy notice), moved there. Not ARB files with
+  `gen-l10n`: no new dependency, no `BuildContext` to thread into helpers, enum labels stay
+  exhaustive switches, and no test needs localisation delegates. French (plan v4.0: "right
+  after") is then a subclass per area overriding what it translates, chosen at start from the
+  device's language; a member it misses stays English (a test can list the members a
+  translation leaves out). Revisit if a translator needs a file format: an export to ARB is a
+  script over these classes. A guard test (`strings_in_one_place_test.dart`) fails on any
+  word-holding literal elsewhere in `lib/presentation/`, with five explained exceptions (two
+  font names, `dx`, a placeholder friend code, an internal error) and the developer-only
+  specimen screen.
+- **Terms**: "game", never "session", in what players read ("Game complete", "Recent games");
+  "Ranks", never "Leaderboard" (the tab's name: the screen's title, its messages, Save your
+  progress, the privacy notice); times in seconds with one decimal everywhere ("2.4 s": the
+  result's average and Profile's per-operation times were in ms). "Practice" keeps one meaning:
+  what never moves a level or a rating (Home's Practice section, Get the count, Chain
+  operations, a duel against a practice opponent). "Not available in this build" (owner text)
+  became "not available yet".
+- **Levels as whole parts everywhere** (m3): Home's and Profile's main level is now floored
+  like Ranks and every operation (10.5 shows 10, not 11).
+- **A password can be shown** on Sign in and Save your progress (m17).

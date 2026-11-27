@@ -305,11 +305,12 @@ void main() {
     const accountA = Account(id: 'compte-a', email: 'a@test.com');
     const accountB = Account(id: 'compte-b', email: 'b@test.com');
     // The device's main level: addition 43, the three other basics at 0.
-    const deviceMainLevel = 11; // 43 / 4 = 10.75
+    // 43 / 4 = 10.75, shown as its whole part (Phase 6b commit 7, m3).
+    const deviceMainLevel = 10;
 
     /// Game played under the device's local id (`test-player`, the one of
     /// `pumpGate`), as before accounts. Addition at level 43, the three
-    /// other basics at 0: main level 43 / 4 = 10.75, shown as 11.
+    /// other basics at 0: main level 43 / 4 = 10.75, shown as 10.
     Future<void> playOnDevice(AppEnvironment environment) =>
         environment.repository.recordSession(
           session: PersistedSession(

@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../theme/app_theme.dart';
+import '../strings/strings.dart';
 
 /// A level, always as a whole number (`doc/design.md`): the digit face in
 /// the accent, inside an accent outline (Phase 5 commit 2). Profile rows,
@@ -29,7 +30,10 @@ class LevelBadge extends StatelessWidget {
             ?.digits
             .copyWith(color: color, fontWeight: FontWeight.w500);
     return Semantics(
-      label: played ? 'Level $level' : 'Not played',
+      label: switch (level) {
+        final level? => strings.game.levelBadge(level),
+        null => strings.game.notPlayed,
+      },
       excludeSemantics: true,
       child: Container(
         constraints: BoxConstraints(minWidth: large ? 64 : 40),

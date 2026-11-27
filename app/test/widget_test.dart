@@ -229,7 +229,7 @@ void main() {
       await tester.tap(find.text('Quit'));
       await settlePageTransition(tester);
 
-      expect(find.text('Session interrupted'), findsOneWidget);
+      expect(find.text('Game interrupted'), findsOneWidget);
     },
   );
 
@@ -242,7 +242,7 @@ void main() {
   Future<void> playToCompletion(WidgetTester tester) async {
     for (
       var i = 0;
-      i < 30 && find.text('Session complete').evaluate().isEmpty;
+      i < 30 && find.text('Game complete').evaluate().isEmpty;
       i++
     ) {
       await tester.tap(find.byKey(keypadKeyKey('1')));
@@ -250,7 +250,7 @@ void main() {
       await tester.pump();
       await tester.pump(SessionController.defaultCorrectionDelay);
     }
-    expect(find.text('Session complete'), findsOneWidget);
+    expect(find.text('Game complete'), findsOneWidget);
   }
 
   testWidgets('"Home" after a session goes back to Home', (

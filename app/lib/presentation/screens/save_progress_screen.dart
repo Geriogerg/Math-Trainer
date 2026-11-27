@@ -1,11 +1,12 @@
 import 'package:material_ui/material_ui.dart';
+import '../strings/strings.dart';
 
 import '../kit/kit.dart';
 
 import 'package:math_core/account/account_repository.dart';
 import 'package:math_core/account/profile_repository.dart';
 import '../../core/state/account_form_controller.dart';
-import '../account_messages.dart';
+import 'package:math_trainer/presentation/strings/account_messages.dart';
 import '../theme/app_theme.dart';
 import 'sign_in_screen.dart';
 
@@ -43,6 +44,9 @@ class _SaveProgressScreenState extends State<SaveProgressScreen> {
   );
   final _email = TextEditingController();
   final _password = TextEditingController();
+
+  /// The password shown as typed (review m17), hidden by default.
+  bool _showPassword = false;
   late final _name = TextEditingController(text: widget.initialDisplayName);
 
   @override
@@ -82,8 +86,7 @@ class _SaveProgressScreenState extends State<SaveProgressScreen> {
     final problem = _controller.problem;
     if (problem != null) {
       return switch (problem) {
-        AccountFormProblem.missingFields =>
-          'Enter an email, a password and a player name.',
+        AccountFormProblem.missingFields => strings.account.saveProgressMissing,
         AccountFormProblem.invalidName => describeNameProblem(
           _controller.nameProblem!,
         ),
@@ -99,7 +102,7 @@ class _SaveProgressScreenState extends State<SaveProgressScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Save your progress')),
+      appBar: AppBar(title: Text(strings.account.saveProgress)),
       body: SafeArea(
         child: ListenableBuilder(
           listenable: _controller,
@@ -110,9 +113,7 @@ class _SaveProgressScreenState extends State<SaveProgressScreen> {
               padding: theme.extension<AppMetrics>()!.rootPadding,
               children: [
                 Text(
-                  'Your levels and history stay as they are. With an email '
-                  'and a password you can play on another device, and your '
-                  'player name can appear on the leaderboard.',
+                  strings.account.saveProgressDetail,
                   style: theme.textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 24),
@@ -125,17 +126,32 @@ class _SaveProgressScreenState extends State<SaveProgressScreen> {
                         keyboardType: TextInputType.emailAddress,
                         textInputAction: TextInputAction.next,
                         autofillHints: const [AutofillHints.email],
-                        decoration: const InputDecoration(labelText: 'Email'),
+                        decoration: InputDecoration(
+                          labelText: strings.account.email,
+                        ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _password,
                         enabled: !busy,
-                        obscureText: true,
+                        obscureText: !_showPassword,
                         textInputAction: TextInputAction.next,
                         autofillHints: const [AutofillHints.newPassword],
-                        decoration: const InputDecoration(
-                          labelText: 'Password',
+                        decoration: InputDecoration(
+                          labelText: strings.account.password,
+                          // Review m17: no way to check what was typed.
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _showPassword
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
+                            ),
+                            tooltip: _showPassword
+                                ? strings.account.hidePassword
+                                : strings.account.showPassword,
+                            onPressed: () =>
+                                setState(() => _showPassword = !_showPassword),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -148,8 +164,8 @@ class _SaveProgressScreenState extends State<SaveProgressScreen> {
                         onSubmitted: (_) {
                           if (!busy) _submit();
                         },
-                        decoration: const InputDecoration(
-                          labelText: 'Player name',
+                        decoration: InputDecoration(
+                          labelText: strings.account.playerName,
                         ),
                       ),
                     ],
@@ -159,7 +175,7 @@ class _SaveProgressScreenState extends State<SaveProgressScreen> {
                 AppButton.primary(
                   onPressed: _submit,
                   busy: busy,
-                  label: 'Save',
+                  label: strings.account.save,
                 ),
                 if (error != null) ...[
                   const SizedBox(height: 12),
@@ -174,7 +190,7 @@ class _SaveProgressScreenState extends State<SaveProgressScreen> {
                 if (_controller.failure == AccountFailure.emailAlreadyUsed)
                   AppButton.secondary(
                     onPressed: _signInInstead,
-                    label: 'Sign in to that account instead',
+                    label: strings.account.signInInstead,
                   ),
               ],
             );

@@ -1610,7 +1610,7 @@ owner decision, nothing to build).
 | M19 | Stale reference docs | 6b (8); the `CLAUDE.md` "v6 is current" sentence fixed in 6a (0) | part |
 | m1 | An answer at the buzzer can get an honest game refused | 6a (6) | **fixed** |
 | m2 | One poisoned session blocks a player's uploads for ever | 6a (6) | **fixed** |
-| m3 | Main level rounded here, floored there | 6b (7) | open |
+| m3 | Main level rounded here, floored there | 6b (7) | **fixed** (the whole part everywhere) |
 | m4 | Division never on two lines | — | decided: one line, spec fixed in `doc/levels.md` v1.6 |
 | m5 | Weak spots can be 25 % of an operation | 6b (1), rules v9 (moved from 7: it changes what a game draws) | **fixed** (⌊n/5⌋) |
 | m6 | No security headers | 6a (6) | **fixed** (tokens still in `localStorage`: Supabase's default; the CSP is the mitigation) |
@@ -1624,8 +1624,8 @@ owner decision, nothing to build).
 | m14 | Seven replayable rules versions | 6c (6): v2–v6 retired 30 days after v9 | open |
 | m15 | Dead dependencies; `PREVIEW_BUILD` always on | 6a (7) | **fixed** (`structural_features.dart` kept: the Dart half of a parity pair) |
 | m16 | Test gaps (SQL pin counts files, no catalogue test, two server cases) | 6a (7) | **fixed** |
-| m17 | Smaller friction (sign-out, pending uploads, rules of two modes, terms) | 6b (4, 7) | **part**: sign-out confirmed, pending uploads counted, both modes' rules on first open (4); terms are 7 |
-| m18 | No localisation mechanism | 6b (7): strings in one place, English at launch | open |
+| m17 | Smaller friction (sign-out, pending uploads, rules of two modes, terms) | 6b (4, 7) | **fixed** (sign-out confirmed, pending uploads counted, both modes' rules (4); terms unified, owner text gone, a password can be shown (7); a refusal is still a caption line, 13 px since 6) |
+| m18 | No localisation mechanism | 6b (7): strings in one place, English at launch | **fixed** for the plan's scope (every word in `presentation/strings/`, a guard test; French is the next step, not built) |
 | m19 | `doc/decisions.md` unmarked superseded entries; legal README gap | 6b (8); the notice gap with 6c (2) | open |
 | m20 | Pattern families that do not grow with the tier | 6b (1), rules v9 | **fixed** (the size rows, and a median growth test on every family) |
 | m21 | Subtraction T8 second number, non-monotone tiers, Tables repeat | 6b (1), rules v9 | **part**: both lengths at T8; Tables mode never asks a fact twice in a row (across passes too); monotonicity left to the Phase 3b data check (the review's own advice) |
@@ -2036,3 +2036,14 @@ changes what a v9 game draws).
   target and labelled tap target guidelines on Online (both themes), a duel in play, Friends
   and Ranks. `session_layout_pin_test.dart` unchanged and green; the 200 % text test green; 52
   goldens re-rendered and read. Run locally: app 510, analyze clean (no core change).
+- **Commit 7** *(A)* — **Strings and consistency (m3, m18, m17 terms).** Every word a player
+  reads is in `app/lib/presentation/strings/` (about 500 literals moved from 30 files: areas
+  `common`, `home`, `game`, `profile`, `account`, `online`, `ranks`, and the existing tables —
+  exercise types, Method labels, tips, duel texts, account messages, refusals, spoken prompts,
+  the privacy notice); `strings_in_one_place_test.dart` fails on any word-holding literal left
+  elsewhere in `lib/presentation/`. Terms: game (not session), Ranks (not Leaderboard), seconds
+  (not ms), "Practice" for what never moves a level or a rating; "not available in this build"
+  gone. Main levels shown as whole parts (Home and Profile were rounded). A password can be
+  shown. The smoke test looks for "Game complete" (and the old text, for a deploy in between).
+  Tests: the guard and its self-check (2); tests updated for the new words and the whole-part
+  main level; 12 goldens re-rendered and read. Run locally: app 512, analyze clean.

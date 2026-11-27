@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:math_trainer/presentation/strings/strings.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:math_core/duel/duel_client.dart';
 import 'package:math_core/duel/duel_config.dart';
@@ -316,7 +317,7 @@ void main() {
     await pumpFriends(tester, buildLightTheme());
     await tester.tap(find.text('Accept'));
     await tester.pumpAndSettle();
-    expect(find.text(friendActionFailedText), findsOneWidget);
+    expect(find.text(strings.common.tryAgain), findsOneWidget);
     // Still there, to try again.
     expect(find.text('Zoé'), findsOneWidget);
   });
@@ -331,7 +332,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Remove'));
     await tester.pumpAndSettle();
-    expect(find.text(friendActionFailedText), findsOneWidget);
+    expect(find.text(strings.common.tryAgain), findsOneWidget);
     expect(find.text('Remove friend'), findsOneWidget, reason: 'not closed');
     expect(friends.removed, isEmpty);
   });

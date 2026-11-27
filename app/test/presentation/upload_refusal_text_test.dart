@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:math_core/validation/session_validation.dart';
-import 'package:math_trainer/presentation/upload_refusal_text.dart';
+import 'package:math_trainer/presentation/strings/upload_refusal_text.dart';
 
 void main() {
   test('every rejection reason has a sentence; unknown ones too', () {

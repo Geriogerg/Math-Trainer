@@ -1,7 +1,7 @@
 import 'package:math_core/models/exercise.dart';
 import 'package:math_core/models/operation_type.dart';
 
-import 'exercise_prompt.dart' show integralTerms;
+import '../exercise_prompt.dart' show integralTerms;
 
 /// What a screen reader says for [exercise] (Phase 6b commit 6, review
 /// M17: "12²" had no spoken label, "√169" read as a symbol). Words for

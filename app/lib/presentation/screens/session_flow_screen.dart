@@ -8,6 +8,7 @@ import 'package:math_core/models/game_setup.dart';
 import 'package:math_core/persistence/level_cache_entry.dart';
 
 import '../kit/kit.dart';
+import '../strings/strings.dart';
 
 import '../../composition_root.dart';
 import '../../core/state/session_controller.dart';
@@ -16,7 +17,7 @@ import 'empty_state.dart';
 import 'result_screen.dart';
 import 'session_screen.dart';
 import 'tips_view.dart';
-import '../tips/tips.dart';
+import 'package:math_trainer/presentation/strings/tips.dart';
 
 /// Starts [controller] and shows it full screen over the tabs; resolves
 /// once the player has left and the end-of-session write is done — the
@@ -152,21 +153,16 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Quit the game?'),
-        content: counts
-            ? const Text(
-                'The questions left count as missed: your levels can go '
-                'down.',
-              )
-            : null,
+        title: Text(strings.game.quitTitle),
+        content: counts ? Text(strings.game.quitCounts) : null,
         actions: [
           AppButton.secondary(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            label: 'Cancel',
+            label: strings.common.cancel,
           ),
           AppButton.secondary(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            label: 'Quit',
+            label: strings.common.quit,
           ),
         ],
       ),
@@ -247,7 +243,7 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
         _isRestarting = false;
         // No "Try again.": the Play again button, active again, already
         // carries the action (`doc/design.md`).
-        _restartError = 'Could not start a new session.';
+        _restartError = strings.game.couldNotRestart;
       });
     }
   }
@@ -265,8 +261,8 @@ class _SessionFlowScreenState extends State<SessionFlowScreen> {
             body: SafeArea(
               child: switch (status) {
                 SessionStatus.notStarted => EmptyState(
-                  message: 'Session not started.',
-                  actionLabel: 'Quit',
+                  message: strings.game.notStarted,
+                  actionLabel: strings.common.quit,
                   onAction: () => Navigator.of(context).maybePop(),
                 ),
                 SessionStatus.inProgress => SessionScreen(

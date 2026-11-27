@@ -1,9 +1,9 @@
 import 'package:material_ui/material_ui.dart';
+import '../strings/strings.dart';
 
 import '../../composition_root.dart';
 import '../../core/state/online_controller.dart';
-import '../duel/duel_texts.dart';
-import 'friends_screen.dart' show friendRequestText;
+import 'package:math_trainer/presentation/strings/duel_texts.dart';
 import '../kit/kit.dart';
 import '../theme/app_theme.dart';
 import 'leaderboard_screen.dart';
@@ -70,9 +70,9 @@ class _AppShellState extends State<AppShell>
     if (invite != null) _askInvite(online, invite).ignore();
     final outcome = online.takeInviteOutcome();
     if (outcome != null) {
-      ScaffoldMessenger.maybeOf(
-        context,
-      )?.showSnackBar(SnackBar(content: Text(friendRequestText(outcome))));
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(content: Text(strings.online.requestOutcome(outcome))),
+      );
     }
     final unfinished = online.takeUnfinishedSent();
     if (unfinished.isNotEmpty) {
@@ -86,15 +86,15 @@ class _AppShellState extends State<AppShell>
     final send = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Send a friend request?'),
-        content: Text('An invite link asks to add the player with code $code.'),
+        title: Text(strings.online.inviteTitle),
+        content: Text(strings.online.inviteDetail(code)),
         actions: [
           AppButton.secondary(
-            label: 'Not now',
+            label: strings.online.notNow,
             onPressed: () => Navigator.of(dialogContext).pop(false),
           ),
           AppButton.primary(
-            label: 'Send request',
+            label: strings.online.sendRequest,
             onPressed: () => Navigator.of(dialogContext).pop(true),
           ),
         ],
@@ -190,9 +190,9 @@ class _AppShellState extends State<AppShell>
           selectedIndex: _index,
           onDestinationSelected: _selectTab,
           destinations: [
-            const NavigationDestination(
+            NavigationDestination(
               icon: Icon(Icons.sports_esports_outlined),
-              label: 'Play',
+              label: strings.online.tabPlay,
             ),
             NavigationDestination(
               // A challenge or a friend request waiting: a dot, and the
@@ -201,19 +201,19 @@ class _AppShellState extends State<AppShell>
                 isLabelVisible: _online?.needsAttention ?? false,
                 child: const Icon(Icons.wifi_outlined),
               ),
-              label: 'Online',
+              label: strings.online.tabOnline,
               tooltip: (_online?.needsAttention ?? false)
-                  ? 'Online, something waits for you'
+                  ? strings.online.onlineAttention
                   : null,
             ),
-            const NavigationDestination(
+            NavigationDestination(
               icon: Icon(Icons.person_outline),
-              label: 'Profile',
+              label: strings.online.tabProfile,
             ),
-            const NavigationDestination(
+            NavigationDestination(
               icon: Icon(Icons.leaderboard_outlined),
               // The mockups' word (doc/decisions.md, Redesign phase).
-              label: 'Ranks',
+              label: strings.online.tabRanks,
             ),
           ],
         ),

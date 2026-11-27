@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../kit/kit.dart';
+import '../strings/strings.dart';
 
 import 'package:math_core/method/method.dart';
 import 'package:math_core/method/method_for.dart';
@@ -14,12 +15,12 @@ import '../../core/effects/session_effects.dart';
 import '../../core/state/session_controller.dart';
 import '../../core/state/session_state.dart';
 import '../exercise_prompt.dart';
-import '../method_labels.dart';
+import 'package:math_trainer/presentation/strings/method_labels.dart';
 import '../method_view.dart';
 import '../number_format.dart';
-import '../exercise_type_labels.dart';
+import 'package:math_trainer/presentation/strings/exercise_type_labels.dart';
 import '../theme/app_theme.dart';
-import '../tips/tips.dart';
+import 'package:math_trainer/presentation/strings/tips.dart';
 
 class ResultScreen extends StatelessWidget {
   const ResultScreen({
@@ -63,7 +64,7 @@ class ResultScreen extends StatelessWidget {
     final result = controller.result;
     final status = controller.state.status;
     final interrupted = status == SessionStatus.interrupted;
-    final title = interrupted ? 'Session interrupted' : 'Session complete';
+    final title = strings.game.title(interrupted: interrupted);
     final breakdown = result.scoreBreakdown;
     final labelStyle = theme.textTheme.bodyMedium;
     // Each mistake with its question's pattern family, replayed from the
@@ -133,24 +134,24 @@ class ResultScreen extends StatelessWidget {
                       width: 160,
                       child: StatTile(
                         value: '${result.totalScore}',
-                        label: 'Score',
+                        label: strings.game.score,
                         emphasis: true,
                       ),
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Base: ${breakdown.base}',
+                    strings.game.base(breakdown.base),
                     textAlign: TextAlign.center,
                     style: labelStyle,
                   ),
                   Text(
-                    'Speed bonus: ${breakdown.speedBonus}',
+                    strings.game.speedBonus(breakdown.speedBonus),
                     textAlign: TextAlign.center,
                     style: labelStyle,
                   ),
                   Text(
-                    'Streak bonus: ${breakdown.streakBonus}',
+                    strings.game.streakBonus(breakdown.streakBonus),
                     textAlign: TextAlign.center,
                     style: labelStyle,
                   ),
@@ -158,7 +159,7 @@ class ResultScreen extends StatelessWidget {
                   // line at 0 for a player's first games teaches nothing.
                   if (breakdown.difficultyBonus != 0)
                     Text(
-                      'Difficulty bonus: ${breakdown.difficultyBonus}',
+                      strings.game.difficultyBonus(breakdown.difficultyBonus),
                       textAlign: TextAlign.center,
                       style: labelStyle,
                     ),
@@ -169,11 +170,17 @@ class ResultScreen extends StatelessWidget {
                 // construction, it measures nothing (`doc/decisions.md`).
                 StatTileRow(
                   tiles: [
-                    StatTile(value: '${result.correctCount}', label: 'Right'),
-                    StatTile(value: '${result.wrongCount}', label: 'Wrong'),
+                    StatTile(
+                      value: '${result.correctCount}',
+                      label: strings.game.rightCount,
+                    ),
+                    StatTile(
+                      value: '${result.wrongCount}',
+                      label: strings.game.wrongCount,
+                    ),
                     StatTile(
                       value: '${result.timeoutCount}',
-                      label: 'Timed out',
+                      label: strings.game.timedOut,
                     ),
                   ],
                 ),
@@ -181,12 +188,12 @@ class ResultScreen extends StatelessWidget {
                 StatTileRow(
                   tiles: [
                     StatTile(
-                      value: '${result.averageElapsedMs.round()} ms',
-                      label: 'Average time',
+                      value: strings.game.secondsValue(result.averageElapsedMs),
+                      label: strings.game.averageTime,
                     ),
                     StatTile(
                       value: '${result.bestStreak}',
-                      label: 'Best streak',
+                      label: strings.game.bestStreak,
                     ),
                   ],
                 ),
@@ -197,7 +204,7 @@ class ResultScreen extends StatelessWidget {
                 if (mistakes.isNotEmpty) ...[
                   const SizedBox(height: 24),
                   Text(
-                    'Mistakes',
+                    strings.game.mistakes,
                     textAlign: TextAlign.center,
                     style: theme.textTheme.titleSmall,
                   ),
@@ -218,7 +225,7 @@ class ResultScreen extends StatelessWidget {
                 if (controller.persistenceFailed) ...[
                   const SizedBox(height: 16),
                   Text(
-                    'Not saved',
+                    strings.game.notSaved,
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.error,
@@ -232,7 +239,7 @@ class ResultScreen extends StatelessWidget {
                     onPressed: controller.isRetryingPersistence
                         ? null
                         : controller.retryPersistence,
-                    label: 'Retry saving',
+                    label: strings.game.retrySaving,
                   ),
                 ],
               ],
@@ -266,12 +273,12 @@ class ResultScreen extends StatelessWidget {
                 children: [
                   AppButton.secondary(
                     onPressed: onExitToSelection,
-                    label: 'Home',
+                    label: strings.game.home,
                   ),
                   AppButton.primary(
                     onPressed: onPlayAgain,
                     busy: isRestarting,
-                    label: 'Play again',
+                    label: strings.game.playAgain,
                   ),
                 ],
               ),
@@ -330,7 +337,7 @@ class _MistakeRowState extends State<MistakeRow> {
             Semantics(
               expanded: _open,
               child: AppButton.secondary(
-                label: _open ? 'Hide method' : 'Method',
+                label: _open ? strings.game.hideMethod : strings.game.method,
                 onPressed: () => setState(() => _open = !_open),
               ),
             ),
@@ -384,7 +391,7 @@ class _MethodPanel extends StatelessWidget {
             Align(
               alignment: Alignment.centerRight,
               child: AppButton.secondary(
-                label: 'More tips',
+                label: strings.game.moreTips,
                 onPressed: () => onMoreTips(type, tipFor(method)),
               ),
             ),
@@ -420,12 +427,12 @@ class _MistakeLine extends StatelessWidget {
             Icons.hourglass_empty,
             size: 18,
             color: muted,
-            semanticLabel: 'Timed out',
+            semanticLabel: strings.game.timedOut,
           )
         else
           Text(
             groupedNumber(outcome.submittedValue),
-            semanticsLabel: 'Your answer ${outcome.submittedValue}',
+            semanticsLabel: strings.game.yourAnswer(outcome.submittedValue),
             style: theme.textTheme.bodyLarge?.digits.copyWith(
               color: muted,
               decoration: TextDecoration.lineThrough,
@@ -464,7 +471,7 @@ class _LevelChangeRow extends StatelessWidget {
 
     if (updates == null) {
       return Text(
-        '$label — level ${before.whole}',
+        strings.game.level(label, before.whole),
         textAlign: TextAlign.center,
         style: style,
       );
@@ -476,7 +483,7 @@ class _LevelChangeRow extends StatelessWidget {
       // to animate — distinct from "evaluated, level unchanged" (the player
       // could not tell the difference if both rendered the same).
       return Text(
-        '$label — level ${before.whole} (not enough answers to count)',
+        strings.game.levelTooFewAnswers(label, before.whole),
         textAlign: TextAlign.center,
         style: style,
       );
@@ -501,14 +508,18 @@ class _LevelChangeRow extends StatelessWidget {
           // (review M16: the result showed a level and a bar, no before /
           // after, no reason, no sign for a drop).
           Text(
-            '$label: ${before.whole} → ${value.floor()} '
-            '(${levelChangeText(entry.level.hundredths - before.hundredths)})',
+            strings.game.levelChange(
+              label,
+              before.whole,
+              value.floor(),
+              entry.level.hundredths - before.hundredths,
+            ),
             textAlign: TextAlign.center,
             style: style,
           ),
           if (quality case final q?)
             Caption(
-              qualityReason(
+              strings.game.qualityReason(
                 q,
                 change: entry.level.hundredths - before.hundredths,
               ),
@@ -526,34 +537,6 @@ class _LevelChangeRow extends StatelessWidget {
   }
 }
 
-/// A level change in levels, two decimals, signed: "+0.56", "−3.00"; "no
-/// change".
-String levelChangeText(int hundredths) {
-  if (hundredths == 0) return 'no change';
-  final sign = hundredths > 0 ? '+' : '−';
-  final a = hundredths.abs();
-  return '$sign${a ~/ 100}.${(a % 100).toString().padLeft(2, '0')}';
-}
-
-/// Why an operation's level moved, in one line: the game's quality against
-/// the band (`doc/levels.md` section 3), the questions left of a quit.
-String qualityReason(OperationQuality q, {required int change}) {
-  final band = switch (q.zone) {
-    QualityZone.up => 'above ${q.bandHighPercent} %, up',
-    QualityZone.kept => '${q.bandLowPercent}–${q.bandHighPercent} %, kept',
-    QualityZone.down => 'below ${q.bandLowPercent} %, down',
-  };
-  final bound = change == 0 && q.zone == QualityZone.down
-      ? ' (already at 0)'
-      : change == 0 && q.zone == QualityZone.up
-      ? ' (already at 100)'
-      : '';
-  final left = q.unanswered == 0
-      ? ''
-      : ' · ${q.unanswered} left, counted as missed';
-  return 'Quality ${q.qualityPercent} %: $band$bound$left';
-}
-
 /// How far the player is inside their whole level, 0 to 1 — the hundredths
 /// the whole-number label leaves out.
 class _ProgressInsideLevel extends StatelessWidget {
@@ -569,7 +552,7 @@ class _ProgressInsideLevel extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(4),
         child: LinearProgressIndicator(
-          semanticsLabel: 'Progress toward the next level',
+          semanticsLabel: strings.game.progressInLevel,
           value: fraction,
           minHeight: 6,
           backgroundColor: theme.colorScheme.outlineVariant,
@@ -634,7 +617,7 @@ class _LevelUpMarkState extends State<_LevelUpMark>
     return ScaleTransition(
       scale: _scale,
       child: Text(
-        '▲ Level up',
+        strings.game.levelUp,
         style: theme.textTheme.bodyMedium?.copyWith(
           color: theme.colorScheme.primary,
           fontWeight: FontWeight.w500,

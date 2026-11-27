@@ -1,11 +1,12 @@
 import 'package:material_ui/material_ui.dart';
+import '../strings/strings.dart';
 
 import '../kit/kit.dart';
 
 import 'package:math_core/account/account_repository.dart';
 import 'package:math_core/account/profile_repository.dart';
 import '../../core/state/account_form_controller.dart';
-import '../account_messages.dart';
+import 'package:math_trainer/presentation/strings/account_messages.dart';
 import '../theme/app_theme.dart';
 
 /// Sign in to an existing email account. For a guest, a clear warning
@@ -43,6 +44,9 @@ class _SignInScreenState extends State<SignInScreen> {
   late final _email = TextEditingController(text: widget.initialEmail);
   final _password = TextEditingController();
 
+  /// The password shown as typed (review m17), hidden by default.
+  bool _showPassword = false;
+
   bool get _replacesGuestProgress => widget.isGuest && widget.guestHasProgress;
 
   @override
@@ -64,7 +68,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
   String? _errorText() {
     if (_controller.problem == AccountFormProblem.missingFields) {
-      return 'Enter your email and password.';
+      return strings.account.signInMissing;
     }
     final failure = _controller.failure;
     return failure == null
@@ -76,7 +80,7 @@ class _SignInScreenState extends State<SignInScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Sign in')),
+      appBar: AppBar(title: Text(strings.account.signIn)),
       body: SafeArea(
         child: ListenableBuilder(
           listenable: _controller,
@@ -98,11 +102,7 @@ class _SignInScreenState extends State<SignInScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'Your guest progress on this browser will be '
-                          'replaced by this account. It stays on this device '
-                          'but will no longer be shown, and the two histories '
-                          'are never merged. To keep it, go back and save your '
-                          'progress with a new email instead.',
+                          strings.account.guestReplaced,
                           style: theme.textTheme.bodyMedium,
                         ),
                       ),
@@ -119,20 +119,35 @@ class _SignInScreenState extends State<SignInScreen> {
                         keyboardType: TextInputType.emailAddress,
                         textInputAction: TextInputAction.next,
                         autofillHints: const [AutofillHints.email],
-                        decoration: const InputDecoration(labelText: 'Email'),
+                        decoration: InputDecoration(
+                          labelText: strings.account.email,
+                        ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _password,
                         enabled: !busy,
-                        obscureText: true,
+                        obscureText: !_showPassword,
                         textInputAction: TextInputAction.done,
                         autofillHints: const [AutofillHints.password],
                         onSubmitted: (_) {
                           if (!busy) _submit();
                         },
-                        decoration: const InputDecoration(
-                          labelText: 'Password',
+                        decoration: InputDecoration(
+                          labelText: strings.account.password,
+                          // Review m17: no way to check what was typed.
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _showPassword
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
+                            ),
+                            tooltip: _showPassword
+                                ? strings.account.hidePassword
+                                : strings.account.showPassword,
+                            onPressed: () =>
+                                setState(() => _showPassword = !_showPassword),
+                          ),
                         ),
                       ),
                     ],
@@ -143,8 +158,8 @@ class _SignInScreenState extends State<SignInScreen> {
                   onPressed: _submit,
                   busy: busy,
                   label: _replacesGuestProgress
-                      ? 'Sign in and replace guest progress'
-                      : 'Sign in',
+                      ? strings.account.signInReplacing
+                      : strings.account.signIn,
                 ),
                 if (error != null) ...[
                   const SizedBox(height: 12),

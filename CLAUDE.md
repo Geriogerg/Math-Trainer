@@ -48,7 +48,7 @@ line; weak spots at most ⌊n/5⌋ per operation; strings in one place, English 
 right after. m12 (large files) and m13 (app contracts in the core) are fixed when the files are
 next touched — the phase report says what moved.
 
-Done: 0–6 (27 Nov; `doc/progress.md`, "Phase 6b"). Next: commit 7.
+Done: 0–7 (27 Nov; `doc/progress.md`, "Phase 6b"). Next: commit 8.
 
 **Phase 7's rules** (plan v3.7–v3.8; detail in `doc/decisions.md`, "Phase 7"):
 - **No live matches**: every duel is asynchronous — a player races another's recorded run,
@@ -350,6 +350,10 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 - **A duel is asked for only once the server is awake** (`DuelFlowScreen`: `/health`, then
   `find`/`open`). Cancel exists only during the wake: after `find` the server may have made the
   duel, and one left 24 hours is a loss.
+- **Every word a player reads is in `app/lib/presentation/strings/`** (6b commit 7):
+  `strings.<area>.<name>`, English; `strings_in_one_place_test.dart` fails on a word-holding
+  literal anywhere else in `lib/presentation/`. Players read "game" (not session), "Ranks",
+  seconds. Levels, the main level included, are shown as whole parts (`.floor()`, `.whole`).
 - **Two edge colours** (6b commit 6): `colorScheme.outline` is the 3:1 edge of what can be
   tapped; `outlineVariant` is for what only decorates (tracks, separators). A new tappable
   surface gets an `outline` edge. Semantics are on from `main`; a prompt's spoken words come
@@ -531,7 +535,7 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   parallel or skip a refused session's successors.
 - Adopt the server's levels only when no upload is pending (`syncLevelsBeforeGame`): pending
   sessions chain from the local levels. Never without a server either — its levels are empty.
-- The privacy notice (`privacy_screen.dart`) states what is stored and that deletion removes it
+- The privacy notice (`strings/privacy_strings.dart`) states what is stored and that deletion removes it
   all: a new table of player data must cascade from `auth.users` and be named there.
 - Level updates have one implementation: `gameLevelUpdates`, used by the app's orchestrator
   and the server's validation. Never compute levels elsewhere. Questions likewise:

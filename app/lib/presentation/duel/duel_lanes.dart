@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import '../strings/strings.dart';
 
 import '../../core/state/duel_controller.dart';
 import '../theme/app_theme.dart';
@@ -30,7 +31,7 @@ class DuelLanes extends StatelessWidget {
       children: [
         _Lane(
           key: const ValueKey('lane-you'),
-          label: 'You',
+          label: strings.online.you,
           progress: mine,
           color: scheme.primary,
         ),

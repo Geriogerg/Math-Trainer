@@ -1,7 +1,9 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../strings/strings.dart';
+
 import 'package:math_core/models/exercise_type.dart';
-import '../exercise_type_labels.dart';
+import 'package:math_trainer/presentation/strings/exercise_type_labels.dart';
 import '../theme/app_theme.dart';
 import 'operator_icon.dart';
 
@@ -38,7 +40,7 @@ class OperationButton extends StatelessWidget {
     return Semantics(
       button: true,
       selected: selected,
-      label: '${exerciseTypeLabel(type)}, level $level',
+      label: strings.game.operationLevel(exerciseTypeLabel(type), level),
       excludeSemantics: true,
       child: Material(
         color: selected

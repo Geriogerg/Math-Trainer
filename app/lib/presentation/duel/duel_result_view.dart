@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import '../strings/strings.dart';
 
 import 'package:math_core/duel/duel_client.dart';
 import 'package:math_core/duel/duel_run.dart';
@@ -8,7 +9,7 @@ import '../../core/state/duel_controller.dart';
 import '../kit/kit.dart';
 import '../screens/result_screen.dart' show MistakeRow;
 import '../theme/app_theme.dart';
-import 'duel_texts.dart';
+import 'package:math_trainer/presentation/strings/duel_texts.dart';
 
 /// A duel's result (`doc/mockups/online.html`, screen 3): Won / Lost /
 /// Draw, the mode and the rating's move, both scores, the mistakes with
@@ -39,9 +40,9 @@ class DuelResultView extends StatelessWidget {
     final result = controller.result;
     final waiting = verdict?.waiting ?? offer.lane == null;
     final headline = controller.refusal != null
-        ? 'Not counted'
+        ? strings.online.notCounted
         : waiting
-        ? 'Sent'
+        ? strings.online.sent
         : result == null
         ? '…'
         : resultWord(result);
@@ -74,7 +75,7 @@ class DuelResultView extends StatelessWidget {
             const SizedBox(height: 8),
             Center(
               child: AppButton.secondary(
-                label: 'Send again',
+                label: strings.online.sendAgain,
                 onPressed: controller.retry,
               ),
             ),
@@ -83,7 +84,7 @@ class DuelResultView extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: _ScoreTile(label: 'You', score: mine),
+                child: _ScoreTile(label: strings.online.you, score: mine),
               ),
               if (!waiting) ...[
                 const SizedBox(width: 8),
@@ -125,7 +126,7 @@ class DuelResultView extends StatelessWidget {
             children: [
               Expanded(
                 child: AppButton.secondary(
-                  label: 'Online',
+                  label: strings.online.online,
                   onPressed: onOnline,
                 ),
               ),
@@ -133,7 +134,7 @@ class DuelResultView extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: AppButton.primary(
-                    label: 'Rematch',
+                    label: strings.online.rematch,
                     onPressed: rematch,
                   ),
                 ),
@@ -150,7 +151,9 @@ class DuelResultView extends StatelessWidget {
   static String _subtitle(DuelOffer offer, DuelVerdict? verdict, bool waiting) {
     final mode = duelModeLabel(offer.mode);
     if (verdict == null) return mode;
-    if (offer.kind == DuelKind.practice) return '$mode · Practice';
+    if (offer.kind == DuelKind.practice) {
+      return strings.online.practiceSubtitle(mode);
+    }
     final provisional = verdict.provisional;
     if (verdict.rated &&
         verdict.ratingBefore != null &&

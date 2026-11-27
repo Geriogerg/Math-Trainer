@@ -128,8 +128,9 @@ void main() {
       }
       expect(find.text('Get the count'), findsOneWidget);
       expect(find.text('Chain operations'), findsOneWidget);
-      // Main level: (42 + 3 × 0) / 4 = 10.5, shown 11.
-      expect(findLevelBadge(11), findsOneWidget);
+      // Main level: (42 + 3 × 0) / 4 = 10.5, shown 10 — the whole part,
+      // as on Ranks (Phase 6b commit 7, review m3: it was rounded to 11).
+      expect(findLevelBadge(10), findsOneWidget);
       expect(find.byType(OperationButton), findsNWidgets(8));
       expect(find.text('42'), findsOneWidget);
       // Never played: shown at 0, where everyone starts.

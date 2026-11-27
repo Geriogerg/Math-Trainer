@@ -1,15 +1,16 @@
 import 'package:material_ui/material_ui.dart';
+import '../strings/strings.dart';
 
 import '../kit/kit.dart';
 import 'package:math_core/leaderboard/leaderboard.dart';
 
-import '../duel/duel_texts.dart';
+import 'package:math_trainer/presentation/strings/duel_texts.dart';
 import '../number_format.dart';
 
 import '../../composition_root.dart';
 import '../../core/state/account_form_controller.dart';
 import '../../core/state/leaderboard_controller.dart';
-import '../exercise_type_labels.dart';
+import 'package:math_trainer/presentation/strings/exercise_type_labels.dart';
 import '../theme/app_theme.dart';
 import 'empty_state.dart';
 import 'save_progress_screen.dart';
@@ -66,7 +67,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     if (controller == null) {
       return Center(
         child: Text(
-          'The leaderboard is not available in this build.',
+          strings.ranks.notAvailable,
           style: theme.textTheme.bodyMedium,
         ),
       );
@@ -78,7 +79,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Leaderboard', style: theme.textTheme.titleMedium),
+            Text(strings.ranks.title, style: theme.textTheme.titleMedium),
             const SizedBox(height: 16),
             _BoardChips(
               selected: controller.board,
@@ -86,14 +87,14 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             ),
             const SizedBox(height: 12),
             SegmentedButton<LeaderboardView>(
-              segments: const [
+              segments: [
                 ButtonSegment(
                   value: LeaderboardView.aroundMe,
-                  label: Text('Around me'),
+                  label: Text(strings.ranks.aroundMe),
                 ),
                 ButtonSegment(
                   value: LeaderboardView.top,
-                  label: Text('Top 100'),
+                  label: Text(strings.ranks.top100),
                 ),
               ],
               selected: {controller.view},
@@ -111,8 +112,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   Widget _content(LeaderboardController controller, ThemeData theme) {
     if (controller.failed) {
       return EmptyState(
-        message: 'Could not load the leaderboard.',
-        actionLabel: 'Retry',
+        message: strings.ranks.couldNotLoad,
+        actionLabel: strings.common.retry,
         onAction: () => controller.load().ignore(),
       );
     }
@@ -134,7 +135,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         top.isEmpty
             ? Center(
                 child: Text(
-                  'Nobody on this board yet.',
+                  strings.ranks.emptyBoard,
                   style: theme.textTheme.bodyMedium,
                 ),
               )
@@ -161,9 +162,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     _controller?.load().ignore();
     if (outcome == SaveProgressOutcome.saved ||
         outcome == SaveProgressOutcome.savedWithoutName) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Progress saved to your account.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(strings.ranks.progressSaved)));
     }
   }
 
@@ -174,27 +175,24 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     final account = await widget.environment.accountRepository.authState.first;
     if (!mounted) return;
     if (account == null || account.isAnonymous) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Save your progress to report a name.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(strings.ranks.reportNeedsAccount)));
       return;
     }
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text('Report "${entry.name}"?'),
-        content: const Text(
-          'Report a name that is offensive or impersonates someone. A '
-          'reported name is hidden until it is reviewed.',
-        ),
+        title: Text(strings.ranks.reportTitle(entry.name ?? '')),
+        content: Text(strings.ranks.reportDetail),
         actions: [
           AppButton.secondary(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            label: 'Cancel',
+            label: strings.common.cancel,
           ),
           AppButton.primary(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            label: 'Report',
+            label: strings.ranks.report,
           ),
         ],
       ),
@@ -205,7 +203,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     messenger.showSnackBar(
       SnackBar(
         content: Text(
-          sent ? 'Reported — thank you.' : 'Could not send the report.',
+          sent ? strings.ranks.reported : strings.ranks.reportFailed,
         ),
       ),
     );
@@ -215,7 +213,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
 String boardLabel(LeaderboardBoard board) => switch ((board.type, board.duel)) {
   (final type?, _) => exerciseTypeLabel(type),
   (_, final mode?) => duelModeLabel(mode),
-  _ => 'Main',
+  _ => strings.ranks.mainBoard,
 };
 
 /// A duel board's chip mark: the Online tab's icon, so "Basics" the duel
@@ -268,15 +266,22 @@ class _RankedView extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Top ${standing.topPercent} %', style: theme.textTheme.titleLarge),
+        Text(
+          strings.ranks.topPercent(standing.topPercent),
+          style: theme.textTheme.titleLarge,
+        ),
         const SizedBox(height: 4),
         Text(
-          'Rank ${standing.rank} of ${standing.total} · '
-          '${switch ((standing.level, standing.rating)) {
-            (final level?, _) => 'level ${level.whole}',
-            (_, final rating?) => 'rating ${groupedNumber(rating)}',
+          strings.ranks.rankOf(standing.rank, standing.total, switch ((
+            standing.level,
+            standing.rating,
+          )) {
+            (final level?, _) => strings.ranks.levelStanding(level.whole),
+            (_, final rating?) => strings.ranks.ratingStanding(
+              groupedNumber(rating),
+            ),
             _ => '',
-          }}',
+          }),
           style: theme.textTheme.bodyMedium,
         ),
         const SizedBox(height: 16),
@@ -302,34 +307,13 @@ class _NotRankedView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final n = standing.sessionsNeeded;
-    final games = n == 1 ? '1 more game' : '$n more games';
-    final message = switch (standing.reason) {
-      NotRankedReason.noSessions =>
-        'Play a game to join the leaderboard. Your games count once they '
-            'reach the server.',
-      NotRankedReason.notEnoughSessions =>
-        board.type == null
-            ? 'Finish $games to join the main board.'
-            : '$games with ${boardLabel(board).toLowerCase()} to join this '
-                  'board.',
-      NotRankedReason.inactive when board.isDuel =>
-        'Play a rated duel to appear again: the board shows players active '
-            'in the last 30 days.',
-      NotRankedReason.inactive =>
-        'Play a game to appear again: the board shows players active in the '
-            'last 30 days. Your level never drops while you are away.',
-      NotRankedReason.noDuels => 'Play a duel in this mode to join its board.',
-      NotRankedReason.provisional =>
-        n == 1
-            ? '1 more rated duel to join this board.'
-            : '$n more rated duels to join this board.',
-      NotRankedReason.notLinked =>
-        'The leaderboard shows players who saved their progress. Save '
-            'yours — an email and a player name — to take your place.',
-      NotRankedReason.signedOut ||
-      NotRankedReason.other => 'You are not on this board yet.',
-    };
+    final message = strings.ranks.notRanked(
+      standing.reason,
+      needed: standing.sessionsNeeded,
+      mainBoard: board.type == null,
+      duelBoard: board.isDuel,
+      boardName: boardLabel(board),
+    );
     return Align(
       alignment: Alignment.topLeft,
       child: Column(
@@ -341,7 +325,7 @@ class _NotRankedView extends StatelessWidget {
             const SizedBox(height: 16),
             AppButton.primary(
               onPressed: onSaveProgress,
-              label: 'Save your progress',
+              label: strings.ranks.saveYourProgress,
             ),
           ],
         ],
@@ -387,8 +371,8 @@ class _EntryRow extends StatelessWidget {
           Expanded(
             child: Text(
               entry.isMe
-                  ? '${entry.name ?? 'Player'} (You)'
-                  : entry.name ?? 'Player',
+                  ? strings.ranks.you(entry.name ?? strings.common.player)
+                  : entry.name ?? strings.common.player,
               style: style,
               overflow: TextOverflow.ellipsis,
             ),
@@ -409,7 +393,7 @@ class _EntryRow extends StatelessWidget {
                 ? null
                 : IconButton(
                     icon: const Icon(Icons.flag_outlined, size: 18),
-                    tooltip: 'Report name',
+                    tooltip: strings.ranks.reportName,
                     visualDensity: VisualDensity.compact,
                     onPressed: () => onReport(entry),
                   ),

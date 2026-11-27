@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import '../strings/strings.dart';
 
 import '../kit/kit.dart';
 
@@ -20,12 +21,11 @@ class BetaGateScreen extends StatefulWidget {
   final VoidCallback onSignIn;
 
   static String messageFor(BetaGateProblem problem) => switch (problem) {
-    BetaGateProblem.empty => 'Enter the code from your invitation.',
-    BetaGateProblem.unknown =>
-      'This code is not valid. Check it against your invitation.',
-    BetaGateProblem.full => 'This code has already been used.',
-    BetaGateProblem.disabled => 'This code is no longer active.',
-    BetaGateProblem.offline => 'No connection. Check it and try again.',
+    BetaGateProblem.empty => strings.account.codeEmpty,
+    BetaGateProblem.unknown => strings.account.codeInvalid,
+    BetaGateProblem.full => strings.account.codeFull,
+    BetaGateProblem.disabled => strings.account.codeDisabled,
+    BetaGateProblem.offline => strings.account.codeOffline,
   };
 
   @override
@@ -62,14 +62,13 @@ class _BetaGateScreenState extends State<BetaGateScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
-                        'Math Trainer',
+                        strings.account.appName,
                         style: theme.textTheme.titleMedium,
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'The beta is invite-only. Enter the code from your '
-                        'invitation.',
+                        strings.account.gateDetail,
                         style: theme.textTheme.bodyMedium,
                         textAlign: TextAlign.center,
                       ),
@@ -84,7 +83,7 @@ class _BetaGateScreenState extends State<BetaGateScreen> {
                         textInputAction: TextInputAction.done,
                         onSubmitted: (_) => _submit(),
                         decoration: InputDecoration(
-                          labelText: 'Invitation code',
+                          labelText: strings.account.invitationCode,
                           errorText: problem == null
                               ? null
                               : BetaGateScreen.messageFor(problem),
@@ -93,12 +92,14 @@ class _BetaGateScreenState extends State<BetaGateScreen> {
                       const SizedBox(height: 16),
                       AppButton.primary(
                         onPressed: checking ? null : _submit,
-                        label: checking ? 'Checking…' : 'Continue',
+                        label: checking
+                            ? strings.account.checking
+                            : strings.account.continueLabel,
                       ),
                       const SizedBox(height: 8),
                       AppButton.secondary(
                         onPressed: checking ? null : widget.onSignIn,
-                        label: 'I already have an account',
+                        label: strings.account.haveAccount,
                       ),
                       // Before giving any data (Phase 3a commit 4).
                       AppButton.secondary(
@@ -107,7 +108,7 @@ class _BetaGateScreenState extends State<BetaGateScreen> {
                             builder: (_) => const PrivacyScreen(),
                           ),
                         ),
-                        label: 'Privacy',
+                        label: strings.account.privacy,
                       ),
                     ],
                   );

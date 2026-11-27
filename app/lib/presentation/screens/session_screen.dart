@@ -10,7 +10,8 @@ import '../../core/state/session_controller.dart';
 import '../exercise_prompt.dart';
 import '../number_format.dart';
 import '../kit/numeric_keypad.dart';
-import '../spoken_prompt.dart';
+import 'package:math_trainer/presentation/strings/spoken_prompt.dart';
+import '../strings/strings.dart';
 import '../streak_tier.dart';
 import '../theme/app_theme.dart';
 import 'empty_state.dart';
@@ -127,7 +128,10 @@ class _SessionScreenState extends State<SessionScreen>
       _safely(widget.effects.timedOut);
       final missed = outcomes.last.exercise;
       _announce(
-        "Time's up. ${spokenPrompt(missed)} is ${missed.correctAnswer}.",
+        strings.game.timesUpWithAnswer(
+          spokenPrompt(missed),
+          missed.correctAnswer,
+        ),
       );
     }
     _seenOutcomes = outcomes.length;
@@ -199,8 +203,11 @@ class _SessionScreenState extends State<SessionScreen>
     _playFeedback(isCorrect);
     _announce(
       isCorrect
-          ? 'Right'
-          : 'Wrong. ${spokenPrompt(exercise)} is ${exercise.correctAnswer}.',
+          ? strings.game.right
+          : strings.game.wrongWithAnswer(
+              spokenPrompt(exercise),
+              exercise.correctAnswer,
+            ),
     );
     _safely(
       () => widget.effects.answered(
@@ -232,7 +239,7 @@ class _SessionScreenState extends State<SessionScreen>
     final left = timeout * (1 - _chronoController.value);
     if (left <= _lowTimeLeft && left > Duration.zero) {
       _lowTimeSaid = true;
-      _announce('${_lowTimeLeft.inSeconds} seconds left');
+      _announce(strings.game.secondsLeft(_lowTimeLeft.inSeconds));
     }
   }
 
@@ -268,8 +275,8 @@ class _SessionScreenState extends State<SessionScreen>
     final exercise = state.currentExercise;
     if (exercise == null) {
       return EmptyState(
-        message: 'No question to show.',
-        actionLabel: 'Quit',
+        message: strings.game.noQuestion,
+        actionLabel: strings.common.quit,
         onAction: () => Navigator.of(context).maybePop(),
       );
     }
@@ -330,10 +337,12 @@ class _SessionScreenState extends State<SessionScreen>
                           Semantics(
                             container: true,
                             liveRegion: true,
-                            label:
-                                'Question ${state.outcomes.length + (correction == null ? 1 : 0)} '
-                                'of ${widget.controller.config.exerciseCount}: '
-                                '${spokenPrompt(exercise)}',
+                            label: strings.game.question(
+                              state.outcomes.length +
+                                  (correction == null ? 1 : 0),
+                              widget.controller.config.exerciseCount,
+                              spokenPrompt(exercise),
+                            ),
                             excludeSemantics: true,
                             child: KeyedSubtree(
                               key: sessionQuestionKey,
@@ -375,12 +384,13 @@ class _SessionScreenState extends State<SessionScreen>
                                 Icons.hourglass_empty,
                                 size: 22,
                                 color: theme.extension<AppPalette>()!.textMuted,
-                                semanticLabel: "Time's up",
+                                semanticLabel: strings.game.timesUp,
                               ),
                               final c => Text(
                                 groupedNumber(c.submittedValue),
-                                semanticsLabel:
-                                    'Your answer ${c.submittedValue}',
+                                semanticsLabel: strings.game.yourAnswer(
+                                  c.submittedValue,
+                                ),
                                 style: theme.textTheme.titleMedium?.digits
                                     .copyWith(
                                       color: theme
@@ -464,7 +474,7 @@ class _TopBar extends StatelessWidget {
                   ? null
                   : IconButton(
                       icon: Icon(Icons.close, color: colorScheme.onSurface),
-                      tooltip: 'Quit',
+                      tooltip: strings.common.quit,
                       onPressed: onQuit,
                     ),
             ),
@@ -486,7 +496,7 @@ class _TopBar extends StatelessWidget {
             // Spoken as the seconds left (Phase 6b commit 6, review M17).
             builder: (context, _) => Semantics(
               container: true,
-              label: 'Time left',
+              label: strings.game.timeLeft,
               value: timeLeftWords(chrono),
               excludeSemantics: true,
               child: LinearProgressIndicator(
@@ -509,7 +519,7 @@ String timeLeftWords(Animation<double> chrono) {
   final total = controller?.duration;
   if (total == null || total == Duration.zero) return '';
   final left = (total.inMilliseconds * (1 - chrono.value) / 1000).ceil();
-  return left == 1 ? '1 second' : '$left seconds';
+  return strings.game.seconds(left);
 }
 
 /// The answer being typed. The feedback flash/motion (rule 14: never colour

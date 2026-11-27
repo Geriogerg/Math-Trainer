@@ -10,7 +10,7 @@ import 'package:math_core/leveling/rules_version.dart';
 import 'package:math_core/method/method_for.dart';
 import 'package:math_core/persistence/in_memory_session_repository.dart';
 import 'package:math_trainer/composition_root.dart';
-import 'package:math_trainer/presentation/method_labels.dart';
+import 'package:math_trainer/presentation/strings/method_labels.dart';
 import 'package:math_trainer/presentation/duel/duel_flow_screen.dart';
 import 'package:math_trainer/presentation/screens/session_screen.dart';
 import 'package:math_trainer/presentation/theme/app_theme.dart';

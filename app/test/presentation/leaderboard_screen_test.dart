@@ -190,12 +190,12 @@ void main() {
   testWidgets('offline: a message and Retry', (tester) async {
     leaderboard.failing = true;
     await pump(tester);
-    expect(find.text('Could not load the leaderboard.'), findsOneWidget);
+    expect(find.text('Could not load the boards.'), findsOneWidget);
 
     leaderboard.failing = false;
     await tester.tap(find.text('Retry'));
     await tester.pumpAndSettle();
-    expect(find.text('Could not load the leaderboard.'), findsNothing);
+    expect(find.text('Could not load the boards.'), findsNothing);
   });
 
   testWidgets('shown again: reloads', (tester) async {
@@ -278,7 +278,7 @@ void main() {
     await pump(tester);
 
     expect(
-      find.textContaining('shows players who saved their progress'),
+      find.textContaining('show players who saved their progress'),
       findsOneWidget,
     );
     await tester.tap(find.text('Save your progress'));

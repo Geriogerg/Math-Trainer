@@ -13,8 +13,9 @@ import 'package:math_core/weak_spots/item.dart';
 import '../../composition_root.dart';
 import '../../core/state/hints.dart';
 import '../../core/state/session_controller.dart';
-import '../exercise_type_labels.dart';
+import 'package:math_trainer/presentation/strings/exercise_type_labels.dart';
 import '../kit/kit.dart';
+import '../strings/strings.dart';
 import '../theme/app_theme.dart';
 import '../../core/state/levels_refresh.dart';
 import 'chain_screen.dart';
@@ -22,7 +23,7 @@ import 'count_screen.dart';
 import 'session_flow_screen.dart';
 import 'sign_in_screen.dart';
 import 'tips_view.dart';
-import '../tips/tips.dart';
+import 'package:math_trainer/presentation/strings/tips.dart';
 
 /// Addition and subtraction ticked for a player who never chose: inverse
 /// operations, the lightest start (step 4.1, `doc/decisions.md`).
@@ -169,13 +170,9 @@ class _PlayTabState extends State<PlayTab> {
       if (!mounted) return;
       await showRules(
         context,
-        title: 'Chain operations',
-        lines: const [
-          'A number, then one operation a screen. Keep the result in your '
-              'head; type it at the end.',
-          'Practice: it never moves your levels.',
-        ],
-        confirm: null,
+        title: strings.home.chainOperations,
+        lines: strings.home.chainRules,
+        cancellable: false,
       );
       await hints.markSeen(Hint.chainRules);
     }
@@ -391,7 +388,7 @@ class _PlayTabState extends State<PlayTab> {
       // Start, active again, is the retry.
       setState(() {
         _isStarting = false;
-        _startError = 'Could not start';
+        _startError = strings.home.couldNotStart;
       });
       return;
     }
@@ -479,7 +476,9 @@ class _PlayTabState extends State<PlayTab> {
     }
     final levels = _levels ?? const {};
     return _HomeView(
-      mainLevel: mainLevel(levels).round(),
+      // The whole part, as everywhere (review m3: rounded here, floored on
+      // Ranks).
+      mainLevel: mainLevel(levels).floor(),
       levelOf: (type) => (levels[type]?.level ?? Level.zero).whole,
       selectionOf: _selectionOf,
       onToggle: _toggle,
@@ -553,27 +552,27 @@ class _HomeView extends StatelessWidget {
         children: [
           Row(
             children: [
-              Expanded(child: Text('Play', style: theme.textTheme.titleMedium)),
+              Expanded(
+                child: Text(
+                  strings.home.play,
+                  style: theme.textTheme.titleMedium,
+                ),
+              ),
               LevelBadge(level: mainLevel),
             ],
           ),
-          const Caption(
-            'Your level: the mean of + − × ÷.',
-            textAlign: TextAlign.end,
-          ),
+          Caption(strings.home.mainLevelCaption, textAlign: TextAlign.end),
           if (onSignIn case final signIn?) ...[
             const SizedBox(height: 8),
             Row(
               key: signInHintKey,
               children: [
-                const Expanded(
-                  child: Caption(
-                    'Played before, on this or another device? Sign in to '
-                    'get your levels back.',
-                  ),
-                ),
+                Expanded(child: Caption(strings.home.signInHint)),
                 const SizedBox(width: 8),
-                AppButton.secondary(label: 'Sign in', onPressed: signIn),
+                AppButton.secondary(
+                  label: strings.common.signIn,
+                  onPressed: signIn,
+                ),
               ],
             ),
           ],
@@ -582,10 +581,7 @@ class _HomeView extends StatelessWidget {
             _FirstRunCard(onDismiss: onDismissFirstRun),
           ],
           for (final family in ExerciseFamily.values) ...[
-            _SectionLabel(switch (family) {
-              ExerciseFamily.basics => 'Basics',
-              ExerciseFamily.advanced => 'Advanced',
-            }),
+            _SectionLabel(strings.home.family(family)),
             Row(
               children: [
                 for (final (i, type) in family.types.indexed) ...[
@@ -601,20 +597,12 @@ class _HomeView extends StatelessWidget {
                 ],
               ],
             ),
-            Caption(switch (family) {
-              ExerciseFamily.basics =>
-                'Tap operations to play. Each has a level, 0–100.',
-              ExerciseFamily.advanced =>
-                'Each has its own level, like the basics.',
-            }),
+            Caption(strings.home.familyCaption(family)),
             const SizedBox(height: 8),
             AppButton.primary(
               key: playButtonKey(family),
-              label: 'Play',
-              semanticLabel: switch (family) {
-                ExerciseFamily.basics => 'Play Basics',
-                ExerciseFamily.advanced => 'Play Advanced',
-              },
+              label: strings.home.play,
+              semanticLabel: strings.home.playFamily(family),
               compact: true,
               // Dimmed and inert until the row has a selection.
               onPressed: selectionOf(family).isEmpty
@@ -623,42 +611,41 @@ class _HomeView extends StatelessWidget {
             ),
           ],
           // Phase 4: the player's own weak spots, practice only.
-          const _SectionLabel('Practice'),
+          _SectionLabel(strings.home.practice),
           AppCard(
             key: weakSpotsCardKey,
-            label: 'Weak spots',
-            caption: 'What you missed, asked again.',
+            label: strings.home.weakSpots,
+            caption: strings.home.weakSpotsCaption,
             detail: switch (weakSpotsDue) {
               null => null,
-              0 => 'None due',
-              final n => '$n due',
+              final n => strings.home.weakSpotsDue(n),
             },
             onTap: (weakSpotsDue ?? 0) > 0 ? onWeakSpots : null,
           ),
-          const _SectionLabel('Challenges'),
+          _SectionLabel(strings.home.challenges),
           AppCard(
-            label: 'Get the count',
-            caption: 'Reach a target with the numbers given.',
+            label: strings.home.getTheCount,
+            caption: strings.home.getTheCountCaption,
             onTap: onGetTheCount,
           ),
           const SizedBox(height: 8),
           AppCard(
-            label: 'Chain operations',
-            caption: 'A running total, kept in your head.',
+            label: strings.home.chainOperations,
+            caption: strings.home.chainCaption,
             onTap: onChainOperations,
           ),
           const SizedBox(height: 8),
           // Its own card, under Challenges (`doc/levels.md`, section 7).
           AppCard(
-            label: 'Tables',
-            caption: 'Times tables, at your pace. Never ranked.',
+            label: strings.home.tables,
+            caption: strings.home.tablesCaption,
             onTap: onTables,
           ),
           const SizedBox(height: 8),
           // Reached from its own card (`doc/levels.md`, section 8).
           AppCard(
-            label: 'Tips',
-            caption: 'Shortcuts for every operation and level.',
+            label: strings.home.tips,
+            caption: strings.home.tipsCaption,
             onTap: onTips,
           ),
         ],
@@ -689,23 +676,21 @@ class _FirstRunCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('How levels work', style: theme.textTheme.titleSmall),
+          Text(strings.home.firstRunTitle, style: theme.textTheme.titleSmall),
           const SizedBox(height: 8),
-          Text(
-            'Each operation has a level, 0 to 100. A Levelling game moves '
-            'it: right answers raise it, fast ones most; mistakes, timeouts '
-            'and quitting lower it.',
-            style: theme.textTheme.bodyMedium,
-          ),
+          Text(strings.home.firstRunLevels, style: theme.textTheme.bodyMedium),
           const SizedBox(height: 4),
           Text(
-            'Training games and Practice never move levels.',
+            strings.home.firstRunPractice,
             style: theme.textTheme.bodyMedium,
           ),
           const SizedBox(height: 12),
           Align(
             alignment: Alignment.centerRight,
-            child: AppButton.secondary(label: 'Got it', onPressed: onDismiss),
+            child: AppButton.secondary(
+              label: strings.common.gotIt,
+              onPressed: onDismiss,
+            ),
           ),
         ],
       ),
@@ -785,7 +770,7 @@ class _SetupView extends StatelessWidget {
                   children: [
                     IconButton(
                       icon: const Icon(Icons.arrow_back),
-                      tooltip: 'Back',
+                      tooltip: strings.common.back,
                       onPressed: onBack,
                     ),
                     Expanded(
@@ -799,7 +784,7 @@ class _SetupView extends StatelessWidget {
                     const SizedBox(width: 48),
                   ],
                 ),
-                const _SectionLabel('Questions'),
+                _SectionLabel(strings.home.questions),
                 SegmentedChoice<int>(
                   values: questionsPerOperationChoices,
                   selected: setup.questionsPerOperation,
@@ -808,43 +793,29 @@ class _SetupView extends StatelessWidget {
                       onChanged((s) => s.copyWith(questionsPerOperation: n)),
                 ),
                 Caption(
-                  types.length == 1
-                      ? '${setup.questionsPerOperation} questions.'
-                      : '${setup.questionsPerOperation} per operation: '
-                            '${setup.questionsPerOperation * types.length} '
-                            'questions in all.',
+                  strings.home.questionsCaption(
+                    setup.questionsPerOperation,
+                    types.length,
+                  ),
                 ),
-                const _SectionLabel('Mode'),
+                _SectionLabel(strings.home.mode),
                 SegmentedChoice<GameMode>(
                   values: GameMode.values,
                   selected: setup.mode,
-                  label: (mode) => switch (mode) {
-                    GameMode.training => 'Training',
-                    GameMode.levelling => 'Levelling',
-                  },
+                  label: strings.home.modeLabel,
                   onChanged: (mode) => onChanged((s) => s.copyWith(mode: mode)),
                 ),
-                Caption(switch (setup.mode) {
-                  GameMode.levelling =>
-                    'Moves your levels. Quitting counts the questions left '
-                        'as missed.',
-                  GameMode.training =>
-                    'A fixed difficulty. Your levels never move.',
-                }),
+                Caption(strings.home.modeCaption(setup.mode)),
                 if (setup.mode == GameMode.training) ...[
                   const SizedBox(height: 8),
                   SegmentedChoice<TrainingDifficulty>(
                     values: TrainingDifficulty.values,
                     selected: setup.difficulty,
-                    label: (difficulty) => switch (difficulty) {
-                      TrainingDifficulty.easy => 'Easy',
-                      TrainingDifficulty.medium => 'Medium',
-                      TrainingDifficulty.hard => 'Hard',
-                    },
+                    label: strings.home.difficulty,
                     onChanged: (difficulty) =>
                         onChanged((s) => s.copyWith(difficulty: difficulty)),
                   ),
-                  const Caption('Easy: level 10 · Medium: 40 · Hard: 70.'),
+                  Caption(strings.home.difficultyCaption),
                 ],
                 const Spacer(),
                 const SizedBox(height: 24),
@@ -859,7 +830,7 @@ class _SetupView extends StatelessWidget {
                   const SizedBox(height: 8),
                 ],
                 AppButton.primary(
-                  label: 'Start',
+                  label: strings.common.start,
                   onPressed: onStart,
                   busy: isStarting,
                 ),
@@ -908,12 +879,12 @@ class _ChainSetupView extends StatelessWidget {
                   children: [
                     IconButton(
                       icon: const Icon(Icons.arrow_back),
-                      tooltip: 'Back',
+                      tooltip: strings.common.back,
                       onPressed: onBack,
                     ),
                     Expanded(
                       child: Text(
-                        'Chain operations',
+                        strings.home.chainOperations,
                         textAlign: TextAlign.center,
                         style: theme.textTheme.titleLarge,
                       ),
@@ -921,14 +892,14 @@ class _ChainSetupView extends StatelessWidget {
                     const SizedBox(width: 48),
                   ],
                 ),
-                const _SectionLabel('Seconds'),
+                _SectionLabel(strings.home.seconds),
                 SegmentedChoice<int>(
                   values: chainSecondsChoices,
                   selected: seconds,
                   label: (s) => '$s',
                   onChanged: onSeconds,
                 ),
-                const _SectionLabel('Operations'),
+                _SectionLabel(strings.home.operations),
                 SegmentedChoice<int>(
                   values: chainOperationChoices,
                   selected: operations,
@@ -937,7 +908,10 @@ class _ChainSetupView extends StatelessWidget {
                 ),
                 const Spacer(),
                 const SizedBox(height: 24),
-                AppButton.primary(label: 'Start', onPressed: onStart),
+                AppButton.primary(
+                  label: strings.common.start,
+                  onPressed: onStart,
+                ),
               ],
             ),
           ),
@@ -991,12 +965,12 @@ class _TablesSetupView extends StatelessWidget {
                   children: [
                     IconButton(
                       icon: const Icon(Icons.arrow_back),
-                      tooltip: 'Back',
+                      tooltip: strings.common.back,
                       onPressed: onBack,
                     ),
                     Expanded(
                       child: Text(
-                        'Tables',
+                        strings.home.tables,
                         textAlign: TextAlign.center,
                         style: theme.textTheme.titleLarge,
                       ),
@@ -1004,21 +978,21 @@ class _TablesSetupView extends StatelessWidget {
                     const SizedBox(width: 48),
                   ],
                 ),
-                const _SectionLabel('From'),
+                _SectionLabel(strings.home.from),
                 _TableStepper(
                   key: const ValueKey('tables-from'),
                   value: setup.firstTable,
-                  label: 'From',
+                  label: strings.home.from,
                   onChanged: (v) => onChanged((s) => _first(s, v)),
                 ),
-                const _SectionLabel('To'),
+                _SectionLabel(strings.home.to),
                 _TableStepper(
                   key: const ValueKey('tables-to'),
                   value: setup.lastTable,
-                  label: 'To',
+                  label: strings.home.to,
                   onChanged: (v) => onChanged((s) => _last(s, v)),
                 ),
-                const _SectionLabel('Multipliers'),
+                _SectionLabel(strings.home.multipliers),
                 SegmentedChoice<int>(
                   values: tablesMultiplierChoices,
                   selected: setup.maxMultiplier,
@@ -1026,7 +1000,7 @@ class _TablesSetupView extends StatelessWidget {
                   onChanged: (m) =>
                       onChanged((s) => s.copyWith(maxMultiplier: m)),
                 ),
-                const _SectionLabel('Questions'),
+                _SectionLabel(strings.home.questions),
                 SegmentedChoice<int>(
                   values: tablesQuestionChoices,
                   selected: setup.questions,
@@ -1035,7 +1009,10 @@ class _TablesSetupView extends StatelessWidget {
                 ),
                 const Spacer(),
                 const SizedBox(height: 24),
-                AppButton.primary(label: 'Start', onPressed: onStart),
+                AppButton.primary(
+                  label: strings.common.start,
+                  onPressed: onStart,
+                ),
               ],
             ),
           ),
@@ -1067,21 +1044,21 @@ class _TableStepper extends StatelessWidget {
       children: [
         IconButton(
           icon: const Icon(Icons.remove),
-          tooltip: '$label −1',
+          tooltip: strings.home.stepDown(label),
           onPressed: value > tablesMin ? () => onChanged(value - 1) : null,
         ),
         SizedBox(
           width: 88,
           child: Text(
             '$value',
-            semanticsLabel: '$label $value',
+            semanticsLabel: strings.home.stepValue(label, value),
             textAlign: TextAlign.center,
             style: theme.textTheme.headlineMedium?.digits,
           ),
         ),
         IconButton(
           icon: const Icon(Icons.add),
-          tooltip: '$label +1',
+          tooltip: strings.home.stepUp(label),
           onPressed: value < tablesMax ? () => onChanged(value + 1) : null,
         ),
       ],

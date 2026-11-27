@@ -8,24 +8,10 @@ import '../../composition_root.dart';
 import '../../core/state/friends_controller.dart';
 import '../duel/duel_flow_screen.dart';
 import '../duel/duel_rules.dart';
-import '../duel/duel_texts.dart';
+import 'package:math_trainer/presentation/strings/duel_texts.dart';
 import '../kit/kit.dart';
+import '../strings/strings.dart';
 import '../theme/app_theme.dart';
-
-/// What a request by code did, in words.
-String friendRequestText(FriendRequestOutcome outcome) => switch (outcome) {
-  FriendRequestOutcome.sent => 'Request sent.',
-  FriendRequestOutcome.friends => 'You are now friends.',
-  FriendRequestOutcome.already => 'Already friends.',
-  FriendRequestOutcome.pending => 'Request already sent.',
-  FriendRequestOutcome.unknown => 'No player has this code.',
-  FriendRequestOutcome.self => 'That is your own code.',
-  FriendRequestOutcome.tooMany => 'Too many requests today.',
-  FriendRequestOutcome.other => 'Could not send the request.',
-};
-
-/// An accept, a decline or a removal that did not go through.
-const friendActionFailedText = 'Could not reach the server — try again.';
 
 /// The Friends page (`doc/mockups/online.html`, screen 4): the player's
 /// code, Share link and Add code, the requests waiting, the friends with
@@ -58,7 +44,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
   /// commit 5, review M18).
   Future<void> _respond(FriendRequest request, {required bool accept}) async {
     if (!await _controller.respond(request, accept: accept) && mounted) {
-      _say(friendActionFailedText);
+      _say(strings.common.tryAgain);
     }
   }
 
@@ -69,11 +55,13 @@ class _FriendsScreenState extends State<FriendsScreen> {
     final sharer = widget.environment.linkSharer;
     if (site != null && sharer != null) {
       final link = inviteLink(site, code);
-      if (await sharer.share(title: 'Math Trainer', link: link)) return;
+      if (await sharer.share(title: strings.account.appName, link: link)) {
+        return;
+      }
     }
     final text = site == null ? code : '${inviteLink(site, code)}';
     await Clipboard.setData(ClipboardData(text: text));
-    if (mounted) _say('Link copied');
+    if (mounted) _say(strings.online.linkCopied);
   }
 
   /// A new code: the old one and its links stop working — asked first.
@@ -81,18 +69,15 @@ class _FriendsScreenState extends State<FriendsScreen> {
     final sure = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Get a new code?'),
-        content: const Text(
-          'Your current code and the links you shared stop working. Your '
-          'friends stay.',
-        ),
+        title: Text(strings.online.newCodeTitle),
+        content: Text(strings.online.newCodeDetail),
         actions: [
           AppButton.secondary(
-            label: 'Cancel',
+            label: strings.common.cancel,
             onPressed: () => Navigator.of(dialogContext).pop(false),
           ),
           AppButton.primary(
-            label: 'New code',
+            label: strings.online.newCode,
             onPressed: () => Navigator.of(dialogContext).pop(true),
           ),
         ],
@@ -100,7 +85,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
     );
     if (sure != true || !mounted) return;
     if (!await _controller.newCode() && mounted) {
-      _say('Could not get a new code — try again.');
+      _say(strings.online.newCodeFailed);
     }
   }
 
@@ -112,10 +97,10 @@ class _FriendsScreenState extends State<FriendsScreen> {
     if (code == null || !mounted) return;
     final normalized = normalizeFriendCode(code);
     if (normalized == null) {
-      _say(friendRequestText(FriendRequestOutcome.unknown));
+      _say(strings.online.requestOutcome(FriendRequestOutcome.unknown));
       return;
     }
-    _say(friendRequestText(await _controller.add(normalized)));
+    _say(strings.online.requestOutcome(await _controller.add(normalized)));
   }
 
   Future<void> _challenge(Friend friend) async {
@@ -152,7 +137,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
       color: theme.colorScheme.onSurfaceVariant,
     );
     return Scaffold(
-      appBar: AppBar(title: const Text('Friends'), centerTitle: true),
+      appBar: AppBar(title: Text(strings.online.friends), centerTitle: true),
       body: SafeArea(
         child: ListenableBuilder(
           listenable: _controller,
@@ -163,7 +148,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
               return Center(
                 child: _controller.failed
                     ? AppButton.secondary(
-                        label: 'Retry',
+                        label: strings.common.retry,
                         onPressed: _controller.load,
                       )
                     : const CircularProgressIndicator(),
@@ -178,36 +163,39 @@ class _FriendsScreenState extends State<FriendsScreen> {
                   children: [
                     Expanded(
                       child: AppButton.secondary(
-                        label: 'Share link',
+                        label: strings.online.shareLink,
                         onPressed: () => _share(code),
                       ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: AppButton.secondary(
-                        label: 'Add code',
+                        label: strings.online.addCode,
                         onPressed: _addCode,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
-                AppButton.secondary(label: 'New code', onPressed: _newCode),
+                AppButton.secondary(
+                  label: strings.online.newCode,
+                  onPressed: _newCode,
+                ),
                 if (_controller.incoming.isNotEmpty) ...[
                   const SizedBox(height: 12),
-                  Text('Requests', style: section),
+                  Text(strings.online.requests, style: section),
                   for (final request in _controller.incoming)
                     _Line(
                       key: ValueKey('request-${request.fromId}'),
-                      label: Text(request.name ?? 'Player'),
+                      label: Text(request.name ?? strings.common.player),
                       actions: [
                         AppButton.secondary(
-                          label: 'Decline',
+                          label: strings.online.decline,
                           onPressed: () => _respond(request, accept: false),
                         ),
                         const SizedBox(width: 6),
                         AppButton.primary(
-                          label: 'Accept',
+                          label: strings.online.accept,
                           compact: true,
                           onPressed: () => _respond(request, accept: true),
                         ),
@@ -215,12 +203,12 @@ class _FriendsScreenState extends State<FriendsScreen> {
                     ),
                 ],
                 const SizedBox(height: 12),
-                Text('Friends', style: section),
+                Text(strings.online.friends, style: section),
                 if (friends.isEmpty)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     child: Text(
-                      'Share your link or add a friend\'s code.',
+                      strings.online.noFriendsYet,
                       style: theme.textTheme.bodyMedium,
                     ),
                   ),
@@ -231,7 +219,9 @@ class _FriendsScreenState extends State<FriendsScreen> {
                     label: Text.rich(
                       TextSpan(
                         children: [
-                          TextSpan(text: '${friend.name ?? 'Player'} '),
+                          TextSpan(
+                            text: '${friend.name ?? strings.common.player} ',
+                          ),
                           TextSpan(
                             text: '${friend.wins}–${friend.losses}',
                             style: TextStyle(
@@ -240,13 +230,15 @@ class _FriendsScreenState extends State<FriendsScreen> {
                           ),
                         ],
                       ),
-                      semanticsLabel:
-                          '${friend.name ?? 'Player'}, '
-                          '${friend.wins} wins, ${friend.losses} losses',
+                      semanticsLabel: strings.online.headToHead(
+                        friend.name ?? strings.common.player,
+                        friend.wins,
+                        friend.losses,
+                      ),
                     ),
                     actions: [
                       AppButton.secondary(
-                        label: 'Challenge',
+                        label: strings.online.challenge,
                         onPressed: () => _challenge(friend),
                       ),
                     ],
@@ -280,7 +272,7 @@ class _AddCodeDialogState extends State<_AddCodeDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: const Text('Add code'),
+    title: Text(strings.online.addCode),
     content: TextField(
       controller: _field,
       autofocus: true,
@@ -290,11 +282,11 @@ class _AddCodeDialogState extends State<_AddCodeDialog> {
     ),
     actions: [
       AppButton.secondary(
-        label: 'Cancel',
+        label: strings.common.cancel,
         onPressed: () => Navigator.of(context).pop(),
       ),
       AppButton.secondary(
-        label: 'Add',
+        label: strings.online.add,
         onPressed: () => Navigator.of(context).pop(_field.text),
       ),
     ],
@@ -342,7 +334,7 @@ class _CodeCard extends StatelessWidget {
       child: Column(
         children: [
           Text(
-            'Your code',
+            strings.online.yourCode,
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -426,18 +418,18 @@ class _FriendHistoryScreenState extends State<FriendHistoryScreen> {
   );
 
   Future<void> _remove() async {
-    final name = widget.friend.name ?? 'this player';
+    final name = widget.friend.name ?? strings.online.thisPlayer;
     final sure = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text('Remove $name?'),
+        title: Text(strings.online.removeTitle(name)),
         actions: [
           AppButton.secondary(
-            label: 'Cancel',
+            label: strings.common.cancel,
             onPressed: () => Navigator.of(dialogContext).pop(false),
           ),
           AppButton.secondary(
-            label: 'Remove',
+            label: strings.online.remove,
             destructive: true,
             onPressed: () => Navigator.of(dialogContext).pop(true),
           ),
@@ -452,7 +444,7 @@ class _FriendHistoryScreenState extends State<FriendHistoryScreen> {
     } else {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text(friendActionFailedText)));
+      ).showSnackBar(SnackBar(content: Text(strings.common.tryAgain)));
     }
   }
 
@@ -462,7 +454,10 @@ class _FriendHistoryScreenState extends State<FriendHistoryScreen> {
     final metrics = theme.extension<AppMetrics>()!;
     final friend = widget.friend;
     return Scaffold(
-      appBar: AppBar(title: Text(friend.name ?? 'Player'), centerTitle: true),
+      appBar: AppBar(
+        title: Text(friend.name ?? strings.common.player),
+        centerTitle: true,
+      ),
       body: SafeArea(
         child: FutureBuilder<List<FriendDuel>>(
           future: _history,
@@ -470,7 +465,7 @@ class _FriendHistoryScreenState extends State<FriendHistoryScreen> {
             if (snapshot.hasError) {
               return Center(
                 child: AppButton.secondary(
-                  label: 'Retry',
+                  label: strings.common.retry,
                   onPressed: () => setState(() {
                     _history = widget.repository.history(friend.id);
                   }),
@@ -486,14 +481,14 @@ class _FriendHistoryScreenState extends State<FriendHistoryScreen> {
               children: [
                 Text(
                   '${friend.wins}–${friend.losses}'
-                  '${friend.draws > 0 ? ' · ${friend.draws} drawn' : ''}',
+                  '${friend.draws > 0 ? strings.online.drawn(friend.draws) : ''}',
                   textAlign: TextAlign.center,
                   style: theme.textTheme.headlineSmall?.digits,
                 ),
                 const SizedBox(height: 12),
                 if (duels.isEmpty)
                   Text(
-                    'No duel yet.',
+                    strings.online.noDuelYet,
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodyMedium,
                   ),
@@ -518,7 +513,7 @@ class _FriendHistoryScreenState extends State<FriendHistoryScreen> {
                 const SizedBox(height: 24),
                 Center(
                   child: AppButton.secondary(
-                    label: 'Remove friend',
+                    label: strings.online.removeFriend,
                     destructive: true,
                     onPressed: _remove,
                   ),

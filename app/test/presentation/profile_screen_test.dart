@@ -516,8 +516,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Profile'), findsOneWidget);
-      // Main level: (50 + 3 × 1 floor for the basics not played) / 4 ≈ 13.
-      expect(findLevelBadge(13), findsOneWidget);
+      // Main level: 50 / 4 = 12.5 (the basics not played at 0), shown as
+      // its whole part, 12 (Phase 6b commit 7, review m3: it was rounded).
+      expect(findLevelBadge(12), findsOneWidget);
       // Overall level after the window's first session (36/7) then after the
       // last (56/7): 20/7 ≈ +3 — the last game counts.
       expect(find.textContaining('30-day change: +3'), findsOneWidget);

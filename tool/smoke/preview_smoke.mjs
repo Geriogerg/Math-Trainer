@@ -460,10 +460,11 @@ for (let q = 0; q < questions; q++) {
   const end = Date.now() + 20000;
   let done = false;
   while (!done && Date.now() < end) {
-    done = Boolean((await findText('Session complete')) || (await findText('Your starting levels')));
+    // "Game complete" since Phase 6b commit 7 (it was "Session complete").
+    done = Boolean((await findText('Game complete')) || (await findText('Session complete')) || (await findText('Your starting levels')));
     if (!done) await sleep(300);
   }
-  if (!done) await fail('neither "Session complete" nor "Your starting levels" appeared');
+  if (!done) await fail('neither "Game complete" nor "Your starting levels" appeared');
 }
 
 // Checked after the account is deleted, like the server (no guest left).

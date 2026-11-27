@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:math_trainer/presentation/tips/tips.dart';
+import 'package:math_trainer/presentation/strings/tips.dart';
 import 'package:math_core/persistence/level_cache_entry.dart';
 import 'package:math_core/persistence/in_memory_session_repository.dart';
 import 'package:math_core/leveling/level.dart';

@@ -5,6 +5,7 @@ import 'package:math_core/challenges/chain.dart';
 import '../../composition_root.dart';
 import '../../core/state/chain_controller.dart';
 import '../kit/kit.dart';
+import '../strings/strings.dart';
 import '../kit/numeric_keypad.dart';
 import '../theme/app_theme.dart';
 
@@ -73,15 +74,15 @@ class _ChainFlowScreenState extends State<ChainFlowScreen> {
     final quit = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Quit the game?'),
+        title: Text(strings.game.quitTitle),
         actions: [
           AppButton.secondary(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            label: 'Cancel',
+            label: strings.common.cancel,
           ),
           AppButton.secondary(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            label: 'Quit',
+            label: strings.common.quit,
           ),
         ],
       ),
@@ -214,7 +215,7 @@ class _ChainScreenState extends State<ChainScreen> {
                         Icons.close,
                         color: theme.colorScheme.onSurface,
                       ),
-                      tooltip: 'Quit',
+                      tooltip: strings.common.quit,
                       onPressed: widget.onQuit,
                     ),
                     const Spacer(),
@@ -330,7 +331,9 @@ class _ChainCorrection extends StatelessWidget {
                   color: controller.solved
                       ? theme.colorScheme.primary
                       : theme.colorScheme.error,
-                  semanticLabel: controller.solved ? 'Solved' : 'Missed',
+                  semanticLabel: controller.solved
+                      ? strings.game.solved
+                      : strings.game.missed,
                 ),
                 const SizedBox(height: 8),
                 // The answer; a wrong one struck through beside it (never the
@@ -346,7 +349,9 @@ class _ChainCorrection extends StatelessWidget {
                       const SizedBox(width: 16),
                       Text(
                         '${controller.given}',
-                        semanticsLabel: 'Your answer ${controller.given}',
+                        semanticsLabel: strings.game.yourAnswer(
+                          controller.given!,
+                        ),
                         style: theme.textTheme.titleLarge?.digits.copyWith(
                           color: muted,
                           decoration: TextDecoration.lineThrough,
@@ -381,8 +386,14 @@ class _ChainCorrection extends StatelessWidget {
               spacing: 16,
               runSpacing: 8,
               children: [
-                AppButton.secondary(onPressed: onHome, label: 'Home'),
-                AppButton.primary(onPressed: onPlayAgain, label: 'Play again'),
+                AppButton.secondary(
+                  onPressed: onHome,
+                  label: strings.game.home,
+                ),
+                AppButton.primary(
+                  onPressed: onPlayAgain,
+                  label: strings.game.playAgain,
+                ),
               ],
             ),
           ),

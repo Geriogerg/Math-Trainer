@@ -5,6 +5,7 @@ import '../../composition_root.dart';
 import '../../core/state/count_controller.dart';
 import '../../core/state/hints.dart';
 import '../kit/kit.dart';
+import '../strings/strings.dart';
 import '../theme/app_theme.dart';
 
 /// Plays a Get-the-count round full screen, over the tabs — its rules
@@ -15,14 +16,9 @@ Future<void> playCount(BuildContext context, AppEnvironment environment) async {
     if (!context.mounted) return;
     await showRules(
       context,
-      title: 'Get the count',
-      lines: const [
-        'Reach the target with the numbers given and + − × ÷, each number '
-            'once at most.',
-        'The closer, the better; reaching it ends the round.',
-        'Practice: it never moves your levels.',
-      ],
-      confirm: null,
+      title: strings.home.getTheCount,
+      lines: strings.home.countRules,
+      cancellable: false,
     );
     await hints.markSeen(Hint.countRules);
   }
@@ -70,15 +66,15 @@ class _CountFlowScreenState extends State<CountFlowScreen> {
     final quit = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Quit the game?'),
+        title: Text(strings.game.quitTitle),
         actions: [
           AppButton.secondary(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            label: 'Cancel',
+            label: strings.common.cancel,
           ),
           AppButton.secondary(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            label: 'Quit',
+            label: strings.common.quit,
           ),
         ],
       ),
@@ -162,7 +158,7 @@ class CountScreen extends StatelessWidget {
             children: [
               IconButton(
                 icon: Icon(Icons.close, color: scheme.onSurface),
-                tooltip: 'Quit',
+                tooltip: strings.common.quit,
                 onPressed: onQuit,
               ),
               const Spacer(),
@@ -231,7 +227,7 @@ class CountScreen extends StatelessWidget {
               Expanded(
                 child: _Key(
                   icon: Icons.undo,
-                  semanticLabel: 'Undo',
+                  semanticLabel: strings.game.undo,
                   onTap: controller.board.canUndo ? controller.undo : null,
                 ),
               ),
@@ -239,7 +235,7 @@ class CountScreen extends StatelessWidget {
               Expanded(
                 child: _Key(
                   icon: Icons.refresh,
-                  semanticLabel: 'Reset',
+                  semanticLabel: strings.game.reset,
                   onTap: controller.board.canUndo ? controller.reset : null,
                 ),
               ),
@@ -393,7 +389,9 @@ class _CountCorrection extends StatelessWidget {
                   color: solved
                       ? theme.colorScheme.primary
                       : theme.colorScheme.error,
-                  semanticLabel: solved ? 'Solved' : 'Missed',
+                  semanticLabel: solved
+                      ? strings.game.solved
+                      : strings.game.missed,
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -405,12 +403,12 @@ class _CountCorrection extends StatelessWidget {
                 Center(
                   child: solved && elapsed != null
                       ? StatTile(
-                          value: '${(elapsed / 1000).toStringAsFixed(1)} s',
-                          label: 'Time',
+                          value: strings.game.secondsValue(elapsed),
+                          label: strings.game.time,
                         )
                       : StatTile(
                           value: '${controller.board.closest}',
-                          label: 'Closest',
+                          label: strings.game.closest,
                         ),
                 ),
                 const SizedBox(height: 24),
@@ -429,8 +427,14 @@ class _CountCorrection extends StatelessWidget {
               spacing: 16,
               runSpacing: 8,
               children: [
-                AppButton.secondary(onPressed: onHome, label: 'Home'),
-                AppButton.primary(onPressed: onPlayAgain, label: 'Play again'),
+                AppButton.secondary(
+                  onPressed: onHome,
+                  label: strings.game.home,
+                ),
+                AppButton.primary(
+                  onPressed: onPlayAgain,
+                  label: strings.game.playAgain,
+                ),
               ],
             ),
           ),

@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import '../strings/strings.dart';
 
 import '../kit/kit.dart';
 import 'package:math_core/feedback/feedback.dart';
@@ -15,14 +16,13 @@ class FeedbackScreen extends StatefulWidget {
 
   static String? messageFor(FeedbackController controller) =>
       switch (controller.status) {
-        FeedbackStatus.failed => 'Not sent: no connection. Try again.',
-        FeedbackStatus.tooMany =>
-          'Not sent: that is a lot of messages for one day. Try again '
-              'tomorrow.',
+        FeedbackStatus.failed => strings.profile.feedbackOffline,
+        FeedbackStatus.tooMany => strings.profile.feedbackTooMany,
         FeedbackStatus.editing => switch (controller.problem) {
-          FeedbackProblem.empty => 'Write something first.',
-          FeedbackProblem.tooLong =>
-            'Too long: $maxFeedbackLength characters at most.',
+          FeedbackProblem.empty => strings.profile.feedbackEmpty,
+          FeedbackProblem.tooLong => strings.profile.feedbackTooLong(
+            maxFeedbackLength,
+          ),
           null => null,
         },
         FeedbackStatus.sending || FeedbackStatus.sent => null,
@@ -46,7 +46,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     final theme = Theme.of(context);
     final controller = widget.controller;
     return Scaffold(
-      appBar: AppBar(title: const Text('Send feedback')),
+      appBar: AppBar(title: Text(strings.profile.feedbackTitle)),
       body: SafeArea(
         child: ListenableBuilder(
           listenable: controller,
@@ -59,14 +59,14 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'Thank you — it was sent.',
+                        strings.profile.feedbackSent,
                         style: theme.textTheme.titleMedium,
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 24),
                       AppButton.primary(
                         onPressed: () => Navigator.of(context).pop(),
-                        label: 'Back',
+                        label: strings.common.back,
                       ),
                     ],
                   ),
@@ -86,7 +86,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                   maxLength: maxFeedbackLength,
                   textCapitalization: TextCapitalization.sentences,
                   decoration: InputDecoration(
-                    labelText: 'Your message',
+                    labelText: strings.profile.yourMessage,
                     alignLabelWithHint: true,
                     border: const OutlineInputBorder(),
                     errorText: FeedbackScreen.messageFor(controller),
@@ -97,7 +97,9 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                   onPressed: sending
                       ? null
                       : () => controller.send(_text.text).ignore(),
-                  label: sending ? 'Sending…' : 'Send',
+                  label: sending
+                      ? strings.profile.sending
+                      : strings.profile.send,
                 ),
               ],
             );

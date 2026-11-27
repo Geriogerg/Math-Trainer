@@ -8,7 +8,7 @@ import 'package:math_core/strategies/strategy.dart';
 import 'package:math_core/tiers/tip_band.dart';
 import 'package:math_trainer/presentation/screens/tips_view.dart';
 import 'package:math_trainer/presentation/theme/app_theme.dart';
-import 'package:math_trainer/presentation/tips/tips.dart';
+import 'package:math_trainer/presentation/strings/tips.dart';
 
 import 'golden_test_utils.dart';
 

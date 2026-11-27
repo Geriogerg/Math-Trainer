@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
+import '../strings/strings.dart';
 
 import 'package:math_core/duel/duel_client.dart';
 
@@ -12,7 +13,7 @@ import '../screens/empty_state.dart';
 import '../screens/session_screen.dart';
 import 'duel_lanes.dart';
 import 'duel_result_view.dart';
-import 'duel_texts.dart';
+import 'package:math_trainer/presentation/strings/duel_texts.dart';
 
 /// Plays a duel full screen over the tabs: [load] gets the offer (find an
 /// opponent, open a challenge…), then the duel, then its result; Rematch
@@ -102,15 +103,15 @@ class _DuelFlowScreenState extends State<DuelFlowScreen> {
         )..start(),
       );
     } on DuelAccountRequired {
-      _fail('Save your progress to play online.');
+      _fail(strings.online.saveToPlay);
     } on DuelRefused catch (e) {
       _fail(switch (e.reason) {
-        'exists' => 'A challenge is already open.',
-        'notLinked' => 'This player cannot be challenged.',
-        _ => 'This duel is not available.',
+        'exists' => strings.online.challengeExists,
+        'notLinked' => strings.online.cannotBeChallenged,
+        _ => strings.online.duelNotAvailable,
       });
     } on Exception catch (_) {
-      _fail('Could not reach the server.');
+      _fail(strings.common.unreachable);
     }
   }
 
@@ -123,16 +124,16 @@ class _DuelFlowScreenState extends State<DuelFlowScreen> {
     final quit = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Quit the duel?'),
-        content: const Text('It still counts.'),
+        title: Text(strings.online.quitDuelTitle),
+        content: Text(strings.online.stillCounts),
         actions: [
           AppButton.secondary(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            label: 'Cancel',
+            label: strings.common.cancel,
           ),
           AppButton.secondary(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            label: 'Quit',
+            label: strings.common.quit,
           ),
         ],
       ),
@@ -166,7 +167,7 @@ class _DuelFlowScreenState extends State<DuelFlowScreen> {
           child: problem != null
               ? EmptyState(
                   message: problem,
-                  actionLabel: 'Close',
+                  actionLabel: strings.common.close,
                   onAction: () => Navigator.of(context).pop(),
                 )
               : controller == null
@@ -240,13 +241,18 @@ class _Finding extends StatelessWidget {
           const CircularProgressIndicator(),
           const SizedBox(height: 16),
           Text(
-            waking ? 'Waking the server…' : 'Finding an opponent…',
+            waking
+                ? strings.online.wakingServer
+                : strings.online.findingOpponent,
             style: theme.textTheme.bodyLarge,
           ),
-          if (waking) const Caption('It can take up to a minute.'),
+          if (waking) Caption(strings.online.wakeCaption),
           if (onCancel case final cancel?) ...[
             const SizedBox(height: 16),
-            AppButton.secondary(label: 'Cancel', onPressed: cancel),
+            AppButton.secondary(
+              label: strings.common.cancel,
+              onPressed: cancel,
+            ),
           ],
         ],
       ),

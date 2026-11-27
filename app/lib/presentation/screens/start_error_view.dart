@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import '../strings/strings.dart';
 
 import '../kit/kit.dart';
 
@@ -19,18 +20,14 @@ class StartErrorView extends StatelessWidget {
   final VoidCallback onRetry;
 
   static String messageFor(AccountFailure failure) => switch (failure) {
-    AccountFailure.network =>
-      'No connection. Math Trainer needs the internet the first time it '
-          'opens; after that it also plays offline.',
-    AccountFailure.rateLimited =>
-      'Too many new players from this network right now. Try again in a '
-          'few minutes.',
+    AccountFailure.network => strings.account.startOffline,
+    AccountFailure.rateLimited => strings.account.startRateLimited,
     AccountFailure.invalidCredentials ||
     AccountFailure.emailNotConfirmed ||
     AccountFailure.emailAlreadyUsed ||
     AccountFailure.weakPassword ||
     AccountFailure.invalidInput ||
-    AccountFailure.unknown => 'The game could not start. Try again.',
+    AccountFailure.unknown => strings.account.startUnknown,
   };
 
   @override
@@ -43,7 +40,7 @@ class StartErrorView extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              "Couldn't start",
+              strings.account.couldNotStart,
               style: theme.textTheme.titleMedium,
               textAlign: TextAlign.center,
             ),
@@ -54,7 +51,10 @@ class StartErrorView extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
-            AppButton.primary(onPressed: onRetry, label: 'Try again'),
+            AppButton.primary(
+              onPressed: onRetry,
+              label: strings.account.tryAgain,
+            ),
           ],
         ),
       ),

@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
 import 'keypad_key.dart';
+import '../strings/strings.dart';
 
 /// The *physical* digit row, not the logical one: on an AZERTY keyboard,
 /// these keys produce "& é " ' ( - è _ ç à" without Shift — the player must
@@ -79,7 +80,7 @@ class NumericKeypad extends StatelessWidget {
                 child: KeypadKey.icon(
                   Icons.backspace_outlined,
                   key: keypadKeyKey('backspace'),
-                  semanticLabel: 'Backspace',
+                  semanticLabel: strings.game.backspace,
                   onTap: onBackspace,
                   subdued: true,
                 ),
@@ -95,7 +96,7 @@ class NumericKeypad extends StatelessWidget {
                 child: KeypadKey.icon(
                   Icons.check,
                   key: keypadKeyKey('submit'),
-                  semanticLabel: 'Submit',
+                  semanticLabel: strings.game.submit,
                   onTap: onValidate,
                   isPrimary: true,
                 ),

@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import 'app_button.dart';
+import '../strings/strings.dart';
 
 /// One line saying what a control does (Phase 6b commit 4, review M16:
 /// "minimal text" relaxed for strangers — one line under each Home and
@@ -27,13 +28,15 @@ class Caption extends StatelessWidget {
   }
 }
 
-/// A short sheet of rules with Cancel and [confirm] (Phase 6b commit 4):
-/// `true` when the player goes on. [confirm] `null`: a single OK.
+/// A short sheet of rules with Cancel and [confirm] ("Start" unless
+/// given) (Phase 6b commit 4): `true` when the player goes on. Not
+/// [cancellable]: a single OK.
 Future<bool> showRules(
   BuildContext context, {
   required String title,
   required List<String> lines,
-  String? confirm = 'Start',
+  String? confirm,
+  bool cancellable = true,
 }) async {
   final go = await showDialog<bool>(
     context: context,
@@ -51,14 +54,16 @@ Future<bool> showRules(
         ],
       ),
       actions: [
-        if (confirm != null)
+        if (cancellable)
           AppButton.secondary(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            label: 'Cancel',
+            label: strings.common.cancel,
           ),
         AppButton.secondary(
           onPressed: () => Navigator.of(dialogContext).pop(true),
-          label: confirm ?? 'OK',
+          label:
+              confirm ??
+              (cancellable ? strings.common.start : strings.common.ok),
         ),
       ],
     ),

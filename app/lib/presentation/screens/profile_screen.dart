@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 
 import '../kit/kit.dart';
+import '../strings/strings.dart';
 
 import '../../composition_root.dart';
 import '../../core/effects/effect_settings.dart';
@@ -18,9 +19,9 @@ import '../../core/state/account_deletion_controller.dart';
 import 'package:math_core/account/display_name.dart';
 import 'package:math_core/feedback/feedback.dart';
 
-import '../account_messages.dart';
-import '../exercise_type_labels.dart';
-import '../upload_refusal_text.dart';
+import 'package:math_trainer/presentation/strings/account_messages.dart';
+import 'package:math_trainer/presentation/strings/exercise_type_labels.dart';
+import 'package:math_trainer/presentation/strings/upload_refusal_text.dart';
 import 'package:math_core/challenges/challenge_stats.dart';
 import 'package:math_core/challenges/tables.dart';
 import 'package:math_core/leveling/main_level.dart';
@@ -276,13 +277,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _confirmSignOut() async {
     final go = await showRules(
       context,
-      title: 'Sign out?',
-      lines: const [
-        'Your games and levels stay with your account: sign in again to '
-            'find them.',
-        'This device starts again as a new guest.',
-      ],
-      confirm: 'Sign out',
+      title: strings.profile.signOutTitle,
+      lines: strings.profile.signOutLines,
+      confirm: strings.profile.signOut,
     );
     if (go) await widget.environment.accountRepository.signOut();
   }
@@ -299,25 +296,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (mounted) setState(_loadProfile);
     } on DisplayNameRefused {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('This name is not allowed.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(strings.profile.nameNotAllowed)));
     } on DisplayNameTaken {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('This name is taken — try another.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(strings.profile.nameTaken)));
     } catch (_) {
       // The old name stays shown; without this message, the player would
       // think the new name was saved (network down, `profiles` table missing).
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Name not saved — check your connection and try again.',
-          ),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(strings.profile.nameNotSaved)));
     }
   }
 
@@ -338,11 +331,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (outcome == null || !mounted) return;
     setState(_load);
     final message = switch (outcome) {
-      SaveProgressOutcome.saved => 'Progress saved to your account.',
+      SaveProgressOutcome.saved => strings.profile.progressSaved,
       SaveProgressOutcome.savedWithoutName =>
-        'Progress saved — the player name was not; set it again here.',
-      SaveProgressOutcome.confirmationPending =>
-        'Almost there — open the link sent to your email to confirm.',
+        strings.profile.progressSavedNameNot,
+      SaveProgressOutcome.confirmationPending => strings.profile.confirmEmail,
       SaveProgressOutcome.failed => null,
     };
     if (message != null) {
@@ -372,25 +364,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(guest ? 'Delete your data?' : 'Delete your account?'),
-        content: Text(
-          guest
-              ? 'Your levels, your history and your guest account are '
-                    'deleted from this device and from the server. You start '
-                    'again as a new player. This cannot be undone.'
-              : 'Your account, levels, history and player name are deleted '
-                    'from this device and from the server. This cannot be '
-                    'undone.',
-        ),
+        title: Text(strings.profile.deleteTitle(guest: guest)),
+        content: Text(strings.profile.deleteDetail(guest: guest)),
         actions: [
           AppButton.secondary(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            label: 'Cancel',
+            label: strings.common.cancel,
           ),
           AppButton.secondary(
             destructive: true,
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            label: 'Delete',
+            label: strings.profile.delete,
           ),
         ],
       ),
@@ -420,13 +404,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     navigator.pop(); // the progress indicator
     deletion.dispose();
     final message = switch (outcome) {
-      AccountDeletionOutcome.deleted =>
-        guest ? 'Your data was deleted.' : 'Your account was deleted.',
+      AccountDeletionOutcome.deleted => strings.profile.deleted(guest: guest),
       AccountDeletionOutcome.deletedButLocalDataKept =>
-        'Deleted from the server; some data could not be removed from this '
-            'device.',
-      AccountDeletionOutcome.failed =>
-        'Nothing was deleted. ${describeAccountFailure(deletion.failure!, detail: deletion.failureDetail)}',
+        strings.profile.deletedLocalKept,
+      AccountDeletionOutcome.failed => strings.profile.nothingDeleted(
+        describeAccountFailure(
+          deletion.failure!,
+          detail: deletion.failureDetail,
+        ),
+      ),
     };
     messenger.showSnackBar(SnackBar(content: Text(message)));
   }
@@ -455,8 +441,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return EmptyState(
-            message: 'Could not load the profile.',
-            actionLabel: 'Retry',
+            message: strings.profile.couldNotLoad,
+            actionLabel: strings.common.retry,
             onAction: () => setState(_load),
           );
         }
@@ -477,7 +463,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return ListView(
           padding: theme.extension<AppMetrics>()!.rootPadding,
           children: [
-            Text('Profile', style: theme.textTheme.titleMedium),
+            Text(strings.profile.title, style: theme.textTheme.titleMedium),
             const SizedBox(height: 24),
             FutureBuilder<PlayerProfile>(
               future: _profile,
@@ -508,13 +494,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     identity,
                     const SizedBox(height: 12),
                     Text(
-                      'Account under review',
+                      strings.profile.underReview,
                       style: theme.textTheme.titleSmall,
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Your results are not shown on the boards until the '
-                      'review is done.',
+                      strings.profile.underReviewDetail,
                       style: theme.textTheme.bodyMedium,
                     ),
                   ],
@@ -524,24 +509,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 24),
             Row(
               children: [
-                Text('Main level', style: theme.textTheme.titleMedium),
+                Text(
+                  strings.profile.mainLevel,
+                  style: theme.textTheme.titleMedium,
+                ),
                 const SizedBox(width: 12),
-                LevelBadge(level: globalLevel.round(), large: true),
+                LevelBadge(level: globalLevel.floor(), large: true),
               ],
             ),
             const SizedBox(height: 4),
             Text(
-              windowStart == null || windowEnd == null
-                  ? '30-day change: —'
-                  : '30-day change: ${_formatDelta(windowEnd - windowStart)}',
+              strings.profile.change30Days(
+                windowStart == null || windowEnd == null
+                    ? null
+                    : _formatDelta(windowEnd - windowStart),
+              ),
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 24),
-            Text('Last 30 days', style: theme.textTheme.bodyMedium),
+            Text(strings.profile.last30Days, style: theme.textTheme.bodyMedium),
             const SizedBox(height: 8),
             _LevelCurve(sessions: data.windowSessions, now: data.now),
             const SizedBox(height: 24),
-            Text('By operation', style: theme.textTheme.bodyMedium),
+            Text(
+              strings.profile.byOperation,
+              style: theme.textTheme.bodyMedium,
+            ),
             const SizedBox(height: 8),
             for (final type in ExerciseType.values)
               _OperationRow(
@@ -551,23 +544,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 averageElapsedMs: data.avgElapsedMs[type],
               ),
             const SizedBox(height: 24),
-            Text('Recent sessions', style: theme.textTheme.bodyMedium),
+            Text(
+              strings.profile.recentGames,
+              style: theme.textTheme.bodyMedium,
+            ),
             // Levels follow the account; the history stays on each device
             // (Phase 6b commit 5, review M14: say so).
             if (!data.account.isAnonymous)
-              const Caption(
-                'Games played on other devices are not shown here.',
-              ),
+              Caption(strings.profile.otherDevices),
             if (data.pendingUploads > 0)
-              Caption(
-                data.pendingUploads == 1
-                    ? '1 game not sent yet: it goes when the server answers.'
-                    : '${data.pendingUploads} games not sent yet: they go '
-                          'when the server answers.',
-              ),
+              Caption(strings.profile.notSentYet(data.pendingUploads)),
             const SizedBox(height: 8),
             if (data.recentSessions.isEmpty)
-              Text('No session played yet.', style: theme.textTheme.bodyMedium)
+              Text(strings.profile.noGameYet, style: theme.textTheme.bodyMedium)
             else
               for (var i = 0; i < data.recentSessions.length; i++)
                 _RecentSessionRow(
@@ -610,7 +599,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Center(
                 child: AppButton.secondary(
                   onPressed: () => _sendFeedback(feedback),
-                  label: 'Send feedback',
+                  label: strings.profile.sendFeedback,
                 ),
               ),
             // What is stored and how to delete it (Phase 3a commit 4), right
@@ -622,7 +611,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     builder: (_) => const PrivacyScreen(),
                   ),
                 ),
-                label: 'Privacy',
+                label: strings.profile.privacy,
               ),
             ),
             // Last and quiet on purpose: irreversible, never next to the
@@ -632,9 +621,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: AppButton.secondary(
                 destructive: true,
                 onPressed: () => _deleteData(data.account),
-                label: data.account.isAnonymous
-                    ? 'Delete my data'
-                    : 'Delete my account',
+                label: strings.profile.deleteButton(
+                  guest: data.account.isAnonymous,
+                ),
               ),
             ),
           ],
@@ -683,7 +672,7 @@ class _DisplayNameDialogState extends State<_DisplayNameDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Player name'),
+      title: Text(strings.profile.playerName),
       content: TextField(
         controller: _controller,
         autofocus: true,
@@ -694,9 +683,9 @@ class _DisplayNameDialogState extends State<_DisplayNameDialog> {
       actions: [
         AppButton.secondary(
           onPressed: () => Navigator.of(context).pop(),
-          label: 'Cancel',
+          label: strings.common.cancel,
         ),
-        AppButton.primary(onPressed: _submit, label: 'Save'),
+        AppButton.primary(onPressed: _submit, label: strings.profile.save),
       ],
     );
   }
@@ -733,11 +722,11 @@ class _IdentityBlock extends StatelessWidget {
     final profile = this.profile;
     final String nameLine;
     if (profileFailed) {
-      nameLine = 'Player name unavailable';
+      nameLine = strings.profile.playerNameUnavailable;
     } else if (profile == null) {
       nameLine = '…';
     } else {
-      nameLine = profile.displayName ?? 'Choose a player name';
+      nameLine = profile.displayName ?? strings.profile.choosePlayerName;
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -748,19 +737,19 @@ class _IdentityBlock extends StatelessWidget {
             if (profileFailed)
               IconButton(
                 icon: const Icon(Icons.refresh),
-                tooltip: 'Reload player name',
+                tooltip: strings.profile.reloadPlayerName,
                 onPressed: onRetryProfile,
               )
             else
               IconButton(
                 icon: const Icon(Icons.edit_outlined),
-                tooltip: 'Edit player name',
+                tooltip: strings.profile.editPlayerName,
                 onPressed: onEditName,
               ),
           ],
         ),
         Text(
-          account.email ?? 'Guest — progress saved on this device only',
+          account.email ?? strings.profile.guestLine,
           style: theme.textTheme.bodyMedium?.copyWith(
             color: theme.extension<AppPalette>()!.textMuted,
           ),
@@ -777,16 +766,19 @@ class _IdentityBlock extends StatelessWidget {
             children: [
               AppButton.primary(
                 onPressed: onSaveProgress,
-                label: 'Save your progress',
+                label: strings.profile.saveYourProgress,
               ),
               AppButton.secondary(
                 onPressed: onSignInExisting,
-                label: 'I already have an account',
+                label: strings.profile.haveAccount,
               ),
             ],
           )
         else
-          AppButton.secondary(onPressed: onSignOut, label: 'Sign out'),
+          AppButton.secondary(
+            onPressed: onSignOut,
+            label: strings.profile.signOut,
+          ),
       ],
     );
   }
@@ -842,11 +834,14 @@ class _OperationRow extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               if (level == null)
-                Text('Not played', style: theme.textTheme.bodyMedium)
+                Text(
+                  strings.profile.notPlayed,
+                  style: theme.textTheme.bodyMedium,
+                )
               else ...[
                 if (averageElapsedMs != null) ...[
                   Text(
-                    '${averageElapsedMs.round()} ms',
+                    strings.game.secondsValue(averageElapsedMs),
                     style: theme.textTheme.bodyMedium?.digits,
                   ),
                   const SizedBox(width: 8),
@@ -898,8 +893,8 @@ class _RecentSessionRow extends StatelessWidget {
           child: Text(
             // A placement's score means nothing; say what it was.
             session.kind.isPlacement
-                ? 'Placement'
-                : 'Score ${session.totalScore}',
+                ? strings.profile.placement
+                : strings.profile.score(session.totalScore),
             textAlign: TextAlign.center,
             style: theme.textTheme.bodyMedium,
           ),
@@ -975,7 +970,7 @@ class _LevelCurve extends StatelessWidget {
         height: 120,
         child: Center(
           child: Text(
-            'Not enough data for the last 30 days.',
+            strings.profile.notEnoughData,
             textAlign: TextAlign.center,
             style: theme.textTheme.bodyMedium,
           ),
@@ -1058,13 +1053,13 @@ class _ChallengesBlock extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Challenges', style: theme.textTheme.titleMedium),
+        Text(strings.profile.challenges, style: theme.textTheme.titleMedium),
         for (final challenge in Challenge.values) ...[
           const SizedBox(height: 12),
-          Text(switch (challenge) {
-            Challenge.getTheCount => 'Get the count',
-            Challenge.chainOperations => 'Chain operations',
-          }, style: theme.textTheme.bodyLarge),
+          Text(
+            strings.profile.challenge(challenge),
+            style: theme.textTheme.bodyLarge,
+          ),
           const SizedBox(height: 8),
           Builder(
             builder: (context) {
@@ -1073,19 +1068,25 @@ class _ChallengesBlock extends StatelessWidget {
               return Row(
                 children: [
                   Expanded(
-                    child: StatTile(value: '${s.games}', label: 'Games'),
+                    child: StatTile(
+                      value: '${s.games}',
+                      label: strings.profile.games,
+                    ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: StatTile(value: '${s.solved}', label: 'Solved'),
+                    child: StatTile(
+                      value: '${s.solved}',
+                      label: strings.profile.solved,
+                    ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: StatTile(
                       value: best == null
                           ? '—'
-                          : '${(best / 1000).toStringAsFixed(1)} s',
-                      label: 'Best',
+                          : strings.game.secondsValue(best),
+                      label: strings.profile.best,
                     ),
                   ),
                 ],
@@ -1113,30 +1114,33 @@ class _TablesBlock extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Tables', style: theme.textTheme.titleMedium),
+        Text(strings.profile.tables, style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),
         Row(
           children: [
             Expanded(
-              child: StatTile(value: '${stats.games}', label: 'Games'),
+              child: StatTile(
+                value: '${stats.games}',
+                label: strings.profile.games,
+              ),
             ),
             const SizedBox(width: 8),
             Expanded(
               child: StatTile(
                 value: '${stats.right} / ${stats.answers}',
-                label: 'Right',
+                label: strings.profile.right,
               ),
             ),
           ],
         ),
         if (slowest.isNotEmpty) ...[
           const SizedBox(height: 12),
-          Text('Slowest', style: theme.textTheme.bodyLarge),
+          Text(strings.profile.slowest, style: theme.textTheme.bodyLarge),
           const SizedBox(height: 4),
           for (final fact in slowest)
             Text(
               '${fact.table} × ${fact.multiplier}   '
-              '${(fact.averageMs / 1000).toStringAsFixed(1)} s',
+              '${strings.game.secondsValue(fact.averageMs)}',
               style: theme.textTheme.bodyLarge?.digits,
             ),
         ],
@@ -1159,10 +1163,10 @@ class _WeakSpotsBlock extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Weak spots', style: theme.textTheme.titleMedium),
+        Text(strings.profile.weakSpots, style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),
         if (records.isEmpty)
-          Text('None yet', style: theme.textTheme.bodyMedium)
+          Text(strings.profile.noneYet, style: theme.textTheme.bodyMedium)
         else ...[
           for (final r in records)
             Padding(
@@ -1180,8 +1184,8 @@ class _WeakSpotsBlock extends StatelessWidget {
                   ),
                   Text(
                     r.misses > 0
-                        ? '${r.misses} of ${r.answers} missed'
-                        : '${(r.meanCorrectMs! / 1000).toStringAsFixed(1)} s',
+                        ? strings.profile.missedOf(r.misses, r.answers)
+                        : strings.game.secondsValue(r.meanCorrectMs!),
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -1192,7 +1196,7 @@ class _WeakSpotsBlock extends StatelessWidget {
           const SizedBox(height: 8),
           AppButton.secondary(
             key: const ValueKey('practise-weak-spots'),
-            label: 'Practice',
+            label: strings.profile.practice,
             onPressed: () => onPractise(records),
           ),
         ],
@@ -1214,11 +1218,14 @@ class _SettingsBlock extends StatelessWidget {
     final settings = this.settings;
     final onToggleTheme = this.onToggleTheme;
     final rows = <Widget>[
-      Text('Settings', style: theme.textTheme.titleMedium),
+      Text(strings.profile.settings, style: theme.textTheme.titleMedium),
       if (onToggleTheme != null)
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
-          title: Text('Dark mode', style: theme.textTheme.bodyLarge),
+          title: Text(
+            strings.profile.darkMode,
+            style: theme.textTheme.bodyLarge,
+          ),
           value: theme.brightness == Brightness.dark,
           onChanged: (_) => onToggleTheme(),
         ),
@@ -1237,14 +1244,20 @@ class _SettingsBlock extends StatelessWidget {
           ...rows,
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            title: Text('Sound', style: theme.textTheme.bodyLarge),
+            title: Text(
+              strings.profile.sound,
+              style: theme.textTheme.bodyLarge,
+            ),
             value: settings.sound,
             onChanged: settings.setSound,
           ),
           // Disabled where the browser cannot vibrate.
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            title: Text('Vibration', style: theme.textTheme.bodyLarge),
+            title: Text(
+              strings.profile.vibration,
+              style: theme.textTheme.bodyLarge,
+            ),
             value: settings.haptics,
             onChanged: settings.hapticsSupported ? settings.setHaptics : null,
           ),

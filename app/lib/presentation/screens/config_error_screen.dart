@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import '../strings/strings.dart';
 
 import '../kit/kit.dart';
 import '../theme/app_theme.dart';
@@ -26,10 +27,10 @@ class ConfigErrorApp extends StatelessWidget {
     void Function()? onReload,
   }) : this(
          key: key,
-         title: 'The game could not start',
+         title: strings.account.startFailedTitle,
          paragraphs: [
-           'Reload the page. If this happens again, try a little later.',
-           'Detail: $error',
+           strings.account.startFailedDetail,
+           strings.account.detail(error),
          ],
          onReload: onReload,
        );
@@ -37,26 +38,21 @@ class ConfigErrorApp extends StatelessWidget {
   ConfigErrorApp.missingBackendConfig(List<String> missingKeys, {Key? key})
     : this(
         key: key,
-        title: 'Missing configuration',
+        title: strings.account.missingConfigTitle,
         paragraphs: [
-          'This build was started without the Supabase configuration '
-              '(${missingKeys.join(', ')}).',
-          'Run it again with:\n'
-              '--dart-define-from-file=dart_defines.json\n\n'
-              'Template: dart_defines.example.json',
+          strings.account.missingConfig(missingKeys),
+          strings.account.missingConfigFix,
         ],
       );
 
   ConfigErrorApp.webStorageUnavailable(Object cause, {Key? key})
     : this(
         key: key,
-        title: 'Web storage unavailable',
+        title: strings.account.webStorageTitle,
         paragraphs: [
-          'The local database could not open in the browser: '
-              'web/sqlite3.wasm or web/sqflite_sw.js is probably missing.',
-          'Generate them once, from the project folder:\n'
-              'dart run sqflite_common_ffi_web:setup',
-          'Detail: $cause',
+          strings.account.webStorageDetail,
+          strings.account.webStorageFix,
+          strings.account.detail(cause),
         ],
       );
 
@@ -69,7 +65,7 @@ class ConfigErrorApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Math Trainer',
+      title: strings.account.appName,
       theme: buildLightTheme(),
       darkTheme: buildDarkTheme(),
       home: Scaffold(
@@ -87,7 +83,10 @@ class ConfigErrorApp extends StatelessWidget {
                   ],
                   if (onReload case final reload?) ...[
                     const SizedBox(height: 24),
-                    AppButton.primary(label: 'Reload', onPressed: reload),
+                    AppButton.primary(
+                      label: strings.common.reload,
+                      onPressed: reload,
+                    ),
                   ],
                 ],
               );

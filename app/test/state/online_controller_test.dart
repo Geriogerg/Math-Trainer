@@ -5,7 +5,7 @@ import 'package:math_core/duel/duel_run.dart';
 import 'package:math_core/duel/duel_run_queue.dart';
 import 'package:math_core/duel/online_overview.dart';
 import 'package:math_trainer/core/state/online_controller.dart';
-import 'package:math_trainer/presentation/duel/duel_texts.dart';
+import 'package:math_trainer/presentation/strings/duel_texts.dart';
 
 import '../fake_duel_client.dart';
 import '../presentation/duel_flow_test.dart' show basicsOffer;

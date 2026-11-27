@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:math_trainer/presentation/strings/strings.dart';
 
 import 'package:math_core/generation/exercise_source.dart';
 import 'package:math_core/leveling/level.dart';
@@ -132,7 +133,7 @@ void main() {
     expect(find.bySemanticsLabel('Wrong: 0'), findsOneWidget);
     expect(find.bySemanticsLabel('Timed out: 0'), findsOneWidget);
     expect(
-      find.bySemanticsLabel(RegExp(r'^Average time: \d+ ms$')),
+      find.bySemanticsLabel(RegExp(r'^Average time: \d+\.\d s$')),
       findsOneWidget,
     );
     expect(find.bySemanticsLabel('Best streak: 4'), findsOneWidget);
@@ -237,7 +238,7 @@ void main() {
 
     await pumpResultScreen(tester, controller);
 
-    expect(find.text('Session interrupted'), findsOneWidget);
+    expect(find.text('Game interrupted'), findsOneWidget);
     expect(find.textContaining('Addition: '), findsNothing);
   });
 
@@ -265,7 +266,7 @@ void main() {
 
     await pumpResultScreen(tester, controller);
 
-    expect(find.text('Session interrupted'), findsOneWidget);
+    expect(find.text('Game interrupted'), findsOneWidget);
     // "50 → 47", the change, and why (Phase 6b commit 4, review M16).
     expect(find.text('Addition: 50 → 47 (−3.00)'), findsOneWidget);
     expect(
@@ -364,10 +365,10 @@ void main() {
 
   group('the level change in words (Phase 6b commit 4, review M16)', () {
     test('levelChangeText: signed, two decimals, or "no change"', () {
-      expect(levelChangeText(56), '+0.56');
-      expect(levelChangeText(-300), '−3.00');
-      expect(levelChangeText(1205), '+12.05');
-      expect(levelChangeText(0), 'no change');
+      expect(strings.game.levelChangeText(56), '+0.56');
+      expect(strings.game.levelChangeText(-300), '−3.00');
+      expect(strings.game.levelChangeText(1205), '+12.05');
+      expect(strings.game.levelChangeText(0), 'no change');
     });
 
     OperationQuality quality(
@@ -385,20 +386,23 @@ void main() {
 
     test('qualityReason: the band, a bound reached, the questions left', () {
       expect(
-        qualityReason(quality(80, QualityZone.up), change: 120),
+        strings.game.qualityReason(quality(80, QualityZone.up), change: 120),
         'Quality 80 %: above 72 %, up',
       );
       expect(
-        qualityReason(quality(66, QualityZone.kept), change: 0),
+        strings.game.qualityReason(quality(66, QualityZone.kept), change: 0),
         'Quality 66 %: 62–72 %, kept',
       );
       expect(
-        qualityReason(quality(25, QualityZone.down, unanswered: 3), change: 0),
+        strings.game.qualityReason(
+          quality(25, QualityZone.down, unanswered: 3),
+          change: 0,
+        ),
         'Quality 25 %: below 62 %, down (already at 0) · 3 left, counted as '
         'missed',
       );
       expect(
-        qualityReason(quality(100, QualityZone.up), change: 0),
+        strings.game.qualityReason(quality(100, QualityZone.up), change: 0),
         'Quality 100 %: above 72 %, up (already at 100)',
       );
     });

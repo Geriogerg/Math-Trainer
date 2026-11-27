@@ -5,10 +5,11 @@ import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/tiers/tier.dart';
 import 'package:math_core/tiers/tip_band.dart';
 
-import '../exercise_type_labels.dart';
+import 'package:math_trainer/presentation/strings/exercise_type_labels.dart';
 import '../kit/kit.dart';
+import '../strings/strings.dart';
 import '../theme/app_theme.dart';
-import '../tips/tips.dart';
+import 'package:math_trainer/presentation/strings/tips.dart';
 
 /// Key of a band's block, for tests: `tips-addition-intermediate`.
 ValueKey<String> tipBandKey(ExerciseType type, TipBand band) =>
@@ -88,12 +89,12 @@ class _TipsViewState extends State<TipsView> {
             children: [
               IconButton(
                 icon: const Icon(Icons.arrow_back),
-                tooltip: 'Back',
+                tooltip: strings.common.back,
                 onPressed: widget.onBack,
               ),
               Expanded(
                 child: Text(
-                  'Tips',
+                  strings.home.tips,
                   textAlign: TextAlign.center,
                   style: theme.textTheme.titleLarge,
                 ),
@@ -180,9 +181,7 @@ class _BandBlock extends StatelessWidget {
               children: [
                 Text(
                   switch (band) {
-                    TipBand.beginner => 'Beginner',
-                    TipBand.intermediate => 'Intermediate',
-                    TipBand.advanced => 'Advanced',
+                    final band => strings.game.tipBand(band),
                   },
                   style: theme.textTheme.bodyLarge?.copyWith(
                     fontWeight: mine ? FontWeight.w500 : FontWeight.w400,
@@ -194,7 +193,7 @@ class _BandBlock extends StatelessWidget {
                     Icons.my_location,
                     size: 18,
                     color: scheme.primary,
-                    semanticLabel: 'Your level',
+                    semanticLabel: strings.game.yourLevel,
                   ),
                 ],
               ],
@@ -212,8 +211,8 @@ class _BandBlock extends StatelessWidget {
                   alignment: Alignment.centerLeft,
                   child: AppButton.secondary(
                     key: tipDrillKey(tip),
-                    label: 'Drill',
-                    semanticLabel: 'Drill: ${tip.text}',
+                    label: strings.game.drill,
+                    semanticLabel: strings.game.drillLabel(tip.text),
                     onPressed: () => drill(tip),
                   ),
                 ),

@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import '../strings/strings.dart';
 
 import 'package:math_core/duel/duel_client.dart';
 import 'package:math_core/duel/duel_mode.dart';
@@ -9,7 +10,7 @@ import '../../core/state/account_form_controller.dart';
 import '../../core/state/online_controller.dart';
 import '../duel/duel_flow_screen.dart';
 import '../duel/duel_rules.dart';
-import '../duel/duel_texts.dart';
+import 'package:math_trainer/presentation/strings/duel_texts.dart';
 import '../kit/kit.dart';
 import '../theme/app_theme.dart';
 import 'friends_screen.dart';
@@ -75,10 +76,8 @@ class _OnlineScreenState extends State<OnlineScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Online', style: theme.textTheme.titleMedium),
-            const Expanded(
-              child: _Message('Online play is not available in this build.'),
-            ),
+            Text(strings.online.online, style: theme.textTheme.titleMedium),
+            Expanded(child: _Message(strings.online.notAvailable)),
           ],
         ),
       );
@@ -94,7 +93,10 @@ class _OnlineScreenState extends State<OnlineScreen> {
             children: [
               Row(
                 children: [
-                  Text('Online', style: theme.textTheme.titleMedium),
+                  Text(
+                    strings.online.online,
+                    style: theme.textTheme.titleMedium,
+                  ),
                   const Spacer(),
                   if (environment.friendsRepository != null &&
                       (overview?.linked ?? false))
@@ -144,7 +146,7 @@ class _OnlineScreenState extends State<OnlineScreen> {
       child: ListView(
         children: [
           const SizedBox(height: 12),
-          Text('Duels', style: section),
+          Text(strings.online.duels, style: section),
           const SizedBox(height: 6),
           for (final mode in DuelMode.values) ...[
             AppCard(
@@ -167,15 +169,16 @@ class _OnlineScreenState extends State<OnlineScreen> {
           ],
           if (overview.waiting.isNotEmpty) ...[
             const SizedBox(height: 12),
-            Text('Waiting for you', style: section),
+            Text(strings.online.waitingForYou, style: section),
             for (final challenge in overview.waiting)
               _Row(
                 key: ValueKey('waiting-${challenge.duelId}'),
-                label:
-                    '${challenge.from ?? 'Player'} · '
-                    '${duelModeLabel(challenge.mode)}',
+                label: strings.online.challengeFrom(
+                  challenge.from ?? strings.common.player,
+                  duelModeLabel(challenge.mode),
+                ),
                 trailing: AppButton.primary(
-                  label: 'Play',
+                  label: strings.online.play,
                   compact: true,
                   onPressed: () async {
                     if (!await confirmDuel(context, challenge.mode)) return;
@@ -191,7 +194,7 @@ class _OnlineScreenState extends State<OnlineScreen> {
           ],
           if (overview.recent.isNotEmpty) ...[
             const SizedBox(height: 12),
-            Text('Recent', style: section),
+            Text(strings.online.recent, style: section),
             for (final duel in overview.recent)
               _Row(
                 key: ValueKey('recent-${duel.duelId}'),
@@ -235,12 +238,12 @@ class _OnlineScreenState extends State<OnlineScreen> {
   /// The mockup's words: "Tom raced your run", "Practice · Advanced",
   /// "Léa · Basics".
   static String _recentLabel(RecentDuel duel) {
-    final name = duel.opponent ?? 'Player';
+    final name = duel.opponent ?? strings.common.player;
     if (duel.kind == DuelKind.practice) {
-      return 'Practice · ${duelModeLabel(duel.mode)}';
+      return strings.online.practiceDuel(duelModeLabel(duel.mode));
     }
-    if (duel.raced && !duel.waiting) return '$name raced your run';
-    return '$name · ${duelModeLabel(duel.mode)}';
+    if (duel.raced && !duel.waiting) return strings.online.racedYourRun(name);
+    return strings.online.duelWith(name, duelModeLabel(duel.mode));
   }
 }
 
@@ -259,9 +262,7 @@ class _FriendsPill extends StatelessWidget {
     final theme = Theme.of(context);
     return Semantics(
       button: true,
-      label: requests == 0
-          ? 'Friends'
-          : 'Friends, $requests request${requests == 1 ? '' : 's'}',
+      label: strings.online.friendsPill(requests),
       excludeSemantics: true,
       child: InkWell(
         key: const ValueKey('friends-pill'),
@@ -278,7 +279,7 @@ class _FriendsPill extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Friends',
+                strings.online.friends,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -312,9 +313,9 @@ class _RecentOutcome extends StatelessWidget {
     final theme = Theme.of(context);
     final result = duel.result;
     final word = duel.voided
-        ? 'not counted'
+        ? strings.online.notCountedLower
         : duel.waiting
-        ? 'waiting'
+        ? strings.online.waitingLower
         : result == null
         ? ''
         : resultWord(result).toLowerCase();
@@ -376,12 +377,14 @@ class _GuestInvite extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            'Duels need a saved account: save your progress — an email and '
-            'a player name — to race other players.',
+            strings.online.needsAccount,
             style: Theme.of(context).textTheme.bodyLarge,
           ),
           const SizedBox(height: 16),
-          AppButton.primary(onPressed: onSave, label: 'Save your progress'),
+          AppButton.primary(
+            onPressed: onSave,
+            label: strings.online.saveYourProgress,
+          ),
         ],
       ),
     ),
@@ -398,9 +401,9 @@ class _Retry extends StatelessWidget {
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Text('Could not load your duels.'),
+        Text(strings.online.couldNotLoad),
         const SizedBox(height: 12),
-        AppButton.secondary(label: 'Retry', onPressed: onRetry),
+        AppButton.secondary(label: strings.common.retry, onPressed: onRetry),
       ],
     ),
   );

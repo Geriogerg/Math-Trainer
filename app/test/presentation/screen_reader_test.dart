@@ -13,7 +13,7 @@ import 'package:math_core/persistence/in_memory_session_repository.dart';
 import 'package:math_trainer/core/state/session_controller.dart';
 import 'package:math_trainer/presentation/exercise_prompt.dart';
 import 'package:math_trainer/presentation/screens/session_screen.dart';
-import 'package:math_trainer/presentation/spoken_prompt.dart';
+import 'package:math_trainer/presentation/strings/spoken_prompt.dart';
 import 'package:math_trainer/presentation/theme/app_theme.dart';
 
 /// A game a screen reader can play (Phase 6b commit 6, review M17): every
