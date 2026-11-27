@@ -2349,3 +2349,31 @@ every screen checked at 360 px in French.
     English "50 % is a half" → "50%"; the result's hourglass says "Time's up" / "Temps
     écoulé" (the game screen's words) rather than the tile's label.
   - Run locally: app 598, analyze clean.
+- **Commit 6** *(A)* — **Docs and the exit test.** `doc/architecture.md` gains "Languages
+  (Phase 6d)" (the areas, the choice, numbers, emails, the checks); CLAUDE.md's pitfall on two
+  languages says how a new screen gets its French check.
+
+### Phase 6d exit (27 Nov 2026)
+
+All seven commits pushed (`3ddfae2` … `758e43d`, and this one). Exit test (plan
+v4.2: "a French browser shows a fully French app, no English string left; a test fails on any
+missing translation"):
+
+- **A test fails on any missing translation** — met three ways: a missing member or table
+  entry does not compile (interfaces, exhaustive switches); `french_complete_test.dart` fails
+  on a French literal equal to its English one and on a table entry the same in both (checked
+  by copying "Practice" into the French class); the 52 French renders fail on an English word
+  shown.
+- **A French browser shows a French app** — on the live preview (commit 5's build, `main.68b81afb6b`), a
+  headless Edge with `--lang=fr-FR` and a French locale, every write to another origin
+  blocked: the loader says "Démarrage…", the page's `lang` is `fr`, the first screen (the
+  beta gate) is French ("La bêta se fait sur invitation…", "Continuer", "J’ai déjà un compte",
+  "Confidentialité", "Mentions légales"); no write attempted. Past the gate the production
+  preview needs a code, and no test creates accounts there: the screens behind it are
+  covered by the 52 renders (real fonts, 360 px), not by a live browser.
+- **Every screen at 360 px in French** — 52 renders, no overflow, no text cut, no English
+  word; the seven strings that needed more room were shortened (commit 5).
+- **Pins**: app 541 → 598 over the phase (core, tooling, server, integration, SQL unchanged).
+
+Not verified: the by-language email templates on Supabase (staging sends no email of ours
+yet; checklist A.4); English at 360 px (not part of this phase's check).

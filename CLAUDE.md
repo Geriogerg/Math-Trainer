@@ -39,7 +39,7 @@ in French. Settled in plan v4.2: the 6c build's choices (deploy-window duels ref
 voided, the reminder on Online's duel list, Turnstile on every auth call Supabase protects,
 semantics on for everyone).
 
-Done: 0–5 (27 Nov; `doc/progress.md`, "Phase 6d"). Next: commit 6.
+Done: 0–6 (27 Nov; `doc/progress.md`, "Phase 6d" and its exit). Phase 6d is done; the switch-on (6c commits 7–9) waits for the owner.
 
 **Phase 7's rules** (plan v3.7–v3.8; detail in `doc/decisions.md`, "Phase 7"):
 - **No live matches**: every duel is asynchronous — a player races another's recorded run,

@@ -2841,7 +2841,8 @@ report. The owner's rules: "tu", short and direct like the English; 2 468 in bot
   direct"), except two layout changes that help English too: every field's error gets 3
   lines (theme), a wrapped button label is centred. Left as they are, wrapping but fitting:
   Online's Advanced line, the setup's Training caption, the guest's status line, the sign-in
-  hint on Home — each takes a second line in French where English takes one; nothing cut.
+  hint on Home — each takes two lines at 360 px in French (the English was not rendered at
+  360 px); nothing cut, nothing overlaps.
 - **"Expirées"** for the result's timed-out tile (agrees with "Justes", "Fausses": the
   questions), **"Saisir un code"**, **"Sauvegarder"** and **"Mot de passe oublié"** as
   titles — to confirm by the owner.

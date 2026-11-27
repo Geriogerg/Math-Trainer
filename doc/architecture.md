@@ -90,7 +90,8 @@ presentation/screens/       AuthGate, AppShell (Play, Online, Profile, Ranks), H
                             Profile, Ranks, Online, Friends, sign in, save progress, legal pages
 presentation/duel/          a duel's flow, lanes, result, rules sheet
 presentation/kit/           the only buttons, cards, chips, keys, badges, captions screens use
-presentation/strings/       every word a player reads (Phase 6b commit 7; a guard test)
+presentation/strings/       every word a player reads (6b commit 7; a guard test), English and
+                            French (6d: an interface per area, french/ beside)
 presentation/theme/         themes, metrics, motion, the digit face
 ```
 
@@ -147,6 +148,32 @@ Native `ChangeNotifier`, no third-party package; screens observe through `Listen
 `SessionController` holds an immutable `SessionState`; a failed final write is offered again on
 the result screen (`retryPersistence`, same ids). One `interrupted` status for ✕, three silent
 timeouts and a closed tab (the kept game, stored at the next start).
+
+## Languages (Phase 6d)
+
+English and French, the browser's language until the player picks one in Profile.
+
+- **Words**: `presentation/strings/` — each area (`common`, `home`, `game`, `profile`,
+  `account`, `online`, `ranks`, and the tables `labels`, `spoken`, `tips`) is an
+  `abstract interface class` with an `English…` class beside it and a `French…` class in
+  `strings/french/`; `AppStrings` gathers one language (`englishStrings`, `frenchStrings`) and
+  `strings` reads the one `appLanguage` holds. A member missing in French does not compile;
+  the tables are exhaustive switches (tips keyed by `TipId`). The legal pages hold both
+  languages in one file (`strings/legal/`), opened in the interface's language.
+- **Choosing**: `AppLanguage` (`core/state/language.dart`); `main` starts in the browser's
+  language, then the stored choice (`LanguageStore`, `shared_preferences` key `language`);
+  `useLanguage` sets `appLanguage` and the page's `lang`; `MathTrainerApp` redraws every
+  element on a change (state kept) and gives Material its words (`GlobalMaterialLocalizations`).
+  `index.html`'s loader reads the same stored choice, else `navigator.language`.
+- **Numbers**: grouped by U+202F in both languages (`groupSeparator`), the decimal comma in
+  French through the strings (`GameStrings.percent`, seconds); the digit face draws "de" and
+  the thin space.
+- **Emails**: `supabase/templates/<email>.{html,fr.html,by-language.html}`, written by the
+  brand tool; the by-language one picks by the account's metadata `language`, which the app
+  writes with the email link and on each change in Profile.
+- **Checks**: `french_complete_test.dart` (no French literal equal to its English one, every
+  table entry translated, French classes standing alone) and the French renders at 360 px
+  (`expectFrenchAt360`: overflow, text cut short, English word shown; `goldens/fr360_*`).
 
 ## The exercise model
 
