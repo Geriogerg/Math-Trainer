@@ -26,11 +26,19 @@ abstract class AccountRepository {
   /// is off until then). Throws an `AccountException` on failure
   /// (`emailAlreadyUsed` — the player may sign in to that account instead —
   /// `weakPassword`, `invalidInput`, `network`).
+  /// [language]: the interface's language ("en", "fr"), kept with the
+  /// account so its emails come in it (Phase 6d) — sent in the same call,
+  /// since that call sends the confirmation email.
   Future<Account?> linkEmail({
     required String email,
     required String password,
     required DateTime ageDeclaredAt,
+    required String language,
   });
+
+  /// Keeps the interface's [language] with the signed-in account (Phase
+  /// 6d): the language of the emails it gets. Best effort — never throws.
+  Future<void> rememberLanguage(String language);
 
   /// Sends the confirmation link again to [email], the address a pending
   /// [linkEmail] is waiting on (Phase 6c commit 3). Throws an

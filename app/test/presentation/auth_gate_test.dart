@@ -48,6 +48,7 @@ class _ControllableAccountRepository implements AccountRepository {
     required String email,
     required String password,
     required DateTime ageDeclaredAt,
+    required String language,
   }) => throw UnimplementedError();
 
   @override
@@ -67,6 +68,9 @@ class _ControllableAccountRepository implements AccountRepository {
     if (passwordError case final e?) throw e;
     passwords.add(password);
   }
+
+  @override
+  Future<void> rememberLanguage(String language) async {}
 
   @override
   Future<Account> signIn({

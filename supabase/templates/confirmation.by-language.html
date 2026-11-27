@@ -1,0 +1,18 @@
+<!-- Supabase → Authentication → Emails → "Confirm sign up".
+     Subject: Confirm your email for Math Trainer · Confirme ton e-mail pour Math Trainer
+     English or French, by the account's language (its metadata's "language", kept by the app).
+     Written from Brand by app/tool/brand/write_brand_test.dart: never
+     by hand. -->
+{{ if and .Data .Data.language (eq .Data.language "fr") }}
+<h2>Confirme ton e-mail</h2>
+<p>Tu as sauvegardé ta progression dans Math Trainer avec cette adresse. Ouvre le lien pour la confirmer :</p>
+<p><a href="{{ .ConfirmationURL }}">Confirmer mon e-mail</a></p>
+<p>Ce n’est pas toi ? Ignore cet e-mail : rien ne change.</p>
+<p>— Math Trainer</p>
+{{ else }}
+<h2>Confirm your email</h2>
+<p>You saved your progress in Math Trainer with this address. Open the link to confirm it:</p>
+<p><a href="{{ .ConfirmationURL }}">Confirm my email</a></p>
+<p>Not you? Ignore this email: nothing changes.</p>
+<p>— Math Trainer</p>
+{{ end }}

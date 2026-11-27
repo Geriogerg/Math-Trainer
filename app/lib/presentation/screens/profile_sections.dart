@@ -523,11 +523,15 @@ class _SettingsBlock extends StatelessWidget {
     required this.settings,
     required this.onToggleTheme,
     required this.languageStore,
+    required this.accounts,
   });
 
   final EffectSettings? settings;
   final VoidCallback? onToggleTheme;
   final LanguageStore? languageStore;
+
+  /// The account keeps the language of its emails (Phase 6d).
+  final AccountRepository accounts;
 
   @override
   Widget build(BuildContext context) {
@@ -548,6 +552,7 @@ class _SettingsBlock extends StatelessWidget {
             onChanged: (language) {
               useLanguage(language);
               languageStore?.save(language).ignore();
+              accounts.rememberLanguage(language.code).ignore();
             },
           ),
         ),

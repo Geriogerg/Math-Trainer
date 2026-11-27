@@ -69,6 +69,8 @@ class _SaveProgressScreenState extends State<SaveProgressScreen> {
       password: _password.text,
       displayName: _name.text,
       ageConfirmed: _ageConfirmed,
+      // The account's emails in the interface's language (Phase 6d).
+      language: appLanguage.value.code,
     );
     if (!mounted || outcome == SaveProgressOutcome.failed) return;
     // The link waits in the inbox: this screen says so (and can send it

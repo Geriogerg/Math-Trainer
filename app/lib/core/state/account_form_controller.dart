@@ -105,6 +105,7 @@ class AccountFormController extends ChangeNotifier {
     required String password,
     required String displayName,
     required bool ageConfirmed,
+    String language = 'en',
   }) async {
     final name = displayName.trim();
     _nameProblem = name.isEmpty ? null : displayNameProblem(name);
@@ -124,6 +125,7 @@ class AccountFormController extends ChangeNotifier {
         email: email.trim(),
         password: password,
         ageDeclaredAt: _clock().toUtc(),
+        language: language,
       );
       if (account == null) {
         // The name goes on the profile now (a guest may hold one): it is

@@ -41,6 +41,24 @@ void main() {
       expect(written.readAsStringSync(), html, reason: '$file: $_regenerate');
       expect(html, contains('{{ .ConfirmationURL }}'));
     }
+    // Phase 6d: each email in English, in French, and one picking by the
+    // account's language (Supabase holds one template per email).
+    for (final email in ['confirmation', 'email_change', 'recovery']) {
+      final both = emailTemplates()['$email.by-language.html']!;
+      expect(
+        both,
+        contains('{{ if and .Data .Data.language (eq .Data.language "fr") }}'),
+      );
+      final french = emailTemplates()['$email.fr.html']!;
+      final english = emailTemplates()['$email.html']!;
+      for (final line in french.split('\n').where((l) => l.startsWith('<'))) {
+        expect(both, contains(line), reason: '$email: French body');
+      }
+      for (final line in english.split('\n').where((l) => l.startsWith('<'))) {
+        expect(both, contains(line), reason: '$email: English body');
+      }
+      expect(french, isNot(equals(english)));
+    }
   });
 
   test('web/preview.png is a 1200 × 630 PNG', () {

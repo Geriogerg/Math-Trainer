@@ -2814,3 +2814,18 @@ report. The owner's rules: "tu", short and direct like the English; 2 468 in bot
   "de", the thin space — through `GameStrings.percent` and `percentOf`.
 - **"égale"** in what a screen reader says after a mistake ("Faux. 47 fois 8 égale 376."):
   "font" would not agree with "la racine carrée de 169".
+
+**Commit 4 — emails in French.**
+
+- **One template per email that holds both languages** (provisional): Supabase sends one
+  template per email type, so the French text cannot be a separate template; the template
+  picks by `.Data.language` (the account's metadata), English when absent — every account
+  saved before 6d gets English, as before. The subject cannot be switched (Supabase's
+  subject is plain text): it carries both languages ("Set a new password for Math Trainer ·
+  Nouveau mot de passe pour Math Trainer"). To verify on staging at switch-on (A.4): that
+  Supabase's template engine accepts the `if … eq` form (its documentation shows `.Data`
+  in templates; not tried here, staging's email is not configured).
+- **The account's language is the interface's**: written with the email link and on each
+  change in Profile; the email follows the last language the player chose. Kept in the
+  user's metadata (no new table, nothing to delete apart from the account); named in the
+  privacy policy.

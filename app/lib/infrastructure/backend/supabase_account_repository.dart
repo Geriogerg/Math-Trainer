@@ -33,6 +33,11 @@ AccountException _toAccountException(AuthException error) {
 /// metadata): its moment, in UTC (Phase 6c commit 2).
 const ageDeclarationKey = 'age_15_or_older_declared_at';
 
+/// Where the account's language is kept (Supabase user metadata, Phase
+/// 6d): the email templates pick their language by it
+/// (`supabase/templates/*.by-language.html`, `.Data.language`).
+const languageKey = 'language';
+
 class SupabaseAccountRepository implements AccountRepository {
   /// [humanCheck]: Turnstile when the build has a site key (Phase 6c
   /// commit 3) — its token goes with every call Supabase's CAPTCHA
@@ -102,13 +107,17 @@ class SupabaseAccountRepository implements AccountRepository {
     required String email,
     required String password,
     required DateTime ageDeclaredAt,
+    required String language,
   }) async {
     try {
       final response = await _client.auth.updateUser(
         UserAttributes(
           email: email,
           password: password,
-          data: {ageDeclarationKey: ageDeclaredAt.toUtc().toIso8601String()},
+          data: {
+            ageDeclarationKey: ageDeclaredAt.toUtc().toIso8601String(),
+            languageKey: language,
+          },
         ),
         // With confirmation on, the email's link brings the player back
         // here (an allowed redirect of the project).
@@ -121,6 +130,18 @@ class SupabaseAccountRepository implements AccountRepository {
       return _toAccount(user);
     } on AuthException catch (e) {
       throw _toAccountException(e);
+    }
+  }
+
+  @override
+  Future<void> rememberLanguage(String language) async {
+    if (_client.auth.currentUser == null) return;
+    try {
+      await _client.auth.updateUser(
+        UserAttributes(data: {languageKey: language}),
+      );
+    } on Object catch (_) {
+      // Offline, or refused: the emails keep the language they had.
     }
   }
 

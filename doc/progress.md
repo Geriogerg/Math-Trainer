@@ -2300,3 +2300,15 @@ every screen checked at 360 px in French.
   areas. Tests: French spoken prompts, names and messages, a tip, the percentage prompt
   "37,5 % de 64" in the digit face; the Tips goldens re-rendered (thin-space groups in
   examples). Run locally: app 548, analyze clean.
+- **Commit 4** *(A)* — **Emails in French.** The brand tool now writes nine files in
+  `supabase/templates/`: each email (confirmation, email change, recovery) in English
+  (`.html`, unchanged), in French (`.fr.html`, "tu") and in a version that picks between them
+  by the account's language (`.by-language.html`: a Go template on `.Data.language`, a
+  bilingual subject — Supabase holds one template and one subject per email). The account
+  keeps its language in its metadata (`language`): sent with the email link (the same call
+  sends the confirmation) and again on every change in Profile (`rememberLanguage`, best
+  effort, signed-in accounts only). The privacy policy names it, in both languages
+  ("the language of your emails"; golden re-rendered). `doc/launch-checklist.md` A.4 now
+  says to paste the `.by-language.html` files. Tests: the templates (French words, the
+  switch, both bodies), the repository sends the language, Profile's change reaches the
+  account. Run locally: app 549, core and app analyze clean.

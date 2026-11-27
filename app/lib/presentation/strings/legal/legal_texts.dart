@@ -56,8 +56,9 @@ class EnglishLegalTexts implements LegalTexts {
       'What is stored',
       [
         'Your account: a random id; if you save your progress, your email, '
-            'the player name you choose, and that you declared being 15 or '
-            'older. Your password is kept only by our account provider, '
+            'the player name you choose, that you declared being 15 or older, '
+            'and the language of your emails. Your password is kept only by our '
+            'account provider, '
             'never in readable form.',
         'Every game you play: each question, your answer, how long it took, '
             'whether it was right, your level at the time, whether you typed '
@@ -246,8 +247,9 @@ class FrenchLegalTexts implements LegalTexts {
       'Ce qui est conservé',
       [
         'Votre compte : un identifiant aléatoire ; si vous sauvegardez votre '
-            'progression, votre e-mail, le nom de joueur que vous choisissez '
-            'et votre déclaration d’avoir 15 ans ou plus. Votre mot de passe '
+            'progression, votre e-mail, le nom de joueur que vous choisissez, '
+            'votre déclaration d’avoir 15 ans ou plus et la langue de vos '
+            'e-mails. Votre mot de passe '
             'n’est conservé que par notre fournisseur de comptes, jamais sous '
             'une forme lisible.',
         'Chaque partie jouée : chaque question, votre réponse, son temps, si '

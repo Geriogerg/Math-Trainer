@@ -31,9 +31,11 @@ sends to Claude Code.
    day is plenty at first): verify the domain (SPF, DKIM, DMARC records), get its SMTP
    settings. In Supabase (production) → Authentication → Emails:
    - SMTP Settings: host, port, user, password; sender `no-reply@<domain>`, name = the name;
-   - Templates: paste `supabase/templates/confirmation.html` ("Confirm sign up"),
-     `email_change.html` ("Change email address") and `recovery.html` ("Reset password");
-     each file's first lines give its subject;
+   - Templates: paste `supabase/templates/confirmation.by-language.html` ("Confirm sign
+     up"), `email_change.by-language.html` ("Change email address") and
+     `recovery.by-language.html` ("Reset password") — each sends English or French by the
+     account's language (Phase 6d; the plain `.html` and `.fr.html` files are the same words,
+     one language each); each file's first lines give its subject (both languages);
    - Rate Limits: raise "emails per hour" to what the service allows.
    Do **not** turn on "Confirm email" yet (B, commit 7 does it with you).
 5. **A Turnstile key.** Cloudflare → Turnstile → Add widget: the domain (and

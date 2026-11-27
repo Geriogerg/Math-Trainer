@@ -32,6 +32,7 @@ class FakeAccountRepository implements AccountRepository {
     required String email,
     required String password,
     required DateTime ageDeclaredAt,
+    required String language,
   }) => throw UnimplementedError();
 
   @override
@@ -45,6 +46,13 @@ class FakeAccountRepository implements AccountRepository {
   @override
   Future<void> setPassword({required String password}) =>
       throw UnimplementedError();
+
+  /// The languages the app told the account (Phase 6d).
+  final rememberedLanguages = <String>[];
+
+  @override
+  Future<void> rememberLanguage(String language) async =>
+      rememberedLanguages.add(language);
 
   @override
   Future<Account> signIn({required String email, required String password}) =>

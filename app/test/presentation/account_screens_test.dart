@@ -26,6 +26,7 @@ class _Accounts implements AccountRepository {
     required String email,
     required String password,
     required DateTime ageDeclaredAt,
+    required String language,
   }) async {
     if (linkError case final e?) throw e;
     if (pendingConfirmation) return null;
@@ -54,6 +55,9 @@ class _Accounts implements AccountRepository {
     if (passwordError case final e?) throw e;
     passwords.add(password);
   }
+
+  @override
+  Future<void> rememberLanguage(String language) async {}
 
   @override
   Future<Account> signIn({

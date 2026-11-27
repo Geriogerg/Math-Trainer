@@ -31,6 +31,7 @@ class _Accounts implements AccountRepository {
     required String email,
     required String password,
     required DateTime ageDeclaredAt,
+    required String language,
   }) => throw UnimplementedError();
 
   @override
@@ -44,6 +45,9 @@ class _Accounts implements AccountRepository {
   @override
   Future<void> setPassword({required String password}) =>
       throw UnimplementedError();
+
+  @override
+  Future<void> rememberLanguage(String language) async {}
 
   @override
   Future<Account> signIn({required String email, required String password}) =>

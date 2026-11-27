@@ -38,6 +38,7 @@ import 'save_progress_screen.dart';
 import 'sign_in_screen.dart';
 import 'legal_screen.dart';
 import '../../core/state/language.dart';
+import 'package:math_core/account/account_repository.dart';
 
 part 'profile_sections.dart';
 
@@ -593,6 +594,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               settings: widget.environment.effectSettings,
               onToggleTheme: widget.onToggleTheme,
               languageStore: widget.environment.languageStore,
+              accounts: widget.environment.accountRepository,
             ),
             const SizedBox(height: 32),
             // The beta's feedback field (Phase 3a commit 5).

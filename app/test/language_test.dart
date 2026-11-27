@@ -61,12 +61,13 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     final languages = _Languages();
+    final accounts = FakeAccountRepository();
     await tester.pumpWidget(
       MathTrainerApp(
         environment: AppEnvironment(
           repository: InMemorySessionRepository(),
           playerId: 'p',
-          accountRepository: FakeAccountRepository(),
+          accountRepository: accounts,
           profileRepository: FakeProfileRepository(),
           languageStore: languages,
         ),
@@ -80,6 +81,8 @@ void main() {
     await tester.tap(find.text('Français'));
     await tester.pumpAndSettle();
     expect(languages.saved, AppLanguage.french);
+    // The account's emails follow (Phase 6d commit 4).
+    expect(accounts.rememberedLanguages, ['fr']);
     // Still on Profile, now in French.
     expect(find.text('Réglages'), findsOneWidget);
     expect(find.text('Profil'), findsWidgets);

@@ -77,62 +77,133 @@ String withBrandManifest(String manifest) {
   return '${const JsonEncoder.withIndent('    ').convert(json)}\n';
 }
 
-/// The emails Supabase sends (Phase 6c commit 3; the recovery email with
-/// commit 4), by file under `supabase/templates/`, each with its subject on
-/// its first line, for the owner to paste into the project (Authentication
-/// → Emails). `{{ .ConfirmationURL }}` is Supabase's link.
-Map<String, String> emailTemplates() {
+/// One email's words, in one language.
+typedef _Email = ({
+  String subject,
+  String heading,
+  String lead,
+  String button,
+  String otherwise,
+});
+
+/// The three emails Supabase sends (Phase 6c commits 3 and 4), by
+/// Supabase's template name, in English and French (Phase 6d, "tu").
+Map<String, ({String file, String template, _Email en, _Email fr})> _emails() {
   final name = const HtmlEscape(HtmlEscapeMode.element).convert(Brand.name);
-  String page({
-    required String template,
-    required String subject,
-    required String heading,
-    required String lead,
-    required String button,
-    required String otherwise,
-  }) => [
-    '<!-- Supabase → Authentication → Emails → "$template".',
-    '     Subject: $subject',
-    '     Written from Brand by app/tool/brand/write_brand_test.dart: never',
-    '     by hand. -->',
-    '<h2>$heading</h2>',
-    '<p>$lead</p>',
-    '<p><a href="{{ .ConfirmationURL }}">$button</a></p>',
-    '<p>$otherwise</p>',
-    '<p>— $name</p>',
-    '',
-  ].join('\n');
   return {
-    'confirmation.html': page(
+    'confirmation': (
+      file: 'confirmation',
       template: 'Confirm sign up',
-      subject: 'Confirm your email for ${Brand.name}',
-      heading: 'Confirm your email',
-      lead:
-          'You saved your progress in $name with this address. Open the link '
-          'to confirm it:',
-      button: 'Confirm my email',
-      otherwise: 'Not you? Ignore this email: nothing changes.',
+      en: (
+        subject: 'Confirm your email for ${Brand.name}',
+        heading: 'Confirm your email',
+        lead:
+            'You saved your progress in $name with this address. Open the '
+            'link to confirm it:',
+        button: 'Confirm my email',
+        otherwise: 'Not you? Ignore this email: nothing changes.',
+      ),
+      fr: (
+        subject: 'Confirme ton e-mail pour ${Brand.name}',
+        heading: 'Confirme ton e-mail',
+        lead:
+            'Tu as sauvegardé ta progression dans $name avec cette adresse. '
+            'Ouvre le lien pour la confirmer\u202f:',
+        button: 'Confirmer mon e-mail',
+        otherwise:
+            'Ce n’est pas toi\u202f? Ignore cet e-mail\u202f: rien ne change.',
+      ),
     ),
-    'email_change.html': page(
+    'email_change': (
+      file: 'email_change',
       template: 'Change email address',
-      subject: 'Confirm your email for ${Brand.name}',
-      heading: 'Confirm your email',
-      lead:
-          'You asked to save your progress in $name with this address. Open '
-          'the link to finish — until then you play as a guest:',
-      button: 'Confirm my email',
-      otherwise: 'Not you? Ignore this email: nothing changes.',
+      en: (
+        subject: 'Confirm your email for ${Brand.name}',
+        heading: 'Confirm your email',
+        lead:
+            'You asked to save your progress in $name with this address. Open '
+            'the link to finish — until then you play as a guest:',
+        button: 'Confirm my email',
+        otherwise: 'Not you? Ignore this email: nothing changes.',
+      ),
+      fr: (
+        subject: 'Confirme ton e-mail pour ${Brand.name}',
+        heading: 'Confirme ton e-mail',
+        lead:
+            'Tu as demandé à sauvegarder ta progression dans $name avec cette '
+            'adresse. Ouvre le lien pour finir — d’ici là, tu joues en '
+            'invité\u202f:',
+        button: 'Confirmer mon e-mail',
+        otherwise:
+            'Ce n’est pas toi\u202f? Ignore cet e-mail\u202f: rien ne change.',
+      ),
     ),
     // Phase 6c commit 4 (review B3).
-    'recovery.html': page(
+    'recovery': (
+      file: 'recovery',
       template: 'Reset password',
-      subject: 'Set a new password for ${Brand.name}',
-      heading: 'Set a new password',
-      lead:
-          'Someone asked to reset the password of your $name account. Open '
-          'the link to choose a new one:',
-      button: 'Set a new password',
-      otherwise: 'Not you? Ignore this email: your password stays as it is.',
+      en: (
+        subject: 'Set a new password for ${Brand.name}',
+        heading: 'Set a new password',
+        lead:
+            'Someone asked to reset the password of your $name account. Open '
+            'the link to choose a new one:',
+        button: 'Set a new password',
+        otherwise: 'Not you? Ignore this email: your password stays as it is.',
+      ),
+      fr: (
+        subject: 'Nouveau mot de passe pour ${Brand.name}',
+        heading: 'Choisis un nouveau mot de passe',
+        lead:
+            'Quelqu’un a demandé à réinitialiser le mot de passe de ton compte '
+            '$name. Ouvre le lien pour en choisir un nouveau\u202f:',
+        button: 'Choisir un nouveau mot de passe',
+        otherwise:
+            'Ce n’est pas toi\u202f? Ignore cet e-mail\u202f: ton mot de passe ne '
+            'change pas.',
+      ),
     ),
+  };
+}
+
+String _body(_Email words) => [
+  '<h2>${words.heading}</h2>',
+  '<p>${words.lead}</p>',
+  '<p><a href="{{ .ConfirmationURL }}">${words.button}</a></p>',
+  '<p>${words.otherwise}</p>',
+  '<p>— ${const HtmlEscape(HtmlEscapeMode.element).convert(Brand.name)}</p>',
+].join('\n');
+
+/// The emails, by file under `supabase/templates/`, each with its subject
+/// on its first lines, for the owner to paste into the project
+/// (Authentication → Emails). `{{ .ConfirmationURL }}` is Supabase's link.
+///
+/// - `<name>.html` — English; `<name>.fr.html` — French (Phase 6d);
+/// - `<name>.by-language.html` — both, picked by the account's language
+///   (`language` in its metadata, which the app keeps): Supabase holds one
+///   template per email, so this is the one to paste once French ships.
+Map<String, String> emailTemplates() {
+  String header(String template, String subject, String note) => [
+    '<!-- Supabase → Authentication → Emails → "$template".',
+    '     Subject: $subject',
+    if (note.isNotEmpty) '     $note',
+    '     Written from Brand by app/tool/brand/write_brand_test.dart: never',
+    '     by hand. -->',
+  ].join('\n');
+  return {
+    for (final e in _emails().values) ...{
+      '${e.file}.html':
+          '${header(e.template, e.en.subject, '')}\n${_body(e.en)}\n',
+      '${e.file}.fr.html':
+          '${header(e.template, e.fr.subject, 'French (Phase 6d).')}\n'
+          '${_body(e.fr)}\n',
+      '${e.file}.by-language.html':
+          '${header(e.template, '${e.en.subject} · ${e.fr.subject}', 'English or French, by the account\'s language (its metadata\'s "language", kept by the app).')}\n'
+          '{{ if and .Data .Data.language (eq .Data.language "fr") }}\n'
+          '${_body(e.fr)}\n'
+          '{{ else }}\n'
+          '${_body(e.en)}\n'
+          '{{ end }}\n',
+    },
   };
 }

@@ -1,0 +1,18 @@
+<!-- Supabase → Authentication → Emails → "Reset password".
+     Subject: Set a new password for Math Trainer · Nouveau mot de passe pour Math Trainer
+     English or French, by the account's language (its metadata's "language", kept by the app).
+     Written from Brand by app/tool/brand/write_brand_test.dart: never
+     by hand. -->
+{{ if and .Data .Data.language (eq .Data.language "fr") }}
+<h2>Choisis un nouveau mot de passe</h2>
+<p>Quelqu’un a demandé à réinitialiser le mot de passe de ton compte Math Trainer. Ouvre le lien pour en choisir un nouveau :</p>
+<p><a href="{{ .ConfirmationURL }}">Choisir un nouveau mot de passe</a></p>
+<p>Ce n’est pas toi ? Ignore cet e-mail : ton mot de passe ne change pas.</p>
+<p>— Math Trainer</p>
+{{ else }}
+<h2>Set a new password</h2>
+<p>Someone asked to reset the password of your Math Trainer account. Open the link to choose a new one:</p>
+<p><a href="{{ .ConfirmationURL }}">Set a new password</a></p>
+<p>Not you? Ignore this email: your password stays as it is.</p>
+<p>— Math Trainer</p>
+{{ end }}

@@ -155,6 +155,7 @@ void main() {
           email: 'new@test.com',
           password: 'long-enough',
           ageDeclaredAt: DateTime.utc(2026, 11, 27, 10),
+          language: 'en',
         );
 
         expect(account, const Account(id: testUserId, email: 'new@test.com'));
@@ -164,7 +165,11 @@ void main() {
         expect(body['email'], 'new@test.com');
         expect(body['password'], 'long-enough');
         // The age declaration, in the same call (Phase 6c commit 2).
-        expect(body['data'], {ageDeclarationKey: '2026-11-27T10:00:00.000Z'});
+        expect(body['data'], {
+          ageDeclarationKey: '2026-11-27T10:00:00.000Z',
+          // The account's emails in its language (Phase 6d).
+          languageKey: 'en',
+        });
       },
     );
 
@@ -178,6 +183,7 @@ void main() {
           email: 'new@test.com',
           password: 'long-enough',
           ageDeclaredAt: DateTime.utc(2026, 11, 27),
+          language: 'en',
         ),
         isNull,
       );
@@ -264,6 +270,7 @@ void main() {
           email: 'new@test.com',
           password: 'long-enough',
           ageDeclaredAt: DateTime.utc(2026, 11, 27),
+          language: 'en',
         ),
         isNull,
       );
@@ -278,6 +285,34 @@ void main() {
       expect((body['type'], body['email']), ('email_change', 'new@test.com'));
     });
   });
+
+  // Phase 6d commit 4: the account keeps the language of its emails.
+  test(
+    'rememberLanguage: in the metadata when signed in, nothing otherwise',
+    () async {
+      final client = SupabaseTestClient(
+        authHandler: (request) async =>
+            request.method == 'PUT' && request.url.path == '/auth/v1/user'
+            ? http.Response(
+                jsonEncode(
+                  anonymousSessionJson()['user']! as Map<String, Object?>,
+                ),
+                200,
+                headers: {'content-type': 'application/json'},
+              )
+            : null,
+      );
+      addTearDown(client.client.dispose);
+      client.emitInitialSessionWithoutUser();
+      final repo = SupabaseAccountRepository(client.client);
+      await repo.rememberLanguage('fr');
+      expect(client.authRequests, isEmpty, reason: 'nobody signed in');
+      await client.signIn();
+      await repo.rememberLanguage('fr');
+      final put = client.authRequests.singleWhere((r) => r.method == 'PUT');
+      expect((jsonDecode(put.body) as Map)['data'], {languageKey: 'fr'});
+    },
+  );
 
   // Phase 6c commit 4 (review B3).
   group('forgot password', () {
@@ -491,6 +526,7 @@ void main() {
               email: testEmail,
               password: 'x',
               ageDeclaredAt: DateTime.utc(2026, 11, 27),
+              language: 'en',
             ),
           ),
           expected,
