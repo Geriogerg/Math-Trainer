@@ -7,6 +7,7 @@ import 'package:math_core/persistence/theme_mode_store.dart';
 import 'presentation/screens/auth_gate.dart';
 import 'presentation/theme/app_theme.dart';
 import 'presentation/strings/brand.dart';
+import 'presentation/strings/strings.dart' show appLanguage, AppLanguage;
 
 class MathTrainerApp extends StatefulWidget {
   const MathTrainerApp({super.key, required this.environment});
@@ -24,6 +25,26 @@ class _MathTrainerAppState extends State<MathTrainerApp> {
   void initState() {
     super.initState();
     _loadThemeMode();
+    appLanguage.addListener(_onLanguage);
+  }
+
+  @override
+  void dispose() {
+    appLanguage.removeListener(_onLanguage);
+    super.dispose();
+  }
+
+  /// Another language (Phase 6d, Profile): every screen reads `strings` as
+  /// it builds, without depending on anything that changes — so every
+  /// element is rebuilt, keeping all state (the open tab, a game).
+  void _onLanguage() {
+    setState(() {});
+    void rebuild(Element element) {
+      element.markNeedsBuild();
+      element.visitChildren(rebuild);
+    }
+
+    (context as Element).visitChildren(rebuild);
   }
 
   Future<void> _loadThemeMode() async {
@@ -61,6 +82,11 @@ class _MathTrainerAppState extends State<MathTrainerApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: Brand.name,
+      // Flutter's own words (a back button's tooltip, a text field's
+      // menu) in the same language (Phase 6d).
+      locale: Locale(appLanguage.value.code),
+      supportedLocales: [for (final l in AppLanguage.values) Locale(l.code)],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
       theme: buildLightTheme(),
       darkTheme: buildDarkTheme(),
       themeMode: _themeMode,

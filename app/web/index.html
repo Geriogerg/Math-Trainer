@@ -126,6 +126,43 @@
       var bar = root.querySelector('.mt-bar');
       var status = root.querySelector('.mt-status');
       var reload = root.querySelector('.mt-reload');
+      // The loading screen's words in the interface's language (Phase 6d):
+      // the player's choice (Profile, stored as "flutter.language"), else
+      // the browser's. The app takes over with the same rule.
+      var french = (function () {
+        try {
+          var chosen = JSON.parse(localStorage.getItem('flutter.language') || 'null');
+          if (chosen === 'fr' || chosen === 'en') return chosen === 'fr';
+        } catch (_) { /* storage blocked: the browser decides */ }
+        return /^fr\b/i.test(navigator.language || '');
+      })();
+      var words = french
+        ? {
+            downloading: 'Téléchargement du jeu…',
+            starting: 'Démarrage…',
+            almost: 'Presque prêt…',
+            slow: 'Toujours en chargement. Avec une connexion lente, ça peut prendre une minute.',
+            notDownloaded: 'Le jeu n’a pas pu être téléchargé.',
+            notStarted: 'Le jeu n’a pas pu démarrer.',
+            reload: 'Recharger',
+            loading: 'Chargement de ',
+          }
+        : {
+            downloading: 'Downloading the game…',
+            starting: 'Starting…',
+            almost: 'Almost there…',
+            slow: 'Still loading. On a slow connection this can take a minute.',
+            notDownloaded: 'The game could not be downloaded.',
+            notStarted: 'The game could not start.',
+            reload: 'Reload',
+            loading: 'Loading ',
+          };
+      if (french) {
+        document.documentElement.lang = 'fr';
+        status.textContent = words.downloading;
+        reload.textContent = words.reload;
+        track.setAttribute('aria-label', track.getAttribute('aria-label').replace(/^Loading /, words.loading));
+      }
       var shown = 0.04;
       var finished = false;
       reload.addEventListener('click', function () { location.reload(); });
@@ -160,24 +197,24 @@
       }
       // The watchdog: slow 4G loads in about 20 s; twice that, a button.
       setTimeout(function () {
-        stuck('Still loading. On a slow connection this can take a minute.');
+        stuck(words.slow);
       }, 40000);
       // A script that could not be downloaded (the game's code, the engine).
       window.addEventListener('error', function (e) {
         var t = e && e.target;
         if (t && t.tagName === 'SCRIPT') {
-          stuck('The game could not be downloaded.');
+          stuck(words.notDownloaded);
           report('script not downloaded: ' + String(t.src || '').replace(/^.*\//, ''));
         }
       }, true);
       return {
         progress: progress,
-        stage: function (text, fraction) {
-          if (!root.classList.contains('mt-stuck')) status.textContent = text;
+        stage: function (name, fraction) {
+          if (!root.classList.contains('mt-stuck')) status.textContent = words[name] || name;
           progress(fraction);
         },
         fail: function (error) {
-          stuck('The game could not start.');
+          stuck(words.notStarted);
           report('engine did not start: ' + String(error && (error.message || error)).slice(0, 300));
         },
         done: function () {

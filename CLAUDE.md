@@ -39,7 +39,7 @@ in French. Settled in plan v4.2: the 6c build's choices (deploy-window duels ref
 voided, the reminder on Online's duel list, Turnstile on every auth call Supabase protects,
 semantics on for everyone).
 
-Done: 0–1 (27 Nov; `doc/progress.md`, "Phase 6d"). Next: commit 2.
+Done: 0–2 (27 Nov; `doc/progress.md`, "Phase 6d"). Next: commit 3.
 
 **Phase 7's rules** (plan v3.7–v3.8; detail in `doc/decisions.md`, "Phase 7"):
 - **No live matches**: every duel is asynchronous — a player races another's recorded run,
@@ -386,8 +386,13 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   screen), `web/manifest.json` and `web/preview.png`; `brand_test.dart` fails while they
   differ or a literal of the name sits elsewhere in `lib/`. CI's `SITE_URL` makes the preview
   image's address absolute.
+- **Two languages** (6d): `strings` reads `appLanguage` (English or French, the browser's
+  until the player chooses in Profile); `MathTrainerApp` redraws every element on a change.
+  Each area is an interface with `English…` and `French…` classes (`strings/french/`): a new
+  member goes in both, or nothing compiles. A test that changes `appLanguage` restores
+  English in `tearDown`. French uses "tu" and `\u202f` before ? ! : ; %.
 - **Every word a player reads is in `app/lib/presentation/strings/`** (6b commit 7):
-  `strings.<area>.<name>`, English; `strings_in_one_place_test.dart` fails on a word-holding
+  `strings.<area>.<name>`; `strings_in_one_place_test.dart` fails on a word-holding
   literal anywhere else in `lib/presentation/`. Players read "game" (not session), "Ranks",
   seconds. Levels, the main level included, are shown as whole parts (`.floor()`, `.whole`).
 - **Two edge colours** (6b commit 6): `colorScheme.outline` is the 3:1 edge of what can be

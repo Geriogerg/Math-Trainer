@@ -8,6 +8,7 @@ import '../fake_account_repository.dart';
 import '../fake_profile_repository.dart';
 import '../fake_stores.dart';
 import 'package:math_trainer/core/state/auth_link.dart';
+import 'package:math_trainer/core/state/language.dart';
 
 class _Games implements UnfinishedGameStore {
   @override
@@ -30,6 +31,7 @@ void main() {
       final games = _Games();
       final hints = FakeHintsStore();
       void reload() {}
+      final languages = _Languages();
       final device = AppEnvironment(
         repository: InMemorySessionRepository(),
         playerId: 'device',
@@ -39,6 +41,7 @@ void main() {
         hints: hints,
         reloadPage: reload,
         authLink: AuthLink.recovery,
+        languageStore: languages,
       );
       final player = device.forPlayer('me');
       expect(player.playerId, 'me');
@@ -46,6 +49,7 @@ void main() {
       expect(player.hints, same(hints));
       expect(player.reloadPage, same(reload));
       expect(player.authLink, AuthLink.recovery);
+      expect(player.languageStore, same(languages));
       expect(player.levelsRefresh, isNotNull);
       expect(
         device.forPlayer('other').levelsRefresh,
@@ -53,4 +57,12 @@ void main() {
       );
     },
   );
+}
+
+class _Languages implements LanguageStore {
+  @override
+  Future<AppLanguage?> load() async => null;
+
+  @override
+  Future<void> save(AppLanguage language) async {}
 }

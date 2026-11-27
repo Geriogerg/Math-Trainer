@@ -139,7 +139,11 @@ void main() {
       await pumpShell(tester, theme);
       expect(find.text('Basics'), findsOneWidget);
       expect(find.text('1\u202f542'), findsOneWidget);
-      expect(find.text('1\u202f380 ?'), findsOneWidget, reason: '4 rated duels');
+      expect(
+        find.text('1\u202f380 ?'),
+        findsOneWidget,
+        reason: '4 rated duels',
+      );
       expect(find.text('1\u202f610'), findsOneWidget);
       expect(find.text('Waiting for you'), findsOneWidget);
       expect(find.text('Léa · Basics'), findsOneWidget);

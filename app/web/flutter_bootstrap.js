@@ -60,9 +60,9 @@
       config: { fontFallbackBaseUrl: 'fonts/' },
       onEntrypointLoaded: async function (engineInitializer) {
         try {
-          loader && loader.stage('Starting…', 0.88);
+          loader && loader.stage('starting', 0.88);
           var appRunner = await engineInitializer.initializeEngine();
-          loader && loader.stage('Almost there…', 0.95);
+          loader && loader.stage('almost', 0.95);
           await appRunner.runApp();
         } catch (e) {
           failed(e);

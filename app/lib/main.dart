@@ -7,6 +7,8 @@ import 'infrastructure/web/page_reload.dart';
 import 'presentation/screens/config_error_screen.dart';
 import 'presentation/screens/specimen_screen.dart';
 import 'core/errors/error_reporter.dart';
+import 'dart:ui' show PlatformDispatcher;
+import 'presentation/strings/strings.dart';
 
 /// Whether the accessibility tree is built for everyone (plan v4.1: kept,
 /// measured on a low-end phone profile in Phase 6c).
@@ -22,6 +24,11 @@ Future<void> main() async {
   // What goes wrong is reported to our own server (Phase 6c commit 5).
   final errors = createErrorReporter();
   installErrorReporting(errors);
+  // The browser's language first (Phase 6d), so even a start that fails
+  // speaks it; the player's own choice once the stores are open.
+  useLanguage(
+    AppLanguage.forLocale(PlatformDispatcher.instance.locale.languageCode),
+  );
   // The accessibility tree from the start (Phase 6b commit 6, review M17):
   // on the web Flutter builds it only once a screen reader finds and
   // presses a hidden "Enable accessibility" button, which several miss.
@@ -51,6 +58,9 @@ Future<void> main() async {
     errors.report(ErrorKind.start, e, stack);
     runApp(ConfigErrorApp.startFailed(e, onReload: reloadPage));
     return;
+  }
+  if (await chosenLanguage(environment) case final chosen?) {
+    useLanguage(chosen);
   }
   runApp(MathTrainerApp(environment: environment));
 }

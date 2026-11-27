@@ -64,6 +64,9 @@ abstract interface class ProfileStrings {
   String get practice;
   // Settings.
   String get settings;
+
+  /// The language switch's spoken name (Phase 6d).
+  String get language;
   String get darkMode;
   String get sound;
   String get vibration;
@@ -281,6 +284,9 @@ class EnglishProfileStrings implements ProfileStrings {
   // Settings.
   @override
   final settings = 'Settings';
+
+  @override
+  final language = 'Language';
 
   @override
   final darkMode = 'Dark mode';

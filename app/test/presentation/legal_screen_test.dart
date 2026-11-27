@@ -12,6 +12,7 @@ import 'package:math_trainer/presentation/theme/app_theme.dart';
 
 import '../fake_account_repository.dart';
 import '../fake_profile_repository.dart';
+import 'package:math_trainer/presentation/strings/strings.dart';
 
 /// The privacy policy and the legal notice (Phase 6c commit 2, plan v4.1;
 /// review B1).
@@ -67,10 +68,14 @@ void main() {
       final days = abandonedGuestRetention.inDays;
       expect(all(en.privacy), contains('unused for $days days'));
       expect(all(fr.privacy), contains('inutilisé pendant $days jours'));
-      // The buttons it names exist with these words (profile_strings.dart).
-      for (final text in [all(en.privacy), all(fr.privacy)]) {
-        expect(text, contains('Delete my data'));
-        expect(text, contains('Delete my account'));
+      // The buttons it names exist with these words, in each language
+      // (profile_strings.dart, Phase 6d).
+      for (final (text, words) in [
+        (all(en.privacy), englishStrings.profile),
+        (all(fr.privacy), frenchStrings.profile),
+      ]) {
+        expect(text, contains(words.deleteButton(guest: true)));
+        expect(text, contains(words.deleteButton(guest: false)));
         expect(text, contains('15'));
       }
       // Duels, friends and the per-answer data are described (plan v4.1).

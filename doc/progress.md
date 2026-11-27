@@ -2268,3 +2268,21 @@ every screen checked at 360 px in French.
   case is now 47 892 × 3 657, which does; only its centre moved (196.64 → 194.96), every other
   pinned number unchanged. Tests: number, prompt, Online, session and duel tests spell
   groups with `\u202f`; 8 goldens re-rendered and read. Run locally: app 541, analyze clean.
+- **Commit 2** *(A)* — **French interface.** The seven areas in French
+  (`strings/french/*_fr.dart`, ~340 members, "tu", typographic apostrophes, a narrow no-break
+  space before ? ! : ; and %), complete by construction (each implements its interface).
+  **The language**: `AppLanguage` (en, fr; stored codes), the browser's at start
+  (`AppLanguage.forLocale`), the player's choice once made — Profile → Settings, a switch
+  "English | Français" (each in its own language), remembered on the device
+  (`SharedPreferencesLanguageStore`, `AppEnvironment.languageStore`, carried by `forPlayer`).
+  `strings` reads `appLanguage`; `MathTrainerApp` redraws every element on a change, keeping
+  all state (the open tab, a game). Flutter's own words follow (`locale`,
+  `GlobalMaterialLocalizations.delegates`, from `material_ui` — no new dependency: "Retour" on a
+  back button); the page's `lang` follows (`setPageLanguage`). **The loading screen** speaks
+  French when the stored choice or the browser says so (its words, the reload button, its
+  spoken label, `<html lang>`), before any Dart runs; the bootstrap names stages instead of
+  wording them. The legal pages open in the interface's language; the French policy names
+  the French buttons (« Supprimer mes données »). Tests: the default rule and codes, the
+  store, the words switching, the whole app switched from Profile and back (state kept,
+  saved, Material's words French); the policy's button names per language. Run locally: app
+  545, analyze clean.

@@ -22,6 +22,15 @@ import 'home_strings.dart';
 import 'online_strings.dart';
 import 'profile_strings.dart';
 import 'ranks_strings.dart';
+import 'package:flutter/foundation.dart' show ValueNotifier;
+import '../../core/state/language.dart';
+import 'french/common_fr.dart';
+import 'french/home_fr.dart';
+import 'french/game_fr.dart';
+import 'french/profile_fr.dart';
+import 'french/account_fr.dart';
+import 'french/online_fr.dart';
+import 'french/ranks_fr.dart';
 
 export 'account_strings.dart';
 export 'common_strings.dart';
@@ -30,6 +39,7 @@ export 'home_strings.dart';
 export 'online_strings.dart';
 export 'profile_strings.dart';
 export 'ranks_strings.dart';
+export '../../core/state/language.dart' show AppLanguage;
 
 /// The app's words in one language: one class per area.
 class AppStrings {
@@ -63,5 +73,33 @@ const englishStrings = AppStrings(
   ranks: EnglishRanksStrings(),
 );
 
-/// The app's words: English until French arrives (Phase 6d commit 2).
-const strings = englishStrings;
+/// French (Phase 6d).
+const frenchStrings = AppStrings(
+  common: FrenchCommonStrings(),
+  home: FrenchHomeStrings(),
+  game: FrenchGameStrings(),
+  profile: FrenchProfileStrings(),
+  account: FrenchAccountStrings(),
+  online: FrenchOnlineStrings(),
+  ranks: FrenchRanksStrings(),
+);
+
+/// The words of [language].
+AppStrings stringsFor(AppLanguage language) => switch (language) {
+  AppLanguage.english => englishStrings,
+  AppLanguage.french => frenchStrings,
+};
+
+/// The interface's language (Phase 6d): the browser's at start, the
+/// player's choice once made (Profile). `MathTrainerApp` listens and
+/// redraws every screen in it.
+final appLanguage = ValueNotifier<AppLanguage>(AppLanguage.english);
+
+/// The app's words, in [appLanguage].
+AppStrings get strings => stringsFor(appLanguage.value);
+
+/// A language's own name, the same in every language (the switch).
+String languageName(AppLanguage language) => switch (language) {
+  AppLanguage.english => 'English',
+  AppLanguage.french => 'Français',
+};

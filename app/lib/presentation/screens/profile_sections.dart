@@ -519,10 +519,15 @@ class _WeakSpotsBlock extends StatelessWidget {
 
 /// Labels only (Redesign phase): the switch says what it is.
 class _SettingsBlock extends StatelessWidget {
-  const _SettingsBlock({required this.settings, required this.onToggleTheme});
+  const _SettingsBlock({
+    required this.settings,
+    required this.onToggleTheme,
+    required this.languageStore,
+  });
 
   final EffectSettings? settings;
   final VoidCallback? onToggleTheme;
+  final LanguageStore? languageStore;
 
   @override
   Widget build(BuildContext context) {
@@ -531,6 +536,22 @@ class _SettingsBlock extends StatelessWidget {
     final onToggleTheme = this.onToggleTheme;
     final rows = <Widget>[
       Text(strings.profile.settings, style: theme.textTheme.titleMedium),
+      // The interface's language (Phase 6d): the browser's until chosen.
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Semantics(
+          label: strings.profile.language,
+          child: SegmentedChoice<AppLanguage>(
+            values: AppLanguage.values,
+            selected: appLanguage.value,
+            label: languageName,
+            onChanged: (language) {
+              useLanguage(language);
+              languageStore?.save(language).ignore();
+            },
+          ),
+        ),
+      ),
       if (onToggleTheme != null)
         SwitchListTile(
           contentPadding: EdgeInsets.zero,

@@ -997,6 +997,11 @@ void main() {
         tester,
         const Account(id: 'a', email: 'player@test.com'),
       );
+      await tester.scrollUntilVisible(
+        find.text('Delete my account'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(find.text('Delete my account'), findsOneWidget);
       expect(find.text('Delete my data'), findsNothing);
     });

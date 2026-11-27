@@ -91,11 +91,15 @@ import 'core/state/levels_refresh.dart';
 import 'core/state/unfinished_game.dart';
 import 'infrastructure/persistence/shared_preferences_hints_store.dart';
 import 'infrastructure/web/page_reload.dart' as web;
+import 'infrastructure/web/page_language.dart' as web;
 import 'core/security/human_check.dart';
 import 'infrastructure/web/human_check.dart';
 import 'core/state/auth_link.dart';
 import 'core/errors/error_reporter.dart';
 import 'infrastructure/backend/http_error_reporter.dart';
+import 'core/state/language.dart';
+import 'infrastructure/persistence/shared_preferences_language_store.dart';
+import 'presentation/strings/strings.dart' show appLanguage;
 
 part 'session_builders.dart';
 
@@ -140,6 +144,7 @@ class AppEnvironment {
     this.levelsRefresh,
     this.reloadPage,
     this.authLink,
+    this.languageStore,
   });
 
   final SessionRepository repository;
@@ -289,6 +294,10 @@ class AppEnvironment {
   /// `null` for a plain visit. The gate acts on it once.
   final AuthLink? authLink;
 
+  /// The language chosen in Profile (Phase 6d); `null` in tests that do
+  /// not look at it — the setting then still switches, without saving.
+  final LanguageStore? languageStore;
+
   AppEnvironment forPlayer(String playerId) => AppEnvironment(
     repository: repository,
     playerId: playerId,
@@ -320,6 +329,7 @@ class AppEnvironment {
     hints: hints,
     reloadPage: reloadPage,
     authLink: authLink,
+    languageStore: languageStore,
     levelsRefresh: LevelsRefresh(),
     duelQueue: switch (duelClient) {
       final client? => DuelRunQueue(
@@ -426,6 +436,23 @@ const _betaGate = bool.fromEnvironment('BETA_GATE');
 /// The build's commit (CI: the first 7 characters of the SHA), stored with
 /// every feedback message; `dev` for a local build.
 const appVersion = String.fromEnvironment('APP_VERSION', defaultValue: 'dev');
+
+/// Sets the interface's language (Phase 6d): the words every screen reads
+/// (`strings`), and on the web the page's `lang`.
+void useLanguage(AppLanguage language) {
+  appLanguage.value = language;
+  web.setPageLanguage(language.code);
+}
+
+/// The language the player chose on this device, if any — a store that
+/// fails is no choice.
+Future<AppLanguage?> chosenLanguage(AppEnvironment environment) async {
+  try {
+    return await environment.languageStore?.load();
+  } on Exception catch (_) {
+    return null;
+  }
+}
 
 /// Where the app's errors go (Phase 6c commit 5): the Dart server's
 /// `/v1/errors`; nowhere in a build without a server. Made before anything
@@ -597,5 +624,6 @@ Future<AppEnvironment> buildAppEnvironment() async {
     hints: const SharedPreferencesHintsStore(),
     reloadPage: web.reloadPage,
     authLink: authLink,
+    languageStore: const SharedPreferencesLanguageStore(),
   );
 }

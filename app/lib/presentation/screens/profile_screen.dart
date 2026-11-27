@@ -37,6 +37,7 @@ import 'feedback_screen.dart';
 import 'save_progress_screen.dart';
 import 'sign_in_screen.dart';
 import 'legal_screen.dart';
+import '../../core/state/language.dart';
 
 part 'profile_sections.dart';
 
@@ -587,14 +588,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               builder: (context, snapshot) =>
                   _TablesBlock(stats: snapshot.data ?? TablesStats.none),
             ),
-            if (widget.environment.effectSettings != null ||
-                widget.onToggleTheme != null) ...[
-              const SizedBox(height: 24),
-              _SettingsBlock(
-                settings: widget.environment.effectSettings,
-                onToggleTheme: widget.onToggleTheme,
-              ),
-            ],
+            const SizedBox(height: 24),
+            _SettingsBlock(
+              settings: widget.environment.effectSettings,
+              onToggleTheme: widget.onToggleTheme,
+              languageStore: widget.environment.languageStore,
+            ),
             const SizedBox(height: 32),
             // The beta's feedback field (Phase 3a commit 5).
             if (widget.environment.feedbackRepository case final feedback?)

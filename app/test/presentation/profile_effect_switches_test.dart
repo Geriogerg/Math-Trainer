@@ -81,7 +81,14 @@ void main() {
 
     final vibration = find.widgetWithText(SwitchListTile, 'Vibration');
     expect(tester.widget<SwitchListTile>(vibration).value, isTrue);
-    await tester.ensureVisible(vibration);
+    // Clear of the tab bar (the settings grew a language switch, 6d).
+    await tester.scrollUntilVisible(
+      vibration,
+      150,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -150));
+    await tester.pumpAndSettle();
     await tester.tap(vibration);
     await tester.pump();
 

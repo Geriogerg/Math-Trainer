@@ -2779,3 +2779,25 @@ report. The owner's rules: "tu", short and direct like the English; 2 468 in bot
 - **The digit face gains "d", "e"** (French "de" in a percentage prompt, drawn in the same face
   so the prompt keeps its height) and the thin space — from Space Grotesk 2.000, the same
   version as the subset it replaces.
+
+**Commit 2 — French interface.**
+
+- **French words**: "partie" (game), "niveau", **"Progression"** for Levelling (the mode
+  that moves levels) and **"Entraînement"** for Training; "S’exercer" for the Practice section
+  and "Exercice" in rules, "adversaire d’entraînement" for a practice opponent — French has no
+  neat pair for Training / Practice, and both never move a level. "Classements" (Ranks),
+  "cote" (a duel rating, as in chess), "Bases" / "Avancé", "Le compte est bon" (Get the count —
+  the phrase every French speaker knows), "Calcul en chaîne", "Points faibles", "Astuces",
+  "Méthode", "Défis", "Revanche". "Tu" everywhere, as asked.
+- **Typography**: a narrow no-break space (U+202F) before ? ! : ; % and inside « », the
+  French rule — written `\u202f` in the sources so it is visible; typographic apostrophes.
+- **The switch redraws every element** (a walk marking each one dirty) rather than
+  rebuilding the app under a new key: a key would reset navigation — the player would land on
+  Home, and a running game would be lost. A string a controller kept from before the switch
+  (an error already shown) stays in its language until shown again.
+- **No language is stored until the player chooses**: the browser's keeps applying, so a
+  French browser stays French and an English one English, on every visit.
+- **Each language is named in itself** in the switch ("English", "Français"), in both
+  interfaces.
+- **The loading screen decides alone** (stored choice, else `navigator.language`), with the
+  same rule as the app, so the first screen a French visitor sees is French too.

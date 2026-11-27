@@ -1,10 +1,9 @@
-import 'dart:ui' show PlatformDispatcher;
-
 import 'package:material_ui/material_ui.dart';
 
 import '../kit/kit.dart';
 import '../strings/legal/legal_details.dart';
 import '../strings/legal/legal_texts.dart';
+import '../strings/strings.dart' show appLanguage;
 import '../theme/app_theme.dart';
 
 /// The two legal pages (Phase 6c commit 2, plan v4.1; review B1).
@@ -51,8 +50,8 @@ const legalLanguages = <String, LegalTexts>{
   'fr': FrenchLegalTexts(),
 };
 
-/// A legal page, in English or French (a switch at the top; it opens in
-/// French when the device's language is French). The owner's details not given
+/// A legal page, in English or French (a switch at the top; it opens in the
+/// interface's language). The owner's details not given
 /// yet show as highlighted placeholders, under a "Draft" banner (plan
 /// v4.1: "placeholders visible until filled"). Plain text, no link out: it
 /// reads the same offline.
@@ -78,8 +77,7 @@ class LegalScreen extends StatefulWidget {
 
 class _LegalScreenState extends State<LegalScreen> {
   late String _language = () {
-    final wanted =
-        widget.languageCode ?? PlatformDispatcher.instance.locale.languageCode;
+    final wanted = widget.languageCode ?? appLanguage.value.code;
     return legalLanguages.containsKey(wanted) ? wanted : 'en';
   }();
 

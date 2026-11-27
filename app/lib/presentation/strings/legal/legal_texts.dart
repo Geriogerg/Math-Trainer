@@ -332,8 +332,8 @@ class FrenchLegalTexts implements LegalTexts {
       [
         'Vous pouvez consulter, corriger, récupérer ou effacer vos données, '
             'vous opposer à leur usage ou en demander la limitation. Le '
-            'profil change votre nom de joueur ; « Delete my data » (ou '
-            '« Delete my account ») efface tout d’un coup. Pour le reste, '
+            'profil change votre nom de joueur ; « Supprimer mes données » (ou '
+            '« Supprimer mon compte ») efface tout d’un coup. Pour le reste, '
             'écrivez à ⟦contactEmail⟧ : vous recevez une réponse sous un '
             'mois.',
         'Vous pouvez aussi saisir la CNIL, l’autorité française de '
