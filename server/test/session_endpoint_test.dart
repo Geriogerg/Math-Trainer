@@ -205,7 +205,7 @@ void main() {
   late Handler handler;
 
   setUp(() {
-    gateway = FakeGateway()..users['token-p1'] = (id: 'p1', isAnonymous: true);
+    gateway = FakeGateway()..users['token-p1'] = (id: 'p1', isGuest: true);
     handler = buildHandler(
       ServerConfig(
         supabaseUrl: Uri.parse('https://example.supabase.co'),
@@ -283,7 +283,7 @@ void main() {
     late Handler gated;
 
     setUp(() {
-      gateway.users['token-linked'] = (id: 'linked', isAnonymous: false);
+      gateway.users['token-linked'] = (id: 'linked', isGuest: false);
       gated = buildHandler(
         ServerConfig(
           supabaseUrl: Uri.parse('https://example.supabase.co'),

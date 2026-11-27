@@ -40,6 +40,9 @@ const config = {
   supabaseUrl,
   publishableKey,
   betaGate: String(defines.BETA_GATE ?? '') === 'true',
+  // The robot check is on (Phase 6c commit 3): the page leaves the guest to
+  // the app, which has the token.
+  turnstile: String(defines.TURNSTILE_SITE_KEY ?? '').trim() !== '',
 };
 const marker = 'window.mtBootConfig = null; /*__MT_BOOT_CONFIG__*/';
 const page = join(site, 'index.html');

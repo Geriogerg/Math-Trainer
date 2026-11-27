@@ -55,9 +55,10 @@ class FakeDuelGateway implements SupabaseGateway {
     String token,
     String id, {
     bool anonymous = false,
+    bool confirmed = true,
     String? name,
   }) {
-    users[token] = (id: id, isAnonymous: anonymous);
+    users[token] = (id: id, isGuest: anonymous || !confirmed);
     if (name != null) names[id] = name;
   }
 
@@ -150,7 +151,7 @@ class FakeDuelGateway implements SupabaseGateway {
         final row = ratings[(id, p['p_mode'])];
         return {
           'id': id,
-          'linked': !user.isAnonymous,
+          'linked': !user.isGuest,
           'name': names[id],
           'rating': row == null ? null : {...row},
           'duelsToday': duelsToday[id] ?? 0,
@@ -183,7 +184,7 @@ class FakeDuelGateway implements SupabaseGateway {
         final me = p['p_challenger'] as String;
         final target = p['p_target'] as String;
         if (me == target) return 'self';
-        if (!users.values.any((u) => u.id == target && !u.isAnonymous)) {
+        if (!users.values.any((u) => u.id == target && !u.isGuest)) {
           return 'notLinked';
         }
         final pair = {me, target};
@@ -368,7 +369,7 @@ class FakeDuelGateway implements SupabaseGateway {
     final opponent = p['p_opponent'] as String?;
     final difficulty = p['p_difficulty'] as int?;
     bool linked(Object? who) =>
-        users.values.any((u) => u.id == who && !u.isAnonymous);
+        users.values.any((u) => u.id == who && !u.isGuest);
     final played = {
       for (final d in duels.values)
         if (d['firstPlayer'] == player || d['secondPlayer'] == player)

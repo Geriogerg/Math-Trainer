@@ -64,6 +64,19 @@ class AccountStrings {
       'minutes.';
   final startUnknown = 'The game could not start. Try again.';
 
+  // Email confirmation (Phase 6c commit 3): the link waits in the inbox.
+  final checkInbox = 'Check your inbox';
+  String linkSent(String email) =>
+      'A link was sent to $email. Open it to finish saving your progress. '
+      'Until then you play as a guest: nothing is lost.';
+  final sendAgain = 'Send the link again';
+  final sentAgain = 'Sent again. It can take a minute to arrive.';
+  final done = 'Done';
+
+  /// Turnstile, before the first guest (Phase 6c commit 3).
+  final startHumanCheck =
+      'The check that you are not a robot did not finish. Try again.';
+
   // A start that failed before any screen (Phase 6b commit 5), and the
   // build errors meant for the developer.
   final startFailedTitle = 'The game could not start';

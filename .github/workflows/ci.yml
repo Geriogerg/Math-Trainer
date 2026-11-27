@@ -266,6 +266,11 @@ jobs:
           server-url: ${{ vars.STAGING_SERVER_URL }}
           beta-gate: ''
           base-href: /
+          # The robot check on staging (Phase 6c commit 3): Cloudflare's
+          # always-passing test key unless the variable names another; the
+          # staging project checks the tokens once its CAPTCHA protection
+          # has the matching test secret.
+          turnstile-site-key: ${{ vars.STAGING_TURNSTILE_SITE_KEY || '1x00000000000000000000AA' }}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: web-site-staging
@@ -401,6 +406,8 @@ jobs:
           # The link preview's full address (Phase 6c commit 1): the domain
           # once SITE_URL is set (switch-on), the Pages address until then.
           site-url: ${{ vars.SITE_URL || (vars.PREVIEW_HOST == 'cloudflare' && vars.PREVIEW_URL) || '' }}
+          # Off until the switch-on: the owner's key in TURNSTILE_SITE_KEY.
+          turnstile-site-key: ${{ vars.TURNSTILE_SITE_KEY }}
       - name: Upload the site (Cloudflare Pages)
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.PREVIEW_HOST == 'cloudflare'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

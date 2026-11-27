@@ -35,6 +35,10 @@ class FakeAccountRepository implements AccountRepository {
   }) => throw UnimplementedError();
 
   @override
+  Future<void> resendConfirmation({required String email}) =>
+      throw UnimplementedError();
+
+  @override
   Future<Account> signIn({required String email, required String password}) =>
       throw UnimplementedError();
 

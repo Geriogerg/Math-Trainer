@@ -27,6 +27,11 @@ create table if not exists auth.users (
   is_anonymous boolean not null default false,
   created_at timestamptz not null default now()
 );
+-- When the email was confirmed (Phase 6c commit 3: a saved account is one
+-- not anonymous with its email confirmed). Real Supabase leaves it null
+-- until then; here it defaults to the insert's time, so the tests' saved
+-- players are confirmed unless a test says otherwise.
+alter table auth.users add column if not exists email_confirmed_at timestamptz default now();
 
 -- A user's sign-in sessions: refreshed (updated_at, refreshed_at) each time
 -- the app renews its token — the cleanup reads them as activity. The real

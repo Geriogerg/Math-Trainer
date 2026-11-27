@@ -24,6 +24,10 @@ enum AccountFailure {
   /// Server unreachable: no network, or server error (5xx).
   network,
 
+  /// The check that a person, not a script, is there (Turnstile, Phase 6c
+  /// commit 3) did not complete: closed, failed or timed out.
+  humanCheck,
+
   /// Everything else — [AccountException.detail] then carries the raw
   /// message, the only clue available for diagnosis.
   unknown,

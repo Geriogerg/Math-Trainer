@@ -32,6 +32,11 @@ abstract class AccountRepository {
     required DateTime ageDeclaredAt,
   });
 
+  /// Sends the confirmation link again to [email], the address a pending
+  /// [linkEmail] is waiting on (Phase 6c commit 3). Throws an
+  /// `AccountException` on failure (`rateLimited`, `network`).
+  Future<void> resendConfirmation({required String email});
+
   /// Throws an `AccountException` on failure (invalid credentials,
   /// network unavailable).
   Future<Account> signIn({required String email, required String password});

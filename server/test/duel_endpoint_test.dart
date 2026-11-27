@@ -88,7 +88,8 @@ void main() {
     gateway = FakeDuelGateway()
       ..addUser('tok-a', 'player-a', name: 'Ana')
       ..addUser('tok-b', 'player-b', name: 'Bo')
-      ..addUser('tok-guest', 'guest', anonymous: true);
+      ..addUser('tok-guest', 'guest', anonymous: true)
+      ..addUser('tok-unconfirmed', 'unconfirmed', confirmed: false);
     gateway.levels['player-a'] = {
       'addition': 4000,
       'subtraction': 4000,
@@ -317,6 +318,14 @@ void main() {
           'duelId': 'd4',
         }, token: 'tok-guest');
         expect((guest, guestBody['error']), (403, 'account_required'));
+        // An email never confirmed is a guest too (Phase 6c commit 3).
+        final (unconfirmed, unconfirmedBody) = await post('/v1/duels', {
+          'mode': 'basics',
+        }, token: 'tok-unconfirmed');
+        expect(
+          (unconfirmed, unconfirmedBody['error']),
+          (403, 'account_required'),
+        );
         final (none, noneBody) = await post('/v1/duels/run', {
           'duelId': 'nope',
           'run': quizRun(1),

@@ -1585,7 +1585,7 @@ owner decision, nothing to build).
 | ID | Finding, in short | Phase | State |
 |---|---|---|---|
 | B1 | No publishable legal surface; age rule | 6c | **part** (6c commit 2): both pages in-app, French and English, linked from the gate, Profile and the save form; "I am 15 or older" required and kept; the owner's details and the professional review left (switch-on) |
-| B2 | Email confirmation off, no CAPTCHA | 6c | open |
+| B2 | Email confirmation off, no CAPTCHA | 6c | **part** (6c commit 3): Turnstile built (staging on with the test key), confirmation ready (redirect, implicit flow, Check your inbox, templates), unconfirmed accounts guests everywhere; switched on with the owner's key and sender (switch-on) |
 | B3 | No password recovery | 6c | open |
 | B4 | No abuse protection on the server | 6a (2) | **fixed** |
 | B5 | A duel's second player escapes any loss | 6a (1) | **fixed** |
@@ -2143,3 +2143,37 @@ placeholder; the phase report lists each with the exact value or action needed.
   (screen and controller), the declaration in the Supabase call; 2 goldens (privacy in
   English, light; notice in French, dark), the gate's goldens re-rendered. Run locally: app
   528, core analyze clean.
+- **Commit 3** *(A)* — **Turnstile, email confirmation ready, unconfirmed = guest (B2).**
+  **Turnstile behind a switch**: the build's `TURNSTILE_SITE_KEY` (empty: off). With a key,
+  the app asks the page (`window.mtHumanCheck`, `web/index.html`: Turnstile's script loaded
+  on first use, the widget shown only if it needs the player, a token or '' within a
+  minute) before an anonymous sign-in, a password sign-in or a resent link, and sends the
+  token to Supabase (`captchaToken`); a check that does not finish sends nothing
+  (`AccountFailure.humanCheck`). The page's own early sign-in leaves the guest to the app
+  when the key is on, and steps aside when the address carries an email link's session.
+  CSP allows `challenges.cloudflare.com` (script, frame) only with a key. **Staging builds
+  with Cloudflare's always-passing test key** (variable `STAGING_TURNSTILE_SITE_KEY` to
+  override); production has none until the switch-on (`TURNSTILE_SITE_KEY`). Checked in
+  headless Edge: the test key answers Cloudflare's dummy token, the always-failing key ''
+  (no hang). **Email confirmation ready, off**: the link's redirect is the site
+  (`emailRedirectTo`), the client uses the implicit flow (a link opened in another browser
+  works), the save form turns into "Check your inbox" (where the link went, "Send the link
+  again", Done) when Supabase answers that the address waits, the name is saved meanwhile;
+  `supabase/templates/` holds the two emails (confirm sign-up, change of address), written
+  from `Brand` by the brand tool and checked by its test. The switch is Supabase's (Confirm
+  email, with a sender) — the app follows its answer. **Unconfirmed = guest**: migration
+  `20261204000000_confirmed_accounts.sql` re-creates the 11 functions that grant something
+  to a saved account (boards and their "around me", duel player and challenge, the pool,
+  Online's overview, friends, name reports), each its latest definition with "not
+  anonymous" become "not anonymous and email confirmed"; the server's user is a guest
+  (`AuthenticatedUser.isGuest`, was `isAnonymous`) when anonymous or unconfirmed; the
+  integration shim answers `email_confirmed_at`. Production: 7 saved accounts confirmed
+  (confirmation was off: confirmed at once), 1 not — a test account of 18 Nov, never signed
+  in, no game: nobody active loses anything. The policy names Turnstile and who sends the
+  emails. Tests: SQL `99n_confirmed_accounts_test.sql` (18 assertions: boards, duel player,
+  challenge, overview, friend code, report — refused unconfirmed, granted once confirmed),
+  server (the gateway's guest rule; an unconfirmed user refused a duel), app (the token
+  sent, a failed check sends nothing, the redirect, the resend; Check your inbox; the name
+  saved while pending; the templates). Run locally: SQL 28 files, 582 assertions;
+  integration 7 of 7 (scratch Postgres, the shim, the server); server 106; app 533;
+  analyze clean.

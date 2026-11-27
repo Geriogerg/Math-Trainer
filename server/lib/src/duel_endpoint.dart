@@ -154,8 +154,9 @@ class DuelEndpoint {
     try {
       final user = await bearerUser(gateway, request);
       if (user == null) return jsonResponse(401, {'error': 'unauthorized'});
-      // Plan v3.7: online play needs a linked account — no guests.
-      if (user.isAnonymous) {
+      // Plan v3.7: online play needs a linked account — no guests; an
+      // unconfirmed email is a guest (Phase 6c commit 3).
+      if (user.isGuest) {
         return jsonResponse(403, {'error': 'account_required'});
       }
       final limited = limits?.checkPlayer(user.id);

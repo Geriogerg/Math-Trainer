@@ -86,7 +86,7 @@ class SessionEndpoint {
     }
 
     try {
-      if (requireBetaCode && user.isAnonymous) {
+      if (requireBetaCode && user.isGuest) {
         final allowed = await gateway.rpc('upload_allowed', {
           'p_player_id': user.id,
         });

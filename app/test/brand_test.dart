@@ -34,6 +34,15 @@ void main() {
     );
   });
 
+  test('the email templates are as written from Brand', () {
+    for (final MapEntry(key: file, value: html) in emailTemplates().entries) {
+      final written = File('../supabase/templates/$file');
+      expect(written.existsSync(), isTrue, reason: '$file: $_regenerate');
+      expect(written.readAsStringSync(), html, reason: '$file: $_regenerate');
+      expect(html, contains('{{ .ConfirmationURL }}'));
+    }
+  });
+
   test('web/preview.png is a 1200 × 630 PNG', () {
     final bytes = File('web/preview.png').readAsBytesSync();
     // The PNG signature, then the IHDR chunk: width and height, big-endian.

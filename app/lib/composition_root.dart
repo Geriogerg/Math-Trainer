@@ -91,6 +91,8 @@ import 'core/state/levels_refresh.dart';
 import 'core/state/unfinished_game.dart';
 import 'infrastructure/persistence/shared_preferences_hints_store.dart';
 import 'infrastructure/web/page_reload.dart' as web;
+import 'core/security/human_check.dart';
+import 'infrastructure/web/human_check.dart';
 
 part 'session_builders.dart';
 
@@ -393,6 +395,11 @@ Future<LevelSyncOutcome> adoptServerLevelsAtSignIn(
 /// to ship in the client (RLS protects the data, not this key's secrecy),
 /// but the URL/key remain specific to each Supabase project.
 const _supabaseUrl = String.fromEnvironment('SUPABASE_URL');
+
+/// The build's Cloudflare Turnstile site key (Phase 6c commit 3, review B2):
+/// empty, no check — the switch. Staging builds with Cloudflare's test key;
+/// production gets the owner's at the switch-on.
+const _turnstileSiteKey = String.fromEnvironment('TURNSTILE_SITE_KEY');
 const _supabasePublishableKey = String.fromEnvironment(
   'SUPABASE_PUBLISHABLE_KEY',
 );
@@ -491,9 +498,22 @@ Future<AppEnvironment> buildAppEnvironment() async {
     // Every Supabase call, auth and database, gives up after 15 s (Phase 6b
     // commit 5, review M18): a stalled request fails as offline does.
     httpClient: TimeLimitedClient(http.Client()),
+    // Email links (confirmation, Phase 6c commit 3; password recovery,
+    // commit 4) carry their session in the address: with the default PKCE
+    // flow a link only works in the browser that asked for it — on a phone
+    // the mail app often opens another.
+    authOptions: const FlutterAuthClientOptions(
+      authFlowType: AuthFlowType.implicit,
+    ),
   );
 
-  final accountRepository = SupabaseAccountRepository(Supabase.instance.client);
+  final accountRepository = SupabaseAccountRepository(
+    Supabase.instance.client,
+    humanCheck: _turnstileSiteKey.isEmpty
+        ? const NoHumanCheck()
+        : createHumanCheck(_turnstileSiteKey),
+    siteUrl: kIsWeb ? Uri.base : null,
+  );
   // An invite link (`?friend=MATH-7K2P`, Phase 7): its code waits on the
   // device until the player is linked, then becomes a friend request.
   const invites = SharedPreferencesPendingInviteStore();

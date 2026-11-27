@@ -51,7 +51,7 @@ control, 15 s on Supabase calls, Cancel only while the server wakes, edges at 3:
 the terms (game, Ranks, seconds, Practice). m11 and m21 go to the Phase 3b data check; m13
 stays debt. Phase 6d (French) follows the launch.
 
-Done: 0–2 (27 Nov; `doc/progress.md`, "Phase 6c build"). Next: commit 3.
+Done: 0–3 (27 Nov; `doc/progress.md`, "Phase 6c build"). Next: commit 4.
 
 **Phase 7's rules** (plan v3.7–v3.8; detail in `doc/decisions.md`, "Phase 7"):
 - **No live matches**: every duel is asynchronous — a player races another's recorded run,
@@ -352,6 +352,19 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   player's environment, not the device's. Commit 2's kept-game store and commit 4's hints were
   left out of it and silently off in the signed-in app until commit 5
   (`player_environment_test.dart`). A new field goes in `forPlayer` and that test.
+- **A saved account is not anonymous AND has its email confirmed** (6c commit 3): SQL tests
+  `not u.is_anonymous and u.email_confirmed_at is not null` (11 functions,
+  `…_confirmed_accounts.sql`), the server's `AuthenticatedUser.isGuest`. A new place that
+  grants something to saved accounts tests both. The SQL stub confirms at insert by default.
+- **Turnstile is a build switch** (`TURNSTILE_SITE_KEY`; staging: Cloudflare's test key):
+  the app asks `window.mtHumanCheck` (index.html) and sends `captchaToken` on every call
+  Supabase's CAPTCHA protection covers (anonymous and password sign-in, resend, recovery).
+  A new such call needs the token too, or it fails once the protection is on. With a key,
+  the page's early sign-in leaves the guest to the app; it never signs in when the address
+  holds an email link's session. Supabase uses the implicit flow (links work in any
+  browser).
+- **Email templates are generated** (`supabase/templates/`, from `Brand` by the brand tool):
+  the owner pastes them into Supabase; never edit them by hand.
 - **Every Supabase call has a 15 s limit** (`TimeLimitedClient`, given to `Supabase.initialize`
   in `composition_root.dart`): it fails as an offline call does. The Dart server's clients keep
   their own limits (duels 90 s: the free server wakes in about a minute).

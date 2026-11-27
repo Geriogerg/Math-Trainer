@@ -186,9 +186,17 @@
     // waits for window.mtBootAuth before starting its client
     // (infrastructure/web/boot_sign_in.dart), so the two never race. Any
     // failure leaves storage as it was: the app then does what it always did.
+    // Two cases where the page does nothing (Phase 6c commit 3): the address
+    // carries an email link's session (a confirmation, a password recovery
+    // — the app reads it; a guest made here would be a stray account), and
+    // the build checks for robots (Turnstile: the app gets the token, then
+    // signs in).
     window.mtBootAuth = (function () {
       var config = window.mtBootConfig;
       if (!config || !window.fetch || !window.Promise) return Promise.resolve('none');
+      if (/(^|[#&?])(access_token|error_description|code)=/.test(location.hash + '&' + location.search.replace(/^\?/, ''))) {
+        return Promise.resolve('link');
+      }
       var link = document.createElement('link');
       link.rel = 'preconnect';
       link.href = config.supabaseUrl;
@@ -233,6 +241,8 @@
         if (!session || !session.refresh_token || left > 120) return Promise.resolve('fresh');
         job = call('/auth/v1/token?grant_type=refresh_token', { refresh_token: session.refresh_token })
           .then(store).then(function () { return 'refreshed'; });
+      } else if (config.turnstile) {
+        return Promise.resolve('human check');
       } else if (!config.betaGate || read('flutter.beta_code')) {
         job = call('/auth/v1/signup', {}).then(store).then(function () { return 'signed up'; });
       } else {
@@ -240,6 +250,52 @@
       }
       return job.catch(function () { return 'failed'; });
     })();
+  </script>
+  <script>
+    // The robot check (Phase 6c commit 3, review B2): Cloudflare Turnstile,
+    // asked for by the app (infrastructure/web/human_check_web.dart) before
+    // it creates a guest, signs in or resends a link, when the build has a
+    // site key. Its script loads on the first ask; the widget appears over
+    // the game only if it needs the player ("interaction-only"). Answers a
+    // single-use token, or '' when it fails or a minute passes.
+    window.mtHumanCheck = function (siteKey) {
+      return new Promise(function (resolve) {
+        var done = false;
+        var box = document.createElement('div');
+        box.id = 'mt-human-check';
+        box.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:10000';
+        function finish(token) {
+          if (done) return;
+          done = true;
+          clearTimeout(timer);
+          try { if (window.turnstile && widget !== undefined) window.turnstile.remove(widget); } catch (_) {}
+          if (box.parentNode) box.parentNode.removeChild(box);
+          resolve(token || '');
+        }
+        var widget;
+        var timer = setTimeout(function () { finish(''); }, 60000);
+        function render() {
+          document.body.appendChild(box);
+          try {
+            widget = window.turnstile.render(box, {
+              sitekey: siteKey,
+              appearance: 'interaction-only',
+              callback: function (token) { finish(token); },
+              'error-callback': function () { finish(''); },
+              'expired-callback': function () { finish(''); },
+              'timeout-callback': function () { finish(''); },
+            });
+          } catch (_) { finish(''); }
+        }
+        if (window.turnstile) return render();
+        var script = document.createElement('script');
+        script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+        script.async = true;
+        script.onload = render;
+        script.onerror = function () { finish(''); };
+        document.head.appendChild(script);
+      });
+    };
   </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>

@@ -76,3 +76,52 @@ String withBrandManifest(String manifest) {
   json['description'] = Brand.description;
   return '${const JsonEncoder.withIndent('    ').convert(json)}\n';
 }
+
+/// The emails Supabase sends (Phase 6c commit 3; the recovery email with
+/// commit 4), by file under `supabase/templates/`, each with its subject on
+/// its first line, for the owner to paste into the project (Authentication
+/// → Emails). `{{ .ConfirmationURL }}` is Supabase's link.
+Map<String, String> emailTemplates() {
+  final name = const HtmlEscape(HtmlEscapeMode.element).convert(Brand.name);
+  String page({
+    required String template,
+    required String subject,
+    required String heading,
+    required String lead,
+    required String button,
+    required String otherwise,
+  }) => [
+    '<!-- Supabase → Authentication → Emails → "$template".',
+    '     Subject: $subject',
+    '     Written from Brand by app/tool/brand/write_brand_test.dart: never',
+    '     by hand. -->',
+    '<h2>$heading</h2>',
+    '<p>$lead</p>',
+    '<p><a href="{{ .ConfirmationURL }}">$button</a></p>',
+    '<p>$otherwise</p>',
+    '<p>— $name</p>',
+    '',
+  ].join('\n');
+  return {
+    'confirmation.html': page(
+      template: 'Confirm sign up',
+      subject: 'Confirm your email for ${Brand.name}',
+      heading: 'Confirm your email',
+      lead:
+          'You saved your progress in $name with this address. Open the link '
+          'to confirm it:',
+      button: 'Confirm my email',
+      otherwise: 'Not you? Ignore this email: nothing changes.',
+    ),
+    'email_change.html': page(
+      template: 'Change email address',
+      subject: 'Confirm your email for ${Brand.name}',
+      heading: 'Confirm your email',
+      lead:
+          'You asked to save your progress in $name with this address. Open '
+          'the link to finish — until then you play as a guest:',
+      button: 'Confirm my email',
+      otherwise: 'Not you? Ignore this email: nothing changes.',
+    ),
+  };
+}

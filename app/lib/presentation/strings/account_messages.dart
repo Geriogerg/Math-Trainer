@@ -20,6 +20,8 @@ String describeAccountFailure(AccountFailure failure, {String? detail}) =>
         'Too many attempts. Wait a few minutes before trying again.',
       AccountFailure.network =>
         'Server unreachable. Check your connection, then try again.',
+      AccountFailure.humanCheck =>
+        'The check that you are not a robot did not finish. Try again.',
       AccountFailure.unknown => 'Unexpected error: ${detail ?? '-'}',
     };
 

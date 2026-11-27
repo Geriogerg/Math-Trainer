@@ -28,7 +28,8 @@ enum SaveProgressOutcome {
   savedWithoutName,
 
   /// The project requires email confirmation: linked once the link in the
-  /// email is opened (Phase 6; off until then).
+  /// email is opened (Phase 6c commit 3: ready, off until the owner's
+  /// sender exists). The name is saved already.
   confirmationPending,
 
   /// Nothing changed; see [AccountFormController.failure] or
@@ -67,6 +68,31 @@ class AccountFormController extends ChangeNotifier {
 
   DisplayNameProblem? _nameProblem;
 
+  String? _pendingEmail;
+
+  /// The address a confirmation link was sent to, while it waits.
+  String? get pendingEmail => _pendingEmail;
+
+  /// The link sent again, at least once, since the last change.
+  bool _resent = false;
+  bool get resent => _resent;
+
+  /// Sends the confirmation link again to [pendingEmail] (Phase 6c
+  /// commit 3); `false` and [failure] set when it could not.
+  Future<bool> resendConfirmation() async {
+    final email = _pendingEmail;
+    if (email == null || !_begin(null)) return false;
+    try {
+      await accounts.resendConfirmation(email: email);
+    } on AccountException catch (e) {
+      _end(e);
+      return false;
+    }
+    _resent = true;
+    _end();
+    return true;
+  }
+
   /// What is wrong with the name when [problem] is `invalidName`.
   DisplayNameProblem? get nameProblem => _nameProblem;
 
@@ -100,6 +126,13 @@ class AccountFormController extends ChangeNotifier {
         ageDeclaredAt: _clock().toUtc(),
       );
       if (account == null) {
+        // The name goes on the profile now (a guest may hold one): it is
+        // there when the link is opened. A failure is not the player's
+        // problem yet — Profile lets them set it again.
+        try {
+          await profiles.updateDisplayName(name);
+        } catch (_) {}
+        _pendingEmail = email.trim();
         _end();
         return SaveProgressOutcome.confirmationPending;
       }

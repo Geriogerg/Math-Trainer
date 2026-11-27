@@ -8,6 +8,7 @@ import 'package:math_core/account/account_repository.dart';
 import 'package:math_trainer/infrastructure/backend/supabase_account_repository.dart';
 
 import 'supabase_test_client.dart';
+import 'package:math_trainer/core/security/human_check.dart';
 
 const _account = Account(id: testUserId, email: testEmail);
 
@@ -180,6 +181,101 @@ void main() {
         ),
         isNull,
       );
+    });
+  });
+
+  // Phase 6c commit 3 (review B2): Turnstile and email confirmation.
+  group('the human check and the email links', () {
+    SupabaseTestClient answeringAll() {
+      final client = SupabaseTestClient(
+        authHandler: (request) async => switch (request.url.path) {
+          '/auth/v1/signup' => http.Response(
+            jsonEncode(anonymousSessionJson()),
+            200,
+            headers: {'content-type': 'application/json'},
+          ),
+          '/auth/v1/resend' => http.Response(
+            '{}',
+            200,
+            headers: {'content-type': 'application/json'},
+          ),
+          '/auth/v1/user' => http.Response(
+            jsonEncode({
+              ...anonymousSessionJson()['user']! as Map<String, Object?>,
+              'new_email': 'new@test.com',
+            }),
+            200,
+            headers: {'content-type': 'application/json'},
+          ),
+          _ => null,
+        },
+      );
+      addTearDown(client.client.dispose);
+      return client;
+    }
+
+    test('a guest is created with the token', () async {
+      final client = answeringAll();
+      client.emitInitialSessionWithoutUser();
+      final repo = SupabaseAccountRepository(
+        client.client,
+        humanCheck: _Check('turnstile-token'),
+      );
+      await repo.signInAnonymously();
+      final signup = client.authRequests.singleWhere(
+        (r) => r.url.path == '/auth/v1/signup',
+      );
+      final body = jsonDecode(signup.body) as Map<String, Object?>;
+      expect(body['gotrue_meta_security'], {
+        'captcha_token': 'turnstile-token',
+      });
+    });
+
+    test('a check that does not finish sends nothing', () async {
+      final client = answeringAll();
+      client.emitInitialSessionWithoutUser();
+      final repo = SupabaseAccountRepository(
+        client.client,
+        humanCheck: _Check(null),
+      );
+      await expectLater(
+        repo.signInAnonymously(),
+        throwsA(
+          isA<AccountException>().having(
+            (e) => e.failure,
+            'failure',
+            AccountFailure.humanCheck,
+          ),
+        ),
+      );
+      expect(client.authRequests, isEmpty);
+    });
+
+    test('the link brings the player back to the site; it can be sent '
+        'again', () async {
+      final client = answeringAll();
+      await client.signIn();
+      final repo = SupabaseAccountRepository(
+        client.client,
+        siteUrl: Uri.parse('https://site.example/play?x=1'),
+      );
+      expect(
+        await repo.linkEmail(
+          email: 'new@test.com',
+          password: 'long-enough',
+          ageDeclaredAt: DateTime.utc(2026, 11, 27),
+        ),
+        isNull,
+      );
+      final put = client.authRequests.singleWhere((r) => r.method == 'PUT');
+      expect(put.url.queryParameters['redirect_to'], 'https://site.example/');
+
+      await repo.resendConfirmation(email: 'new@test.com');
+      final resend = client.authRequests.singleWhere(
+        (r) => r.url.path == '/auth/v1/resend',
+      );
+      final body = jsonDecode(resend.body) as Map<String, Object?>;
+      expect((body['type'], body['email']), ('email_change', 'new@test.com'));
     });
   });
 
@@ -373,4 +469,16 @@ void main() {
       );
     });
   });
+}
+
+class _Check implements HumanCheck {
+  _Check(this._token);
+
+  final String? _token;
+
+  @override
+  bool get enabled => true;
+
+  @override
+  Future<String?> token() async => _token;
 }

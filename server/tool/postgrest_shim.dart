@@ -83,12 +83,17 @@ Future<Map<String, Object?>?> _user(HttpRequest request, Pool pool) async {
   if (payload is! Map || payload['sub'] is! String) return null;
   final rows = await pool.execute(
     Sql.named(
-      'select id::text, is_anonymous from auth.users where id::text = @id',
+      'select id::text, is_anonymous, email_confirmed_at::text '
+      'from auth.users where id::text = @id',
     ),
     parameters: {'id': payload['sub']},
   );
   if (rows.isEmpty) return null;
-  return {'id': rows.first[0], 'is_anonymous': rows.first[1]};
+  return {
+    'id': rows.first[0],
+    'is_anonymous': rows.first[1],
+    'email_confirmed_at': rows.first[2],
+  };
 }
 
 /// `public.<name>(<param> => value, …)` as `service_role`: a set or table

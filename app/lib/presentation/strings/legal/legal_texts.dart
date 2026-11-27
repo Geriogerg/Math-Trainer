@@ -74,7 +74,9 @@ class EnglishLegalTexts implements LegalTexts {
             'game is invitation-only — the invitation code you came in with.',
         'Technical data: your IP address and browser, seen by the services '
             'that deliver the game, to send it to you and to stop abuse '
-            '(request limits). They are not used to identify you.',
+            '(request limits) — and, before a guest is created or a sign-in, '
+            'by Cloudflare Turnstile, which checks that a person, not a '
+            'script, is there. They are not used to identify you.',
       ],
     ),
     (
@@ -105,7 +107,9 @@ class EnglishLegalTexts implements LegalTexts {
         'The publisher can read the stored data to run the game.',
         'Service providers process it for us, under contract: Supabase '
             '(accounts and database, ⟦dataRegion⟧), Render (the game’s '
-            'server, United States) and Cloudflare (delivering the site). '
+            'server, United States) and Cloudflare (delivering the site, the '
+            'robot check). Emails (the link that confirms your address) are '
+            'sent by Supabase. '
             'Transfers outside the European Union rely on the EU–US Data '
             'Privacy Framework or the European Commission’s standard '
             'contractual clauses.',
@@ -258,8 +262,10 @@ class FrenchLegalTexts implements LegalTexts {
             'le jeu est sur invitation — le code d’invitation utilisé.',
         'Les données techniques : votre adresse IP et votre navigateur, vus '
             'par les services qui distribuent le jeu, pour vous l’envoyer et '
-            'pour empêcher les abus (limites de requêtes). Elles ne servent '
-            'pas à vous identifier.',
+            'pour empêcher les abus (limites de requêtes) — et, avant la '
+            'création d’un invité ou une connexion, par Cloudflare Turnstile, '
+            'qui vérifie qu’une personne, et non un script, est là. Elles ne '
+            'servent pas à vous identifier.',
       ],
     ),
     (
@@ -293,7 +299,9 @@ class FrenchLegalTexts implements LegalTexts {
             'le jeu.',
         'Des prestataires les traitent pour nous, sous contrat : Supabase '
             '(comptes et base de données, ⟦dataRegion⟧), Render (le serveur '
-            'du jeu, États-Unis) et Cloudflare (la distribution du site). Les '
+            'du jeu, États-Unis) et Cloudflare (la distribution du site, la '
+            'vérification anti-robot). Les e-mails (le lien qui confirme votre '
+            'adresse) sont envoyés par Supabase. Les '
             'transferts hors de l’Union européenne reposent sur le cadre de '
             'protection des données UE–États-Unis ou sur les clauses '
             'contractuelles types de la Commission européenne.',

@@ -71,6 +71,9 @@ class _SaveProgressScreenState extends State<SaveProgressScreen> {
       ageConfirmed: _ageConfirmed,
     );
     if (!mounted || outcome == SaveProgressOutcome.failed) return;
+    // The link waits in the inbox: this screen says so (and can send it
+    // again) until Done.
+    if (outcome == SaveProgressOutcome.confirmationPending) return;
     Navigator.of(context).pop(outcome);
   }
 
@@ -116,6 +119,18 @@ class _SaveProgressScreenState extends State<SaveProgressScreen> {
           builder: (context, _) {
             final busy = _controller.isSubmitting;
             final error = _errorText();
+            if (_controller.pendingEmail case final email?) {
+              return _CheckInbox(
+                email: email,
+                busy: busy,
+                resent: _controller.resent,
+                error: error,
+                onResend: _controller.resendConfirmation,
+                onDone: () => Navigator.of(
+                  context,
+                ).pop(SaveProgressOutcome.confirmationPending),
+              );
+            }
             return ListView(
               padding: theme.extension<AppMetrics>()!.rootPadding,
               children: [
@@ -220,6 +235,67 @@ class _SaveProgressScreenState extends State<SaveProgressScreen> {
           },
         ),
       ),
+    );
+  }
+}
+
+/// The link is in the inbox (Phase 6c commit 3): where it went, what
+/// happens meanwhile, send it again, Done.
+class _CheckInbox extends StatelessWidget {
+  const _CheckInbox({
+    required this.email,
+    required this.busy,
+    required this.resent,
+    required this.error,
+    required this.onResend,
+    required this.onDone,
+  });
+
+  final String email;
+  final bool busy;
+  final bool resent;
+  final String? error;
+  final VoidCallback onResend;
+  final VoidCallback onDone;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ListView(
+      padding: theme.extension<AppMetrics>()!.rootPadding,
+      children: [
+        Semantics(
+          header: true,
+          child: Text(
+            strings.account.checkInbox,
+            style: theme.textTheme.titleMedium,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          strings.account.linkSent(email),
+          style: theme.textTheme.bodyMedium,
+        ),
+        const SizedBox(height: 24),
+        AppButton.primary(onPressed: onDone, label: strings.account.done),
+        const SizedBox(height: 8),
+        AppButton.secondary(
+          onPressed: busy ? null : onResend,
+          busy: busy,
+          label: strings.account.sendAgain,
+        ),
+        if (resent && error == null) Caption(strings.account.sentAgain),
+        if (error != null) ...[
+          const SizedBox(height: 12),
+          Text(
+            error!,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.error,
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

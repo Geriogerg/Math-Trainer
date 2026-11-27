@@ -26,8 +26,7 @@ void main() {
     late Handler handler;
 
     setUp(() {
-      gateway = FakeGateway()
-        ..users['token-p1'] = (id: 'p1', isAnonymous: true);
+      gateway = FakeGateway()..users['token-p1'] = (id: 'p1', isGuest: true);
       handler = buildHandler(
         config,
         routes: [

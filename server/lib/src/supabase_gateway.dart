@@ -6,8 +6,10 @@ import 'package:shelf/shelf.dart' show Request;
 
 import 'config.dart';
 
-/// The player a bearer token belongs to.
-typedef AuthenticatedUser = ({String id, bool isAnonymous});
+/// The player a bearer token belongs to. [isGuest]: anonymous, or an email
+/// never confirmed (Phase 6c commit 3, review B2) — no online play, no
+/// board, whatever the account says it is.
+typedef AuthenticatedUser = ({String id, bool isGuest});
 
 /// Supabase could not answer now (network, 5xx): the caller answers 503
 /// and the app retries.
@@ -126,7 +128,8 @@ class HttpSupabaseGateway implements SupabaseGateway {
     }
     return (
       id: body['id'] as String,
-      isAnonymous: body['is_anonymous'] == true,
+      isGuest:
+          body['is_anonymous'] == true || body['email_confirmed_at'] == null,
     );
   }
 

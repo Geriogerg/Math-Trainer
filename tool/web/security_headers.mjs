@@ -41,9 +41,14 @@ const connect = ["'self'"];
 if (supabase) connect.push(supabase, supabase.replace(/^https:/, 'wss:'));
 if (server) connect.push(server);
 
+// Turnstile (Phase 6c commit 3): its script, and the frame it draws in.
+const turnstile = String(defines.TURNSTILE_SITE_KEY ?? '').trim() !== '';
+const challenges = turnstile ? ' https://challenges.cloudflare.com' : '';
+
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'",
+  `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'${challenges}`,
+  ...(turnstile ? ['frame-src https://challenges.cloudflare.com'] : []),
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
@@ -64,4 +69,4 @@ const headers = `/*
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
 `;
 writeFileSync(join(site, '_headers'), headers);
-console.log(`_headers written; connect-src ${connect.join(' ')}`);
+console.log(`_headers written; connect-src ${connect.join(' ')}${turnstile ? '; Turnstile allowed' : ''}`);

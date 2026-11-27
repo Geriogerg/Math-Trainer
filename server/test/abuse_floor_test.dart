@@ -233,7 +233,7 @@ void main() {
 
     test('POST /v1/sessions with an endless chunked body: 413', () async {
       final gateway = FakeGateway()
-        ..users['token-p1'] = (id: 'p1', isAnonymous: true);
+        ..users['token-p1'] = (id: 'p1', isGuest: true);
       final handler = buildHandler(
         config,
         routes: [SessionEndpoint(gateway).route],
@@ -319,13 +319,20 @@ void main() {
       expect(requests, isEmpty, reason: 'nothing left the server');
 
       final token = jwt({'sub': someone, 'exp': inAnHour()});
-      expect(await gateway.userForToken(token), (
-        id: someone,
-        isAnonymous: true,
-      ));
+      expect(await gateway.userForToken(token), (id: someone, isGuest: true));
       expect(requests.single.url.path, '/auth/v1/user');
       expect(requests.single.headers['authorization'], 'Bearer $token');
       expect(requests.single.headers['apikey'], 'sb_secret_test');
+      // Phase 6c commit 3 (review B2): a saved account is a guest until its
+      // email is confirmed.
+      body = {'id': someone, 'is_anonymous': false, 'email_confirmed_at': null};
+      expect((await gateway.userForToken(token))!.isGuest, isTrue);
+      body = {
+        'id': someone,
+        'is_anonymous': false,
+        'email_confirmed_at': '2026-11-27T10:00:00Z',
+      };
+      expect((await gateway.userForToken(token))!.isGuest, isFalse);
       status = 401;
       expect(await gateway.userForToken(token), isNull, reason: 'forged');
       status = 500;
@@ -386,8 +393,8 @@ void main() {
     test('requests past the player\'s bucket are 429 before any database '
         'call; another player is not affected', () async {
       final gateway = FakeGateway()
-        ..users['token-p1'] = (id: 'p1', isAnonymous: true)
-        ..users['token-p2'] = (id: 'p2', isAnonymous: true);
+        ..users['token-p1'] = (id: 'p1', isGuest: true)
+        ..users['token-p2'] = (id: 'p2', isGuest: true);
       final handler = buildHandler(
         config,
         routes: [
@@ -429,7 +436,7 @@ void main() {
     test('the daily cap on accepted sessions: 429, nothing decided — the '
         'app keeps the session', () async {
       final gateway = FakeGateway()
-        ..users['token-p1'] = (id: 'p1', isAnonymous: true)
+        ..users['token-p1'] = (id: 'p1', isGuest: true)
         ..acceptedToday['p1'] = maxSessionsPerDay;
       final handler = buildHandler(
         config,

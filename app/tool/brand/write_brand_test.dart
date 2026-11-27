@@ -14,7 +14,8 @@ import '../../test/presentation/golden_test_utils.dart';
 /// Writes the product's name into the web files (Phase 6c commit 1, plan
 /// v4.1: the name as a single setting): `web/index.html`'s brand block and
 /// loading screen,
-/// `web/manifest.json`'s words, and the link-preview image
+/// `web/manifest.json`'s words, the email templates
+/// (`supabase/templates/`), and the link-preview image
 /// `web/preview.png` (1200 × 630: the operator family and the name, the
 /// dark theme). Not part of the test suite (it writes files); run it after
 /// changing `Brand`, from `app/`:
@@ -117,6 +118,11 @@ void main() {
         withBrandManifest(manifest.readAsStringSync()),
       );
       await _renderPreview('web/preview.png');
+      final templates = Directory('../supabase/templates')
+        ..createSync(recursive: true);
+      for (final MapEntry(key: file, value: html) in emailTemplates().entries) {
+        File('${templates.path}/$file').writeAsStringSync(html);
+      }
     });
   });
 }

@@ -22,6 +22,7 @@ class StartErrorView extends StatelessWidget {
   static String messageFor(AccountFailure failure) => switch (failure) {
     AccountFailure.network => strings.account.startOffline,
     AccountFailure.rateLimited => strings.account.startRateLimited,
+    AccountFailure.humanCheck => strings.account.startHumanCheck,
     AccountFailure.invalidCredentials ||
     AccountFailure.emailNotConfirmed ||
     AccountFailure.emailAlreadyUsed ||

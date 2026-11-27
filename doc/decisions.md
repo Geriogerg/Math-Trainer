@@ -2663,3 +2663,41 @@ report. What needs the owner's inputs is behind a switch or a visible placeholde
 - **The Phase 5.2 drafts are removed** (`doc/legal/privacy-policy.md`,
   `legal-notice.md`): two versions would drift. Their review questions moved to
   `doc/legal/README.md`, updated (the language and the age are decided).
+
+**Commit 3 — Turnstile, email confirmation ready, an unconfirmed account a guest (B2).**
+
+- **Turnstile in the page, asked for by the app** (`window.mtHumanCheck`, like the boot
+  sign-in): no Dart dependency, the widget is the page's own element over the canvas,
+  "interaction-only" (most players never see it). Asked before every call Supabase's CAPTCHA
+  protection covers — anonymous sign-in (sign-up), password sign-in, a resent link (and the
+  recovery email, commit 4) — not only the two the plan names: once the protection is on,
+  Supabase refuses those calls without a token. Refreshing a session needs none.
+- **The page's early sign-in steps aside when Turnstile is on**: the app makes the guest
+  with a token after it starts — the first visit loses the overlap of the sign-in with the
+  download (about a second on slow 4G). Getting the token in the page during the download
+  would win it back; not done now (the switch is off until launch). Also when the address
+  holds an email link's session (`access_token`, `error_description`, `code`): a guest
+  made there would be a stray account.
+- **Staging is on with the test key** (always passes, `1x00000000000000000000AA`): the path
+  runs in the staging smoke test. Supabase staging checks nothing until its CAPTCHA
+  protection is enabled with the matching test secret — the owner's step; until then the
+  tokens are ignored. Production is off.
+- **Mobile (rule 16)**: no new dependency; Turnstile has no native SDK — Phase 8 needs a web
+  view or another check (`human_check_stub.dart` answers none off the web).
+- **Confirmation follows Supabase's answer, no app switch**: when the project requires it,
+  linking answers "pending" and the form says "Check your inbox"; when it does not, the
+  account is saved at once, as today. The switch is the project's own (Confirm email, with
+  the owner's sender).
+- **The implicit flow for email links**: Supabase's default (PKCE) only completes in the
+  browser that asked; a phone's mail app often opens another. The implicit flow carries
+  the session in the link's fragment (never sent to a server).
+- **The resend uses the "email change" type**: a guest linking an address is an email
+  change for Supabase (the guest stays anonymous until the link is opened). To be confirmed
+  on staging with confirmation on (owner's checklist).
+- **"Unconfirmed" in SQL is `email_confirmed_at is null`**, beside `not is_anonymous`, in
+  the 11 functions that grant something to a saved account — not the owner's dashboard
+  views (they report everyone), not the stale-guest cleanup (a pending guest is still
+  anonymous and is cleaned as one). A test stub difference: the stub's `auth.users`
+  confirms at insert unless a test says otherwise (real Supabase leaves it null).
+- **The emails' wording** (templates): short, English, the name from `Brand`; French with
+  6d. Subjects are on each file's first line, for the owner to paste.

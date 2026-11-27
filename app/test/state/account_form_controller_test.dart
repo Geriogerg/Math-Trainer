@@ -33,6 +33,12 @@ class _Accounts implements AccountRepository {
     return Account(id: 'guest', email: email);
   }
 
+  final resendCalls = <String>[];
+
+  @override
+  Future<void> resendConfirmation({required String email}) async =>
+      resendCalls.add(email);
+
   @override
   Future<Account> signIn({
     required String email,
@@ -200,18 +206,26 @@ void main() {
       expect(controller.failure, isNull);
     });
 
-    test('confirmation required: pending, no name yet', () async {
+    // Phase 6c commit 3: the name is saved while the link waits, and the
+    // link can be sent again.
+    test('confirmation required: pending, the name saved, the link sent '
+        'again', () async {
       accounts.pendingConfirmation = true;
 
       final outcome = await controller.saveProgress(
-        email: 'me@test.com',
+        email: ' me@test.com ',
         password: 'secret-1',
         displayName: 'Alex',
         ageConfirmed: true,
       );
 
       expect(outcome, SaveProgressOutcome.confirmationPending);
-      expect(profiles.names, isEmpty);
+      expect(profiles.names, ['Alex']);
+      expect(controller.pendingEmail, 'me@test.com');
+      expect(controller.resent, isFalse);
+      expect(await controller.resendConfirmation(), isTrue);
+      expect(accounts.resendCalls, ['me@test.com']);
+      expect(controller.resent, isTrue);
     });
 
     test('a new attempt clears the previous failure', () async {

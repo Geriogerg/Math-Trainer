@@ -3,6 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:math_core/account/account.dart';
 import 'package:math_core/account/account_repository.dart';
 
+import '../../core/security/human_check.dart';
+
 /// Supabase Auth `error_code` values (strings, not gotrue's `ErrorCode`
 /// enum: `invalid_credentials` and `email_address_invalid` are missing from
 /// it in the version used, yet the server returns them).
@@ -32,9 +34,37 @@ AccountException _toAccountException(AuthException error) {
 const ageDeclarationKey = 'age_15_or_older_declared_at';
 
 class SupabaseAccountRepository implements AccountRepository {
-  SupabaseAccountRepository(this._client);
+  /// [humanCheck]: Turnstile when the build has a site key (Phase 6c
+  /// commit 3) — its token goes with every call Supabase's CAPTCHA
+  /// protection covers (anonymous sign-in, password sign-in, a resent
+  /// link). [siteUrl]: where an email's link brings the player back (the
+  /// site's own address on the web).
+  SupabaseAccountRepository(
+    this._client, {
+    this.humanCheck = const NoHumanCheck(),
+    this.siteUrl,
+  });
 
   final SupabaseClient _client;
+  final HumanCheck humanCheck;
+  final Uri? siteUrl;
+
+  /// A token when the build asks for one; throws `humanCheck` when the
+  /// check did not finish. `null` when the build has no check.
+  Future<String?> _captcha() async {
+    if (!humanCheck.enabled) return null;
+    final token = await humanCheck.token();
+    if (token == null) {
+      throw const AccountException(AccountFailure.humanCheck);
+    }
+    return token;
+  }
+
+  /// The site's root, where an email's link lands; `null` off the web.
+  String? get _redirect => switch (siteUrl) {
+    final url? => '${url.origin}/',
+    null => null,
+  };
 
   /// An anonymous user has no email (gotrue may report `''`); an email
   /// user always has one.
@@ -80,12 +110,29 @@ class SupabaseAccountRepository implements AccountRepository {
           password: password,
           data: {ageDeclarationKey: ageDeclaredAt.toUtc().toIso8601String()},
         ),
+        // With confirmation on, the email's link brings the player back
+        // here (an allowed redirect of the project).
+        emailRedirectTo: _redirect,
       );
       final user = response.user;
       // Confirmation required: the address waits in `new_email`, the
       // account keeps no email until the link is opened.
       if (user == null || (user.email ?? '').isEmpty) return null;
       return _toAccount(user);
+    } on AuthException catch (e) {
+      throw _toAccountException(e);
+    }
+  }
+
+  @override
+  Future<void> resendConfirmation({required String email}) async {
+    try {
+      await _client.auth.resend(
+        type: OtpType.emailChange,
+        email: email,
+        emailRedirectTo: _redirect,
+        captchaToken: await _captcha(),
+      );
     } on AuthException catch (e) {
       throw _toAccountException(e);
     }
@@ -100,6 +147,7 @@ class SupabaseAccountRepository implements AccountRepository {
       final response = await _client.auth.signInWithPassword(
         email: email,
         password: password,
+        captchaToken: await _captcha(),
       );
       final account = _toAccount(response.user);
       if (account == null || account.email == null) {
@@ -117,7 +165,9 @@ class SupabaseAccountRepository implements AccountRepository {
   @override
   Future<Account> signInAnonymously() async {
     try {
-      final response = await _client.auth.signInAnonymously();
+      final response = await _client.auth.signInAnonymously(
+        captchaToken: await _captcha(),
+      );
       final account = _toAccount(response.user);
       if (account == null) {
         throw const AccountException(

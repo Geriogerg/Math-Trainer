@@ -15,6 +15,7 @@ class _Accounts implements AccountRepository {
   @override
   Future<void> deleteAccount() => throw UnimplementedError();
   AccountException? linkError;
+  bool pendingConfirmation = false;
   int signIns = 0;
 
   @override
@@ -27,7 +28,17 @@ class _Accounts implements AccountRepository {
     required DateTime ageDeclaredAt,
   }) async {
     if (linkError case final e?) throw e;
+    if (pendingConfirmation) return null;
     return Account(id: 'guest', email: email);
+  }
+
+  final resent = <String>[];
+  AccountException? resendError;
+
+  @override
+  Future<void> resendConfirmation({required String email}) async {
+    if (resendError case final e?) throw e;
+    resent.add(email);
   }
 
   @override
@@ -88,6 +99,32 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'Save'));
     await tester.pumpAndSettle();
   }
+
+  // Phase 6c commit 3 (review B2): with confirmation on, the form becomes
+  // "Check your inbox" — send the link again, Done.
+  testWidgets('confirmation on: Check your inbox, Send again, Done', (
+    tester,
+  ) async {
+    final accounts = _Accounts()..pendingConfirmation = true;
+    final popped = await pumpPushed(
+      tester,
+      SaveProgressScreen(
+        accountRepository: accounts,
+        profileRepository: FakeProfileRepository(),
+      ),
+    );
+    await fillSaveForm(tester, 'me@test.com');
+    expect(popped, isEmpty, reason: 'it stays, saying where the link went');
+    expect(find.text('Check your inbox'), findsOneWidget);
+    expect(find.textContaining('me@test.com'), findsOneWidget);
+    await tester.tap(find.text('Send the link again'));
+    await tester.pumpAndSettle();
+    expect(accounts.resent, ['me@test.com']);
+    expect(find.textContaining('Sent again'), findsOneWidget);
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+    expect(popped, [SaveProgressOutcome.confirmationPending]);
+  });
 
   // Phase 6c commit 2 (plan v4.1; review B1): the minimum age, declared.
   testWidgets('Save your progress: nothing sent until "I am 15 or older"', (
