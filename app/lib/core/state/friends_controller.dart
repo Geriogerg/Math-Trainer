@@ -66,20 +66,30 @@ class FriendsController extends ChangeNotifier {
     return outcome;
   }
 
-  Future<void> respond(FriendRequest request, {required bool accept}) async {
+  /// Accepts or declines [request]; `false` if it failed (Phase 6b commit
+  /// 5, review M18: it failed silently) — the request is shown again by the
+  /// reload, nothing was lost, and the screen says it did not go through.
+  Future<bool> respond(FriendRequest request, {required bool accept}) async {
+    var done = true;
     try {
       await repository.respond(request.fromId, accept: accept);
     } on Exception catch (_) {
-      // Shown again by the reload: nothing was lost.
+      done = false;
     }
     await load();
+    return done;
   }
 
-  Future<void> remove(Friend friend) async {
+  /// Removes [friend]; `false` if it failed (the friend stays).
+  Future<bool> remove(Friend friend) async {
+    var done = true;
     try {
       await repository.remove(friend.id);
-    } on Exception catch (_) {}
+    } on Exception catch (_) {
+      done = false;
+    }
     await load();
+    return done;
   }
 
   void _notify() {

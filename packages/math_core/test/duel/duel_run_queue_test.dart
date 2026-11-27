@@ -94,7 +94,8 @@ void main() {
     expect(await queue.finish(_offer('d1'), _answers(8)), isNull);
     expect((await store.load('p')).single.complete, isTrue);
     client.failure = null;
-    await queue.flush();
+    // A finished run: nothing to tell the player.
+    expect(await queue.flush(), isEmpty);
     expect(client.sent.single.$1, 'd1');
     expect(await store.load('p'), isEmpty);
   });
@@ -125,10 +126,23 @@ void main() {
     await queue.saveProgress(_offer('d1'), _answers(3));
     expect((await store.load('p')).single.complete, isFalse);
     client.failure = null;
-    await queue.flush();
+    // Reported, so the app can say so (Phase 6b commit 5, review M15).
+    expect((await queue.flush()).map((r) => r.duelId), ['d1']);
     final sent = client.sent.single.$2 as QuizRun;
     expect(sent.answers.length, 8);
     expect(sent.answers.last, DuelAnswer.none);
+  });
+
+  test('flush reports only the unfinished runs the server decided '
+      '(Phase 6b commit 5)', () async {
+    client.failure = const DuelUnavailable('offline');
+    await queue.saveProgress(_offer('half'), _answers(3));
+    // Still offline: nothing sent, nothing reported.
+    expect(await queue.flush(), isEmpty);
+    // A refused unfinished run was sent too: reported.
+    client.failure = const DuelRefused('badDerivation');
+    expect((await queue.flush()).map((r) => r.duelId), ['half']);
+    expect(await store.load('p'), isEmpty);
   });
 
   test('progress saved again replaces the earlier save', () async {

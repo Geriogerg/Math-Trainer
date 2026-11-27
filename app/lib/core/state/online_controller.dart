@@ -64,6 +64,17 @@ class OnlineController extends ChangeNotifier {
     _notify();
   }
 
+  List<DuelMode> _unfinishedSent = const [];
+
+  /// The modes of the duels left unfinished on this device that a flush
+  /// has now sent, once (Phase 6b commit 5, review M15: sent silently at
+  /// the next start): the shell says so.
+  List<DuelMode> takeUnfinishedSent() {
+    final sent = _unfinishedSent;
+    _unfinishedSent = const [];
+    return sent;
+  }
+
   /// What the invite link's request did, once: the tab says so.
   FriendRequestOutcome? takeInviteOutcome() {
     final outcome = _inviteOutcome;
@@ -105,7 +116,15 @@ class OnlineController extends ChangeNotifier {
     _failed = false;
     _notify();
     // Background chores: never block the tab.
-    queue?.flush().ignore();
+    queue
+        ?.flush()
+        .then((sent) {
+          if (sent.isEmpty) return;
+          _unfinishedSent = [..._unfinishedSent, for (final r in sent) r.mode];
+          _notify();
+        })
+        .catchError((Object _) {})
+        .ignore();
     client?.support().ignore();
     try {
       final overview = await repository.overview();

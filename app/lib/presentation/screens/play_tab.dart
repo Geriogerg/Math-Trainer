@@ -16,9 +16,11 @@ import '../../core/state/session_controller.dart';
 import '../exercise_type_labels.dart';
 import '../kit/kit.dart';
 import '../theme/app_theme.dart';
+import '../../core/state/levels_refresh.dart';
 import 'chain_screen.dart';
 import 'count_screen.dart';
 import 'session_flow_screen.dart';
+import 'sign_in_screen.dart';
 import 'tips_view.dart';
 import '../tips/tips.dart';
 
@@ -78,6 +80,15 @@ class _PlayTabState extends State<PlayTab> {
   /// commit 4, review M16); never without a hints store (tests).
   bool _firstRun = false;
 
+  /// A guest: with no level anywhere, Home suggests signing in (Phase 6b
+  /// commit 5, review M14: after a storage eviction the app silently made
+  /// a new guest, and nothing said the old progress was one sign-in away).
+  bool _guest = false;
+
+  /// Read at [initState]: told when the server's levels replaced the local
+  /// ones at sign-in.
+  LevelsRefresh? _levelsRefresh;
+
   bool _isStarting = false;
   String? _startError;
 
@@ -98,6 +109,40 @@ class _PlayTabState extends State<PlayTab> {
     _loadStartupState();
     _loadSetup();
     _loadFirstRun();
+    _loadGuest();
+    _levelsRefresh = widget.environment.levelsRefresh
+      ?..addListener(_loadStartupState);
+  }
+
+  @override
+  void dispose() {
+    _levelsRefresh?.removeListener(_loadStartupState);
+    super.dispose();
+  }
+
+  Future<void> _loadGuest() async {
+    try {
+      final account =
+          await widget.environment.accountRepository.authState.first;
+      if (mounted) setState(() => _guest = account?.isAnonymous ?? false);
+    } on Exception catch (_) {
+      // No hint.
+    }
+  }
+
+  /// Sign in to an existing account; `AuthGate` swaps the whole shell on
+  /// success.
+  void _signIn() {
+    final environment = widget.environment;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => SignInScreen(
+          accountRepository: environment.accountRepository,
+          profileRepository: environment.profileRepository,
+          isGuest: true,
+        ),
+      ),
+    );
   }
 
   Future<void> _loadFirstRun() async {
@@ -447,6 +492,12 @@ class _PlayTabState extends State<PlayTab> {
       onWeakSpots: _startWeakSpots,
       firstRun: _firstRun,
       onDismissFirstRun: _dismissFirstRun,
+      onSignIn:
+          _guest &&
+              _startupResolved &&
+              levels.values.every((entry) => entry.level == Level.zero)
+          ? _signIn
+          : null,
     );
   }
 }
@@ -467,9 +518,13 @@ class _HomeView extends StatelessWidget {
     this.onWeakSpots,
     this.firstRun = false,
     this.onDismissFirstRun,
+    this.onSignIn,
   });
 
   final int mainLevel;
+
+  /// A level-0 guest's sign-in hint; `null`: none.
+  final VoidCallback? onSignIn;
 
   /// The first-run card, until dismissed (Phase 6b commit 4).
   final bool firstRun;
@@ -506,6 +561,22 @@ class _HomeView extends StatelessWidget {
             'Your level: the mean of + − × ÷.',
             textAlign: TextAlign.end,
           ),
+          if (onSignIn case final signIn?) ...[
+            const SizedBox(height: 8),
+            Row(
+              key: signInHintKey,
+              children: [
+                const Expanded(
+                  child: Caption(
+                    'Played before, on this or another device? Sign in to '
+                    'get your levels back.',
+                  ),
+                ),
+                const SizedBox(width: 8),
+                AppButton.secondary(label: 'Sign in', onPressed: signIn),
+              ],
+            ),
+          ],
           if (firstRun) ...[
             const SizedBox(height: 12),
             _FirstRunCard(onDismiss: onDismissFirstRun),
@@ -644,6 +715,9 @@ class _FirstRunCard extends StatelessWidget {
 
 /// The first-run card (tests find it by this key).
 const firstRunCardKey = ValueKey('first-run-card');
+
+/// A level-0 guest's sign-in hint (tests find it by this key).
+const signInHintKey = ValueKey('sign-in-hint');
 
 class _SectionLabel extends StatelessWidget {
   const _SectionLabel(this.text);

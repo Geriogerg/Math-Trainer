@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:math_trainer/composition_root.dart';
 import 'package:math_trainer/core/state/hints.dart';
+import 'package:math_trainer/core/state/levels_refresh.dart';
+import 'package:math_trainer/presentation/screens/sign_in_screen.dart';
 import 'package:math_core/challenges/chain.dart';
 import 'package:math_core/challenges/tables.dart';
 import 'package:math_core/leveling/level.dart';
@@ -92,16 +94,19 @@ void main() {
     FakeChainSetupStore? chainSetup,
     FakeTablesStore? tables,
     FakeHintsStore? hints,
+    bool guest = false,
+    LevelsRefresh? refresh,
   }) => AppEnvironment(
     repository: repository,
     playerId: 'test-player',
-    accountRepository: FakeAccountRepository(),
+    accountRepository: FakeAccountRepository(anonymous: guest),
     profileRepository: FakeProfileRepository(),
     typeSelectionStore: selection ?? FakeTypeSelectionStore(),
     gameSetupStore: setup ?? FakeGameSetupStore(),
     chainSetupStore: chainSetup ?? FakeChainSetupStore(),
     tablesStore: tables ?? FakeTablesStore(),
     hints: hints,
+    levelsRefresh: refresh,
   );
 
   testWidgets('a new player lands on Home, every level at 0 — no placement '
@@ -289,6 +294,56 @@ void main() {
         findsOne,
       );
       expect(find.text('Easy: level 10 · Medium: 40 · Hard: 70.'), findsOne);
+    });
+  });
+
+  group('another device (Phase 6b commit 5, review M14)', () {
+    testWidgets('a guest at level 0 is offered to sign in', (tester) async {
+      await pumpPlayTab(
+        tester,
+        environmentWith(InMemorySessionRepository(), guest: true),
+      );
+      expect(find.byKey(signInHintKey), findsOneWidget);
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(signInHintKey),
+          matching: find.text('Sign in'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(SignInScreen), findsOneWidget);
+    });
+
+    testWidgets('no hint for a saved account, nor for a guest with a level', (
+      tester,
+    ) async {
+      await pumpPlayTab(tester, environmentWith(InMemorySessionRepository()));
+      expect(find.byKey(signInHintKey), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+      await pumpPlayTab(
+        tester,
+        environmentWith(await _playedRepository(), guest: true),
+      );
+      expect(find.byKey(signInHintKey), findsNothing);
+    });
+
+    testWidgets('levels adopted at sign-in: Home shows them at once', (
+      tester,
+    ) async {
+      final repository = InMemorySessionRepository();
+      final refresh = LevelsRefresh();
+      await pumpPlayTab(tester, environmentWith(repository, refresh: refresh));
+      expect(find.text('37'), findsNothing);
+      await repository.replaceLevelCache('test-player', {
+        ExerciseType.addition: LevelCacheEntry(
+          level: Level.whole(37),
+          sessionsPlayed: 4,
+          updatedAt: DateTime.utc(2026, 11, 27),
+        ),
+      });
+      refresh.changed();
+      await tester.pumpAndSettle();
+      expect(find.text('37'), findsOneWidget);
     });
   });
 

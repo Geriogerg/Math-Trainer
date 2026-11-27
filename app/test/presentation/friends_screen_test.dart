@@ -50,14 +50,21 @@ class FakeFriendsRepository implements FriendsRepository {
   @override
   Future<List<FriendRequest>> incoming() async => incomingRequests;
 
+  /// Thrown by respond and remove while set (offline).
+  Exception? failure;
+
   @override
   Future<void> respond(String fromId, {required bool accept}) async {
+    if (failure case final f?) throw f;
     responded.add((fromId, accept));
     incomingRequests = [];
   }
 
   @override
-  Future<void> remove(String friendId) async => removed.add(friendId);
+  Future<void> remove(String friendId) async {
+    if (failure case final f?) throw f;
+    removed.add(friendId);
+  }
 
   @override
   Future<List<Friend>> friends() async => friendsList;
@@ -288,11 +295,44 @@ void main() {
     expect(find.text('Requests'), findsNothing);
   });
 
+  testWidgets('a request that does not go through says so (Phase 6b '
+      'commit 5, review M18)', (tester) async {
+    friends.incomingRequests = [
+      FriendRequest(fromId: 'zoe', name: 'Zoé', at: DateTime.utc(2026)),
+    ];
+    friends.failure = Exception('offline');
+    await pumpFriends(tester, buildLightTheme());
+    await tester.tap(find.text('Accept'));
+    await tester.pumpAndSettle();
+    expect(find.text(friendActionFailedText), findsOneWidget);
+    // Still there, to try again.
+    expect(find.text('Zoé'), findsOneWidget);
+  });
+
+  testWidgets('a removal that does not go through: the page stays, and '
+      'says so', (tester) async {
+    friends.failure = Exception('offline');
+    await pumpFriends(tester, buildLightTheme());
+    await tester.tap(find.byKey(const ValueKey('friend-lea')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Remove friend'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Remove'));
+    await tester.pumpAndSettle();
+    expect(find.text(friendActionFailedText), findsOneWidget);
+    expect(find.text('Remove friend'), findsOneWidget, reason: 'not closed');
+    expect(friends.removed, isEmpty);
+  });
+
   testWidgets('Challenge: pick a mode, play first', (tester) async {
     await pumpFriends(tester, buildLightTheme());
     await tester.tap(find.text('Challenge').first);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Advanced'));
+    await tester.pumpAndSettle();
+    // The rules first (Phase 6b commit 5).
+    expect(find.text('Advanced duel'), findsOneWidget);
+    await tester.tap(find.text('Start'));
     await tester.pump();
     await tester.pump();
     expect(client.finds.single.challenge, 'lea');

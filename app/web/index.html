@@ -73,19 +73,26 @@
       height: 100%; width: 4%; border-radius: 3px; background: var(--accent);
       transition: width 300ms ease-out;
     }
-    #mt-loader .mt-status { font-size: 14px; color: var(--muted); min-height: 1.4em; }
+    #mt-loader .mt-status { font-size: 14px; color: var(--muted); min-height: 1.4em; text-align: center; }
+    #mt-loader .mt-reload {
+      display: none; font: inherit; font-size: 16px; font-weight: 600;
+      min-height: 48px; padding: 0 24px; border: 0; border-radius: 12px;
+      background: var(--accent); color: var(--bg); cursor: pointer;
+    }
+    #mt-loader.mt-stuck .mt-reload { display: block; }
     @media (prefers-reduced-motion: reduce) {
       #mt-loader, #mt-loader .mt-bar { transition: none; }
     }
   </style>
 </head>
 <body>
-  <div id="mt-loader" role="progressbar" aria-label="Loading Math Trainer"
-       aria-valuemin="0" aria-valuemax="100" aria-valuenow="4">
+  <div id="mt-loader">
     <div class="mt-ops" aria-hidden="true">+ − × ÷</div>
     <div class="mt-title">Math Trainer</div>
-    <div class="mt-track"><div class="mt-bar"></div></div>
-    <div class="mt-status">Downloading the game…</div>
+    <div class="mt-track" role="progressbar" aria-label="Loading Math Trainer"
+         aria-valuemin="0" aria-valuemax="100" aria-valuenow="4"><div class="mt-bar"></div></div>
+    <div class="mt-status" role="status">Downloading the game…</div>
+    <button type="button" class="mt-reload">Reload</button>
   </div>
   <script>
     // The theme the player chose in the app (shared_preferences stores it
@@ -100,19 +107,44 @@
     })();
     window.mtLoader = (function () {
       var root = document.getElementById('mt-loader');
+      var track = root.querySelector('.mt-track');
       var bar = root.querySelector('.mt-bar');
       var status = root.querySelector('.mt-status');
+      var reload = root.querySelector('.mt-reload');
       var shown = 0.04;
+      var finished = false;
+      reload.addEventListener('click', function () { location.reload(); });
       function progress(fraction) {
         // Never backwards; a stage may report less than downloads did.
         shown = Math.max(shown, Math.min(fraction, 1));
         bar.style.width = (shown * 100).toFixed(1) + '%';
-        root.setAttribute('aria-valuenow', Math.round(shown * 100));
+        track.setAttribute('aria-valuenow', Math.round(shown * 100));
       }
+      // Reload offered (Phase 6b commit 5, review M18: a failed download or
+      // start left this screen for ever). The load itself goes on.
+      function stuck(text) {
+        if (finished) return;
+        status.textContent = text;
+        root.classList.add('mt-stuck');
+      }
+      // The watchdog: slow 4G loads in about 20 s; twice that, a button.
+      setTimeout(function () {
+        stuck('Still loading. On a slow connection this can take a minute.');
+      }, 40000);
+      // A script that could not be downloaded (the game's code, the engine).
+      window.addEventListener('error', function (e) {
+        var t = e && e.target;
+        if (t && t.tagName === 'SCRIPT') stuck('The game could not be downloaded.');
+      }, true);
       return {
         progress: progress,
-        stage: function (text, fraction) { status.textContent = text; progress(fraction); },
+        stage: function (text, fraction) {
+          if (!root.classList.contains('mt-stuck')) status.textContent = text;
+          progress(fraction);
+        },
+        fail: function () { stuck('The game could not start.'); },
         done: function () {
+          finished = true;
           progress(1);
           root.classList.add('mt-gone');
           setTimeout(function () { root.remove(); }, 250);

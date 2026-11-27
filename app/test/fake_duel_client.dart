@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:math_core/duel/duel_client.dart';
 import 'package:math_core/duel/duel_mode.dart';
 import 'package:math_core/duel/duel_run.dart';
@@ -23,8 +25,15 @@ class FakeDuelClient implements DuelClient {
 
   final _byId = <String, DuelOffer>{};
 
+  /// While set, `/health` waits for it: a server still asleep.
+  Completer<void>? asleep;
+
+  var supportCalls = 0;
+
   @override
   Future<DuelServerSupport> support() async {
+    supportCalls++;
+    if (asleep case final waking?) await waking.future;
     // `/health` fails only offline; a refusal is the endpoint's.
     if (failure case final DuelUnavailable f) throw f;
     return (modes: {...DuelMode.values}, rules: {1});

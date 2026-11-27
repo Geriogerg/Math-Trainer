@@ -22,6 +22,21 @@ void main() {
     },
   );
 
+  testWidgets('any other start failure: said, with Reload (Phase 6b commit '
+      '5, review M18)', (tester) async {
+    var reloads = 0;
+    await tester.pumpWidget(
+      ConfigErrorApp.startFailed(StateError('boom'), onReload: () => reloads++),
+    );
+    expect(find.text('The game could not start'), findsOneWidget);
+    expect(find.text('Detail: Bad state: boom'), findsOneWidget);
+    await tester.tap(find.text('Reload'));
+    expect(reloads, 1);
+    // No page to reload (not the web): no button.
+    await tester.pumpWidget(ConfigErrorApp.startFailed(StateError('boom')));
+    expect(find.text('Reload'), findsNothing);
+  });
+
   testWidgets('ConfigErrorApp names the missing keys and the fix', (
     tester,
   ) async {

@@ -813,6 +813,38 @@ void main() {
     expect(find.textContaining('not sent yet'), findsNothing);
   });
 
+  testWidgets('a saved account is told other devices\' games are not here; '
+      'a guest is not (Phase 6b commit 5, review M14)', (
+    WidgetTester tester,
+  ) async {
+    await setTallSurface(tester);
+    Future<void> pumpAs({required bool guest}) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildLightTheme(),
+          home: Scaffold(
+            body: ProfileScreen(
+              environment: AppEnvironment(
+                repository: InMemorySessionRepository(),
+                playerId: 'test-player',
+                accountRepository: FakeAccountRepository(anonymous: guest),
+                profileRepository: FakeProfileRepository(),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    const line = 'Games played on other devices are not shown here.';
+    await pumpAs(guest: false);
+    expect(find.text(line), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+    await pumpAs(guest: true);
+    expect(find.text(line), findsNothing);
+  });
+
   testWidgets('Sign out calls signOut', (WidgetTester tester) async {
     await setTallSurface(tester);
     final accountRepository = _RecordingAccountRepository();

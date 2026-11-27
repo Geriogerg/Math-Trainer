@@ -48,7 +48,7 @@ line; weak spots at most ⌊n/5⌋ per operation; strings in one place, English 
 right after. m12 (large files) and m13 (app contracts in the core) are fixed when the files are
 next touched — the phase report says what moved.
 
-Done: 0–4 (27 Nov; `doc/progress.md`, "Phase 6b"). Next: commit 5.
+Done: 0–5 (27 Nov; `doc/progress.md`, "Phase 6b"). Next: commit 6.
 
 **Phase 7's rules** (plan v3.7–v3.8; detail in `doc/decisions.md`, "Phase 7"):
 - **No live matches**: every duel is asynchronous — a player races another's recorded run,
@@ -340,6 +340,16 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   differ. `gameLevelUpdates` needs the planned `typeSequence` (a quit counts the missing
   questions).
 - Integer levels round small steps to zero — never round before storing hundredths.
+- **`AppEnvironment.forPlayer` must pass every field on**: AuthGate gives the screens the
+  player's environment, not the device's. Commit 2's kept-game store and commit 4's hints were
+  left out of it and silently off in the signed-in app until commit 5
+  (`player_environment_test.dart`). A new field goes in `forPlayer` and that test.
+- **Every Supabase call has a 15 s limit** (`TimeLimitedClient`, given to `Supabase.initialize`
+  in `composition_root.dart`): it fails as an offline call does. The Dart server's clients keep
+  their own limits (duels 90 s: the free server wakes in about a minute).
+- **A duel is asked for only once the server is awake** (`DuelFlowScreen`: `/health`, then
+  `find`/`open`). Cancel exists only during the wake: after `find` the server may have made the
+  duel, and one left 24 hours is a loss.
 - **One-time hints are per device** (`HintsStore`, `Hint` names stored — never rename one):
   the first-run card, Get the count's and Chain's rules. A rated duel's rules
   (`confirmDuel`) show every time, on purpose. The result's reason line comes from

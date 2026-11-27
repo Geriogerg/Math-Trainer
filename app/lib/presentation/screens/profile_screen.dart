@@ -26,6 +26,7 @@ import 'package:math_core/challenges/tables.dart';
 import 'package:math_core/leveling/main_level.dart';
 import '../../core/state/account_form_controller.dart';
 import '../../core/state/feedback_controller.dart';
+import '../../core/state/levels_refresh.dart';
 import '../../core/state/session_controller.dart';
 import '../exercise_prompt.dart';
 import '../theme/app_theme.dart';
@@ -146,10 +147,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
   /// none.
   late Future<List<WeakFact>> _worstFacts;
 
+  /// Told when the server's levels replaced the local ones at sign-in
+  /// (Phase 6b commit 5).
+  LevelsRefresh? _levelsRefresh;
+
   @override
   void initState() {
     super.initState();
     _load();
+    _levelsRefresh = widget.environment.levelsRefresh?..addListener(_reload);
+  }
+
+  void _reload() {
+    if (mounted) setState(_load);
+  }
+
+  @override
+  void dispose() {
+    _levelsRefresh?.removeListener(_reload);
+    super.dispose();
   }
 
   @override
@@ -536,6 +552,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             const SizedBox(height: 24),
             Text('Recent sessions', style: theme.textTheme.bodyMedium),
+            // Levels follow the account; the history stays on each device
+            // (Phase 6b commit 5, review M14: say so).
+            if (!data.account.isAnonymous)
+              const Caption(
+                'Games played on other devices are not shown here.',
+              ),
             if (data.pendingUploads > 0)
               Caption(
                 data.pendingUploads == 1

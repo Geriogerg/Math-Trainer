@@ -75,7 +75,7 @@ class DuelRunQueue {
   final DuelClient client;
   final String playerId;
 
-  Future<void>? _flushing;
+  Future<List<PendingDuelRun>>? _flushing;
 
   /// Saves [run] of [offer] as it stands (after each answer or round), and
   /// tells the server — never awaited, never failing: what the server has
@@ -111,19 +111,28 @@ class DuelRunQueue {
   }
 
   /// Sends every pending run, oldest first; stops at the first that cannot
-  /// be sent now. A flush during a flush waits for it.
-  Future<void> flush() => _flushing ??= _flushAll().whenComplete(() {
-    _flushing = null;
-  });
+  /// be sent now. A flush during a flush waits for it (and gets its
+  /// answer).
+  ///
+  /// Answers the runs left **unfinished** (a closed tab) that the server
+  /// has now decided — accepted or refused — so the app can say so (Phase
+  /// 6b commit 5, review M15: they were sent silently).
+  Future<List<PendingDuelRun>> flush() =>
+      _flushing ??= _flushAll().whenComplete(() {
+        _flushing = null;
+      });
 
-  Future<void> _flushAll() async {
+  Future<List<PendingDuelRun>> _flushAll() async {
+    final unfinished = <PendingDuelRun>[];
     for (final pending in await _load()) {
       try {
-        if (await _send(pending) == null) return;
+        if (await _send(pending) == null) break;
       } on DuelRefused {
         // Removed by _send; the next one.
       }
+      if (!pending.complete) unfinished.add(pending);
     }
+    return unfinished;
   }
 
   Future<DuelVerdict?> _send(PendingDuelRun pending) async {

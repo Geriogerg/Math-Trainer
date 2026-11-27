@@ -5,6 +5,14 @@ import 'package:math_core/duel/duel_run.dart';
 
 import '../number_format.dart';
 
+/// Duels left unfinished on this device, sent when the app came back
+/// (Phase 6b commit 5): said once.
+String unfinishedDuelsSentText(List<DuelMode> modes) => modes.length == 1
+    ? 'Your unfinished ${duelModeLabel(modes.single)} duel was sent: what '
+          'you had not played counts as missed.'
+    : '${modes.length} unfinished duels were sent: what you had not played '
+          'counts as missed.';
+
 /// The modes as the Online tab names them (`doc/mockups/online.html`).
 String duelModeLabel(DuelMode mode) => switch (mode) {
   DuelMode.basics => 'Basics',

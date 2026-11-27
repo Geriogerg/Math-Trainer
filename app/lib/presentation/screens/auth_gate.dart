@@ -109,13 +109,16 @@ class _AuthGateState extends State<AuthGate> {
     }
     setState(() => _playerEnvironment = playerEnvironment);
     // Whatever was played offline (or before a server existed) goes now;
-    // then the server's levels are read ahead of the first game (Phase 5.1
-    // commit 1) — skipped if sessions still wait (offline, server asleep).
+    // then the server's levels replace the local ones if they differ (Phase
+    // 6b commit 5: a new device shows them at once), and are read ahead of
+    // the first game (Phase 5.1 commit 1) — both skipped if sessions still
+    // wait (offline, server asleep).
     final ahead = playerEnvironment.serverLevelsAhead;
     switch (playerEnvironment.uploadQueue) {
       case final queue?:
         queue
             .flush()
+            .then((_) => adoptServerLevelsAtSignIn(playerEnvironment))
             .then((_) => ahead?.start())
             .catchError((Object _) {})
             .ignore();

@@ -1602,11 +1602,11 @@ owner decision, nothing to build).
 | M11 | Method explanations true but wrong as teaching | 6b (3) | **fixed** (every example of the review reads correctly; 137 pinned Methods; a size limit and a family-strategy test on every v9 question) |
 | M12 | Server ↔ Supabase boundary untested; no duel end to end | 6a (7) | **part**: the integration job plays it; the staging smoke test plays no duel yet |
 | M13 | A push can cancel a production deployment | 6a (7) | **fixed** |
-| M14 | Empty account on a new device | 6b (5) | open |
-| M15 | Rated duel on one tap, no cancel while waiting | 6b (4, 5) | **part**: the rules and Start / Cancel before every rated duel (4); Cancel while waiting is 5 |
+| M14 | Empty account on a new device | 6b (5) | **fixed** (the server's levels at sign-in, Home and Profile told; a sign-in hint for a level-0 guest; history and weak spots stay per device — Profile says so, downloading them is not in the plan) |
+| M15 | Rated duel on one tap, no cancel while waiting | 6b (4, 5) | **fixed** (the rules and Start / Cancel before every rated duel, a friend's challenge included; Cancel and "Waking the server…" while the server wakes; a notice for an unfinished duel sent; the timer keeps running in a hidden tab, on purpose) |
 | M16 | Nothing explained to a newcomer | 6b (4) | **fixed** (one line under each control, the result's change and its reason, a first-run card, rules of every mode) |
 | M17 | Accessibility | 6b (6) | open |
-| M18 | Missing states around the network | 6b (5) | open |
+| M18 | Missing states around the network | 6b (5) | **fixed** (15 s on every Supabase call, the deletion spinner included; the loader's watchdog and Reload; a catch-all at start; failed friend actions said) |
 | M19 | Stale reference docs | 6b (8); the `CLAUDE.md` "v6 is current" sentence fixed in 6a (0) | part |
 | m1 | An answer at the buzzer can get an honest game refused | 6a (6) | **fixed** |
 | m2 | One poisoned session blocks a player's uploads for ever | 6a (6) | **fixed** |
@@ -1998,3 +1998,27 @@ changes what a v9 game draws).
   then confirm), pending uploads (2, 1, none without a server), `levelChangeText`,
   `qualityReason`, the hints store (3); 12 goldens re-rendered (Home, setup, Online, result,
   Method) and read. Run locally: core VM 1309, JavaScript 1034, app 471, analyze clean.
+- **Commit 5** *(C)* — **Network and devices (M14, M15, M18).** **Levels after sign-in**: once
+  the sign-in's uploads are settled, the server's levels replace the local ones when they differ
+  (`adoptServerLevelsAtSignIn`, the before-a-game rule with a 15 s limit) and Home and Profile
+  read them again (`LevelsRefresh`); a guest with no level is offered to sign in on Home; Profile
+  tells a saved account that other devices' games are not shown. **Every Supabase call gives up
+  after 15 s** (`TimeLimitedClient`, given to `Supabase.initialize`: auth and database), as an
+  offline error — the account-deletion spinner ends. **Duels**: the server is woken first
+  (`/health`, Cancel, "Waking the server…" after 3 s), the duel asked for only then (no Cancel:
+  a duel the server made would become a loss); a friend's challenge shows the rules (commit 4
+  left it out); an unfinished duel sent at the next start is told once
+  (`DuelRunQueue.flush` answers them). **Start**: the loader offers Reload after 40 s, at once
+  when a script fails or the engine does not start; `main` catches any other failure ("The game
+  could not start", Reload). **Friends**: a failed accept, decline or removal says so.
+  **A bug of commits 2 and 4, found and fixed**: `AppEnvironment.forPlayer` did not carry the
+  kept-game store nor the hints, so in the signed-in app no game was kept (a closed tab did not
+  count — ✕ and three timeouts did) and no first-run card or mode rules showed (the duel rules
+  did); a test now holds both. Tests: core (flush reports, 1), app 23 (the time limit through a
+  real Supabase client: sign-in, deletion, a read; levels at sign-in 4 and on Home; the guest
+  hint 2; other devices; the wake, Cancel, nothing asked, offline; the friend challenge's rules;
+  failed friend actions 2; the unfinished duel notice 2; the start failure; `forPlayer`). Run
+  locally: core VM 1310, JavaScript 1035, app 494, analyze clean; a release web build, its loader
+  checked in headless Edge: the game's code missing → "The game could not be downloaded" and
+  Reload; the engine failing to start (`.js` served as text) → "The game could not start" and
+  Reload; a working build → the loader gone at the first frame.

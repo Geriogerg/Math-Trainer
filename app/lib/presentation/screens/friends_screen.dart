@@ -7,6 +7,7 @@ import 'package:math_core/friends/friends.dart';
 import '../../composition_root.dart';
 import '../../core/state/friends_controller.dart';
 import '../duel/duel_flow_screen.dart';
+import '../duel/duel_rules.dart';
 import '../duel/duel_texts.dart';
 import '../kit/kit.dart';
 import '../theme/app_theme.dart';
@@ -22,6 +23,9 @@ String friendRequestText(FriendRequestOutcome outcome) => switch (outcome) {
   FriendRequestOutcome.tooMany => 'Too many requests today.',
   FriendRequestOutcome.other => 'Could not send the request.',
 };
+
+/// An accept, a decline or a removal that did not go through.
+const friendActionFailedText = 'Could not reach the server — try again.';
 
 /// The Friends page (`doc/mockups/online.html`, screen 4): the player's
 /// code, Share link and Add code, the requests waiting, the friends with
@@ -49,6 +53,14 @@ class _FriendsScreenState extends State<FriendsScreen> {
 
   void _say(String text) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+
+  /// Accept or Decline, and a line when it did not go through (Phase 6b
+  /// commit 5, review M18).
+  Future<void> _respond(FriendRequest request, {required bool accept}) async {
+    if (!await _controller.respond(request, accept: accept) && mounted) {
+      _say(friendActionFailedText);
+    }
+  }
 
   /// The phone's share sheet where the browser has one (plan v3.8), the
   /// clipboard otherwise.
@@ -111,6 +123,9 @@ class _FriendsScreenState extends State<FriendsScreen> {
     if (client == null) return;
     final mode = await pickDuelMode(context);
     if (mode == null || !mounted) return;
+    // The rules first, as from Online (Phase 6b commit 5: commit 4 left
+    // this path out).
+    if (!await confirmDuel(context, mode) || !mounted) return;
     await playDuel(
       context,
       widget.environment,
@@ -188,15 +203,13 @@ class _FriendsScreenState extends State<FriendsScreen> {
                       actions: [
                         AppButton.secondary(
                           label: 'Decline',
-                          onPressed: () =>
-                              _controller.respond(request, accept: false),
+                          onPressed: () => _respond(request, accept: false),
                         ),
                         const SizedBox(width: 6),
                         AppButton.primary(
                           label: 'Accept',
                           compact: true,
-                          onPressed: () =>
-                              _controller.respond(request, accept: true),
+                          onPressed: () => _respond(request, accept: true),
                         ),
                       ],
                     ),
@@ -396,7 +409,10 @@ class FriendHistoryScreen extends StatefulWidget {
 
   final Friend friend;
   final FriendsRepository repository;
-  final Future<void> Function() onRemove;
+
+  /// `false` when the removal did not go through: the page stays, and says
+  /// so.
+  final Future<bool> Function() onRemove;
 
   @override
   State<FriendHistoryScreen> createState() => _FriendHistoryScreenState();
@@ -427,8 +443,15 @@ class _FriendHistoryScreenState extends State<FriendHistoryScreen> {
       ),
     );
     if (sure != true || !mounted) return;
-    await widget.onRemove();
-    if (mounted) Navigator.of(context).pop();
+    final removed = await widget.onRemove();
+    if (!mounted) return;
+    if (removed) {
+      Navigator.of(context).pop();
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text(friendActionFailedText)));
+    }
   }
 
   @override

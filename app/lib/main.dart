@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 
 import 'app.dart';
 import 'composition_root.dart';
+import 'infrastructure/web/page_reload.dart';
 import 'presentation/screens/config_error_screen.dart';
 import 'presentation/screens/specimen_screen.dart';
 
@@ -24,6 +25,11 @@ Future<void> main() async {
     return;
   } on WebStorageUnavailableException catch (e) {
     runApp(ConfigErrorApp.webStorageUnavailable(e.cause));
+    return;
+  } catch (e) {
+    // Anything else (Phase 6b commit 5, review M18): the page used to stay
+    // on "Almost there…" for ever. Now a screen says so, with Reload.
+    runApp(ConfigErrorApp.startFailed(e, onReload: reloadPage));
     return;
   }
   runApp(MathTrainerApp(environment: environment));

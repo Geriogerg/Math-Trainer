@@ -2404,3 +2404,40 @@ rules; these are the readings.
   the first open (practice: nothing at stake).
 - **Sign out is confirmed** (a dialog naming what happens); **games not sent yet** are
   counted under "Recent sessions" when there is a server to send them to.
+
+**Commit 5 — network and devices (M14, M15, M18).**
+
+- **The server's levels right after sign-in**, by the rule used before every game
+  (`syncLevelsBeforeGame`: only when no game waits to be sent), once the sign-in's uploads are
+  settled, with a 15 s limit instead of a game's 2 s; Home and Profile read the levels again
+  (`LevelsRefresh`). History, the curve and weak spots are still not downloaded (the review's
+  "never downloaded"): Profile says "Games played on other devices are not shown here" to a
+  saved account. Downloading history is a feature of its own (stored answers per device, a
+  read API, a merge), not in the plan.
+- **The sign-in hint** shows to a guest with no level anywhere: "Played before, on this or
+  another device? Sign in to get your levels back." It is one line, under the main level.
+- **15 s on every Supabase call**, auth and database alike, through one HTTP client given to
+  `Supabase.initialize` (`TimeLimitedClient`); past it the call fails as offline does, so every
+  screen shows the error state it already had. That bounds the account-deletion spinner the
+  review found undismissable (it now ends on "Nothing was deleted" and the network reason).
+  The two server clients keep their own limits (uploads; duels 90 s, the server's wake).
+- **Cancel only while nothing has been asked**: finding an opponent first wakes the server
+  (`/health`, the long part), with Cancel and, after 3 s, "Waking the server… It can take up
+  to a minute"; the duel itself is asked for only then, without Cancel. A Cancel after the
+  request would leave a duel the server already made, recorded as a loss 24 hours later (pool
+  and practice duels are made at `find`). A server-side cancel would let a player see the
+  opponent's run and walk away from a strong one; not offered.
+- **The duel timer keeps running when the tab is hidden** (review M15, last clause): kept on
+  purpose. A duel races a recorded run; pausing would let a player leave the tab to work an
+  answer out. The rules sheet says leaving counts as a loss.
+- **The unfinished duel notice** is a one-time line when the Online data loads (at start and
+  on the tab): "Your unfinished Basics duel was sent: what you had not played counts as
+  missed." `DuelRunQueue.flush` answers the unfinished runs the server decided.
+- **The loader**: after 40 s without the first frame (slow 4G loads in about 20 s) it shows
+  "Still loading…" and a Reload button, without stopping the load; at once "The game could not
+  be downloaded" when a script fails, "The game could not start" when the engine fails. `main`
+  catches everything else and shows "The game could not start", the detail and Reload.
+- **Friend actions** that fail say "Could not reach the server — try again."; a removal that
+  fails leaves the friend's page open.
+- **A friend challenge shows the duel's rules too** (commit 4 left it out: it went from the
+  mode picker straight to the duel).

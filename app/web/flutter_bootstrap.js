@@ -49,13 +49,29 @@
     loader && loader.done();
   }, { once: true });
 
-  _flutter.loader.load({
-    config: { fontFallbackBaseUrl: 'fonts/' },
-    onEntrypointLoaded: async function (engineInitializer) {
-      loader && loader.stage('Starting…', 0.88);
-      var appRunner = await engineInitializer.initializeEngine();
-      loader && loader.stage('Almost there…', 0.95);
-      await appRunner.runApp();
-    },
-  });
+  // A failure to start says so, with Reload (Phase 6b commit 5); errors
+  // inside the app itself are main()'s catch-all.
+  function failed(e) {
+    loader && loader.fail();
+    throw e;
+  }
+  try {
+    var loading = _flutter.loader.load({
+      config: { fontFallbackBaseUrl: 'fonts/' },
+      onEntrypointLoaded: async function (engineInitializer) {
+        try {
+          loader && loader.stage('Starting…', 0.88);
+          var appRunner = await engineInitializer.initializeEngine();
+          loader && loader.stage('Almost there…', 0.95);
+          await appRunner.runApp();
+        } catch (e) {
+          failed(e);
+        }
+      },
+    });
+    // load() answers a promise in current Flutter versions.
+    if (loading && loading.catch) loading.catch(failed);
+  } catch (e) {
+    failed(e);
+  }
 })();

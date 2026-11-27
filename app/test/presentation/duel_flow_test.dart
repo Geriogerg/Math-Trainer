@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:math_core/duel/duel_client.dart';
@@ -198,6 +200,97 @@ void main() {
     expect(find.text('Lost'), findsOneWidget, reason: '1 right against 5');
     final sent = client.submitted.single.$2 as QuizRun;
     expect(sent.answers.length, 8);
+  });
+
+  group('before the duel (Phase 6b commit 5, review M15)', () {
+    testWidgets('a sleeping server: "Waking the server…" and Cancel, '
+        'nothing asked', (tester) async {
+      client = FakeDuelClient(offers: [basicsOffer()])
+        ..asleep = Completer<void>();
+      final environment = AppEnvironment(
+        repository: InMemorySessionRepository(),
+        playerId: 'device',
+        accountRepository: FakeAccountRepository(),
+        profileRepository: FakeProfileRepository(),
+        duelClient: client,
+        duelRunStore: MemoryDuelRunStore(),
+      ).forPlayer('me');
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildLightTheme(),
+          home: Builder(
+            builder: (context) => Center(
+              child: TextButton(
+                onPressed: () => playDuel(
+                  context,
+                  environment,
+                  () => client.find(DuelMode.basics),
+                ),
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      // The spinner never settles: the route's transition, then on.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.text('Finding an opponent…'), findsOneWidget);
+      expect(find.text('Cancel'), findsOneWidget);
+      await tester.pump(DuelFlowScreen.slowWakeAfter);
+      expect(find.text('Waking the server…'), findsOneWidget);
+      expect(find.text('It can take up to a minute.'), findsOneWidget);
+      await tester.tap(find.text('Cancel'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.text('open'), findsOneWidget, reason: 'closed');
+      expect(find.text('Waking the server…'), findsNothing);
+      // The server wakes after the player left: still nothing asked.
+      client.asleep!.complete();
+      await tester.pumpAndSettle();
+      expect(client.finds, isEmpty);
+    });
+
+    testWidgets('once awake, the duel is asked for: no Cancel then', (
+      tester,
+    ) async {
+      await pumpDuel(tester, buildLightTheme());
+      await tester.pump();
+      await tester.pump();
+      expect(client.supportCalls, 1);
+      expect(client.finds.single.mode, DuelMode.basics);
+      expect(find.text('Cancel'), findsNothing);
+      expect(find.text('1 / 8'), findsOneWidget);
+    });
+
+    testWidgets('a server that cannot be reached: said, nothing asked', (
+      tester,
+    ) async {
+      final offline = FakeDuelClient()
+        ..failure = const DuelUnavailable('offline');
+      final environment = AppEnvironment(
+        repository: InMemorySessionRepository(),
+        playerId: 'device',
+        accountRepository: FakeAccountRepository(),
+        profileRepository: FakeProfileRepository(),
+        duelClient: offline,
+        duelRunStore: MemoryDuelRunStore(),
+      ).forPlayer('me');
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildLightTheme(),
+          home: DuelFlowScreen(
+            environment: environment,
+            load: () => offline.find(DuelMode.basics),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+      expect(find.text('Could not reach the server.'), findsOneWidget);
+      expect(offline.finds, isEmpty);
+    });
   });
 
   testWidgets('a guest is told to save their progress', (tester) async {

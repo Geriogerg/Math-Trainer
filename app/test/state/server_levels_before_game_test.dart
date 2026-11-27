@@ -2,7 +2,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:math_core/leveling/level.dart';
 import 'package:math_core/models/exercise_type.dart';
 import 'package:math_core/persistence/in_memory_session_repository.dart';
+import 'package:math_core/leveling/rules_version.dart';
 import 'package:math_core/persistence/level_cache_entry.dart';
+import 'package:math_core/persistence/persisted_session.dart';
 import 'package:math_core/sync/server_levels.dart';
 import 'package:math_core/sync/session_upload.dart';
 import 'package:math_core/sync/session_upload_client.dart';
@@ -15,9 +17,13 @@ class _Server implements ServerLevelsSource {
   Map<ExerciseType, LevelCacheEntry> levels = const {};
   int calls = 0;
 
+  /// Unreachable while set.
+  bool down = false;
+
   @override
   Future<Map<ExerciseType, LevelCacheEntry>> fetch() async {
     calls++;
+    if (down) throw Exception('offline');
     return levels;
   }
 }
@@ -91,6 +97,64 @@ void main() {
       Level.fromHundredths(1850),
     );
     expect(server.calls, 1);
+  });
+
+  group('right after sign-in (Phase 6b commit 5, review M14)', () {
+    Future<Level?> localAddition() async =>
+        (await repository.currentLevels('me'))[ExerciseType.addition]?.level;
+
+    test('the server levels replace the local ones; Home is told', () async {
+      final env = environment();
+      var told = 0;
+      env.levelsRefresh!.addListener(() => told++);
+      expect(await adoptServerLevelsAtSignIn(env), LevelSyncOutcome.adopted);
+      expect(await localAddition(), Level.fromHundredths(1850));
+      expect(told, 1);
+      // Nothing new: nobody told again.
+      expect(await adoptServerLevelsAtSignIn(env), LevelSyncOutcome.unchanged);
+      expect(told, 1);
+    });
+
+    test('a game waiting to be sent: the local levels stay', () async {
+      await repository.recordSession(
+        session: PersistedSession(
+          id: 'waiting',
+          playerId: 'me',
+          seed: 1,
+          enabledTypes: const {ExerciseType.addition},
+          exerciseCount: 4,
+          totalScore: 40,
+          levels: {ExerciseType.addition: Level.fromHundredths(1200)},
+          createdAt: DateTime.utc(2026, 11, 22),
+          rulesVersion: RulesVersion.current,
+        ),
+        answers: const [],
+        levelUpdates: const {},
+      );
+      expect(
+        await adoptServerLevelsAtSignIn(environment()),
+        LevelSyncOutcome.pendingUploads,
+      );
+      expect(await localAddition(), Level.fromHundredths(1200));
+      expect(server.calls, 0);
+    });
+
+    test('a server that cannot be reached: the local levels stay', () async {
+      server.down = true;
+      expect(
+        await adoptServerLevelsAtSignIn(environment()),
+        LevelSyncOutcome.unavailable,
+      );
+      expect(await localAddition(), Level.fromHundredths(1200));
+    });
+
+    test('no server: nothing asked', () async {
+      expect(
+        await adoptServerLevelsAtSignIn(environment(withServer: false)),
+        LevelSyncOutcome.unavailable,
+      );
+      expect(server.calls, 0);
+    });
   });
 
   test('a build without a server never asks, never resets', () async {

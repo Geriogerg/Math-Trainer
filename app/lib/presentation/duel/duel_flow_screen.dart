@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 
 import 'package:math_core/duel/duel_client.dart';
@@ -40,6 +42,10 @@ class DuelFlowScreen extends StatefulWidget {
   /// Tests pass their own (answer times, lanes).
   final DateTime Function() clock;
 
+  /// How long waking the server may take before the screen explains the
+  /// wait (Phase 6b commit 5).
+  static const slowWakeAfter = Duration(seconds: 3);
+
   @override
   State<DuelFlowScreen> createState() => _DuelFlowScreenState();
 }
@@ -50,6 +56,16 @@ class _DuelFlowScreenState extends State<DuelFlowScreen> {
   /// Why no duel could start; `null` while loading or playing.
   String? _problem;
 
+  /// Before a duel (Phase 6b commit 5, review M15): first the server is
+  /// woken — nothing asked yet, so Cancel is safe — then asked for the
+  /// duel, a short request with no Cancel: the server may already have
+  /// made the duel, and one left for 24 hours is a loss.
+  bool _waking = false;
+
+  /// The wake has taken more than a moment: the screen says why.
+  bool _slowWake = false;
+  Timer? _slowWakeTimer;
+
   @override
   void initState() {
     super.initState();
@@ -58,12 +74,24 @@ class _DuelFlowScreenState extends State<DuelFlowScreen> {
 
   Future<void> _start(Future<DuelOffer> Function() load) async {
     final previous = _controller;
+    _slowWakeTimer?.cancel();
+    _slowWakeTimer = Timer(DuelFlowScreen.slowWakeAfter, () {
+      if (mounted) setState(() => _slowWake = true);
+    });
     setState(() {
       _controller = null;
       _problem = null;
+      _waking = true;
+      _slowWake = false;
     });
     previous?.dispose();
     try {
+      // A free host sleeps and takes up to a minute to wake: `/health`
+      // first. Left meanwhile (Cancel): nothing was asked.
+      await widget.environment.duelClient?.support();
+      _slowWakeTimer?.cancel();
+      if (!mounted) return;
+      setState(() => _waking = false);
       final offer = await load();
       if (!mounted) return;
       setState(
@@ -87,6 +115,7 @@ class _DuelFlowScreenState extends State<DuelFlowScreen> {
   }
 
   void _fail(String problem) {
+    _slowWakeTimer?.cancel();
     if (mounted) setState(() => _problem = problem);
   }
 
@@ -120,6 +149,7 @@ class _DuelFlowScreenState extends State<DuelFlowScreen> {
 
   @override
   void dispose() {
+    _slowWakeTimer?.cancel();
     _controller?.dispose();
     super.dispose();
   }
@@ -140,7 +170,10 @@ class _DuelFlowScreenState extends State<DuelFlowScreen> {
                   onAction: () => Navigator.of(context).pop(),
                 )
               : controller == null
-              ? const _Finding()
+              ? _Finding(
+                  waking: _waking && _slowWake,
+                  onCancel: _waking ? () => Navigator.of(context).pop() : null,
+                )
               : ListenableBuilder(
                   listenable: controller,
                   builder: (context, _) => _body(context, controller),
@@ -189,20 +222,34 @@ class _DuelFlowScreenState extends State<DuelFlowScreen> {
 }
 
 class _Finding extends StatelessWidget {
-  const _Finding();
+  const _Finding({this.waking = false, this.onCancel});
+
+  /// The server is still waking: said, with how long it can take.
+  final bool waking;
+
+  /// Cancel while nothing has been asked yet; `null`: hidden.
+  final VoidCallback? onCancel;
 
   @override
-  Widget build(BuildContext context) => Center(
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const CircularProgressIndicator(),
-        const SizedBox(height: 16),
-        Text(
-          'Finding an opponent…',
-          style: Theme.of(context).textTheme.bodyLarge,
-        ),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const CircularProgressIndicator(),
+          const SizedBox(height: 16),
+          Text(
+            waking ? 'Waking the server…' : 'Finding an opponent…',
+            style: theme.textTheme.bodyLarge,
+          ),
+          if (waking) const Caption('It can take up to a minute.'),
+          if (onCancel case final cancel?) ...[
+            const SizedBox(height: 16),
+            AppButton.secondary(label: 'Cancel', onPressed: cancel),
+          ],
+        ],
+      ),
+    );
+  }
 }

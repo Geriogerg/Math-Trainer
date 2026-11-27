@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../composition_root.dart';
 import '../../core/state/online_controller.dart';
+import '../duel/duel_texts.dart';
 import 'friends_screen.dart' show friendRequestText;
 import '../kit/kit.dart';
 import '../theme/app_theme.dart';
@@ -72,6 +73,12 @@ class _AppShellState extends State<AppShell>
       ScaffoldMessenger.maybeOf(
         context,
       )?.showSnackBar(SnackBar(content: Text(friendRequestText(outcome))));
+    }
+    final unfinished = online.takeUnfinishedSent();
+    if (unfinished.isNotEmpty) {
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(content: Text(unfinishedDuelsSentText(unfinished))),
+      );
     }
   }
 

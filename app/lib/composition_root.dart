@@ -1,6 +1,7 @@
 import 'dart:async' show unawaited;
 
 import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
+import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:math_core/duel/duel_client.dart';
@@ -61,6 +62,7 @@ import 'infrastructure/backend/supabase_beta_code_repository.dart';
 import 'infrastructure/backend/supabase_feedback_repository.dart';
 import 'infrastructure/backend/supabase_leaderboard_repository.dart';
 import 'infrastructure/backend/supabase_account_repository.dart';
+import 'infrastructure/backend/time_limited_client.dart';
 import 'infrastructure/backend/supabase_profile_repository.dart';
 import 'infrastructure/backend/supabase_server_levels_source.dart';
 import 'core/effects/app_session_effects.dart';
@@ -85,6 +87,7 @@ import 'infrastructure/persistence/shared_preferences_type_selection_store.dart'
 import 'infrastructure/persistence/sqflite_session_repository.dart';
 import 'infrastructure/persistence/shared_preferences_unfinished_game_store.dart';
 import 'core/state/hints.dart';
+import 'core/state/levels_refresh.dart';
 import 'core/state/unfinished_game.dart';
 import 'infrastructure/persistence/shared_preferences_hints_store.dart';
 
@@ -126,6 +129,7 @@ class AppEnvironment {
     this.linkSharer,
     this.unfinishedGameStore,
     this.hints,
+    this.levelsRefresh,
   });
 
   final SessionRepository repository;
@@ -239,6 +243,11 @@ class AppEnvironment {
   /// shown (tests that do not look at them).
   final HintsStore? hints;
 
+  /// Fired when the server's levels replaced the local ones at sign-in
+  /// ([adoptServerLevelsAtSignIn]); Home and Profile read them again. One
+  /// per player (`forPlayer`); `null` in tests that do not look at it.
+  final LevelsRefresh? levelsRefresh;
+
   /// This player's duel runs on their way (`forPlayer`); `null` without
   /// [duelClient].
   final DuelRunQueue? duelQueue;
@@ -287,6 +296,9 @@ class AppEnvironment {
     pendingInviteStore: pendingInviteStore,
     siteUrl: siteUrl,
     linkSharer: linkSharer,
+    unfinishedGameStore: unfinishedGameStore,
+    hints: hints,
+    levelsRefresh: LevelsRefresh(),
     duelQueue: switch (duelClient) {
       final client? => DuelRunQueue(
         store: duelRunStore,
@@ -335,6 +347,35 @@ Future<AppEnvironment> environmentForAccount(
     // See above: no consequence for the game being played.
   }
   return environment.forPlayer(account.id);
+}
+
+/// Right after sign-in (Phase 6b commit 5, review M14): once the sign-in's
+/// uploads are settled, the server's levels replace the local ones when
+/// they differ — a linked player on a new device sees their levels on Home
+/// at once, not after a first game started from 0. The same rule as before
+/// a game (`syncLevelsBeforeGame`: never while uploads are pending), with
+/// the Supabase call's own limit instead of a game's 2 s. Never throws.
+Future<LevelSyncOutcome> adoptServerLevelsAtSignIn(
+  AppEnvironment environment,
+) async {
+  final source = environment.serverLevelsSource;
+  if (source == null || environment.uploadQueue == null) {
+    return LevelSyncOutcome.unavailable;
+  }
+  try {
+    final outcome = await syncLevelsBeforeGame(
+      repository: environment.repository,
+      source: source,
+      playerId: environment.playerId,
+      timeout: supabaseCallLimit,
+    );
+    if (outcome == LevelSyncOutcome.adopted) {
+      environment.levelsRefresh?.changed();
+    }
+    return outcome;
+  } on Exception catch (_) {
+    return LevelSyncOutcome.unavailable;
+  }
 }
 
 /// URL and publishable key read at compile time (`--dart-define`), never
@@ -437,6 +478,9 @@ Future<AppEnvironment> buildAppEnvironment() async {
   await Supabase.initialize(
     url: _supabaseUrl,
     publishableKey: _supabasePublishableKey,
+    // Every Supabase call, auth and database, gives up after 15 s (Phase 6b
+    // commit 5, review M18): a stalled request fails as offline does.
+    httpClient: TimeLimitedClient(http.Client()),
   );
 
   final accountRepository = SupabaseAccountRepository(Supabase.instance.client);
