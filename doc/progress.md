@@ -2242,3 +2242,14 @@ placeholder; the phase report lists each with the exact value or action needed.
   prerequisites with where each value goes, the switch-on commits 7–9, the phone checklist
   (the exit of 6c). Run locally: SQL 29 files, 598 assertions; the staging full visit (twice,
   45 s, guest deleted each time); app and server suites (see the build's exit below).
+
+## Phase 6d — French (plan v4.2)
+
+Run in one pass before the switch-on (Phase 6c's commits 7–9 wait for the owner). The owner's
+rules: "tu", short and direct like the English; 2 468 in both languages (a thin space), the
+decimal separator per language; strings needing more room than the layout gives flagged;
+every screen checked at 360 px in French.
+
+- **Commit 0** *(A)* — **Phase start.** Plan v4.2 committed (the owner's: the 6c build's
+  choices accepted, 6d before the switch-on, the launch prerequisites in section 10);
+  CLAUDE.md's Current phase is 6d.

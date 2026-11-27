@@ -5,6 +5,8 @@
 > from the owner. The day-to-day working rules live in `CLAUDE.md`, which must always stay
 > consistent with this plan (section 11).
 >
+> Version 4.2 — 27 November 2026: Phase 6c build outcome; Phase 6d moved before the switch-on;
+> owner actions for launch listed in section 10.
 > Version 4.1 — 27 November 2026: Phase 6b outcome; Phase 6c split into build (now) and switch-on;
 > Phase 6d French added.
 > Version 4.0 — 27 November 2026: Phase 6a outcome; 6b and 6c adjusted; sections 4 and 8 aligned.
@@ -1339,6 +1341,20 @@ Two parts: **build** now, behind switches, with placeholders where the owner's i
 6. *(A)* Production smoke test rethought for an ungated site; the staging smoke test plays a duel
    with a confirmed account; capacity report and launch checklist in `doc/`.
 
+**6c build outcome (27 November).** Commits 0–6 live; tests core 1,312 / 1,037, app 541, server 112,
+integration 8, SQL 29 files and 598 assertions. Legal pages in English and French with placeholders,
+the age box, Turnstile (test key on staging), email confirmation ready, unconfirmed = guest,
+password recovery, error reporting (500 a day, kept 14 days), capacity report (`doc/capacity.md`:
+database at 2.8 %) and launch checklist (`doc/launch-checklist.md`).
+**Owner decisions (27 November):**
+- **No games to recover**: the regression window saw no upload at all; no resend path — accepted.
+- **Deploy-window duels refused, not voided** — accepted, better: the app declares the rules
+  versions it knows and the server never hands it a duel it cannot read (`appOutdated`, "Reload").
+- **Reminder line on Online's duel list** rather than the find screen — accepted.
+- **Turnstile covers every auth call** Supabase protects (sign-in, resend, recovery) — accepted.
+- **Semantics stay on** for everyone: no measurable cost on a low-end profile.
+- Other choices of `doc/decisions.md` "Phase 6c build" — accepted.
+
 **6c switch-on (after the owner's prerequisites).** Entry: name confirmed and domain bought, legal
 pages filled and reviewed, an email service connected to the domain, a Turnstile key, the Render
 always-on plan.
@@ -1351,11 +1367,14 @@ always-on plan.
 **Exit:** a stranger opens the domain on a phone, plays at once, creates a confirmed account,
 recovers a forgotten password, plays a rated duel, and finds the legal pages in both languages.
 
-### Phase 6d — French (right after launch)
+### Phase 6d — French (built while the owner prepares the switch-on)
 
-French interface from the strings classes, a language setting defaulting to the browser's language;
-the legal pages already exist in both. Tips and Method names translated; Method lines are
-arithmetic and need none.
+French interface from the strings classes, a language setting in Profile defaulting to the
+browser's language; the legal pages already exist in both. Tips, Method names, the rules sheets,
+error messages and emails translated; Method lines are arithmetic and need none (decimal and
+thousands separators follow the language: 2 468 in both, thin space). Launches with the switch-on
+if ready, otherwise right after. **Exit:** a French browser shows a fully French app with no English
+string left (a test fails on any missing translation).
 
 ### Phase 7b — Live duels and tournaments (later)
 
@@ -1434,9 +1453,14 @@ owner. Silence never turns a guess into the product.
   server by hand after any change to the server or the core.
 - Keep 10–20 testers playing; watch Beta progress in the dashboard report.
 - Confirm the digit typeface (Phase 5 picked Space Grotesk provisionally).
-- **Before Phase 6c:** confirm the name and check it (domain, both stores, INPI and EUIPO), buy the
-  domain; fill the legal pages and get them reviewed; open an email service account and connect it
-  to the domain; create a Turnstile key; buy Render's always-on plan.
+- **Launch prerequisites** (exact steps in `doc/launch-checklist.md`, part A):
+  1. Now: Supabase redirect URLs on both projects (Forgot password needs them); the staging duel
+     account and its two GitHub secrets; CAPTCHA with the test secret on staging.
+  2. Name confirmed (and a short form of 12 characters or fewer) after the availability checks;
+     domain bought and added to the Cloudflare Pages project; `SITE_URL` set.
+  3. Legal: the six values, then the professional review.
+  4. Email service with the domain verified, SMTP and templates in Supabase production.
+  5. Turnstile widget for the domain; Render production on an always-on plan.
 - Play the preview URL on a phone at every checkpoint.
 
 ## 11. Keeping CLAUDE.md aligned with this plan

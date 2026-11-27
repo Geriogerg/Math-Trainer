@@ -3,7 +3,7 @@
 Competitive mental-arithmetic game in Flutter, for teens and adults. UI, code, docs and commits
 in English.
 
-**`doc/plan.md` (version 4.1) is the product plan**, and **`doc/levels.md` (v1.6.1) specifies the
+**`doc/plan.md` (version 4.2) is the product plan**, and **`doc/levels.md` (v1.6.1) specifies the
 level system** (v1.6 is rules v9, built in Phase 6b; v1.6.1 fixed an example and wording). Both
 are the owner's: read them at the start of every phase; never edit them.
 This file is the working file: keep it short, update it as the project moves, keep it
@@ -13,46 +13,33 @@ commit 8), `doc/decisions.md` (each entry marked confirmed, superseded or provis
 
 ## Current phase
 
-**Phase 6c build — Public launch, built behind switches** (`doc/plan.md` v4.1, section 7), run
-in **one pass**, seven commits (0–6). Goal: everything the public launch needs, built now;
-whatever needs the owner's inputs — name, domain, email sender, Turnstile key, legal details —
-sits **behind a switch or a visible placeholder**, each listed in the report with the exact
-value or action needed. **The switch-on (commits 7–9) is not part of this pass**: it starts
-only on the owner's word, once the prerequisites are ready.
+**Phase 6d — French** (`doc/plan.md` v4.2, section 7), run in **one pass**, before the switch-on
+(Phase 6c's commits 7–9 wait for the owner's prerequisites and word — never started here).
+Goal: a French browser shows a fully French app, no English string left. The legal pages
+already exist in both languages.
 
-| # | Commit | Findings | Note |
-|---|---|---|---|
-| 0 | *(A)* **Close-out of 6b**: games refused as `futureTimestamp` since 26 Nov re-sent from the devices that hold them, the count reported against the refusals table; the quality reason in counts; the duel rules sheet once per mode, then a reminder line; an unopened deploy-window duel void; `submitted_value` an integer type; first load and frame time with semantics on, on a low-end phone profile | — | |
-| 1 | *(A)* **Name as a single setting** (title, manifest, icons, preview image); "Math Trainer" until the owner confirms the name | — | |
-| 2 | *(A)* **Privacy policy and legal notice** as in-app screens, French and English, linked from the gate, Profile and the save form; duels, friends and the per-answer data described; placeholders visible until filled; "I am 15 or older" at account creation | B1, m8, m19 | |
-| 3 | *(A)* **Turnstile** on anonymous sign-in and sign-up behind a switch (test key); **email confirmation ready** (templates, redirect, "check your inbox"), off until the sender exists; an unconfirmed account is a guest for boards, duels, friends and name reports | B2 | |
-| 4 | *(A)* **"Forgot password?"**: recovery email and set-password screen, with Supabase's built-in sender | B3 | |
-| 5 | *(A)* **Error reporting** to our own server | — | |
-| 6 | *(A)* **Production smoke test** for an ungated site; the staging smoke test plays a duel with a confirmed account; capacity report and launch checklist in `doc/` | M12 (rest) | |
+| # | Commit | Note |
+|---|---|---|
+| 0 | *(A)* **Phase start**: plan v4.2 committed; this block | |
+| 1 | *(A)* **The language mechanism**: every strings area an interface with an English class (one class per language, so a missing translation fails to compile); the chosen language switchable at run time; numbers grouped by a thin space in both languages, the decimal separator per language; the digit face gains what French draws ("de", the thin space) | |
+| 2 | *(A)* **French interface**: every area in French; a language setting in Profile, defaulting to the browser's language; Flutter's own words (Material localizations), the page's `lang`, the loading screen's words | |
+| 3 | *(A)* **French tables**: tips, Method names, operation names, rules sheets, error and refusal messages, spoken prompts, duel words; the Method's "of" and decimals | |
+| 4 | *(A)* **Emails in French**: the three templates' French versions next to the English ones in `supabase/templates/`, and versions that pick by the account's language (kept in its metadata) | |
+| 5 | *(A)* **No English left**: a test failing on any missing or untranslated string; every screen checked at 360 px in French — strings that need more room than the layout gives fixed or flagged | |
+| 6 | *(A)* **Docs** and the exit test | |
 
-**Switch-on, later** (entry: name confirmed and domain bought, legal pages filled and reviewed,
-an email service on the domain, a Turnstile key, Render always-on): 7 production on the
-domain, the old address redirecting, the name set, confirmation from the domain, Turnstile
-on; 8 rules v2–v6 retired (from 27 December); 9 gate removed, launch checklist on a phone.
-**Exit of 6c** (after the switch-on): a stranger opens the domain on a phone, plays at once,
-creates a confirmed account, recovers a forgotten password, plays a rated duel, and finds the
-legal pages in both languages.
+**Exit** (plan v4.2): a French browser shows a fully French app with no English string left (a
+test fails on any missing translation).
 
-**The owner's decisions that bind this phase** (plan v4.1, "Phase 6b outcome"): the result's
-reason in **counts, never a percentage** ("8 right, 6 fast, of 10"); the duel rules sheet
-**before the first rated duel of each mode**, then the reminder line "Rated · leaving counts
-as a loss" with the full rules one tap away; semantics stay on for everyone, **measured** on a
-low-end phone profile — if the cost is real, on only when a screen reader asks; a duel whose
-offer was never opened by an app that knows its rules version is **void, not a loss**; strings
-are Dart classes, **one class per language, so a missing translation fails to compile** (the
-legal pages are built that way; the rest of the interface in 6d). Kept from 6b: v9's
-generation choices, quitting counts from one answer, the Method readings, one quiet line per
-control, 15 s on Supabase calls, Cancel only while the server wakes, edges at 3:1, body 15 px,
-the terms (game, Ranks, seconds, Practice). m11 and m21 go to the Phase 3b data check; m13
-stays debt. Phase 6d (French) follows the launch.
+**The owner's rules for this phase**: French in the informal **"tu"**, short and direct like the
+English; Method lines are arithmetic and need no translation, but decimal and thousands
+separators follow the language — **2 468 in both (a thin space)**, "2.4 s" / "2,4 s"; flag any
+string where French needs more room than the layout gives; check every screen at **360 px**
+in French. Settled in plan v4.2: the 6c build's choices (deploy-window duels refused rather than
+voided, the reminder on Online's duel list, Turnstile on every auth call Supabase protects,
+semantics on for everyone).
 
-Done: 0–6, the build (27 Nov; `doc/progress.md`, "Phase 6c build"); report given. Next:
-the owner's prerequisites (`doc/launch-checklist.md`, A), then the switch-on on the owner's word.
+Done: 0 (27 Nov; `doc/progress.md`, "Phase 6d"). Next: commit 1.
 
 **Phase 7's rules** (plan v3.7–v3.8; detail in `doc/decisions.md`, "Phase 7"):
 - **No live matches**: every duel is asynchronous — a player races another's recorded run,
