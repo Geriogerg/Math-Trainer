@@ -2736,3 +2736,21 @@ report. What needs the owner's inputs is behind a switch or a visible placeholde
   error). The console keeps its messages (the previous handlers still run).
 - **No third-party service** (plan 6.6: no third-party analytics): our server and our
   database.
+
+**Commit 6 — smoke tests, capacity report, launch checklist.**
+
+- **The read-only production smoke makes up the guest's sign-up** rather than stopping at a
+  retry screen: once the gate is gone, Home is a stranger's first screen and only a guest
+  reaches it. The made-up session is unsigned and never sent to Supabase (the sign-up
+  request is answered inside the browser); every other write stays blocked, so Home renders
+  as if offline. The legal pages are reachable that way (Profile), which the exit asks for.
+- **The duel account is the owner's**: staging confirms addresses by email and refuses test
+  domains, so the smoke test cannot confirm an account it creates. A confirmed account
+  made by the owner in the dashboard, signed in by the test and never deleted, is the only
+  way that keeps confirmation on in staging. The duel's guest after sign-out (no game) is
+  left to the 30-day cleanup.
+- **Error reports: 500 a day, 14 days** (from 2,000 and 30, commit 5): the free database's
+  500 MB is the binding limit until the paid plan; a broken release still reports far
+  fewer.
+- **Estimates are labelled as such** in `doc/capacity.md` (5 games, 20 views, 1 duel a day a
+  player): the first week's dashboard replaces them.

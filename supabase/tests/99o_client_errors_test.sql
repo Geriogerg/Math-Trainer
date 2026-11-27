@@ -1,5 +1,6 @@
--- Phase 6c commit 5: the app's error reports — stored by the server's role
--- only, cut, capped per day in all, kept 30 days, never readable by players.
+-- Phase 6c commits 5 and 6: the app's error reports — stored by the
+-- server's role only, cut, capped per day in all (500), kept 14 days, never
+-- readable by players.
 
 delete from public.client_errors;
 
@@ -17,8 +18,15 @@ begin
 end;
 $$;
 
--- Older than 30 days: gone at the next report.
-update public.client_errors set received_at = now() - interval '31 days'
+-- Older than they are kept: gone at the next report.
+do $$
+begin
+  assert public.client_errors_kept() = interval '14 days';
+  assert public.client_errors_per_day() = 500;
+end;
+$$;
+update public.client_errors
+set received_at = now() - public.client_errors_kept() - interval '1 day'
 where message = 'x';
 do $$
 begin

@@ -78,7 +78,7 @@ if [ "$ran" -lt "$min_sql_tests" ]; then
 fi
 # And the assertions in them (Phase 6a, review m16): a file emptied of its
 # checks still counts as a file.
-min_sql_asserts=596
+min_sql_asserts=598
 asserts=$(cat "$root"/supabase/tests/[1-9]*_test.sql | grep -oiw assert | wc -l | tr -d ' ')
 if [ "$asserts" -lt "$min_sql_asserts" ]; then
   fail count "$asserts assert statements in the SQL tests, fewer than the pinned minimum $min_sql_asserts"

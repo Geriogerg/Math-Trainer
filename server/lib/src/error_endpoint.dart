@@ -11,7 +11,7 @@ const maxErrorBytes = 16 * 1024;
 
 /// `POST /v1/errors` (Phase 6c commit 5, plan v4.1): what went wrong in a
 /// player's app — an uncaught error, a start that failed, the loading page
-/// giving up — kept for the owner 30 days (`record_client_error`,
+/// giving up — kept for the owner 14 days (`record_client_error`,
 /// `dashboard.sh errors`).
 ///
 /// No account needed (an error can come before any sign-in) and nothing

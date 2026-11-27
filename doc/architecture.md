@@ -98,7 +98,8 @@ presentation/theme/         themes, metrics, motion, the digit face
 
 `bin/server.dart` starts `lib/server.dart` (`buildServerHandler`): CORS, the rate limits
 (`rate_limit.dart`), and the endpoints — `session_endpoint.dart` (`/v1/sessions`: replay and
-validate an upload, then `apply_validated_session`), `duel_endpoint.dart` (the HTTP surface of
+validate an upload, then `apply_validated_session`), `error_endpoint.dart` (`/v1/errors`: the
+app's error reports, masked, no account — Phase 6c), `duel_endpoint.dart` (the HTTP surface of
 `/v1/duels…`; the work in `duels/`: matchmaking, runs, abandonment sweeps, ratings, JSON) and
 `/health` (commit, rules versions, session kinds, duel modes and rules). `rating/` is Glicko-2.
 It talks to Supabase as `service_role` through `supabase_gateway.dart` (RPC only). `tool/`
@@ -106,11 +107,13 @@ holds `postgrest_shim.dart` (the integration job's stand-in for PostgREST) and t
 
 ## Supabase
 
-43 migrations (`supabase/migrations/`), each idempotent; the tables are closed to the API, which
+46 migrations (`supabase/migrations/`), each idempotent; the tables are closed to the API, which
 reaches data through `security definer` functions (`public`) and the owner's views
-(`owner_dashboard`, read by `tool/dashboard/dashboard.sh`, locally only). 28 SQL test files
+(`owner_dashboard`, read by `tool/dashboard/dashboard.sh`, locally only). 29 SQL test files
 (`supabase/tests/`, run by `tool/sql/test_sql.sh`; `99m_catalogue_test.sql` lists every
-callable function). Boards are cached a minute (`board_rows`).
+callable function). Boards are cached a minute (`board_rows`). A saved account is not
+anonymous **and** has its email confirmed (Phase 6c). `supabase/templates/` holds the emails,
+generated from `Brand`.
 
 ## How a game flows
 

@@ -27,16 +27,27 @@
 //
 // SMOKE_READ_ONLY=1 (production since Phase 5.2, where tests must leave no
 // trace): every request that could write — anything but GET, HEAD and
-// OPTIONS to another origin than the site — is blocked by the browser; the
-// visit stops at the first screen (the beta gate, or Home),
-// after checking it is installable. SMOKE_EXPECT_VERSION=<short sha> also
-// checks the site serves that build.
+// OPTIONS to another origin than the site — is blocked by the browser, but
+// one: the guest's sign-up is answered by the script itself with a made-up
+// session (Phase 6c commit 6: once the gate is gone, a stranger's first
+// screen is Home, and reaching it creates a guest — never on production).
+// The robot check is answered alike (no real token is needed for a sign-up
+// that never leaves the browser). The visit stops at the first screen (the
+// beta gate, or Home) after opening both legal pages in English and French
+// from it (the gate's links, or Profile's) and checking the site is
+// installable. SMOKE_EXPECT_VERSION=<short sha> also checks the site serves
+// that build.
+//
+// The full visit (staging), once its guest is deleted, signs in to a
+// confirmed account kept for the test (SMOKE_DUEL_EMAIL and
+// SMOKE_DUEL_PASSWORD, CI secrets), plays a rated Basics duel and signs out
+// (Phase 6c commit 6; review M12). Without them: a warning, no duel.
 //
 // The app draws on a canvas: the script turns Flutter's accessibility tree
 // on and finds widgets by their text in that DOM. Only Node (>= 22, global
 // WebSocket) and Chrome — nothing to install.
 import { spawn } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -80,17 +91,33 @@ const chrome = spawn(
   ],
   { stdio: ['ignore', 'ignore', 'pipe'] },
 );
-const wsBrowserUrl = await new Promise((resolve, reject) => {
+// Chrome prints its DevTools address; Edge on Windows only writes it to
+// the profile's DevToolsActivePort (Phase 6c commit 6: the smoke run
+// locally): either.
+const port = await new Promise((resolve, reject) => {
   let buffer = '';
   chrome.stderr.on('data', (chunk) => {
     buffer += chunk;
-    const m = buffer.match(/DevTools listening on (ws:\/\/\S+)/);
+    const m = buffer.match(/DevTools listening on ws:\/\/[^:]+:(\d+)/);
     if (m) resolve(m[1]);
   });
+  const poll = setInterval(() => {
+    try {
+      const first = readFileSync(join(profileDir, 'DevToolsActivePort'), 'utf8').split(/\r?\n/)[0].trim();
+      if (first) {
+        clearInterval(poll);
+        resolve(first);
+      }
+    } catch (_) {
+      // Not written yet.
+    }
+  }, 200);
   chrome.on('exit', (code) => reject(new Error(`chrome exited (${code})`)));
-  setTimeout(() => reject(new Error('chrome did not start')), 30000);
+  setTimeout(() => {
+    clearInterval(poll);
+    reject(new Error('chrome did not start'));
+  }, 30000);
 });
-const port = new URL(wsBrowserUrl).port;
 const targets = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json();
 const page = targets.find((t) => t.type === 'page' && /^(https?:|about:)/.test(t.url));
 const ws = new WebSocket(page.webSocketDebuggerUrl);
@@ -169,10 +196,40 @@ ws.addEventListener('message', (ev) => {
 // --- read-only mode (SMOKE_READ_ONLY=1) -------------------------------------
 const readOnly = process.env.SMOKE_READ_ONLY === '1';
 const blockedWrites = [];
+let fakedSignUps = 0;
+const base64url = (value) => Buffer.from(JSON.stringify(value)).toString('base64url');
+/// A guest's session as Supabase would answer a sign-up — made up here,
+/// never sent anywhere: its token is not signed, so any later call with it
+/// is refused by the project (the app takes that as being offline).
+function fakeSession() {
+  const id = '00000000-0000-4000-8000-' + Date.now().toString(16).padStart(12, '0').slice(-12);
+  const expiresAt = Math.floor(Date.now() / 1000) + 3600;
+  const token = [base64url({ alg: 'none' }), base64url({ sub: id, exp: expiresAt, role: 'authenticated', is_anonymous: true }), 'smoke'].join('.');
+  const now = new Date().toISOString();
+  return {
+    access_token: token,
+    token_type: 'bearer',
+    expires_in: 3600,
+    expires_at: expiresAt,
+    refresh_token: 'smoke-' + id,
+    user: { id, aud: 'authenticated', role: 'authenticated', email: '', is_anonymous: true, app_metadata: {}, user_metadata: {}, identities: [], created_at: now, updated_at: now },
+  };
+}
 function guardWrite({ requestId, request }) {
   const url = new URL(request.url);
   const write = !['GET', 'HEAD', 'OPTIONS'].includes(request.method);
-  if (write && url.origin !== new URL(appUrl).origin) {
+  if (write && url.origin !== new URL(appUrl).origin && url.pathname === '/auth/v1/signup') {
+    fakedSignUps++;
+    send('Fetch.fulfillRequest', {
+      requestId,
+      responseCode: 200,
+      responseHeaders: [
+        { name: 'content-type', value: 'application/json' },
+        { name: 'access-control-allow-origin', value: request.headers.Origin || request.headers.origin || new URL(appUrl).origin },
+      ],
+      body: Buffer.from(JSON.stringify(fakeSession())).toString('base64'),
+    }).catch(() => {});
+  } else if (write && url.origin !== new URL(appUrl).origin) {
     // The path only: queries may carry keys.
     blockedWrites.push(`${request.method} ${url.hostname.split('.')[0]}:${url.pathname}`);
     send('Fetch.failRequest', { requestId, errorReason: 'BlockedByClient' }).catch(() => {});
@@ -194,7 +251,16 @@ await send('Page.enable');
 await send('Runtime.enable');
 if (readOnly) {
   await send('Fetch.enable', { patterns: [{ urlPattern: '*', requestStage: 'Request' }] });
-  console.log('read-only: writes to other origins are blocked');
+  // The page's robot check answers at once (Phase 6c commit 3): the sign-up
+  // it would protect is answered by this script.
+  await send('Page.addScriptToEvaluateOnNewDocument', {
+    source: `Object.defineProperty(window, 'mtHumanCheck', {
+      value: () => Promise.resolve('smoke-read-only'),
+      writable: false,
+      configurable: false,
+    });`,
+  });
+  console.log('read-only: writes to other origins are blocked, the guest is made up');
 }
 // Sound (Phase 5): count the tones the page schedules. Every answer plays
 // one (on by default); a game with none means the audio never unlocked or
@@ -226,9 +292,10 @@ if (network) {
 }
 
 // --- helpers ---------------------------------------------------------------
-// True from typing SMOKE_BETA_CODE until Home replaces the gate. The failure
-// screenshot is uploaded as a CI artifact, and GitHub masks secrets in logs,
-// not in images: no screenshot while the code may be on screen.
+// True from typing SMOKE_BETA_CODE until Home replaces the gate (and while
+// the duel account's address is typed). The failure screenshot is uploaded
+// as a CI artifact, and GitHub masks secrets in logs, not in images: no
+// screenshot while the code may be on screen.
 let codeOnScreen = false;
 async function fail(message) {
   if (codeOnScreen) {
@@ -361,10 +428,36 @@ const guestId = () =>
 
 /// The read-only visit ends at the first screen: it rendered, the site is
 /// installable, the build is the expected one, nothing was written.
+/// Both legal pages from the links on screen, each in English then French
+/// (Phase 6c commit 2; the exit of 6c: "finds the legal pages in both
+/// languages"), back to where it started.
+async function checkLegalPages(where) {
+  for (const [link, english, french] of [
+    ['Privacy policy', 'Who is responsible', 'Responsable du traitement'],
+    ['Legal notice', 'Publisher', 'Éditeur'],
+  ]) {
+    await tapText(link, 30000, { exact: true, scroll: true });
+    // It opens in the browser's language: each one by its switch.
+    await tapText('English', 30000, { exact: true });
+    await waitForText(english, 10000, { exact: true });
+    await tapText('Français', 10000, { exact: true });
+    await waitForText(french, 10000, { exact: true });
+    await tapText('Back', 10000, { exact: true });
+    await sleep(600);
+  }
+  console.log(`  legal pages, English and French, from ${where}: shown`);
+}
+
 async function readOnlyEnd(gate) {
   const shown = gate || (await findText('Play Basics'));
   if (!shown) await fail('no first screen (beta gate or Home) within 60 s');
   console.log(`  first screen: ${gate ? 'beta gate' : 'Home'} (${((Date.now() - started) / 1000).toFixed(1)} s from navigation)`);
+  if (gate) {
+    await checkLegalPages('the gate');
+  } else {
+    await tapText('Profile', 30000, { exact: true });
+    await checkLegalPages('Profile');
+  }
   const { installabilityErrors = [] } = await send('Page.getInstallabilityErrors');
   if (installabilityErrors.length) {
     await fail(`not installable: ${installabilityErrors.map((e) => e.errorId).join(', ')}`);
@@ -381,7 +474,7 @@ async function readOnlyEnd(gate) {
     console.log(`  build ${want}: served`);
   }
   if (consoleErrors.length) await fail('page exceptions');
-  console.log(`  writes blocked: ${blockedWrites.length ? blockedWrites.join(', ') : 'none attempted'}`);
+  console.log(`  writes blocked: ${blockedWrites.length ? blockedWrites.join(', ') : 'none attempted'}; sign-ups made up: ${fakedSignUps}`);
   console.log(`SMOKE PASSED (read-only) in ${Math.round((Date.now() - started) / 1000)} s`);
   await shutdown(0);
 }
@@ -575,6 +668,56 @@ await tapText('Delete', 30000, { exact: true });
   if (outcome !== 'deleted') {
     await fail(`account deletion: ${outcome ?? 'no outcome shown'} — guest ${id} left behind`);
   }
+}
+
+// A confirmed account plays a rated duel (Phase 6c commit 6; review M12:
+// the staging smoke test played no duel). The staging project confirms
+// addresses by email, so the test cannot make one: it signs in to a
+// confirmed account kept for it (SMOKE_DUEL_EMAIL, SMOKE_DUEL_PASSWORD),
+// races a run or a practice opponent, and signs out — never deletes it.
+// The guest the app makes after the sign-out has no game; the stale-guest
+// cleanup removes it after 30 days.
+const duelEmail = process.env.SMOKE_DUEL_EMAIL;
+const duelPassword = process.env.SMOKE_DUEL_PASSWORD;
+if (duelEmail && duelPassword) {
+  step('sign in to the confirmed test account, play a rated Basics duel, sign out');
+  await tapText('Profile', 60000, { exact: true });
+  await tapText('I already have an account', 30000, { exact: true, scroll: true });
+  // No failure screenshot while the account's address is on screen.
+  codeOnScreen = true;
+  await tapText('Email', 15000, { exact: true });
+  await send('Input.insertText', { text: duelEmail });
+  await tapText('Password', 10000, { exact: true });
+  await send('Input.insertText', { text: duelPassword });
+  // Enter submits (the screen's title says "Sign in" too).
+  await pressKey('Enter');
+  await waitForText('Sign out', 60000, { exact: true, scroll: true });
+  codeOnScreen = false;
+  await tapText('Online', 30000, { exact: true });
+  await tapText('Basics', 60000, { exact: true });
+  // The rules before the mode's first rated duel on this browser (plan v4.1).
+  await waitForText('Basics duel', 30000, { exact: true });
+  await tapText('Start', 10000, { exact: true });
+  // A sleeping staging server takes up to a minute to wake.
+  await waitForPattern('(^|[^0-9])1 / 8($|[^0-9])', 120000);
+  for (let q = 0; q < 8; q++) {
+    await pressKey('1');
+    await pressKey('Enter');
+    await sleep(1600);
+  }
+  await waitForText('Rematch', 60000, { exact: true });
+  console.log(`  duel played to its result (${((Date.now() - started) / 1000).toFixed(0)} s)`);
+  await tapText('Online', 10000, { exact: true });
+  await tapText('Profile', 30000, { exact: true });
+  await tapText('Sign out', 30000, { exact: true, scroll: true });
+  await waitForText('Sign out?', 10000, { exact: true });
+  await tapText('Sign out', 10000, { exact: true });
+  await waitForText('Play Basics', 60000, { exact: true });
+  console.log('  signed out');
+} else {
+  const why = 'duel skipped: SMOKE_DUEL_EMAIL / SMOKE_DUEL_PASSWORD (a confirmed account of the project) not set';
+  console.log(`  ${why}`);
+  if (process.env.GITHUB_ACTIONS) console.log(`::warning title=Smoke test::${why}`);
 }
 
 if (serverProblem) await fail(serverProblem);

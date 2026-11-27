@@ -321,6 +321,10 @@ jobs:
           APP_URL: ${{ needs.deploy-staging.outputs.url }}
           SMOKE_SUPABASE_URL: ${{ vars.STAGING_SERVER_URL && secrets.STAGING_SUPABASE_URL || '' }}
           SMOKE_SUPABASE_KEY: ${{ vars.STAGING_SERVER_URL && secrets.STAGING_SUPABASE_PUBLISHABLE_KEY || '' }}
+          # A confirmed staging account kept for the test's duel (Phase 6c
+          # commit 6): signed in, never deleted. Unset: no duel, a warning.
+          SMOKE_DUEL_EMAIL: ${{ secrets.STAGING_SMOKE_DUEL_EMAIL }}
+          SMOKE_DUEL_PASSWORD: ${{ secrets.STAGING_SMOKE_DUEL_PASSWORD }}
         run: node tool/smoke/preview_smoke.mjs "$APP_URL" google-chrome
       - name: Screenshot of the failure
         if: failure()

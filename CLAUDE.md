@@ -51,7 +51,8 @@ control, 15 s on Supabase calls, Cancel only while the server wakes, edges at 3:
 the terms (game, Ranks, seconds, Practice). m11 and m21 go to the Phase 3b data check; m13
 stays debt. Phase 6d (French) follows the launch.
 
-Done: 0–5 (27 Nov; `doc/progress.md`, "Phase 6c build"). Next: commit 6.
+Done: 0–6, the build (27 Nov; `doc/progress.md`, "Phase 6c build"); report given. Next:
+the owner's prerequisites (`doc/launch-checklist.md`, A), then the switch-on on the owner's word.
 
 **Phase 7's rules** (plan v3.7–v3.8; detail in `doc/decisions.md`, "Phase 7"):
 - **No live matches**: every duel is asynchronous — a player races another's recorded run,
@@ -366,8 +367,9 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 - **Email templates are generated** (`supabase/templates/`, from `Brand` by the brand tool):
   the owner pastes them into Supabase; never edit them by hand.
 - **Error reports go to our own server** (6c commit 5): `POST /v1/errors` (no account,
-  masked server-side, 10 an address then one per six minutes), `client_errors` (30 days,
-  2,000 a day, the server's role only), `dashboard.sh errors`. The app's `ErrorReporter` is
+  masked server-side, 10 an address then one per six minutes), `client_errors` (14 days,
+  500 a day since commit 6 — the free database is the limit; the server's role only),
+  `dashboard.sh errors`. The app's `ErrorReporter` is
   made first in `main`; the loading page reports by beacon. Never put a player's id or a
   token in a report.
 - **An email's link is read from the address before `Supabase.initialize`** (`authLinkFrom`,
@@ -379,6 +381,11 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 - **A duel is asked for only once the server is awake** (`DuelFlowScreen`: `/health`, then
   `find`/`open`). Cancel exists only during the wake: after `find` the server may have made the
   duel, and one left 24 hours is a loss.
+- **The read-only smoke (production) makes up the guest's sign-up** (6c commit 6): the
+  request is answered inside the browser, every other write blocked; it opens both legal
+  pages in English and French from the first screen. **The staging smoke's duel** signs in
+  to a confirmed account kept for it (`STAGING_SMOKE_DUEL_EMAIL`/`_PASSWORD`; skipped with a
+  warning without them) — staging confirms by email and refuses `example.com`.
 - **The smoke test reads the app's words** (`tool/smoke/preview_smoke.mjs`: "Play Basics",
   "Start", "Game complete", Profile's "1.2 s", "Delete my data"…): a change of wording breaks
   staging's smoke, and production then keeps the previous build (6b commit 7). Grep the smoke

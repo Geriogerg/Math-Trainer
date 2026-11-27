@@ -1600,7 +1600,7 @@ owner decision, nothing to build).
 | M9 | Free-plan capacity: stored sessions, Pages Function quota, sleeping server | 6a (5); always-on plan bought before 6c | **part**: hashed assets, the 50 % alert, storage measured (1.5 KB a game, not 5); sessions not slimmed (it would grow them); Render always-on is the owner's purchase (6c) |
 | M10 | Tiny question pools, repeats | 6b (1), rules v9 | **fixed** (≥ 12 a tier, 0 % repeats in 10-question games) |
 | M11 | Method explanations true but wrong as teaching | 6b (3) | **fixed** (every example of the review reads correctly; 137 pinned Methods; a size limit and a family-strategy test on every v9 question) |
-| M12 | Server ↔ Supabase boundary untested; no duel end to end | 6a (7) | **part**: the integration job plays it; the staging smoke test plays no duel yet |
+| M12 | Server ↔ Supabase boundary untested; no duel end to end | 6a (7) | **part**: the integration job plays it; the staging smoke test's duel is built (6c commit 6) and runs once the owner's confirmed staging account is in CI's secrets |
 | M13 | A push can cancel a production deployment | 6a (7) | **fixed** |
 | M14 | Empty account on a new device | 6b (5) | **fixed** (the server's levels at sign-in, Home and Profile told; a sign-in hint for a level-0 guest; history and weak spots stay per device — Profile says so, downloading them is not in the plan) |
 | M15 | Rated duel on one tap, no cancel while waiting | 6b (4, 5) | **fixed** (the rules and Start / Cancel before every rated duel, a friend's challenge included; Cancel and "Waking the server…" while the server wakes; a notice for an unfinished duel sent; the timer keeps running in a hidden tab, on purpose) |
@@ -2216,3 +2216,29 @@ placeholder; the phase report lists each with the exact value or action needed.
   app (the reporter: fields, once, cap, failures swallowed; the hook keeps Flutter's own
   handling). Run locally: SQL 29 files, 596 assertions; server 112; integration 8 of 8;
   app 541; analyze clean.
+- **Commit 6** *(A)* — **Smoke tests, capacity report, launch checklist.** **The production
+  smoke test for an ungated site** (`tool/smoke/preview_smoke.mjs`, `SMOKE_READ_ONLY=1`): every
+  write to another origin is still blocked, but the guest's sign-up is answered by the
+  script with a made-up session (and the robot check with a made-up token) — the request
+  never leaves the browser — so a visit with no gate reaches Home like a stranger's; from the
+  first screen (the gate's links today, Profile's once ungated) it opens both legal pages and
+  checks each in English and French. Run locally against a release build without a gate:
+  Home in 2.7 s, both pages in both languages, installable, the build served, two writes
+  blocked, one sign-up made up. **The staging smoke test plays a duel with a confirmed
+  account**: after deleting its guest it signs in to a confirmed account kept for it (CI
+  secrets `STAGING_SMOKE_DUEL_EMAIL`, `STAGING_SMOKE_DUEL_PASSWORD`), plays a rated Basics duel
+  to its result and signs out; without the secrets it warns and skips. Found while building
+  it, by running the full visit against staging from here: **staging requires email
+  confirmation** (a deliverable address got "Check your inbox") and **refuses
+  `example.com` addresses** — so the test cannot make its own confirmed account; the owner
+  creates one (`doc/launch-checklist.md`, A.7). The duel step itself is not yet run end to
+  end (it needs that account). The smoke also reads Edge's DevTools address (runs locally on
+  Windows). **Capacity report** (`doc/capacity.md`): what was measured, the estimates at
+  1,000 daily players (the database's 50 % in about a month; Supabase's built-in email far too
+  small — the owner's sender is a prerequisite), the floors under abuse, what to watch. It
+  corrected commit 5: error reports bounded to 500 a day for 14 days (migration
+  `20261204020000_client_errors_bounds.sql`; was 2,000 for 30 — up to ~300 MB in a flood),
+  the policy says 14 days. **Launch checklist** (`doc/launch-checklist.md`): the owner's
+  prerequisites with where each value goes, the switch-on commits 7–9, the phone checklist
+  (the exit of 6c). Run locally: SQL 29 files, 598 assertions; the staging full visit (twice,
+  45 s, guest deleted each time); app and server suites (see the build's exit below).

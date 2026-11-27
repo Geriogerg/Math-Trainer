@@ -79,7 +79,7 @@ class EnglishLegalTexts implements LegalTexts {
             'script, is there. They are not used to identify you.',
         'Error reports: when something goes wrong in the game, what went '
             'wrong (the error’s text), the game’s version and your '
-            'browser’s name — without your account, kept 30 days, to fix it.',
+            'browser’s name — without your account, kept 14 days, to fix it.',
       ],
     ),
     (
@@ -272,7 +272,7 @@ class FrenchLegalTexts implements LegalTexts {
         'Les rapports d’erreur : quand quelque chose se passe mal dans le '
             'jeu, ce qui s’est mal passé (le texte de l’erreur), la version '
             'du jeu et le nom de votre navigateur — sans votre compte, gardés '
-            '30 jours, pour le corriger.',
+            '14 jours, pour le corriger.',
       ],
     ),
     (
