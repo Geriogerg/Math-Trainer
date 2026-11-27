@@ -1619,7 +1619,7 @@ owner decision, nothing to build).
 | m9 | Wrangler state committed | 6a (0) | **fixed** (GitHub still holds the old commits by hash until its own cleanup) |
 | m10 | Abandonment sweep runs inside other players' requests | 6a (6) | **fixed** differently: a server timer, not `pg_cron` |
 | m11 | Trivial questions at high tiers; unbalanced duels | 6b (1), rules v9 | **part**: no trivial factor above T0, round division's quotient ≥ 10 and sized; duels not balanced by effort (not in spec v1.6) |
-| m12 | Files that carry too much | when next touched | **part**: `duel_endpoint.dart` (6b commit 0) and `method_for.dart` (6b commit 3) split; `profile_screen.dart`, `play_tab.dart`, `composition_root.dart` still large |
+| m12 | Files that carry too much | when next touched | **fixed** for every file 6b touched: `duel_endpoint.dart` (commit 0), `method_for.dart` (commit 3), and at the close `play_tab.dart` (1,067 lines → 505 + Home 228 + setups 343), `profile_screen.dart` (1,268 → 694 + sections 580), `composition_root.dart` (908 → 549 + builders 366) |
 | m13 | App contracts in the core; logic twice in Dart and SQL | when next touched | open |
 | m14 | Seven replayable rules versions | 6c (6): v2–v6 retired 30 days after v9 | open |
 | m15 | Dead dependencies; `PREVIEW_BUILD` always on | 6a (7) | **fixed** (`structural_features.dart` kept: the Dart half of a parity pair) |
@@ -2057,3 +2057,9 @@ changes what a v9 game draws).
   every heading still saying "provisional" or "pending" marked (confirmed with the plan version,
   superseded by what, extended, obsolete) — 24 entries; only Phase 6b's stay provisional.
   `CLAUDE.md` aligned. No code changed.
+- **Close-out (m12)** *(A)* — the owner's rule (plan v4.0: large files are split when next
+  touched) applied to the three files 6b changed most: `play_tab.dart` → `home_view.dart` and
+  `setup_views.dart`, `profile_screen.dart` → `profile_sections.dart`, `composition_root.dart`
+  → `session_builders.dart`, as `part` files (nothing private became public; no behaviour
+  changed: app 512 green, analyze clean). m13 (app contracts in the core) untouched: 6b changed
+  none of those interfaces.
