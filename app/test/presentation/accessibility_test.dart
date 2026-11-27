@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
@@ -153,6 +154,43 @@ void main() {
       },
     );
   }
+
+  // Phase 6b commit 6 (review M17): edges at 3:1, body text 15 px, small
+  // text 13 px, the page at phone width from its first paint.
+  for (final (name, theme) in [
+    ('light', buildLightTheme()),
+    ('dark', buildDarkTheme()),
+  ]) {
+    test('edges of what can be tapped reach 3:1 — $name', () {
+      final scheme = theme.colorScheme;
+      for (final (bgName, bg) in [
+        ('background', scheme.surface),
+        ('card', scheme.surfaceContainerHigh),
+      ]) {
+        expect(
+          _contrast(scheme.outline, bg),
+          greaterThanOrEqualTo(3),
+          reason: 'outline on $bgName',
+        );
+      }
+    });
+  }
+
+  test('body text 15 px, captions and small labels 13 px', () {
+    final text = buildLightTheme().textTheme;
+    expect(text.bodyMedium!.fontSize, 15);
+    expect(text.bodySmall!.fontSize, 13);
+    expect(text.labelSmall!.fontSize, 13);
+  });
+
+  test('the page declares a phone viewport', () {
+    expect(
+      File('web/index.html').readAsStringSync(),
+      contains(
+        '<meta name="viewport" content="width=device-width, initial-scale=1">',
+      ),
+    );
+  });
 
   testWidgets('large system text (200 %) holds on a small phone', (
     tester,

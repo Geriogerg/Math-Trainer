@@ -82,7 +82,7 @@ class _Lane extends StatelessWidget {
               child: LinearProgressIndicator(
                 value: progress.fraction,
                 minHeight: 7,
-                backgroundColor: theme.colorScheme.outline,
+                backgroundColor: theme.colorScheme.outlineVariant,
                 valueColor: AlwaysStoppedAnimation<Color>(color),
               ),
             ),

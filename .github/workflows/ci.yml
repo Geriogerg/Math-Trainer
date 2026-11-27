@@ -173,7 +173,7 @@ jobs:
           cache: true
       - run: flutter pub get
       - name: All app tests
-        run: bash ../tool/ci/test_count.sh "App" 494 -- flutter test --reporter expanded
+        run: bash ../tool/ci/test_count.sh "App" 510 -- flutter test --reporter expanded
       - name: Analyzer
         # Infos are fatal too: the tree has zero notices since the
         # material_ui migration (Phase 1 commit 0).

@@ -341,7 +341,9 @@ class _Row extends StatelessWidget {
     return Container(
       constraints: const BoxConstraints(minHeight: 44),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: theme.colorScheme.outline)),
+        border: Border(
+          bottom: BorderSide(color: theme.colorScheme.outlineVariant),
+        ),
       ),
       child: Row(
         children: [

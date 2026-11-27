@@ -603,9 +603,9 @@ class _HomeView extends StatelessWidget {
             ),
             Caption(switch (family) {
               ExerciseFamily.basics =>
-                'Tap the operations to play. Each has its own level, 0–100.',
+                'Tap operations to play. Each has a level, 0–100.',
               ExerciseFamily.advanced =>
-                'Squares, roots, percentages, integrals: levels of their own.',
+                'Each has its own level, like the basics.',
             }),
             const SizedBox(height: 8),
             AppButton.primary(
@@ -728,7 +728,9 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.only(top: 24, bottom: 8),
+      // 20, not 24, since body text grew to 15 px (Phase 6b commit 6): the
+      // setup pages keep Start in view on a 640 px phone.
+      padding: const EdgeInsets.only(top: 20, bottom: 8),
       child: Text(
         text,
         style: theme.textTheme.bodyMedium?.copyWith(

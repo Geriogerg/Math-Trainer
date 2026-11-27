@@ -572,7 +572,7 @@ class _ProgressInsideLevel extends StatelessWidget {
           semanticsLabel: 'Progress toward the next level',
           value: fraction,
           minHeight: 6,
-          backgroundColor: theme.colorScheme.outline,
+          backgroundColor: theme.colorScheme.outlineVariant,
           valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
         ),
       ),

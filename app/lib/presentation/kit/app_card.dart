@@ -36,7 +36,11 @@ class AppCard extends StatelessWidget {
     final radius = BorderRadius.circular(metrics.radius * 0.75);
     return Material(
       color: theme.colorScheme.surfaceContainerHigh,
-      borderRadius: radius,
+      // Its edge at 3:1 (Phase 6b commit 6): the card alone was 1.08:1.
+      shape: RoundedRectangleBorder(
+        borderRadius: radius,
+        side: BorderSide(color: theme.colorScheme.outline),
+      ),
       child: InkWell(
         borderRadius: radius,
         onTap: onTap,

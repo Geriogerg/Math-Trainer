@@ -19,7 +19,8 @@ The direction keeps its original French name.
 |---|---|---|
 | Background | `#101528` | canvas of every screen |
 | Surface | `#1B2340` | cards, keypad keys, fields |
-| Border | `#2A3352` | separators, timer track |
+| Edge | `#616F90` | edges of what can be tapped: cards, keys, tiles, chips (3.6:1 on the background, 3.1:1 on a surface — Phase 6b) |
+| Border | `#2A3352` | separators, timer and progress tracks |
 | Accent | `#5DCAA5` | primary action, timer, active input, active tab |
 | Primary text | `#E6F1FB` | operation, digits, titles |
 | Secondary text | `#85B7EB` | labels, metadata |
@@ -34,6 +35,7 @@ A mobile game is played outdoors as much as in bed. Light mode is not a comfort 
 |---|---|
 | Background | `#F4F6FB` |
 | Surface | `#FFFFFF` |
+| Edge | `#7C8AA4` (3.2:1 on the background, 3.5:1 on a surface — Phase 6b) |
 | Border | `#D6DEEC` |
 | Accent | `#0F6E56` |
 | Primary text | `#101528` |
@@ -102,8 +104,14 @@ typed shifts at every key and the eye loses its anchor.
 | Operation | 48 sp, weight 500 |
 | Typed answer | 32 sp, weight 500 |
 | Screen titles | 17 sp, weight 500 |
-| Labels | 13 sp, weight 400 |
-| Metadata | 11 sp, weight 400 |
+| Body and labels | 15 sp, weight 400 (13 until Phase 6b) |
+| Captions, metadata | 13 sp, weight 400 (11–12 until Phase 6b) |
+
+**Accessibility** (Phase 6b, review M17): the edge of anything that can be tapped reaches 3:1
+against the page and a card (WCAG 1.4.11); the light border stays for what only decorates
+(tracks, separators). Every prompt has spoken words (`spokenPrompt`: "12 squared", "the square
+root of 169"); the question is a live region; right, wrong (with the answer) and "10 seconds
+left" are announced.
 
 ## Mathematical notation
 

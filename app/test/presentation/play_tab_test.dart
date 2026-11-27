@@ -138,7 +138,7 @@ void main() {
       // Redesign's "labels only" relaxed for strangers).
       for (final line in [
         'Your level: the mean of + − × ÷.',
-        'Tap the operations to play. Each has its own level, 0–100.',
+        'Tap operations to play. Each has a level, 0–100.',
         'Reach a target with the numbers given.',
         'Times tables, at your pace. Never ranked.',
       ]) {

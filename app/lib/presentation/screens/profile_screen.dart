@@ -833,7 +833,7 @@ class _OperationRow extends StatelessWidget {
                     // whole-number label leaves out.
                     value: level == null ? 0 : level.value / 100,
                     minHeight: 6,
-                    backgroundColor: theme.colorScheme.outline,
+                    backgroundColor: theme.colorScheme.outlineVariant,
                     valueColor: AlwaysStoppedAnimation<Color>(
                       theme.colorScheme.primary,
                     ),

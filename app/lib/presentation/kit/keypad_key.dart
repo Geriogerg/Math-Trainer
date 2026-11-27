@@ -82,6 +82,11 @@ class _KeypadKeyState extends State<KeypadKey> {
           decoration: BoxDecoration(
             color: background,
             borderRadius: BorderRadius.circular(metrics.radius),
+            // Its edge at 3:1 (Phase 6b commit 6, review M17); the filled
+            // key has its own.
+            border: widget.isPrimary
+                ? null
+                : Border.all(color: colorScheme.outline),
           ),
           alignment: Alignment.center,
           child: widget.icon != null

@@ -232,7 +232,7 @@ class _ChainScreenState extends State<ChainScreen> {
                   child: LinearProgressIndicator(
                     value: shown / n,
                     minHeight: 5,
-                    backgroundColor: theme.colorScheme.outline,
+                    backgroundColor: theme.colorScheme.outlineVariant,
                   ),
                 ),
               ],

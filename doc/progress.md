@@ -1605,7 +1605,7 @@ owner decision, nothing to build).
 | M14 | Empty account on a new device | 6b (5) | **fixed** (the server's levels at sign-in, Home and Profile told; a sign-in hint for a level-0 guest; history and weak spots stay per device — Profile says so, downloading them is not in the plan) |
 | M15 | Rated duel on one tap, no cancel while waiting | 6b (4, 5) | **fixed** (the rules and Start / Cancel before every rated duel, a friend's challenge included; Cancel and "Waking the server…" while the server wakes; a notice for an unfinished duel sent; the timer keeps running in a hidden tab, on purpose) |
 | M16 | Nothing explained to a newcomer | 6b (4) | **fixed** (one line under each control, the result's change and its reason, a first-run card, rules of every mode) |
-| M17 | Accessibility | 6b (6) | open |
+| M17 | Accessibility | 6b (6) | **fixed** (semantics on; the question a live region; right, wrong, time's up and 10 s left announced; spoken prompts; edges 3:1; body 15 px; viewport meta; guideline tests on Online, a duel, Friends, Ranks — playing with a real screen reader is an owner check) |
 | M18 | Missing states around the network | 6b (5) | **fixed** (15 s on every Supabase call, the deletion spinner included; the loader's watchdog and Reload; a catch-all at start; failed friend actions said) |
 | M19 | Stale reference docs | 6b (8); the `CLAUDE.md` "v6 is current" sentence fixed in 6a (0) | part |
 | m1 | An answer at the buzzer can get an honest game refused | 6a (6) | **fixed** |
@@ -2022,3 +2022,17 @@ changes what a v9 game draws).
   checked in headless Edge: the game's code missing → "The game could not be downloaded" and
   Reload; the engine failing to start (`.js` served as text) → "The game could not start" and
   Reload; a working build → the loader gone at the first frame.
+- **Commit 6** *(C)* — **Accessibility (M17).** Semantics on at start (`main`). The game
+  screen: the question a live region ("Question 1 of 10: 47 times 8"), right / wrong with the
+  answer / time's up announced, the timer bar's seconds and "10 seconds left" once; every
+  prompt carries spoken words (`spoken_prompt.dart`: "12 squared", "the cube root of 27",
+  "37.5 percent of 64", "the integral from 0 to 3 of 4 x cubed plus 2 x plus 2, d x").
+  **Edges at 3:1**: `outline` for what can be tapped (cards, keys, tiles, chips, segments now
+  edged), `outlineVariant` for tracks and separators. **Text**: body 15 px, captions and the
+  tile level 13 px; setup section labels 4 px tighter so Start stays in view at 640 px. Viewport
+  meta in `index.html`. `doc/design.md` updated (edges, sizes, what is said). Tests (16): spoken
+  prompts (every type), the live region, the announcements, the timer's value and its single
+  announcement, the theme's edges at 3:1 in both themes, the sizes, the viewport; Flutter's tap
+  target and labelled tap target guidelines on Online (both themes), a duel in play, Friends
+  and Ranks. `session_layout_pin_test.dart` unchanged and green; the 200 % text test green; 52
+  goldens re-rendered and read. Run locally: app 510, analyze clean (no core change).

@@ -41,7 +41,13 @@ class SegmentedChoice<T> extends StatelessWidget {
                 color: value == selected
                     ? scheme.primary
                     : scheme.surfaceContainerHigh,
-                borderRadius: radius,
+                // Its edge at 3:1 (Phase 6b commit 6, review M17).
+                shape: RoundedRectangleBorder(
+                  borderRadius: radius,
+                  side: BorderSide(
+                    color: value == selected ? scheme.primary : scheme.outline,
+                  ),
+                ),
                 child: InkWell(
                   borderRadius: radius,
                   onTap: () => onChanged(value),

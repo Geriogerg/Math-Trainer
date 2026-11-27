@@ -4,6 +4,7 @@ import 'package:math_core/models/exercise.dart';
 import 'package:math_core/models/operation_type.dart';
 
 import 'number_format.dart';
+import 'spoken_prompt.dart';
 
 /// Builds the display of an [Exercise] from its variant's fields — the
 /// domain produces no text (`doc/decisions.md`, "`Exercise.prompt` left the
@@ -30,7 +31,14 @@ class ExercisePrompt extends StatelessWidget {
   final double? maxWidth;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => Semantics(
+    // Read as words, the drawing left out (Phase 6b commit 6, review M17).
+    label: spokenPrompt(exercise),
+    excludeSemantics: true,
+    child: _drawn(context),
+  );
+
+  Widget _drawn(BuildContext context) {
     final style = this.style ?? Theme.of(context).textTheme.displayMedium;
     return switch (exercise) {
       ArithmeticExercise e => _ArithmeticPrompt(

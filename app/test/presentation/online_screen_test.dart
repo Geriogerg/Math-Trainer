@@ -226,6 +226,21 @@ void main() {
     expect(client.finds.map((f) => f.mode), [DuelMode.basics]);
   });
 
+  // Phase 6b commit 6 (review M17): the Online tab against Flutter's own
+  // guidelines, both themes.
+  for (final (name, theme) in [
+    ('light', buildLightTheme()),
+    ('dark', buildDarkTheme()),
+  ]) {
+    testWidgets('accessibility guidelines — $name', (tester) async {
+      final handle = tester.ensureSemantics();
+      await pumpShell(tester, theme);
+      await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
+      await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
+      handle.dispose();
+    });
+  }
+
   testWidgets('a guest is invited to save their progress', (tester) async {
     online.answer = OnlineOverview.guest;
     await pumpShell(tester, buildLightTheme());

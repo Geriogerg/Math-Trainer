@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
 import 'package:math_core/models/input_device.dart';
@@ -9,6 +10,7 @@ import '../../core/state/session_controller.dart';
 import '../exercise_prompt.dart';
 import '../number_format.dart';
 import '../kit/numeric_keypad.dart';
+import '../spoken_prompt.dart';
 import '../streak_tier.dart';
 import '../theme/app_theme.dart';
 import 'empty_state.dart';
@@ -71,6 +73,12 @@ class _SessionScreenState extends State<SessionScreen>
   late final AnimationController _chronoController;
   late final AnimationController _feedbackController;
 
+  /// The time left was said for the current question (Phase 6b commit 6).
+  bool _lowTimeSaid = false;
+
+  /// When a screen reader hears that time runs out.
+  static const _lowTimeLeft = Duration(seconds: 10);
+
   @override
   void initState() {
     super.initState();
@@ -81,6 +89,7 @@ class _SessionScreenState extends State<SessionScreen>
       duration: timeout ?? Duration.zero,
     );
     if (timeout != null) _chronoController.forward();
+    _chronoController.addListener(_sayLowTime);
     // Actual duration set just before each .forward() (AppMotion.feedback,
     // read from the theme — unavailable here, before the first frame).
     _feedbackController = AnimationController(
@@ -103,6 +112,7 @@ class _SessionScreenState extends State<SessionScreen>
       _chronoController.stop();
     } else if (outcomes.length != _chronoQuestion) {
       _chronoQuestion = outcomes.length;
+      _lowTimeSaid = false;
       if (widget.controller.questionTimeout != null) {
         _chronoController.forward(from: 0);
       }
@@ -115,6 +125,10 @@ class _SessionScreenState extends State<SessionScreen>
     if (outcomes.length > _seenOutcomes && outcomes.last.isTimeout) {
       _playFeedback(false);
       _safely(widget.effects.timedOut);
+      final missed = outcomes.last.exercise;
+      _announce(
+        "Time's up. ${spokenPrompt(missed)} is ${missed.correctAnswer}.",
+      );
     }
     _seenOutcomes = outcomes.length;
   }
@@ -183,12 +197,43 @@ class _SessionScreenState extends State<SessionScreen>
     final isCorrect = exercise.isCorrectAnswer(value);
     widget.controller.submitAnswer(value, device: device);
     _playFeedback(isCorrect);
+    _announce(
+      isCorrect
+          ? 'Right'
+          : 'Wrong. ${spokenPrompt(exercise)} is ${exercise.correctAnswer}.',
+    );
     _safely(
       () => widget.effects.answered(
         correct: isCorrect,
         streak: widget.controller.state.currentStreak,
       ),
     );
+  }
+
+  /// Says [message] to a screen reader, politely (Phase 6b commit 6,
+  /// review M17: nothing said right or wrong, nor the time). Fire and
+  /// forget, like the other effects.
+  void _announce(String message) {
+    if (!mounted) return;
+    final view = View.of(context);
+    _safely(
+      () => SemanticsService.sendAnnouncement(
+        view,
+        message,
+        TextDirection.ltr,
+      ).ignore(),
+    );
+  }
+
+  /// Once a question, when [_lowTimeLeft] remains.
+  void _sayLowTime() {
+    final timeout = widget.controller.questionTimeout;
+    if (timeout == null || _lowTimeSaid) return;
+    final left = timeout * (1 - _chronoController.value);
+    if (left <= _lowTimeLeft && left > Duration.zero) {
+      _lowTimeSaid = true;
+      _announce('${_lowTimeLeft.inSeconds} seconds left');
+    }
   }
 
   /// An effect that throws (an audio context the browser refused, a
@@ -280,18 +325,29 @@ class _SessionScreenState extends State<SessionScreen>
                             ? CrossAxisAlignment.end
                             : CrossAxisAlignment.center,
                         children: [
-                          KeyedSubtree(
-                            key: sessionQuestionKey,
-                            child: AnimatedSwitcher(
-                              duration: reduceMotion
-                                  ? Duration.zero
-                                  : transition.duration,
-                              switchInCurve: transition.curve,
-                              switchOutCurve: transition.curve,
-                              child: ExercisePrompt(
-                                key: ValueKey(exercise),
-                                exercise: exercise,
-                                maxWidth: constraints.maxWidth,
+                          // A live region: each new question is read out
+                          // (Phase 6b commit 6, review M17).
+                          Semantics(
+                            container: true,
+                            liveRegion: true,
+                            label:
+                                'Question ${state.outcomes.length + (correction == null ? 1 : 0)} '
+                                'of ${widget.controller.config.exerciseCount}: '
+                                '${spokenPrompt(exercise)}',
+                            excludeSemantics: true,
+                            child: KeyedSubtree(
+                              key: sessionQuestionKey,
+                              child: AnimatedSwitcher(
+                                duration: reduceMotion
+                                    ? Duration.zero
+                                    : transition.duration,
+                                switchInCurve: transition.curve,
+                                switchOutCurve: transition.curve,
+                                child: ExercisePrompt(
+                                  key: ValueKey(exercise),
+                                  exercise: exercise,
+                                  maxWidth: constraints.maxWidth,
+                                ),
                               ),
                             ),
                           ),
@@ -427,17 +483,33 @@ class _TopBar extends StatelessWidget {
           borderRadius: BorderRadius.circular(3),
           child: AnimatedBuilder(
             animation: chrono,
-            builder: (context, _) => LinearProgressIndicator(
-              value: 1 - chrono.value,
-              minHeight: 5,
-              backgroundColor: colorScheme.outline,
-              valueColor: AlwaysStoppedAnimation<Color>(barColor),
+            // Spoken as the seconds left (Phase 6b commit 6, review M17).
+            builder: (context, _) => Semantics(
+              container: true,
+              label: 'Time left',
+              value: timeLeftWords(chrono),
+              excludeSemantics: true,
+              child: LinearProgressIndicator(
+                value: 1 - chrono.value,
+                minHeight: 5,
+                backgroundColor: colorScheme.outlineVariant,
+                valueColor: AlwaysStoppedAnimation<Color>(barColor),
+              ),
             ),
           ),
         ),
       ],
     );
   }
+}
+
+/// The timer bar's spoken value: the whole seconds left ("12 seconds").
+String timeLeftWords(Animation<double> chrono) {
+  final controller = chrono is AnimationController ? chrono : null;
+  final total = controller?.duration;
+  if (total == null || total == Duration.zero) return '';
+  final left = (total.inMilliseconds * (1 - chrono.value) / 1000).ceil();
+  return left == 1 ? '1 second' : '$left seconds';
 }
 
 /// The answer being typed. The feedback flash/motion (rule 14: never colour

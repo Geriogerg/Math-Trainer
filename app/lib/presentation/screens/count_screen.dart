@@ -181,7 +181,7 @@ class CountScreen extends StatelessWidget {
             child: LinearProgressIndicator(
               value: left / controller.roundSeconds,
               minHeight: 5,
-              backgroundColor: scheme.outline,
+              backgroundColor: scheme.outlineVariant,
             ),
           ),
           const SizedBox(height: 24),

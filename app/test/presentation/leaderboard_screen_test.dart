@@ -127,6 +127,26 @@ void main() {
     expect(selected.selected, isTrue);
   });
 
+  // Phase 6b commit 6 (review M17).
+  testWidgets('accessibility guidelines on Ranks', (tester) async {
+    leaderboard.standings[const LeaderboardBoard.main()] = Ranked(
+      rank: 8,
+      total: 10,
+      topPercent: 80,
+      level: Level.whole(24),
+      neighbours: [
+        _entry(7, 'Bea', 32),
+        _entry(8, 'Ada', 24, me: true),
+        _entry(9, null, 16),
+      ],
+    );
+    final handle = tester.ensureSemantics();
+    await pump(tester);
+    await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
+    await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
+    handle.dispose();
+  });
+
   testWidgets('top 100 view, and an empty board says so', (tester) async {
     leaderboard.tops[const LeaderboardBoard.main()] = [
       _entry(1, 'Zoe', 61),

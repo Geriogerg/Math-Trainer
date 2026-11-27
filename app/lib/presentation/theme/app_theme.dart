@@ -31,7 +31,12 @@ ThemeData buildLightTheme() => _buildTheme(
   colorScheme: const ColorScheme.light(
     surface: Color(0xFFF4F6FB),
     surfaceContainerHigh: Color(0xFFFFFFFF),
-    outline: Color(0xFFD6DEEC),
+    // Edges of what can be tapped — cards, keys, tiles, chips — at 3:1
+    // against the page and a card (WCAG 1.4.11; Phase 6b commit 6, review
+    // M17: they were 1.08–1.46:1). The design's light line stays for what
+    // only decorates: tracks and separators.
+    outline: Color(0xFF7C8AA4),
+    outlineVariant: Color(0xFFD6DEEC),
     primary: Color(0xFF0F6E56),
     onPrimary: Color(0xFFFFFFFF),
     onSurface: Color(0xFF101528),
@@ -48,7 +53,8 @@ ThemeData buildDarkTheme() => _buildTheme(
   colorScheme: const ColorScheme.dark(
     surface: Color(0xFF101528),
     surfaceContainerHigh: Color(0xFF1B2340),
-    outline: Color(0xFF2A3352),
+    outline: Color(0xFF616F90),
+    outlineVariant: Color(0xFF2A3352),
     primary: Color(0xFF5DCAA5),
     // Light accent: dark text rather than white for contrast (`design.md`
     // does not settle this point, checked by eye on Android).
@@ -157,17 +163,23 @@ TextTheme _textThemeFor(TextTheme base) {
     ),
     titleSmall: finalize(base.titleSmall),
     bodyLarge: finalize(base.bodyLarge),
+    // Body text 15 px, captions 13 px (Phase 6b commit 6, review M17: body
+    // text was 13 px, the level on Home's tiles 11 px).
     bodyMedium: finalize(
       base.bodyMedium,
+      fontSize: 15,
+      fontWeight: FontWeight.w400,
+    ),
+    bodySmall: finalize(
+      base.bodySmall,
       fontSize: 13,
       fontWeight: FontWeight.w400,
     ),
-    bodySmall: finalize(base.bodySmall),
     labelLarge: finalize(base.labelLarge),
     labelMedium: finalize(base.labelMedium),
     labelSmall: finalize(
       base.labelSmall,
-      fontSize: 11,
+      fontSize: 13,
       fontWeight: FontWeight.w400,
     ),
   );

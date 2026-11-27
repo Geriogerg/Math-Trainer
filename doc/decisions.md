@@ -2441,3 +2441,24 @@ rules; these are the readings.
   fails leaves the friend's page open.
 - **A friend challenge shows the duel's rules too** (commit 4 left it out: it went from the
   mode picker straight to the duel).
+
+**Commit 6 — accessibility (M17).**
+
+- **Semantics on from the start** (`ensureSemantics` in `main`): on the web Flutter otherwise
+  builds the accessibility tree only after a screen reader presses a hidden "Enable
+  accessibility" button. The cost is a DOM tree beside the canvas on every device; not measured
+  on a low-end phone (an owner check).
+- **What is said**: each question, as a live region ("Question 3 of 10: 47 times 8"); right,
+  or wrong with the answer ("Wrong. 12 squared is 144."), or "Time's up" with it, as polite
+  announcements; the timer bar's value in whole seconds, and "10 seconds left" once a question —
+  not every second, which would drown the question. Spoken prompts use words and ungrouped
+  numbers ("4 789" is read as two numbers). The duel timer is the same widget.
+- **Edges at 3:1, a new role**: `outline` is the edge of what can be tapped (cards, keys,
+  tiles, chips, segments; light `#7C8AA4`, dark `#616F90`), `outlineVariant` keeps the design's
+  light line for what only decorates (tracks, separators). Cards and keys gained a 1 px edge.
+  The design's look is heavier; the alternative (only focus rings) would not meet WCAG 1.4.11.
+- **Text**: body 15 px (was 13), captions 13 px (12), the level on Home's tiles 13 px (11).
+  Section labels on the setup pages moved 4 px closer (24 → 20) so Start stays in view on a
+  640 px phone. Two Home captions shortened to stay on one line.
+- **Viewport meta** in `index.html`: the loader is at phone width from its first paint
+  (Flutter replaces the tag with its own when it starts).

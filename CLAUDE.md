@@ -48,7 +48,7 @@ line; weak spots at most ⌊n/5⌋ per operation; strings in one place, English 
 right after. m12 (large files) and m13 (app contracts in the core) are fixed when the files are
 next touched — the phase report says what moved.
 
-Done: 0–5 (27 Nov; `doc/progress.md`, "Phase 6b"). Next: commit 6.
+Done: 0–6 (27 Nov; `doc/progress.md`, "Phase 6b"). Next: commit 7.
 
 **Phase 7's rules** (plan v3.7–v3.8; detail in `doc/decisions.md`, "Phase 7"):
 - **No live matches**: every duel is asynchronous — a player races another's recorded run,
@@ -350,6 +350,10 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 - **A duel is asked for only once the server is awake** (`DuelFlowScreen`: `/health`, then
   `find`/`open`). Cancel exists only during the wake: after `find` the server may have made the
   duel, and one left 24 hours is a loss.
+- **Two edge colours** (6b commit 6): `colorScheme.outline` is the 3:1 edge of what can be
+  tapped; `outlineVariant` is for what only decorates (tracks, separators). A new tappable
+  surface gets an `outline` edge. Semantics are on from `main`; a prompt's spoken words come
+  from `spokenPrompt` (exhaustive switch) — a new exercise type needs its words there.
 - **One-time hints are per device** (`HintsStore`, `Hint` names stored — never rename one):
   the first-run card, Get the count's and Chain's rules. A rated duel's rules
   (`confirmDuel`) show every time, on purpose. The result's reason line comes from

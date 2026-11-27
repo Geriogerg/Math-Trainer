@@ -282,6 +282,18 @@ void main() {
     expect(find.text('Link copied'), findsOneWidget);
   });
 
+  // Phase 6b commit 6 (review M17).
+  testWidgets('accessibility guidelines on Friends', (tester) async {
+    friends.incomingRequests = [
+      FriendRequest(fromId: 'zoe', name: 'Zoé', at: DateTime.utc(2026)),
+    ];
+    final handle = tester.ensureSemantics();
+    await pumpFriends(tester, buildDarkTheme());
+    await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
+    await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
+    handle.dispose();
+  });
+
   testWidgets('a request: Accept makes friends', (tester) async {
     friends.incomingRequests = [
       FriendRequest(fromId: 'zoe', name: 'Zoé', at: DateTime.utc(2026)),

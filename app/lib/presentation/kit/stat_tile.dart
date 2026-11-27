@@ -39,7 +39,7 @@ class StatTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: scheme.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(metrics.radius),
-          border: emphasis ? Border.all(color: scheme.primary) : null,
+          border: Border.all(color: emphasis ? scheme.primary : scheme.outline),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,

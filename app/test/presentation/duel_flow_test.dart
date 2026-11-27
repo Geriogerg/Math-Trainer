@@ -293,6 +293,18 @@ void main() {
     });
   });
 
+  // Phase 6b commit 6 (review M17): a duel in play, the lanes over the game.
+  testWidgets('accessibility guidelines in a duel', (tester) async {
+    final handle = tester.ensureSemantics();
+    await pumpDuel(tester, buildLightTheme());
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('1 / 8'), findsOneWidget);
+    await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
+    await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
+    handle.dispose();
+  });
+
   testWidgets('a guest is told to save their progress', (tester) async {
     final guest = FakeDuelClient()..failure = const DuelAccountRequired();
     final environment = AppEnvironment(
