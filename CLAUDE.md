@@ -3,8 +3,8 @@
 Competitive mental-arithmetic game in Flutter, for teens and adults. UI, code, docs and commits
 in English.
 
-**`doc/plan.md` (version 3.9) is the product plan**, and **`doc/levels.md` (v1.6) specifies the
-level system** (v1.6 is rules v9, built in Phase 6b; the code implements v1.5 until then). Both
+**`doc/plan.md` (version 4.0) is the product plan**, and **`doc/levels.md` (v1.6) specifies the
+level system** (v1.6 is rules v9, built in Phase 6b). Both
 are the owner's: read them at the start of every phase; never edit them.
 This file is the working file: keep it short, update it as the project moves, keep it
 consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/decisions.md`,
@@ -12,46 +12,43 @@ consistent with the plan. Other docs when relevant: `doc/architecture.md`, `doc/
 
 ## Current phase
 
-**Phase 6a — Integrity and capacity** (`doc/plan.md` v3.9, section 7), run in **one pass**, eight
-commits. It follows the project review of 26 Nov (`doc/review-2026-11-26.md`; verdict: not ready
-for strangers) and the owner's answers to its 15 questions (plan, "Project review"). Server, SQL
-and CI only: **no visible change to the game, no change to rules or generation** (rules v9 and
-`doc/levels.md` v1.6 are Phase 6b). Every review finding is tracked by ID in `doc/progress.md`
-("Review findings") with its phase; mark the 6a ones there as they close.
+**Phase 6b — Player experience** (`doc/plan.md` v4.0, section 7), run in **one pass**, nine
+commits. Goal: what a stranger meets in the first ten minutes. **Rules v9** from
+`doc/levels.md` v1.6 (wider pools, no repeats, quitting counts, Method quality). Every 6b review
+finding is tracked by ID in `doc/progress.md` ("Review findings"); mark each as it closes.
 
 | # | Commit | Findings | Note |
 |---|---|---|---|
-| 0 | *(A)* **Repository hygiene**: `tool/cloudflare/.wrangler/` out of the index, ignored, purged from the history (mirror backup, force-push, CI and deployments re-verified); decisions of 26 Nov recorded; findings tracked | m9 | done |
-| 1 | *(A)* **Duel results hold**: for the second player an unreplayable run or progress is a loss; abandonment scored after a challenge expires, no opening in its last 24 h; a run must extend its progress; challenges only to a friend or a 30-day opponent, `rematchOf` only a finished duel of the same mode, once per rolling 24 h for every chosen opponent; a run claiming more time than passed since the offer is refused; a flagged run's duel is unrated | B5, M1 (cheap part), M2, M3, n1 | done |
-| 2 | *(A)* **Abuse floor**: bodies counted while read; token buckets per player and per IP; malformed tokens refused before Supabase; refusals stored as hash + truncated payload, capped per player per day; daily cap on accepted sessions | B4 | done |
-| 3 | *(A)* **Solo integrity and moderation**: impossible cadence flagged or refused; a moderation table read by boards, pool and friend search; dashboard hide / unhide / ban; "Account under review" on Profile | M5 | done |
-| 4 | *(A)* **Names and privacy**: reports from linked accounts only, rate-limited; reported name hidden until reviewed; look-alikes folded, folded names unique; `profiles` readable by its owner only; a deleted player's duels kept as "Deleted player" | M6, m8 | done |
-| 5 | *(A)* **Capacity**: per-player game counts; boards computed once and cached ~1 min; maintained run pool, config hash; weak-spot check bounded; stored sessions slimmed (rows migrated); static files content-hashed, cached a year, the Function on HTML only; dashboard alert at 50 % of the database; measurements re-run | M7, M8, M9 | done (sessions not slimmed: measured, it would grow them — `doc/decisions.md`) |
-| 6 | *(A)* **Correctness and security details**: times clamped to 30 s on a monotonic clock; poisoned session set aside, PostgREST 4xx → 400; security headers; advisory locks; 8-character friend codes, "New code", invite link asks first; sweep from `pg_cron`; exact staging origin; `search_path` everywhere, non-root container, dashboard password off the command line | m1, m2, m6, m7, m10, n2, n3 | done (the sweep on a server timer, not `pg_cron`) |
-| 7 | *(A)* **Tests and CI**: integration job (real server + scratch Postgres: an upload and a duel per mode), a duel in the staging smoke test; no cancellation on `main`, actions pinned by commit, `permissions: contents: read`; catalogue test, SQL pin on assertions, chunked-body and non-UUID tests; dead dependencies out, `PREVIEW_BUILD` an input; stale comments and the reviewer's rule list | M12, M13, m15, m16, n4, n5 | done but the staging smoke duel (`doc/progress.md`) |
+| 0 | *(A)* **Close-out of 6a**: Greek and Cyrillic allowed again in names; `duel_endpoint.dart` split by responsibility (matchmaking, runs, abandonment, rating, JSON); the abandonment sweep catches up at server start | — | |
+| 1 | *(A)* **Rules v9 generation**: the spec test reads the live `doc/levels.md`, the frozen v1.5 copy deleted; ≥ 12 distinct questions per tier; no repeat in a game or duel while the pool allows, never two in a row; uniform draws; no trivial factors above T0; new Powers, Roots, Integrals tables; Swap, round-number division, round cube roots, from-zero integrals sized by tier; both lengths at T8; the lower-bound size test; level targets rechecked by simulation | M10, m11, m20, m21 (and m5) | pushed with 2 |
+| 2 | *(A)* **Quitting counts**: a v9 Levelling game with one answer counts, unanswered questions as timeouts, however it ends (✕, three timeouts, a closed tab); server replay; a "quits after a mistake" player in the simulation | M4 | |
+| 3 | *(A)* **Method quality**: `doc/levels.md` section 9 v1.6; exhaustive switches on `PatternFamily`; pinned word-for-word examples | M11, n6 | |
+| 4 | *(C)* **Explained, not wordy**: one line under each Home and setup control; result "12 → 12" with the change in hundredths and its reason; a first-run card; a rules sheet before a rated duel; rules on first open of Get the count and Chain operations; Sign out confirmed; pending uploads visible | M15, M16, m17 | |
+| 5 | *(C)* **Network and devices**: server levels right after sign-in; "history from other devices is not shown here"; a sign-in hint for a level-0 guest; 15–20 s timeout on every Supabase call; Cancel and "Waking the server…" while finding an opponent; a notice when an unfinished duel was sent; loader watchdog with Reload; catch-all at start; failures shown on friend actions | M14, M15, M18 | |
+| 6 | *(C)* **Accessibility**: semantics on; a live region for question, feedback and timer; spoken labels per exercise type; outlines at 3:1; body text 15–16 px; viewport meta; guideline tests on Online, duel, Friends and Ranks | M17 | |
+| 7 | *(A)* **Strings and consistency**: every string in one place (English only); levels shown as whole parts everywhere; terms unified (game, Ranks, seconds) | m3, m18, m17 (terms) | m5 moved to 1 |
+| 8 | *(A)* **Docs**: `doc/architecture.md` regenerated; stale parts of `doc/online.md` rewritten; README numbers → a pointer to the CI pins; superseded and confirmed entries marked in `doc/decisions.md`; `CLAUDE.md` aligned | M19, m19 | |
 
-**Exit:** each of the review's duel exploits ends in a loss or a refusal; 2,000 crafted refusals
-store under 5 MB; the main board answers under 300 ms and matchmaking under 200 ms at 10,000
-players and 1,000,000 sessions locally; the integration job is green; every pin raised.
+**Exit:** no repeated question in a 10-question game at any tier; quitting after a mistake costs
+levels; the Method examples of the review read correctly; a first-time player on a phone
+understands Home, a game result and a duel without help; a screen reader can play a game.
 
-Done: 0–7 (26–27 Nov; `doc/progress.md`, "Phase 6a"). **Open for the owner:** confirm the
-provisional choices (`doc/decisions.md`, "Phase 6a" — above all: sessions not slimmed, the
-sweep on a server timer, "Latin letters only" read as narrowing); check the staging
-server's `ALLOWED_ORIGINS` on Render is `https://math-trainer-staging.pages.dev`. **Not done:**
-a duel in the staging smoke test (reported). Next: Phase 6b.
+**Rules v9 is one version for commits 1 and 2** (generation and the quitting rule): both are
+committed separately but pushed together, so no v9 game is ever played under half of it. m5
+(weak spots ⌊n/5⌋ per operation) changes what a game draws, so it is part of v9 (commit 1),
+not commit 7.
 
-**The owner's answers that bind this phase** (plan v3.9, "Project review"): duels are fixed then
-open **rated**; the goal is to stop casual abuse (no escaping a loss, no faked time) —
-server-revealed questions come with live duels (7b); launch is sized for ~1,000 players (Render
-always-on, Supabase free with an alert at 50 %); names are unique ignoring case and look-alike
-letters, only accounts report, a reported name is hidden until the owner reviews it; the owner
-moderates from the dashboard and a hidden player sees "Account under review"; a deleted
-player's duels are kept as "Deleted player". m12 (large files) and m13 (app contracts in the
-core) are fixed when the files are next touched — each phase report says what moved.
+**The owner's decisions that bind this phase** (plan v4.0, "Phase 6a outcome"; plan v3.9,
+"Project review"): Greek and Cyrillic allowed again in names ("Latin only" meant no new
+alphabets at launch); sessions not slimmed and no retention rule (Supabase's paid plan when the
+50 % alert fires); the sweep stays on a server timer and catches up at start; one report hides a
+name until 6c; quitting counts once a game has one answer (M4); "minimal text" relaxed for
+strangers (M16); pools widened and de-duplicated by spec v1.6 (M10); division always on one
+line; weak spots at most ⌊n/5⌋ per operation; strings in one place, English at launch, French
+right after. m12 (large files) and m13 (app contracts in the core) are fixed when the files are
+next touched — the phase report says what moved.
 
-**Until Phase 6b, the conformance test reads a frozen copy of the spec** (`doc/levels.md` v1.6
-describes rules v9; `packages/math_core/test/spec/levels_v1_5.md` is what v8 implements). It
-switches back to the owner's file by itself the day `RulesVersion.current` is v9.
+Done: 0 (27 Nov; `doc/progress.md`, "Phase 6b"). Next: commit 1.
 
 **Phase 7's rules** (plan v3.7–v3.8; detail in `doc/decisions.md`, "Phase 7"):
 - **No live matches**: every duel is asynchronous — a player races another's recorded run,
@@ -381,10 +378,12 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   `player_visible`; a new place that lists or matches players must too. `banned` = hidden plus
   403 `account_suspended` on uploads and new duels — **a 403, never a refusal**: lifting the
   ban must lose nothing. The player sees "Account under review" (`my_account_under_review`).
-- A session's end (`createdAt` + its answers' times) is stored
-  (`server_players.last_session_ends_at`); one created before the previous one ended is
-  flagged `overlapsPrevious` (accepted), one that ends after it was received is refused
-  `futureTimestamp`.
+- **A session's `createdAt` is its END**: the app stores a game when its last answer is
+  given or it is left. Its end is stored (`server_players.last_session_ends_at`); one that
+  started (`createdAt` − its answers' times) before the previous one ended is flagged
+  `overlapsPrevious` (accepted). 6a read `createdAt` as the start and refused every game of
+  more than 5 minutes of answers sent at once (`futureTimestamp`) — fixed in 6b commit 0; a
+  test now holds a 20-minute game.
 - **Boards are cached a minute** (6a commit 5): `leaderboard_top`, `leaderboard_around_me`,
   `duel_board_top`, `duel_board_around_me` read `board_rows`, refreshed by `board_refresh` when
   older than `board_cache_age()` — so they are **VOLATILE** (called with POST, as the app does).
@@ -411,9 +410,12 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
 - **Friend codes have 8 characters** (`MATH-7K2P-QX4M`, `normalizeFriendCode` and SQL
   `normalize_friend_code`: change both); `new_friend_code()` replaces one. An invite link
   asks before it sends a request (`OnlineController.takePendingInvite`).
-- Abandoned duels are swept by the production server outside requests (`sweepSoon`: a timer
-  every 5 minutes, and after a duel request at most once a minute); `DuelEndpoint` keeps
-  `sweepInRequests: true` by default for the tests.
+- Abandoned duels are swept by the production server outside requests (`sweepSoon`: **at
+  start**, on a timer every 5 minutes, and after a duel request at most once a minute), each
+  sweep catching up batch after batch until none is left (`DuelAbandonment.catchUp`; plan
+  v4.0: the free server sleeps); `DuelEndpoint` keeps `sweepInRequests: true` (one batch per
+  request) by default for the tests. `duel_endpoint.dart` is the HTTP surface only; the work
+  is in `server/lib/src/duels/` (matchmaking, runs, abandonment, ratings, JSON).
 - Every function in `public` and `owner_dashboard` sets `search_path` (`99l_details_test.sql`
   checks the whole catalogue): a new one without it fails CI.
 - **The integration job** (6a commit 7) runs `bin/server.dart` against every migration through
@@ -516,8 +518,8 @@ the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` secrets.
   `owner_dashboard.structural_features`; the SQL test's cases run against Dart: change both.
 - The name rule exists twice — `math_core/account/display_name.dart` and the SQL
   `display_name_problem` (latest definition: `…_names_privacy.sql`; the parity test reads the
-  newest migration defining it); change both. **Latin letters only** since 6a (owner, plan
-  v3.9); names saved before are kept (the constraint is `NOT VALID`). Allowed letters must stay
+  newest migration defining it); change both. Latin, Greek and Cyrillic letters (6a allowed
+  Latin only; reversed by the owner, plan v4.0 — 6b commit 0); the constraint is `NOT VALID`. Allowed letters must stay
   inside Inter's coverage (`name_charset_font_test.dart`).
 - **Names are unique by `fold_display_name`** (lowercase, accents and look-alikes of any script
   folded, i/l/1 and o/0 together, separators dropped, rn → m, vv → w) — a unique index on it.

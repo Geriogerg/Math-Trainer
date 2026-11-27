@@ -12,14 +12,17 @@ library;
 /// Longest name (the `profiles` check, the input's `maxLength`).
 const maxDisplayNameLength = 30;
 
-/// Characters a name may use: **Latin letters only** (owner, plan v3.9:
-/// "Latin letters only for names at launch"; Greek and Cyrillic were
-/// allowed until Phase 6a, names already saved are kept) that the bundled
-/// Inter font draws (no font is fetched at runtime, a missing glyph would
-/// show as a box) — Basic Latin, Latin-1, Latin Extended-A, Vietnamese —
-/// digits, space and `. _ ' -`. The same text, character for character, is
-/// the database's regular expression.
-const displayNameCharClass = r"[A-Za-z0-9À-ÖØ-öø-ňŊ-ſẠ-ỹ ._'-]";
+/// Characters a name may use: letters the bundled Inter font draws (no
+/// font is fetched at runtime, a missing glyph would show as a box) —
+/// Basic Latin, Latin-1, Latin Extended-A, Vietnamese, modern Greek, basic
+/// Cyrillic — digits, space and `. _ ' -`. The same text, character for
+/// character, is the database's regular expression. Phase 6a narrowed it
+/// to Latin; the owner reversed that (plan v4.0: "Latin letters only"
+/// meant no new alphabets at launch, not fewer).
+const displayNameCharClass =
+    r"[A-Za-z0-9À-ÖØ-öø-ňŊ-ſ"
+    r"ΆΈ-ΊΌΎ-ΡΣ-ώЀ-џ"
+    r"Ạ-ỹ ._'-]";
 
 /// Refused anywhere in the name once separators are removed: long enough
 /// not to hide inside ordinary names. Lowercase.

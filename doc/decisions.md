@@ -1998,10 +1998,17 @@ is the source.
     commit 1" under Phase 7 above); Latin letters only for names at launch; no ads, payments or
     analytics at launch; live duels in 7b.
 
-## Phase 6a: integrity and capacity (plan v3.9) — provisional choices
+## Phase 6a: integrity and capacity (plan v3.9) — confirmed but one (plan v4.0)
 
-Each choice below fills a gap the plan leaves; the owner confirms or reverses it in the phase
-report.
+Each choice below filled a gap the plan leaves. **The owner's verdicts (plan v4.0, "Phase 6a
+outcome", 27 November):** sessions not slimmed — **confirmed**, with **no retention rule**
+(levels must stay recomputable) and Supabase's paid plan when the 50 % alert fires; the sweep
+on a server timer — **confirmed**, and it must catch up at start (done in 6b commit 0);
+"Latin letters only" read as narrowing — **reversed**: Greek and Cyrillic are allowed again
+(6b commit 0); one report hides a name — **confirmed until 6c** (then confirmed accounts
+only); duplicates renamed "Name 2", cached Pages files, the rate limits, 300 games and 200
+duels a day, the 60 s board cache, the 200-session cap — **confirmed**; the frozen spec copy —
+**confirmed**, deleted in 6b commit 1. Everything else below stands as written.
 
 **Commit 0 — the conformance test reads a frozen spec until rules v9.**
 `levels_spec_conformance_test.dart` reads `doc/levels.md` and draws every example under
@@ -2189,3 +2196,34 @@ above no longer holds for Render; it would again on a host without Cloudflare in
   `connect-src` limited to the site, its Supabase project (HTTPS and WebSocket) and its server.
 - **Container**: UID 65534 by number (the scratch image has no user database). The base image
   stays a tag (`dart:3.14`): pinning a digest needs a way to bump it, not in this phase.
+
+## Phase 6b: player experience (plan v4.0) — provisional choices
+
+Each choice below fills a gap the plan leaves; the owner confirms or reverses it in the phase
+report.
+
+**Commit 0 — close-out of 6a.**
+
+- **A session's end is its `createdAt`** (a fix, not a choice: recorded because it changes a
+  6a rule). The app has always stored a game at its end — when the last answer is given or the
+  game is left — and 6a's commit 3 took `createdAt` for the start: it refused as
+  `futureTimestamp` every game with more than five minutes of answers sent at once (a default
+  40-question game at 8 s an answer is 5.3 minutes), stored `createdAt` + the answers' times
+  as the end, and so flagged `overlapsPrevious` a short game played right after a long one.
+  Now: the end is `createdAt`; a session overlaps when `createdAt` minus its answers' times is
+  before the previous end (2 s tolerance); "received sooner than its answers took" is the
+  existing `createdAt` check. The stored ends are reset to each player's latest `createdAt`
+  (migration `20261203000000_phase6a_closeout`). Games refused this way since 26 November
+  cannot be sent again: the app dropped them and adopted the server's levels — their count is
+  for the owner to read (the phase report gives the query).
+- **The catch-up.** A sweep outside requests takes batches of 3 until the database lists
+  fewer than 3, or a batch records nothing (a duel failing every time must not hold the
+  loop), or 200 batches (600 duels; the next sweep goes on). The server runs one at start —
+  not awaited: the first request is served at once — then every 5 minutes and after a duel
+  request, at most once a minute, as before. Inside requests (the tests) still one batch.
+- **The split of `duel_endpoint.dart`** (969 lines): `server/lib/src/duels/` —
+  `duel_matchmaking.dart` (find, rematch, challenge, open), `duel_runs.dart` (run, progress,
+  forfeit, apply), `duel_abandonment.dart` (sweep, catch-up), `duel_ratings.dart` (who is
+  rated, start ratings), `duel_json.dart` (the decided answer, JSON reading);
+  `duel_endpoint.dart` keeps the HTTP surface (routes, authentication, body) and the
+  constructor the tests use. No behaviour changed but the catch-up.

@@ -31,9 +31,9 @@ class ServerPlayerState {
   final Map<ExerciseType, LevelCacheEntry> levels;
   final DateTime? lastSessionAt;
 
-  /// When the player's latest accepted session ended: its start plus its
-  /// answers' times (Phase 6a). `null`: none yet, or a server that did not
-  /// record it.
+  /// When the player's latest accepted session ended: its `createdAt`, the
+  /// moment the app stored it (Phase 6a; read as its start until the 6a
+  /// close-out). `null`: none yet, or a server that did not record it.
   final DateTime? lastSessionEndsAt;
   final bool hasCompletedSession;
 }
@@ -45,8 +45,8 @@ enum RejectionReason {
   wrongPlayer,
 
   /// Timestamped after the moment the server received it (beyond clock
-  /// skew) — or, from Phase 6a, ending after it: a session cannot arrive
-  /// sooner than the time its own answers took.
+  /// skew). A session's `createdAt` is its end, so this also refuses one
+  /// received sooner than its own answers took (Phase 6a).
   futureTimestamp,
 
   /// Older than the player's last accepted session: uploads come in order.
@@ -222,20 +222,20 @@ ValidationResult validateSessionUpload({
     }
     playedMs += a.elapsedMs;
   }
-  // Received sooner than its own answers took (Phase 6a): the session ends
-  // after the server got it. The same tolerance as for its start, so a
-  // phone whose clock runs up to five minutes ahead is never refused.
-  final endsAt = session.createdAt.add(Duration(milliseconds: playedMs));
-  if (endsAt.isAfter(receivedAt.add(maxClockSkew))) {
-    return Rejected(
-      RejectionReason.futureTimestamp,
-      'ends $endsAt > received $receivedAt',
-    );
-  }
+  // A session's `createdAt` is its **end**: the app stores a game when its
+  // last answer is given or when it is left (`SessionController`). Its
+  // answers took [playedMs] before that, so it started by `createdAt −
+  // playedMs` at the latest (the pauses after a wrong answer are not in
+  // the answers' times). "Received sooner than its own answers took" is the
+  // `createdAt` check above. Phase 6a read `createdAt` as the start and
+  // refused, as ending after it was received, every game with more than
+  // five minutes of answering sent at once (fixed at the 6a close-out).
+  final endsAt = session.createdAt;
+  final startedBy = endsAt.subtract(Duration(milliseconds: playedMs));
   final previousEnd = state.lastSessionEndsAt;
   final overlaps =
       previousEnd != null &&
-      session.createdAt.isBefore(previousEnd.subtract(overlapTolerance));
+      startedBy.isBefore(previousEnd.subtract(overlapTolerance));
 
   // Every question regenerated from what the session stores.
   final List<Exercise> questions;

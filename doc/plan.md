@@ -5,6 +5,7 @@
 > from the owner. The day-to-day working rules live in `CLAUDE.md`, which must always stay
 > consistent with this plan (section 11).
 >
+> Version 4.0 — 27 November 2026: Phase 6a outcome; 6b and 6c adjusted; sections 4 and 8 aligned.
 > Version 3.9 — 26 November 2026: project review (`doc/review-2026-11-26.md`) and the owner's answers;
 > Phase 6 split into 6a Integrity and capacity, 6b Player experience (rules v9, `doc/levels.md` v1.6)
 > and 6c Launch; sections 2, 3.1, 4, 6.1, 6.3, 6.6, 8, 9 and 10 aligned.
@@ -111,15 +112,16 @@ Day and night themes. Tabs: Play, Online, Profile, Ranks.
 - **Platform:** CI (VM and JavaScript, weekly Android compile, pinned test counts), production on
   `math-trainer-kjc.pages.dev` behind the beta gate, staging running with its own Supabase project,
   Dart server on Render (free plan, sleeps), SQL migrations from CI, owner dashboard.
-- **Tests (review, commit `77f063c`):** core 1,116 (VM) / 890 (JavaScript), app 447, server 68,
-  tooling 10, SQL 20 files; coverage core 95.5 %, app 86.8 %, server 86.9 %. No secret in the
-  repository or its history. Web build: `main.dart.js` 0.77 MB brotli; first visit about 2.9 MB.
+- **Tests (after Phase 6a):** core 1,128 (VM) / 902 (JavaScript), app 452, server 103,
+  integration 7, SQL 27 files and 564 assertions. No secret in the repository; `.wrangler/` purged
+  from the history (26 November). Web build: `main.dart.js` 0.77 MB brotli; first visit about
+  2.9 MB, large files cached for a year.
 - The repository is **private** since 20 November. Web-only: mobile development is paused.
 
-**Review verdict (26 November): not ready to open to strangers.** The engineering base is sound;
-the launch surface is not. Five blockers (legal pages, unconfirmed accounts and no CAPTCHA, no
-password recovery, no abuse protection on the server, a duel loss escapable by one request) and
-nineteen majors. Every finding is assigned to Phase 6a, 6b or 6c below.
+**Review verdict (26 November): not ready to open to strangers.** Phase 6a closed two blockers
+(server abuse, escapable duel losses) and the integrity and capacity majors. Left: the player
+experience (6b) and the launch surface — legal pages, confirmed accounts, Turnstile, password
+recovery (6c).
 
 ## 5. Strategy: web-first, mobile-ready
 
@@ -1204,12 +1206,43 @@ change to the game. **Entry:** now; needs nothing from the owner.
 under 5 MB; the main board answers under 300 ms and matchmaking under 200 ms at 10,000 players and
 1,000,000 sessions locally; the integration job is green; every pin raised.
 
+### Phase 6a outcome (27 November)
+
+All eight commits live on production and staging (`ce4b401`). The review's duel exploits each end
+in a rated loss or a refusal (13 tests); 2,000 crafted refusals store 2.8 MB (was 498 MB); at
+10,000 players the main board answers in 291 ms on a recompute and 1.4 ms cached (was 22.9 s),
+matchmaking in 59–78 ms (was 2.1–2.4 s). History purged of `.wrangler/`, backup kept by the owner.
+
+**Owner decisions on the provisional choices (27 November):**
+- **Stored sessions are not slimmed** — kept: measured, compression already makes them smaller
+  than the slimmed form. **No retention rule**: levels must stay recomputable from history.
+  **Move to Supabase's paid plan when the 50 % alert fires** (about a month at 1,000 daily players).
+- **Abandoned-duel sweep on a server timer** — kept; it must catch up on every duel overdue at start
+  (the free server sleeps until 6c).
+- **Name alphabets — reversed.** "Latin letters only" meant *no new alphabets at launch*, not
+  fewer: Greek and Cyrillic are allowed again, as before 6a.
+- **One report hides a name** — kept until 6c, where only confirmed accounts may report.
+- **Duplicates renamed "Name 2", "Name 3"** (the earliest keeps it), **cached Pages files**, **rate
+  limits, 300 games and 200 duels a day, 60 s board cache, 200-session cap on the weak-spot check**
+  — kept.
+- **Spec test reads a frozen `levels.md` v1.5 until rules v9** — kept; 6b switches it back to the
+  live spec and deletes the copy.
+
+**Moved:** a duel in the staging smoke test → Phase 6c (it needs the confirmed-account flow).
+**Debt:** `duel_endpoint.dart` grew to 969 lines → split in Phase 6b. Old commit hashes stay
+reachable on GitHub by exact hash; harmless while the repository is private — ask GitHub Support
+to purge them before it is ever made public.
+
 ### Phase 6b — Player experience (one pass)
 
 **Goal:** what a stranger meets in the first ten minutes. **Entry:** Phase 6a done. Rules v9 from
 `doc/levels.md` v1.6.
 
-1. *(A)* **Rules v9 generation (M10, m11, m20, m21).** At least 12 distinct questions per tier; no
+0. *(A)* **Close-out of 6a.** Greek and Cyrillic allowed again in names; `duel_endpoint.dart` split by
+   responsibility (matchmaking, runs, abandonment, rating, JSON); the abandonment sweep catches up
+   at server start.
+1. *(A)* **Rules v9 generation (M10, m11, m20, m21).** The spec test reads the live
+   `doc/levels.md` again and the frozen v1.5 copy is deleted. At least 12 distinct questions per tier; no
    repeat within a game or duel while the pool allows, never two in a row; uniform draws; no
    trivial factors above T0; the new Powers, Roots and Integrals tables; Swap, round-number
    division, round cube roots and from-zero integrals sized by tier; both lengths at T8; the
@@ -1257,7 +1290,9 @@ always-on plan.
 4. *(A)* "Forgot password?" with recovery email and set-password screen (B3).
 5. *(A)* Error reporting to our own server.
 6. *(A)* Production on the domain, the old address redirecting; staging unchanged; the production
-   smoke test rethought for an ungated site; rules v2–v6 retired 30 days after v9.
+   smoke test rethought for an ungated site, and the staging smoke test plays a duel with a
+   confirmed account; reports of names from confirmed accounts only; rules v2–v6 retired 30 days
+   after v9.
 7. *(A)* Capacity report and launch checklist in `doc/`.
 8. *(C)* Gate removed; checklist run on a phone from a fresh browser.
 
@@ -1308,6 +1343,7 @@ name and domain, ads or payments) are prepared but not applied until the owner c
 | Email service and Turnstile key | Phase 6c |
 | Opening live duels | Phase 7b |
 | ~~Paid server plan~~ — decided: Render always-on at launch (buy before 6c); Supabase free with a 50 % alert | Phase 6c |
+| ~~Session retention~~ — decided: none; Supabase paid plan when the 50 % alert fires | Phase 6a |
 | Ads, payments, analytics — none at launch | Three months after launch |
 
 Any gap Claude Code fills with its own choice is listed in the phase report and confirmed by the

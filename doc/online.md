@@ -559,8 +559,11 @@ quits, or at the next start; it waits until `/health` lists its mode and duel ru
   nobody. Banned: hidden, and uploads and new duels answer 403 `account_suspended` (nothing
   refused, nothing lost). Their Profile says "Account under review". A session created
   before the player's previous one could have ended is flagged `overlapsPrevious`; one
-  received sooner than its own answers took is refused `futureTimestamp`.
-- **Names and privacy (Phase 6a commit 4).** Names use Latin letters only and are unique
+  received sooner than its own answers took is refused `futureTimestamp`. A session's
+  `createdAt` is its **end** (the app stores a game when it ends or is left): 6a read it as
+  the start, which refused long games sent at once — fixed at the 6a close-out (6b commit 0).
+- **Names and privacy (Phase 6a commit 4).** Names use Latin, Greek and Cyrillic letters (6a
+  allowed Latin only; the owner reversed it, plan v4.0) and are unique
   ignoring case, accents and look-alike letters (`fold_display_name`). Only saved accounts
   report a name, 10 a day; one report hides the player's name until the owner reviews it
   (`dashboard.sh approve-name | clear-name`), whatever they rename it to. `profiles` is read

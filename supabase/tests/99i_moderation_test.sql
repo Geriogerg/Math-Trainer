@@ -14,12 +14,13 @@ insert into public.profiles (id, display_name) values
   ('00000000-0000-0000-0000-000000000ab2', 'Nils'),
   ('00000000-0000-0000-0000-000000000ab3', 'Olga');
 
--- The end of a session: its start plus its answers' times.
+-- The end of a session: its created_at — the app stores a game when it ends
+-- (6b commit 0; 6a added its answers' times, as if created_at were its start).
 set role service_role;
 do $$
 declare
   p1 constant uuid := '00000000-0000-0000-0000-000000000ab1';
-  start constant timestamptz := now() - interval '10 minutes';
+  ended constant timestamptz := now() - interval '10 minutes';
   state jsonb;
   out text;
 begin
@@ -30,20 +31,20 @@ begin
   state := public.player_server_state(p1);
   assert state -> 'lastSessionEndsAt' = 'null'::jsonb and state -> 'moderation' = 'null'::jsonb;
   select outcome into out from public.apply_validated_session(
-    '00000000-0000-0000-0000-00000000ac01', p1, 0, start, 'game', true,
+    '00000000-0000-0000-0000-00000000ac01', p1, 0, ended, 'game', true,
     '{"session": {"rulesVersion": 8}, "answers": [{"elapsedMs": 1000}, {"elapsedMs": 2500}]}',
     '{"addition": {"level": 4000, "sessionsPlayed": 12, "updatedAt": "2026-11-26T10:00:00Z"}}',
     '{overlapsPrevious}');
   assert out = 'applied', out;
   state := public.player_server_state(p1);
-  assert (state ->> 'lastSessionEndsAt')::timestamptz = start + interval '3.5 seconds',
+  assert (state ->> 'lastSessionEndsAt')::timestamptz = ended,
     state ->> 'lastSessionEndsAt';
   -- An earlier session accepted later does not move the end back.
   select outcome into out from public.apply_validated_session(
-    '00000000-0000-0000-0000-00000000ac02', p1, 1, start - interval '1 hour', 'training', true,
+    '00000000-0000-0000-0000-00000000ac02', p1, 1, ended - interval '1 hour', 'training', true,
     '{"answers": [{"elapsedMs": 9000}]}', '{}', '{}');
   assert (public.player_server_state(p1) ->> 'lastSessionEndsAt')::timestamptz
-    = start + interval '3.5 seconds';
+    = ended;
 end;
 $$;
 reset role;

@@ -7,8 +7,8 @@ const samples = <String, DisplayNameProblem?>{
   'Ada': null,
   'Zoé Martin': null,
   'Nguyễn Văn An': null,
-  'Ελένη': DisplayNameProblem.charset,
-  'Пётр': DisplayNameProblem.charset,
+  'Ελένη': null,
+  'Пётр': null,
   "O'Brien-2": null,
   'Marc_Antoine.9': null,
   'Mitsuko': null,
@@ -35,7 +35,15 @@ void main() {
 
   test('the character class covers every letter of the samples it allows', () {
     // Catches a range typo: a real name refused for a missing letter.
-    for (final name in ['Àéîõü Ÿ', 'Łódź Śćń', 'Ŋŧœ ſ', 'Đặng', 'Ỳỹ ạ']) {
+    for (final name in [
+      'Àéîõü Ÿ',
+      'Łódź Śćń',
+      'Ŋŧœ ſ',
+      'Ωμέγα',
+      'Жюль Ёж',
+      'Đặng',
+      'Ỳỹ ạ',
+    ]) {
       expect(displayNameProblem(name), isNull, reason: name);
     }
   });

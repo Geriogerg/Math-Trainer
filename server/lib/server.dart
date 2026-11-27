@@ -23,17 +23,27 @@ export 'src/session_endpoint.dart';
 export 'src/supabase_gateway.dart';
 
 /// The production handler: every route, wired to the real Supabase (or to
-/// [gateway]), behind the rate limits. Abandoned duels are recorded every
-/// [sweepEvery] (and soon after a duel request), outside the requests.
+/// [gateway]), behind the rate limits. Abandoned duels are recorded outside
+/// the requests: **at start** — every duel left while the server slept
+/// (plan v4.0: Render's free plan sleeps until Phase 6c) — then every
+/// [sweepEvery] and soon after a duel request, each time catching up on all
+/// of them. [duels] receives the endpoint (tests watch its sweep).
 Handler buildServerHandler(
   ServerConfig config, {
   SupabaseGateway? gateway,
   Duration sweepEvery = const Duration(minutes: 5),
+  void Function(DuelEndpoint endpoint)? duels,
 }) {
   final supabase = gateway ?? HttpSupabaseGateway(config);
   final limits = RateLimits();
-  final duels = DuelEndpoint(supabase, limits: limits, sweepInRequests: false);
-  Timer.periodic(sweepEvery, (_) => duels.sweepSoon());
+  final endpoint = DuelEndpoint(
+    supabase,
+    limits: limits,
+    sweepInRequests: false,
+  );
+  duels?.call(endpoint);
+  endpoint.sweepSoon();
+  Timer.periodic(sweepEvery, (_) => endpoint.sweepSoon());
   return buildHandler(
     config,
     limits: limits,
@@ -43,7 +53,7 @@ Handler buildServerHandler(
         requireBetaCode: config.requireBetaCode,
         limits: limits,
       ).route,
-      ...duels.routes,
+      ...endpoint.routes,
     ],
   );
 }

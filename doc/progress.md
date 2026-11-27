@@ -1865,3 +1865,30 @@ All eight commits pushed (`dd5cd7a` … `ce4b401`). Exit test, item by item:
 
 Not done: a duel in the staging smoke test (M12's second half). Owner: confirm the
 provisional choices; check `ALLOWED_ORIGINS` of the staging server on Render.
+
+## Phase 6b — Player experience (plan v4.0)
+
+Rules v9 (`doc/levels.md` v1.6) is commits 1 and 2 together: committed apart, pushed together
+(one CI run, one deploy), so no v9 game is played under half of it. m5 moved into commit 1 (it
+changes what a v9 game draws).
+
+- **Commit 0** *(A)* — **Close-out of 6a.** Plan v4.0 committed (the owner's), CLAUDE.md's
+  Current phase is 6b. **Names**: Greek and Cyrillic allowed again (owner, plan v4.0) — the
+  Dart class and `display_name_problem` (migration `20261203000000_phase6a_closeout`) back to
+  the pre-6a text; the name samples and SQL test `40` say so again; Inter still draws every
+  allowed letter (`name_charset_font_test.dart`). **`duel_endpoint.dart` split** (969 lines →
+  `duel_endpoint.dart` 187, the HTTP surface, and `server/lib/src/duels/`: matchmaking 256,
+  runs 388, abandonment 132, ratings 112, JSON 75); no behaviour changed. **The sweep catches
+  up**: every sweep outside requests takes batches of 3 until none is left, and the server
+  runs one at start (test: 7 duels left while it slept, all recorded before any request, in 3
+  batches). **A 6a regression, found and fixed**: a session's `createdAt` is the moment the
+  app stored it — its end — but 6a commit 3 took it for the start: every game with more than
+  five minutes of answers sent at once was refused `futureTimestamp` since 26 Nov (a default
+  40-question game at 8 s an answer is 5.3 min), and a short game right after a long one was
+  flagged `overlapsPrevious`. Now the end is `createdAt` and the start `createdAt` minus the
+  answers' times (core `validateSessionUpload`; SQL `apply_validated_session` stores the end;
+  the stored ends reset). Tests: a 20-minute game sent 2 s after it ended is accepted (refused
+  before), a short game after a long one is not flagged (flagged before); SQL `99i` reads the
+  end as `created_at`. How many games production refused this way: not read (the database is
+  the owner's) — the phase report gives the query. Run locally: core VM 1129, server 104,
+  SQL 27 files, integration 7 of 7 (the split server against every migration).

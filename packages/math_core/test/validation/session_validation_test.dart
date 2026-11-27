@@ -502,7 +502,9 @@ void main() {
   });
 
   // Phase 6a commit 3 (plan v3.9; review M5): timestamps that were written,
-  // not lived.
+  // not lived. A session's `createdAt` is its END — the app stores a game
+  // when its last answer is given or it is left — which 6a read as its
+  // start until the 6a close-out (plan v4.0, Phase 6b commit 0).
   group('cadence', () {
     // The honest game: 8 answers, 1500 + 97 × i ms each.
     const played = Duration(milliseconds: 8 * 1500 + 97 * 28);
@@ -516,50 +518,45 @@ void main() {
       ),
     );
 
-    test('a session cannot arrive sooner than its own answers took', () {
-      // Started 5 minutes "ago" by the tolerance, but its answers add 14.7 s.
+    test('a long game sent as soon as it ends is accepted (6a refused '
+        'every game of more than 5 minutes of answers sent at once)', () {
+      // Forty 30-second answers (20 minutes), stored 2 s before it arrives.
+      final long = honestGame(
+        count: 40,
+        at: _received.subtract(const Duration(seconds: 2)),
+        answer: (i, q) => (value: q.correctAnswer, ms: 30000),
+      );
+      expect(validate(long), isA<Accepted>());
+      // Its end is after it was received (beyond the 5-minute skew): no
+      // session arrives before it ends.
       refusedAsFuture(
-        validate(honestGame(at: _received.add(const Duration(minutes: 5)))),
-      );
-      // Forty 30-second answers (20 minutes) "played" in 4 minutes.
-      final slow = honestGame(
-        count: 40,
-        at: _received.subtract(const Duration(minutes: 4)),
-        answer: (i, q) => (value: q.correctAnswer, ms: 30000),
-      );
-      refusedAsFuture(validate(slow));
-      // The same game started 21 minutes before: it had the time.
-      final possible = honestGame(
-        count: 40,
-        at: _received.subtract(const Duration(minutes: 21)),
-        answer: (i, q) => (value: q.correctAnswer, ms: 30000),
-      );
-      expect(validate(possible), isA<Accepted>());
-      // A phone 4 minutes ahead is still tolerated, as before.
-      expect(
         validate(
           honestGame(
-            at: _received
-                .add(const Duration(minutes: 4))
-                .subtract(const Duration(seconds: 20)),
+            count: 40,
+            at: _received.add(const Duration(minutes: 6)),
+            answer: (i, q) => (value: q.correctAnswer, ms: 30000),
           ),
         ),
+      );
+      // A phone 4 minutes ahead is still tolerated, as before.
+      expect(
+        validate(honestGame(at: _received.add(const Duration(minutes: 4)))),
         isA<Accepted>(),
       );
     });
 
-    test('the state records when the session ended', () {
-      final start = DateTime.utc(2026, 11, 20, 11);
-      final first = validate(honestGame(at: start)) as Accepted;
-      expect(first.newState.lastSessionEndsAt, start.add(played));
+    test('the state records when the session ended: its createdAt', () {
+      final end = DateTime.utc(2026, 11, 20, 11);
+      final first = validate(honestGame(at: end)) as Accepted;
+      expect(first.newState.lastSessionEndsAt, end);
       expect(first.flags, isNot(contains(ValidationFlag.overlapsPrevious)));
       // An earlier end never replaces a later one.
-      final later = start.add(const Duration(hours: 1));
+      final later = end.add(const Duration(hours: 1));
       final kept =
           validate(
-                honestGame(id: 's2', at: start.add(const Duration(seconds: 1))),
+                honestGame(id: 's2', at: end.add(const Duration(seconds: 1))),
                 state: ServerPlayerState(
-                  lastSessionAt: start,
+                  lastSessionAt: end,
                   lastSessionEndsAt: later,
                 ),
               )
@@ -567,18 +564,19 @@ void main() {
       expect(kept.newState.lastSessionEndsAt, later);
     });
 
-    test('created before the previous one could end: flagged, accepted', () {
-      final start = DateTime.utc(2026, 11, 20, 11);
+    test('started before the previous one ended: flagged, accepted', () {
+      final end = DateTime.utc(2026, 11, 20, 11);
       final state = ServerPlayerState(
-        lastSessionAt: start,
-        lastSessionEndsAt: start.add(played),
+        lastSessionAt: end,
+        lastSessionEndsAt: end,
       );
-      // "Created" a millisecond after the previous one started.
+      // Ended a millisecond after the previous one: its 14.7 s of answers
+      // began while that one was still being played.
       final stacked =
           validate(
                 honestGame(
                   id: 's2',
-                  at: start.add(const Duration(milliseconds: 1)),
+                  at: end.add(const Duration(milliseconds: 1)),
                 ),
                 state: state,
               )
@@ -589,7 +587,7 @@ void main() {
       for (final gap in const [Duration.zero, Duration(seconds: -2)]) {
         final next =
             validate(
-                  honestGame(id: 's3', at: start.add(played + gap)),
+                  honestGame(id: 's3', at: end.add(played + gap)),
                   state: state,
                 )
                 as Accepted;
@@ -603,7 +601,7 @@ void main() {
           validate(
                 honestGame(
                   id: 's4',
-                  at: start.add(played - const Duration(seconds: 3)),
+                  at: end.add(played - const Duration(seconds: 3)),
                 ),
                 state: state,
               )
@@ -612,11 +610,41 @@ void main() {
       // A server that never recorded an end checks nothing.
       final unknown =
           validate(
-                honestGame(id: 's5', at: start.add(const Duration(seconds: 1))),
-                state: ServerPlayerState(lastSessionAt: start),
+                honestGame(id: 's5', at: end.add(const Duration(seconds: 1))),
+                state: ServerPlayerState(lastSessionAt: end),
               )
               as Accepted;
       expect(unknown.flags, isNot(contains(ValidationFlag.overlapsPrevious)));
+    });
+
+    test('a short game right after a long one is not flagged (6a flagged '
+        'it: the long one "ended" its own length after it was stored)', () {
+      final longEnd = DateTime.utc(2026, 11, 20, 11);
+      final long =
+          validate(
+                honestGame(
+                  count: 40,
+                  at: longEnd,
+                  answer: (i, q) => (value: q.correctAnswer, ms: 30000),
+                ),
+              )
+              as Accepted;
+      // The next game starts from the levels the long one left.
+      final short =
+          validate(
+                honestGame(
+                  id: 's2',
+                  at: longEnd.add(played + const Duration(seconds: 5)),
+                  levels: {
+                    for (final MapEntry(:key, :value)
+                        in long.newState.levels.entries)
+                      key: value.level,
+                  },
+                ),
+                state: long.newState,
+              )
+              as Accepted;
+      expect(short.flags, isNot(contains(ValidationFlag.overlapsPrevious)));
     });
   });
 

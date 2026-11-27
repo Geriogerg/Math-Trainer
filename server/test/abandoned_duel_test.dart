@@ -148,6 +148,40 @@ void main() {
     expect(gateway.duels[challenge['duelId']]!['state'], 'void');
   });
 
+  // Plan v4.0 (Phase 6a outcome): the free server sleeps; when it starts it
+  // records every duel left meanwhile, batch after batch, before anyone asks.
+  test('a server start records every duel left while it slept', () async {
+    final left = <String>[];
+    for (var i = 0; i < 7; i++) {
+      final practice = await post('/v1/duels', {'mode': 'basics'}, 'tok-b');
+      left.add(practice['duelId'] as String);
+      // Its hour to be handed back is over: the next request makes another.
+      gateway.duels[practice['duelId']]!['stale'] = true;
+    }
+    for (final id in left) {
+      gateway.duels[id]!['pastDeadline'] = true;
+    }
+    gateway.calls.clear();
+    DuelEndpoint? endpoint;
+    buildServerHandler(
+      ServerConfig.fromEnvironment(const {
+        'SUPABASE_URL': 'https://x.supabase.co',
+        'SUPABASE_SECRET_KEY': 'sb_secret_x',
+        'ALLOWED_ORIGINS': 'https://app.example',
+      }),
+      gateway: gateway,
+      sweepEvery: const Duration(days: 1),
+      duels: (e) => endpoint = e,
+    );
+    await endpoint!.sweepRunning;
+    for (final id in left) {
+      final duel = gateway.duels[id]!;
+      expect((duel['state'], duel['result']), ('done', 0), reason: id);
+    }
+    // Batches of 3: 3, 3, 1 — the last one not full ends the catch-up.
+    expect(gateway.calls.where((c) => c == 'duel_abandoned'), hasLength(3));
+  });
+
   test('opening a challenge marks when its 24 hours start', () async {
     final challenge = await post('/v1/duels', {
       'mode': 'basics',
